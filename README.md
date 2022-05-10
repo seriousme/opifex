@@ -2,7 +2,7 @@
 Opifex aims to provide a MQTT server in Typescript to be used with [Deno](https://deno.land)
 It has *no* third party dependencies, it only relies on built in Deno modules.
 
-Its a work in progress and currently only has memory based persistence.
+Its a work in progress, only does MQTT 3.1.1 and currently only has memory based persistence.
 
 ## Playing around
 Make sure you have [Deno](https://deno.land) installed.
