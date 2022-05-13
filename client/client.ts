@@ -1,10 +1,7 @@
 import {
   ConnackPacket,
-  ConnectPacket,
-  DisconnectPacket,
   MqttConn,
   PacketType,
-  PublishPacket,
 } from "./deps.ts";
 
 import { createMqttConn, Deferred, Timer } from "./deps.ts";
@@ -44,7 +41,6 @@ export class Client {
   private mqttConn: MqttConn | undefined;
   private unresolvedConnect?: Deferred<ConnackPacket>;
   private debug: Function;
-  private conn: Deno.Conn | undefined;
 
   constructor(logger?: Function ) {
     this.connectionState = ConnectionState.offline;
@@ -58,25 +54,28 @@ export class Client {
     const protocol = this.url.protocol;
     const hostname = this.url.hostname;
 
-    // to allow new types of connections and automated testing
-    // if you need to support alternative connection types just overload
-    // this method in your subclass
-    if (this.conn !== undefined){
-      return this.conn;
-    }
-
+    // if you need to support alternative connection types just 
+    // overload this method in your subclass
     if (protocol === "mqtts:") {
-      const port = Number(this.url.port) || 8883;
-      const certFile = this.certFile;
-      this.debug({ protocol, hostname, port });
-      return await Deno.connectTls({ hostname, port, certFile });
+      return this.connectMQTTS(protocol, hostname);
     }
     if (protocol === "mqtt:") {
-      const port = Number(this.url.port) || 1883;
-      this.debug({ protocol, hostname, port });
-      return await Deno.connect({ port });
+      return this.connectMQTT(protocol, hostname);
     }
     throw `Unsupported protocol: ${protocol}`;
+  }
+
+  private async connectMQTT(protocol: string, hostname: string) {
+    const port = Number(this.url.port) || 1883;
+    this.debug({ protocol, hostname, port });
+    return await Deno.connect({ port });
+  }
+
+  private async connectMQTTS(protocol: string, hostname: string) {
+    const port = Number(this.url.port) || 8883;
+    const certFile = this.certFile;
+    this.debug({ protocol, hostname, port });
+    return await Deno.connectTls({ hostname, port, certFile });
   }
 
   private async doConnect(numberOfRetries: number): Promise<void> {
@@ -107,14 +106,12 @@ export class Client {
   async connect(
     params?: {
       url?: string;
-      conn?: Deno.Conn;
       certFile?: string;
       clientId?: string;
       numberOfRetries?: number;
     },
   ): Promise<ConnackPacket> {
     this.url = params?.url ? new URL(params?.url) : this.url;
-    this.conn = params?.conn;
     this.certFile = params?.certFile;
     this.clientId = params?.clientId || generateClientId(this.clientIdPrefix);
     this.numberOfRetries = params?.numberOfRetries || this.numberOfRetries;
