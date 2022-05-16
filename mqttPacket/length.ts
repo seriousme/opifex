@@ -8,7 +8,7 @@ export function encodeLength(x: number): number[] {
     }
     output.push(encodedByte);
   } while (x > 0);
-  if (output.length > 4){
+  if (output.length > 4) {
     throw Error("length encoding failed");
   }
   return output;

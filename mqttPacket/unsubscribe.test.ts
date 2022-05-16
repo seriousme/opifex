@@ -8,7 +8,7 @@ Deno.test("encode Unsubscribe", () => {
       {
         type: PacketType.unsubscribe,
         id: 1,
-        topicFilters: ["a/b","c/d"],
+        topicFilters: ["a/b", "c/d"],
       },
     ),
     Uint8Array.from([
@@ -59,7 +59,7 @@ Deno.test("decode Unsubscribe", () => {
     {
       type: PacketType.unsubscribe,
       id: 1,
-      topicFilters: ["a/b","c/d"],
+      topicFilters: ["a/b", "c/d"],
     },
   );
 });
@@ -134,4 +134,3 @@ Deno.test("decode unsubscribe packet too short", () => {
     "too short",
   );
 });
-

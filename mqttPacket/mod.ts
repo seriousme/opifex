@@ -1,9 +1,5 @@
 import { PacketType, QoS, Topic, TopicFilter } from "./types.ts";
-import {
-  invalidTopic,
-  invalidTopicFilter,
-  invalidUTF8,
-} from "./validators.ts";
+import { invalidTopic, invalidTopicFilter, invalidUTF8 } from "./validators.ts";
 import { decodeLength, encodeLength } from "./length.ts";
 import connect, { ConnectPacket } from "./connect.ts";
 import connack, { AuthenticationResult, ConnackPacket } from "./connack.ts";
@@ -96,7 +92,7 @@ export function encode(packet: AnyPacket) {
   }
   const { flags, bytes } = encoded;
   return Uint8Array.from([
-    ((packetType << 4) | flags),
+    (packetType << 4) | flags,
     ...encodeLength(bytes.length),
     ...bytes,
   ]);

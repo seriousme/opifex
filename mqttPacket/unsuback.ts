@@ -1,11 +1,11 @@
-import { PacketType} from "./types.ts";
+import { PacketType } from "./types.ts";
 import { Decoder } from "./decoder.ts";
 import { Encoder } from "./encoder.ts";
 
-export interface UnsubackPacket {
+export type UnsubackPacket = {
   type: PacketType.unsuback;
   id: number;
-}
+};
 
 export default {
   encode(packet: UnsubackPacket) {

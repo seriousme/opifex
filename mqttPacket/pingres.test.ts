@@ -31,14 +31,18 @@ Deno.test("decode Pingres", () => {
 });
 
 Deno.test("decode invalid Pingres", () => {
-  assertThrows(()=> decode(
-      Uint8Array.from([
-        // fixedHeader
-        208, // packetType + flags
-        2, // remainingLength
-        0,
-        0,
-      ]),
-    ),Error,"too long"
+  assertThrows(
+    () =>
+      decode(
+        Uint8Array.from([
+          // fixedHeader
+          208, // packetType + flags
+          2, // remainingLength
+          0,
+          0,
+        ]),
+      ),
+    Error,
+    "too long",
   );
 });

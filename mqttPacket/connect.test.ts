@@ -219,7 +219,7 @@ const encodedConnectWithWill = [
   2, // length LSB
   105, // 'i'
   100, // 'd'
-  // will topic 
+  // will topic
   0, // length MSB
   6, // length LSB
   109, // 'm'
@@ -235,13 +235,13 @@ const encodedConnectWithWill = [
   81, // 'Q'
   84, // 'T'
   84, // 'T'
- // username
- 0, // length MSB
- 4, // length LSB
- 117, // 'u'
- 115, // 's'
- 101, // 'e'
- 114, // 'r'
+  // username
+  0, // length MSB
+  4, // length LSB
+  117, // 'u'
+  115, // 's'
+  101, // 'e'
+  114, // 'r'
   // password
   0, // length MSB
   4, // length LSB

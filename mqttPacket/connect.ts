@@ -1,12 +1,17 @@
 import { BitMask, PacketType, Payload, QoS, Topic } from "./types.ts";
 import { Encoder } from "./encoder.ts";
-import { booleanFlag, Decoder, DecoderError, hasEmptyFlags } from "./decoder.ts";
+import {
+  booleanFlag,
+  Decoder,
+  DecoderError,
+  hasEmptyFlags,
+} from "./decoder.ts";
 
-export interface ConnectPacket {
+export type ConnectPacket = {
   type: PacketType.connect;
   protocolName?: string;
   protocolLevel?: number;
-  clientId: string;
+  clientId?: string;
   username?: string;
   password?: Uint8Array;
   will?: {
@@ -17,7 +22,7 @@ export interface ConnectPacket {
   };
   clean?: boolean;
   keepAlive?: number;
-}
+};
 
 function invalidProtocolName(version: number, name: string): boolean {
   if ((version === 4) && (name !== "MQTT")) {
@@ -32,7 +37,7 @@ export default {
 
     const protocolLevel = 4;
     const protocolName = (protocolLevel === 4) ? "MQTT" : "MQIsdp";
-
+    const clientId = packet.clientId || "";
     const usernameFlag = !!packet.username;
     const passwordFlag = !!packet.password;
     const willRetain = !!packet.will?.retain;
@@ -54,7 +59,7 @@ export default {
       .setByte(protocolLevel)
       .setByte(connectFlags)
       .setInt16(keepAlive)
-      .setUtf8String(packet.clientId);
+      .setUtf8String(clientId);
 
     if (packet.will) {
       encoder

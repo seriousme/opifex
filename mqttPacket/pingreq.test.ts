@@ -31,14 +31,18 @@ Deno.test("decode Pingreq", () => {
 });
 
 Deno.test("decode invalid Pingreq", () => {
-  assertThrows(()=> decode(
-      Uint8Array.from([
-        // fixedHeader
-        192, // packetType + flags
-        2, // remainingLength
-        0,
-        0,
-      ]),
-    ),Error,"too long"
+  assertThrows(
+    () =>
+      decode(
+        Uint8Array.from([
+          // fixedHeader
+          192, // packetType + flags
+          2, // remainingLength
+          0,
+          0,
+        ]),
+      ),
+    Error,
+    "too long",
   );
 });

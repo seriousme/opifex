@@ -1,4 +1,4 @@
-import { QoS, Topic, TopicFilter } from "./types.ts"
+import { QoS, Topic, TopicFilter } from "./types.ts";
 
 const invalidUTF8regEx = new RegExp(/\x00|\uFFFD/);
 const invalidTopicRegEx = new RegExp(/^$|\+|#|\x00|\uFFFD/);

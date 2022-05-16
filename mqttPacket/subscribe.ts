@@ -2,11 +2,11 @@ import { BitMask, PacketType, QoS, TopicFilter } from "./types.ts";
 import { Encoder } from "./encoder.ts";
 import { booleanFlag, Decoder, DecoderError } from "./decoder.ts";
 
-export interface SubscribePacket {
+export type SubscribePacket = {
   type: PacketType.subscribe;
   id: number;
   subscriptions: Subscription[];
-}
+};
 
 export type Subscription = {
   topicFilter: TopicFilter;

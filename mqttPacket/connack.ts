@@ -10,11 +10,11 @@ export enum AuthenticationResult {
   notAuthorized = 5,
 }
 
-export interface ConnackPacket {
+export type ConnackPacket = {
   type: PacketType.connack;
   sessionPresent: boolean;
   returnCode: AuthenticationResult;
-}
+};
 
 export default {
   encode(packet: ConnackPacket): { flags: number; bytes: number[] } {

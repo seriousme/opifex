@@ -1,14 +1,14 @@
 import { PacketType } from "./types.ts";
 import { isEmptyBuf } from "./decoder.ts";
 
-export interface PingresPacket {
+export type PingresPacket = {
   type: PacketType.pingres;
-}
+};
 
 export default {
   encode(_packet: PingresPacket) {
     const flags = 0;
-    return { flags, bytes:[]};
+    return { flags, bytes: [] };
   },
 
   decode(

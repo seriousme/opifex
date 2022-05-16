@@ -31,14 +31,18 @@ Deno.test("decode Disconnect", () => {
 });
 
 Deno.test("decode invalid Disconnect", () => {
-  assertThrows(()=> decode(
-      Uint8Array.from([
-        // fixedHeader
-        224, // packetType + flags
-        2, // remainingLength
-        0,
-        0,
-      ]),
-    ),Error,"too long"
+  assertThrows(
+    () =>
+      decode(
+        Uint8Array.from([
+          // fixedHeader
+          224, // packetType + flags
+          2, // remainingLength
+          0,
+          0,
+        ]),
+      ),
+    Error,
+    "too long",
   );
 });

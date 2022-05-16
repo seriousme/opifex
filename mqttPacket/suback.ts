@@ -2,11 +2,11 @@ import { PacketType } from "./types.ts";
 import { Encoder } from "./encoder.ts";
 import { Decoder } from "./decoder.ts";
 
-export interface SubackPacket {
+export type SubackPacket = {
   type: PacketType.suback;
   id: number;
   returnCodes: number[];
-}
+};
 
 export default {
   encode(packet: SubackPacket) {

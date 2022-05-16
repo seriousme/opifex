@@ -23,7 +23,7 @@ Deno.test("encode Suback", () => {
   );
 });
 
-Deno.test("decode Suback", ()=>{
+Deno.test("decode Suback", () => {
   assertEquals(
     decode(
       Uint8Array.from([
@@ -36,7 +36,7 @@ Deno.test("decode Suback", ()=>{
         // payload
         0,
         1,
-      ])
+      ]),
     ),
     {
       type: PacketType.suback,

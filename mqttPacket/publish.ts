@@ -2,7 +2,7 @@ import { BitMask, PacketType, Payload, QoS, Topic } from "./types.ts";
 import { Encoder, EncoderError } from "./encoder.ts";
 import { booleanFlag, Decoder, DecoderError } from "./decoder.ts";
 
-export interface PublishPacket {
+export type PublishPacket = {
   type: PacketType.publish;
   topic: Topic;
   payload: Payload;
@@ -10,7 +10,7 @@ export interface PublishPacket {
   retain?: boolean;
   qos?: QoS;
   id?: number;
-}
+};
 
 export default {
   encode(packet: PublishPacket) {

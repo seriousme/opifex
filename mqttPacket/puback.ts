@@ -1,11 +1,11 @@
-import { PacketType} from "./types.ts";
+import { PacketType } from "./types.ts";
 import { Decoder } from "./decoder.ts";
 import { Encoder } from "./encoder.ts";
 
-export interface PubackPacket {
+export type PubackPacket = {
   type: PacketType.puback;
   id: number;
-}
+};
 
 export default {
   encode(packet: PubackPacket) {

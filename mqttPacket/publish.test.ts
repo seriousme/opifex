@@ -155,34 +155,44 @@ Deno.test("decode Publish no payload", () => {
 });
 
 Deno.test("Invalid qos", () => {
-  assertThrows(() =>  decode(
-    Uint8Array.from([
-      // fixedHeader
-      0x36, // packetType + flags
-      5, // remainingLength
-      // variableHeader
-      0, // topicLength MSB
-      3, // topicLength LSB
-      97, // 'a'
-      47, // '/'
-      98, // 'b'
-      // payload
-    ]),
-  ),Error,"Invalid qos");
+  assertThrows(
+    () =>
+      decode(
+        Uint8Array.from([
+          // fixedHeader
+          0x36, // packetType + flags
+          5, // remainingLength
+          // variableHeader
+          0, // topicLength MSB
+          3, // topicLength LSB
+          97, // 'a'
+          47, // '/'
+          98, // 'b'
+          // payload
+        ]),
+      ),
+    Error,
+    "Invalid qos",
+  );
 });
 Deno.test("Invalid qos for duplicate", () => {
-  assertThrows(() =>  decode(
-    Uint8Array.from([
-      // fixedHeader
-      0x38, // packetType + flags
-      5, // remainingLength
-      // variableHeader
-      0, // topicLength MSB
-      3, // topicLength LSB
-      97, // 'a'
-      47, // '/'
-      98, // 'b'
-      // payload
-    ]),
-  ),Error,"Invalid qos for possible duplicate");
+  assertThrows(
+    () =>
+      decode(
+        Uint8Array.from([
+          // fixedHeader
+          0x38, // packetType + flags
+          5, // remainingLength
+          // variableHeader
+          0, // topicLength MSB
+          3, // topicLength LSB
+          97, // 'a'
+          47, // '/'
+          98, // 'b'
+          // payload
+        ]),
+      ),
+    Error,
+    "Invalid qos for possible duplicate",
+  );
 });

@@ -2,11 +2,11 @@ import { BitMask, PacketType, Topic, TopicFilter } from "./types.ts";
 import { Encoder } from "./encoder.ts";
 import { booleanFlag, Decoder, DecoderError } from "./decoder.ts";
 
-export interface UnsubscribePacket {
+export type UnsubscribePacket = {
   type: PacketType.unsubscribe;
   id: number;
   topicFilters: TopicFilter[];
-}
+};
 
 export default {
   encode(packet: UnsubscribePacket) {

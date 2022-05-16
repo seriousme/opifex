@@ -231,5 +231,3 @@ Deno.test("decode Subscribe packet invalid packet id with QoS > 0", () => {
     "Invalid packet identifier",
   );
 });
-
-

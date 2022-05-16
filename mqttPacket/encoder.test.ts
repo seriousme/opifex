@@ -38,5 +38,3 @@ Deno.test("encode string", () => {
   encoder.setUtf8String(str);
   assertEquals(encoder.done(), [0x00, len, ...byteArray]);
 });
-
-

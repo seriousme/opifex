@@ -1,9 +1,9 @@
 import { PacketType } from "./types.ts";
 import { hasEmptyFlags, isEmptyBuf } from "./decoder.ts";
 
-export interface PingreqPacket {
+export type PingreqPacket = {
   type: PacketType.pingreq;
-}
+};
 
 export default {
   encode(_packet: PingreqPacket) {
@@ -15,7 +15,7 @@ export default {
     buffer: Uint8Array,
     flags: number,
   ): PingreqPacket {
-    hasEmptyFlags(flags)
+    hasEmptyFlags(flags);
     isEmptyBuf(buffer);
     return {
       type: PacketType.pingreq,

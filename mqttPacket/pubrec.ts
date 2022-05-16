@@ -1,11 +1,11 @@
-import { PacketType} from "./types.ts";
+import { PacketType } from "./types.ts";
 import { Decoder } from "./decoder.ts";
 import { Encoder } from "./encoder.ts";
 
-export interface PubrecPacket {
+export type PubrecPacket = {
   type: PacketType.pubrec;
   id: number;
-}
+};
 
 export default {
   encode(packet: PubrecPacket) {
