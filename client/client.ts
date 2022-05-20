@@ -1,7 +1,10 @@
 import {
-  ConnackPacket,
+  AnyPacket,
+  ConnectPacket,
   MqttConn,
   PacketType,
+  PublishPacket,
+  SubscribePacket,
 } from "./deps.ts";
 
 import { createMqttConn, Deferred, Timer } from "./deps.ts";
@@ -9,6 +12,20 @@ import { createMqttConn, Deferred, Timer } from "./deps.ts";
 function generateClientId(prefix: string): string {
   return `${prefix}-${Math.random().toString().slice(-10)}`;
 }
+
+type ConnectOptions = Omit<
+  ConnectPacket,
+  "type" | "protocolName" | "protocolLevel"
+>;
+type ConnectParameters = {
+  url?: string;
+  certFile?: string;
+  numberOfRetries?: number;
+  options?: ConnectOptions;
+};
+
+type PublishParameters = Omit<PublishPacket, "type" | "id">;
+type SubscribeParameters = Omit<SubscribePacket, "type" | "id">;
 
 function backOffSleep(random: boolean, attempt: number): Promise<void> {
   // based on https://dthain.blogspot.com/2009/02/exponential-backoff-in-distributed.html
@@ -26,26 +43,33 @@ const DefaultURL = "mqtt://localhost:1883/";
 
 enum ConnectionState {
   offline = "offline",
+  connecting = "connecting",
   connected = "connected",
   disconnecting = "disconnecting",
   disconnected = "disconnected",
 }
 
 export class Client {
-  private clientIdPrefix = "opifex";
+  protected clientIdPrefix = "opifex";
   private url: URL;
-  private certFile: string | undefined;
+  private certFile?: string;
   private numberOfRetries: number;
   private clientId: string;
   private connectionState: ConnectionState;
-  private mqttConn: MqttConn | undefined;
-  private unresolvedConnect?: Deferred<ConnackPacket>;
+  private mqttConn?: MqttConn;
   private debug: Function;
+  private pingTimer?: Timer;
+  private keepAlive = 60000;
+  onopen = () => {};
+  onconnect = () => {};
+  onmessage = (message: PublishPacket) => {};
+  onclose = () => {};
+  onerror = (err: Error) => {};
 
-  constructor(logger?: Function ) {
+  constructor(logger?: Function) {
     this.connectionState = ConnectionState.offline;
     this.url = new URL(DefaultURL);
-    this.clientId = "";
+    this.clientId = generateClientId(this.clientIdPrefix);
     this.numberOfRetries = 3; // Infinity;
     this.debug = logger || (() => {});
   }
@@ -53,32 +77,34 @@ export class Client {
   protected async createConn(): Promise<Deno.Conn> {
     const protocol = this.url.protocol;
     const hostname = this.url.hostname;
+    const port = Number(this.url.port);
 
-    // if you need to support alternative connection types just 
+    // if you need to support alternative connection types just
     // overload this method in your subclass
     if (protocol === "mqtts:") {
-      return this.connectMQTTS(protocol, hostname);
+      return this.connectMQTTS(protocol, hostname, port);
     }
     if (protocol === "mqtt:") {
-      return this.connectMQTT(protocol, hostname);
+      return this.connectMQTT(protocol, hostname, port);
     }
     throw `Unsupported protocol: ${protocol}`;
   }
 
-  private async connectMQTT(protocol: string, hostname: string) {
-    const port = Number(this.url.port) || 1883;
+  private async connectMQTT(protocol: string, hostname: string, port = 1883) {
     this.debug({ protocol, hostname, port });
     return await Deno.connect({ port });
   }
 
-  private async connectMQTTS(protocol: string, hostname: string) {
-    const port = Number(this.url.port) || 8883;
+  private async connectMQTTS(protocol: string, hostname: string, port = 8883) {
     const certFile = this.certFile;
     this.debug({ protocol, hostname, port });
     return await Deno.connectTls({ hostname, port, certFile });
   }
 
-  private async doConnect(numberOfRetries: number): Promise<void> {
+  private async doConnect(
+    packet: ConnectPacket,
+    numberOfRetries: number,
+  ): Promise<void> {
     let ipConnected = false;
     let attempt = 0;
     let lastMessage = "";
@@ -87,11 +113,9 @@ export class Client {
         const conn = await this.createConn();
         this.mqttConn = createMqttConn({ conn });
         this.handleConnection(this.mqttConn);
-        await this.mqttConn.send({
-          type: PacketType.connect,
-          clientId: this.clientId,
-        });
+        await this.mqttConn.send(packet);
         ipConnected = true;
+        this.onopen();
       } catch (err) {
         lastMessage = `Connection failed: ${err.message}`;
         this.debug(lastMessage);
@@ -99,26 +123,22 @@ export class Client {
       }
     }
     if (ipConnected === false) {
-      this.unresolvedConnect?.reject(Error(lastMessage));
+      this.onerror(Error(lastMessage));
     }
   }
 
-  async connect(
-    params?: {
-      url?: string;
-      certFile?: string;
-      clientId?: string;
-      numberOfRetries?: number;
-    },
-  ): Promise<ConnackPacket> {
-    this.url = params?.url ? new URL(params?.url) : this.url;
+  connect(
+    params: ConnectParameters = {},
+  ): void {
+    this.url = params.url ? new URL(params.url) : this.url;
     this.certFile = params?.certFile;
-    this.clientId = params?.clientId || generateClientId(this.clientIdPrefix);
-    this.numberOfRetries = params?.numberOfRetries || this.numberOfRetries;
-    const deferred = new Deferred<ConnackPacket>();
-    this.unresolvedConnect = deferred;
-    this.doConnect(this.numberOfRetries);
-    return deferred.promise;
+    const packet: ConnectPacket = {
+      clientId: this.clientId,
+      type: PacketType.connect,
+      ...params?.options,
+    };
+    this.numberOfRetries = params.numberOfRetries || this.numberOfRetries;
+    this.doConnect(packet, this.numberOfRetries);
   }
 
   async disconnect(): Promise<void> {
@@ -130,6 +150,25 @@ export class Client {
       this.mqttConn.close();
     }
     this.connectionState = ConnectionState.disconnected;
+    this.onclose();
+  }
+
+  async publish(params: PublishParameters): Promise<void> {
+  }
+
+  async subscribe(params: SubscribeParameters): Promise<void> {}
+
+  private async sendPacket(packet: AnyPacket) {
+    if (this.connectionState === ConnectionState.connected) {
+      await this.mqttConn?.send(packet);
+      this.pingTimer?.reset();
+      return;
+    }
+    this.pingTimer?.clear();
+  }
+
+  private sendPing() {
+    this.sendPacket({ type: PacketType.pingreq });
   }
 
   private async handleConnection(mqttConn: MqttConn): Promise<void> {
@@ -142,7 +181,8 @@ export class Client {
         if (this.connectionState !== ConnectionState.connected) {
           if (packet.type === PacketType.connack) {
             this.connectionState = ConnectionState.connected;
-            this.unresolvedConnect?.resolve(packet);
+            this.pingTimer = new Timer(this.sendPing, this.keepAlive);
+            this.onconnect();
           } else {
             throw new Error(`Received ${packet.type} packet before connect`);
           }
@@ -153,6 +193,7 @@ export class Client {
               this.debug(
                 `publish: topic: ${packet.topic} message: ${message}`,
               );
+              this.onmessage(packet);
               break;
             default:
               throw new Error(
@@ -168,6 +209,7 @@ export class Client {
         mqttConn.close();
       }
       this.connectionState = ConnectionState.disconnected;
+      this.onclose();
     }
   }
 }

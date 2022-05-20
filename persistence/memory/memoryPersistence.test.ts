@@ -3,9 +3,8 @@ import {
   MemoryPersistence as Persistence,
 } from "./memoryPersistence.ts";
 
-import { Packet, PacketStore } from "./persistence.ts";
-import { assertEquals } from "https://deno.land/std@0.128.0/testing/asserts.ts";
-import { PacketType } from "../mqttPacket/mod.ts";
+import { Packet, PacketStore } from "../persistence.ts";
+import { assertEquals, PacketType } from "../deps.ts";
 
 const payloadAny = new TextEncoder().encode("any");
 const qos = 0;

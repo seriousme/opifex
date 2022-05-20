@@ -1,4 +1,4 @@
-import { PublishPacket, Subscription } from "../mqttPacket/mod.ts";
+import { PublishPacket, Subscription } from "./deps.ts";
 
 export type Handler = Function;
 export type { Subscription };

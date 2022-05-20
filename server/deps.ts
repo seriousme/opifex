@@ -8,7 +8,7 @@ export type {
   Topic,
 } from "../persistence/persistence.ts";
 export { ClientState } from "../persistence/persistence.ts";
-export { MemoryPersistence } from "../persistence/memoryPersistence.ts";
+export { MemoryPersistence } from "../persistence/memory/memoryPersistence.ts";
 export type {
   AnyPacket,
   ConnackPacket,

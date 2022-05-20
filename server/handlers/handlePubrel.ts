@@ -10,7 +10,7 @@ export async function handlePubrel(
   packet: PubrelPacket,
 ): Promise<void> {
   const id = packet.id;
-  if (ctx.client && ctx.client.incomming.has(id)) {
+  if (ctx.client?.incomming.has(id)) {
     const storedPacket = ctx.client.incomming.get(id);
     if (storedPacket) {
       ctx.persistence.publish(storedPacket.topic, storedPacket);

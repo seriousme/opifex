@@ -3,6 +3,9 @@ export type {
   ConnectPacket,
   DisconnectPacket,
   PublishPacket,
+  SubscribePacket,
+  AnyPacket,
+  Topic
 } from "../mqttPacket/mod.ts";
 
 export {

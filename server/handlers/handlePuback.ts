@@ -7,7 +7,7 @@ export async function handlePuback(
 ) {
   // qos 1 only
   const id = packet.id;
-  if (ctx.client && ctx.client.pendingOutgoing.has(id)) {
+  if (ctx.client?.pendingOutgoing.has(id)) {
     ctx.client.pendingOutgoing.delete(id);
   }
 }

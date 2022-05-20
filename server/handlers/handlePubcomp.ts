@@ -9,7 +9,7 @@ export async function handlePubcomp(
   packet: PubcompPacket,
 ): Promise<void> {
   const id = packet.id;
-  if (ctx.client && ctx.client.pendingAckOutgoing.has(id)) {
+  if (ctx.client?.pendingAckOutgoing.has(id)) {
     ctx.client.pendingAckOutgoing.delete(id);
   }
 }

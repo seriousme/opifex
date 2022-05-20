@@ -1,5 +1,3 @@
-import { assert } from "https://deno.land/std@0.128.0/_util/assert.ts";
-
 import {
   Client,
   ClientId,
@@ -14,9 +12,9 @@ import {
   Subscription,
   SubscriptionStore,
   Topic,
-} from "./persistence.ts";
+} from "../persistence.ts";
 
-import { Trie } from "../trie/trie.ts";
+import { assert, Trie } from "../deps.ts";
 
 const maxPacketId = Math.pow(2, 16) - 1;
 const maxQueueLength = 42;
