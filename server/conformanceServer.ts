@@ -1,4 +1,5 @@
 import { AuthenticationResult, Context, MqttServer, Topic } from "./mod.ts";
+import { debug } from "./deps.ts"
 
 const utf8Decoder = new TextDecoder();
 const localhost = "::";
@@ -16,7 +17,7 @@ function isAuthenticated(
   password: Uint8Array,
 ): AuthenticationResult {
   const pwd = utf8Decoder.decode(password);
-  console.log(
+  debug.log(
     `Verifying authentication of client '${clientId}' with username '${username}' and password '${pwd}'`,
   );
 
@@ -33,7 +34,7 @@ function isAuthenticated(
 }
 
 function isAuthorizedToPublish(ctx: Context, topic: Topic): boolean {
-  console.log(
+  debug.log(
     `Checking authorization of client '${ctx.client
       ?.id}' to publish on topic '${topic}'`,
   );
@@ -43,7 +44,7 @@ function isAuthorizedToPublish(ctx: Context, topic: Topic): boolean {
   return true;
 }
 function isAuthorizedToSubscribe(ctx: Context, topic: Topic): boolean {
-  console.log(
+  debug.log(
     `Checking authorization of client '${ctx.client
       ?.id}' to subscribe to topic '${topic}'`,
   );
@@ -62,7 +63,7 @@ const mqttServer = new MqttServer({
   },
 });
 if (listener.addr.transport === "tcp") {
-  console.log(
+  debug.log(
     `MQTT server is running on hostname: "${listener.addr.hostname}" port:${listener.addr.port}`,
   );
 }

@@ -1,12 +1,12 @@
 import { Context,  Handlers } from "./context.ts";
 import {
+  MemoryPersistence,
   AuthenticationResult,
   Persistence,
   SockConn,
   Topic,
+  debug
 } from "./deps.ts";
-
-import { MemoryPersistence } from "./deps.ts";
 
 import { handlePacket } from "./handlers/handlePacket.ts";
 
@@ -43,14 +43,14 @@ export class MqttServer {
   async serve(conn: SockConn): Promise<void> {
     const ctx = new Context(this.persistence, conn, this.handlers);
     if (conn.remoteAddr.transport === "tcp") {
-      console.log(`socket connected from ${conn.remoteAddr.hostname}`);
+      debug.log(`socket connected from ${conn.remoteAddr.hostname}`);
     }
     try {
       for await (const packet of ctx.mqttConn) {
         await handlePacket(ctx, packet);
       }
     } catch (err) {
-      console.log(`Error while serving:${err}`);
+      debug.log(`Error while serving:${err}`);
     } finally {
       ctx.close();
     }

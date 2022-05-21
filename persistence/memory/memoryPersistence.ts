@@ -14,7 +14,7 @@ import {
   Topic,
 } from "../persistence.ts";
 
-import { assert, Trie } from "../deps.ts";
+import { assert, Trie, debug } from "../deps.ts";
 
 const maxPacketId = Math.pow(2, 16) - 1;
 const maxQueueLength = 42;
@@ -84,7 +84,7 @@ export class MemoryClient implements Client {
 
     // if client is online just send
     if (this.state === ClientState.online) {
-      console.log(`Client ${this.id} is online`);
+      debug.log(`Client ${this.id} is online`);
       this.outgoing.set(nextId, cPacket);
       if (this.outgoing.size === 1) {
         (async () => {
@@ -162,7 +162,7 @@ export class MemoryPersistence implements Persistence {
     // dedup clients
     const clients = new Set(this.trie.match(topic));
     for (const client of clients) {
-      console.log(`publish ${topic} to client ${client.id}`);
+      debug.log(`publish ${topic} to client ${client.id}`);
       client.publish(topic, packet);
     }
   }

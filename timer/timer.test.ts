@@ -36,8 +36,7 @@ Deno.test("snooze should work", async () => {
   assertEquals(end, 0);
   await delay(wait + halfWait);
   const timeDiff = ((end - start) - (wait + halfWait));
-  console.log(timeDiff);
-  assertEquals(timeDiff < 15, true);
+  assertEquals(timeDiff < 15, true, `TimeDiff of ${timeDiff} < 15`);
 });
 
 Deno.test("clear should work", async () => {

@@ -67,8 +67,6 @@ Deno.test("pub/sub should work", async () => {
   persistence.publish(topic, makePacket(undefined));
   persistence.publish("noTopic", makePacket(undefined));
   await delay(10);
-  // console.log("Outgoing", JSON.stringify(Array.from(client.outgoing), null, 2));
-  // console.log("Seen", JSON.stringify(Array.from(seen), null, 2));
   assertEquals(client.outgoing.size, 3);
   assertEquals(client.outgoing.has(1), true);
   assertEquals(seen.size, 3, "received messages");

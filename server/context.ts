@@ -11,6 +11,7 @@ import {
   SockConn,
   Timer,
   Topic,
+  debug
 } from "./deps.ts";
 
 export const SysPrefix = "$";
@@ -47,8 +48,8 @@ export class Context {
   }
 
   async send(packet: AnyPacket): Promise<void> {
-    console.log("Sending", PacketType[packet.type]);
-    console.log(JSON.stringify(packet, null, 2));
+    debug.log("Sending", PacketType[packet.type]);
+    debug.log(JSON.stringify(packet, null, 2));
     this.mqttConn.send(packet);
   }
 
@@ -93,7 +94,7 @@ export class Context {
 
   close(executewill = true): void {
     if (this.connected) {
-      console.log(
+      debug.log(
         `Closing ${this.client
           ?.id} while mqttConn is ${
           this.mqttConn.isClosed ? "" : "not "

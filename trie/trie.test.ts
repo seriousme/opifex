@@ -8,12 +8,11 @@ type Data = Array<[string, number]>;
 type Matches = Array<[string, number[]]>;
 
 function doTest(data: Data, matches: Matches) {
-  console.log();
+
   const root = new Trie<number>();
   data.forEach(([key, value]) => root.add(key, value));
   matches.forEach(([match, result]) => {
-    console.log(`Matching '${match}'`);
-    assertArrayIncludes(root.match(match), result);
+    assertArrayIncludes(root.match(match), result,`Matching '${match}'`);
   });
 }
 

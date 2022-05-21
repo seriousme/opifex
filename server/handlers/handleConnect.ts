@@ -5,6 +5,7 @@ import {
   PacketStore,
   PacketType,
   Timer,
+  debug
 } from "../deps.ts";
 
 function makeHandler(
@@ -82,7 +83,7 @@ export async function handleConnect(
 
     const keepAlive = packet.keepAlive || 0;
     if (keepAlive > 0) {
-      console.log(`Setting keepalive to ${keepAlive * 1500} ms`);
+      debug.log(`Setting keepalive to ${keepAlive * 1500} ms`);
       ctx.timer = new Timer(() => {
         ctx.close();
       }, Math.floor(keepAlive * 1500));
