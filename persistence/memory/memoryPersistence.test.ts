@@ -49,8 +49,56 @@ Deno.test("pub/sub should work", async () => {
   async function handler(queue: PacketStore) {
     numCalls++;
     await delay(5); // slow handler
-    for await (const packet of queue) {
-      seen.add(packet[0]);
+    for await (const [id,] of queue) {
+      seen.add(id);
+    }
+  }
+
+  const client = persistence.registerClient(clientId, handler, () => {});
+
+  persistence.subscribe(client, topic, qos);
+  assertEquals(
+    client.subscriptions.has(topic),
+    true,
+    "topic is registered as subscription",
+  );
+  persistence.publish(topic, makePacket(25));
+  persistence.publish(topic, makePacket(27));
+  persistence.publish(topic, makePacket(undefined));
+  persistence.publish("noTopic", makePacket(undefined));
+  await delay(10);
+  assertEquals(client.outgoing.size, 3);
+  assertEquals(client.outgoing.has(1), true);
+  assertEquals(seen.size, 3, "received messages");
+  assertEquals(numCalls, 1, "handler is called");
+});
+
+Deno.test("many packets should work", async () => {
+  const persistence = new Persistence();
+  const clientId = "myClient";
+  const topic = "/myTopic";
+  const numMessages = 1000;
+  const publishPacket: Packet = {
+    type: PacketType.publish,
+    id: 1,
+    topic,
+    payload: payloadAny,
+  };
+
+  function makePacket(id: number | undefined) {
+    const newPacket = Object.assign({},publishPacket);
+    newPacket.id = id;
+    return newPacket;
+  }
+  const seen = new Set();
+  let numCalls = 0;
+
+  async function handler(queue: PacketStore) {
+    numCalls++;
+    for await (const [id,] of queue) {
+      assertEquals(seen.has(id),false), "Not seen ID ${id} before";
+      seen.add(id)
+      queue.delete(id)
     }
   }
 
@@ -62,15 +110,15 @@ Deno.test("pub/sub should work", async () => {
     true,
     "topic is not registered as subscription",
   );
-  persistence.publish(topic, makePacket(25));
-  persistence.publish(topic, makePacket(27));
-  persistence.publish(topic, makePacket(undefined));
-  persistence.publish("noTopic", makePacket(undefined));
+  for (let i=0; i<numMessages; i++){
+    persistence.publish(topic, makePacket(i));
+    if ((i % 100) === 0){
+      await delay(1);
+    }
+  }
   await delay(10);
-  assertEquals(client.outgoing.size, 3);
-  assertEquals(client.outgoing.has(1), true);
-  assertEquals(seen.size, 3, "received messages");
-  assertEquals(numCalls, 1, "handler is called");
+  assertEquals(client.outgoing.size, 0);
+  assertEquals(seen.size, numMessages, "received all messages");
 });
 
 Deno.test("unsubscribe should work", () => {

@@ -15,7 +15,7 @@ function isAuthenticated(
   password: Uint8Array,
 ): AuthenticationResult {
   const pwd = utf8Decoder.decode(password);
-  debug.log(
+  debug.info(
     `Verifying authentication of client '${clientId}' with username '${username}' and password '${pwd}'`,
   );
 
@@ -59,7 +59,7 @@ const mqttServer = new MqttServer({
   },
 });
 if (listener.addr.transport === "tcp") {
-  debug.log(
+  debug.info(
     `MQTT server is running on hostname: "${listener.addr.hostname}" port:${listener.addr.port}`,
   );
 }

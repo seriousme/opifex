@@ -66,7 +66,7 @@ export async function readPacket(
   const packetBuf = new Uint8Array(remainingLength);
   // read the rest of the packet
   assert(
-    (await buf.readFull(packetBuf) !== null),
+    await buf.readFull(packetBuf) !== null,
     MqttConnError.UnexpectedEof,
   );
   const packet = decodePayload(firstByte, packetBuf);

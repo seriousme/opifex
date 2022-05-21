@@ -11,4 +11,9 @@ export class Deferred<T> {
   }
 }
 
-export const debug = { log: console.log };
+export const noop = (...args:any) => {};
+
+export const debug = {
+  info: console.info,
+  log: console.log
+};

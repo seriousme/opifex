@@ -16,7 +16,7 @@ import {
 
 import { assert, Trie, debug } from "../deps.ts";
 
-const maxPacketId = Math.pow(2, 16) - 1;
+const maxPacketId = 0xffff;
 const maxQueueLength = 42;
 
 export class MemoryClient implements Client {
