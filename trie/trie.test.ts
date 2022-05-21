@@ -2,7 +2,7 @@ import { Trie } from "./trie.ts";
 import {
   assertArrayIncludes,
   assertEquals,
-} from "https://deno.land/std@0.128.0/testing/asserts.ts";
+} from "https://deno.land/std@0.140.0/testing/asserts.ts";
 
 type Data = Array<[string, number]>;
 type Matches = Array<[string, number[]]>;

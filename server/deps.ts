@@ -1,5 +1,5 @@
-export type { MqttConn, SockConn } from "../mqttConn/mqttConn.ts";
-export { createMqttConn } from "../mqttConn/mqttConn.ts";
+export type { SockConn } from "../mqttConn/mqttConn.ts";
+export { MqttConn } from "../mqttConn/mqttConn.ts";
 export type {
   Client,
   PacketStore,

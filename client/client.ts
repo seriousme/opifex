@@ -1,13 +1,13 @@
 import {
   AnyPacket,
   ConnectPacket,
+  Deferred,
   MqttConn,
   PacketType,
   PublishPacket,
   SubscribePacket,
+  Timer,
 } from "./deps.ts";
-
-import { createMqttConn, Deferred, Timer } from "./deps.ts";
 
 function generateClientId(prefix: string): string {
   return `${prefix}-${Math.random().toString().slice(-10)}`;
@@ -111,7 +111,7 @@ export class Client {
     while ((ipConnected === false) && (attempt < numberOfRetries)) {
       try {
         const conn = await this.createConn();
-        this.mqttConn = createMqttConn({ conn });
+        this.mqttConn = new MqttConn({ conn });
         this.handleConnection(this.mqttConn);
         await this.mqttConn.send(packet);
         ipConnected = true;

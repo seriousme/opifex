@@ -2,7 +2,7 @@ import { Timer } from "./timer.ts";
 import {
   assertArrayIncludes,
   assertEquals,
-} from "https://deno.land/std@0.128.0/testing/asserts.ts";
+} from "https://deno.land/std@0.140.0/testing/asserts.ts";
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));

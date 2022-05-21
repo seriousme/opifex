@@ -1,4 +1,4 @@
-import { assert } from "https://deno.land/std@0.128.0/_util/assert.ts";
+import { assert } from "https://deno.land/std@0.140.0/testing/asserts.ts";
 import { PublishPacket, Topic } from "./deps.ts";
 const maxPacketId = Math.pow(2, 16) - 1;
 const maxQueueLength = 42;

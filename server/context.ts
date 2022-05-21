@@ -3,7 +3,6 @@ import {
   AuthenticationResult,
   Client,
   ClientState,
-  createMqttConn,
   MqttConn,
   PacketType,
   Persistence,
@@ -43,7 +42,7 @@ export class Context {
     this.persistence = persistence;
     this.connected = false;
     this.conn = conn;
-    this.mqttConn = createMqttConn({ conn });
+    this.mqttConn = new MqttConn({ conn });
     this.handlers = handlers;
   }
 

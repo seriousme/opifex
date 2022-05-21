@@ -16,7 +16,7 @@ export enum MqttConnError {
   UnexpectedEof = "Unexpected EOF",
 }
 
-export interface MqttConn extends AsyncIterable<AnyPacket> {
+export interface IMqttConn extends AsyncIterable<AnyPacket> {
   readonly conn: SockConn;
   readonly isClosed: boolean;
   readonly reason: string | undefined;
@@ -30,30 +30,30 @@ export interface MqttConn extends AsyncIterable<AnyPacket> {
 
 /** Write MQTT packet to connection */
 export async function writePacket(
+  writer: BufWriter,
   packet: AnyPacket,
-  writer: Deno.Writer,
 ): Promise<void> {
-  const w = BufWriter.create(writer);
-  await w.write(encode(packet));
-  await w.flush();
+  await writer.write(encode(packet));
+  await writer.flush();
 }
 
 /** Read MQTT packet from given BufReader
  * @throws `Error` Packet is invalid
  */
 export async function readPacket(
-  buf: BufReader,
+  reader: BufReader,
   maxPacketSize: number,
 ): Promise<AnyPacket> {
   // fixed header is 1 byte of type + flags
   // + a maximum of 4 bytes to encode the remaining length
+  const singleByte = new Uint8Array(1);
   const fixedHeader = new Uint8Array(5);
-  let firstByte = await buf.readByte();
+  let firstByte = await reader.readByte();
   assert(firstByte !== null, MqttConnError.UnexpectedEof);
   const decodeLength = getLengthDecoder();
   let byte, result;
   do {
-    byte = await buf.readByte();
+    byte = await reader.readByte();
     assert(byte !== null, MqttConnError.UnexpectedEof);
     result = decodeLength(byte);
   } while (!result.done);
@@ -66,7 +66,7 @@ export async function readPacket(
   const packetBuf = new Uint8Array(remainingLength);
   // read the rest of the packet
   assert(
-    await buf.readFull(packetBuf) !== null,
+    await reader.readFull(packetBuf) !== null,
     MqttConnError.UnexpectedEof,
   );
   const packet = decodePayload(firstByte, packetBuf);
@@ -74,9 +74,8 @@ export async function readPacket(
   return packet;
 }
 
-class MqttConnImpl implements MqttConn {
+export class MqttConn implements IMqttConn {
   readonly conn: SockConn;
-  private readonly mask?: Uint8Array;
   private readonly bufReader: BufReader;
   private readonly bufWriter: BufWriter;
   private readonly maxPacketSize: number;
@@ -121,7 +120,7 @@ class MqttConnImpl implements MqttConn {
 
   async send(data: AnyPacket): Promise<void> {
     try {
-      await writePacket(data, this.bufWriter);
+      await writePacket(this.bufWriter, data);
     } catch {
       this.close();
     }
@@ -142,13 +141,4 @@ class MqttConnImpl implements MqttConn {
       this._isClosed = true;
     }
   }
-}
-
-export function createMqttConn(params: {
-  conn: SockConn;
-  bufWriter?: BufWriter;
-  bufReader?: BufReader;
-  maxPacketSize?: number;
-}): MqttConn {
-  return new MqttConnImpl(params);
 }

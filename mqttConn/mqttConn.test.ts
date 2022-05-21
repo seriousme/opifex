@@ -1,4 +1,4 @@
-import { createMqttConn, MqttConnError } from "./mqttConn.ts";
+import { MqttConn, MqttConnError } from "./mqttConn.ts";
 import { AnyPacket, encode } from "./deps.ts";
 import { assertEquals, Buffer, dummyConn, dummyReader } from "./dev_deps.ts";
 import { PacketType } from "../mqttPacket/types.ts";
@@ -36,7 +36,7 @@ Deno.test("MqttConn should act as asyncIterator", async () => {
 
   const reader = dummyReader([connect, publish, disconnect]);
   const conn = dummyConn(reader, new Buffer());
-  const mqttConn = createMqttConn({ conn });
+  const mqttConn = new MqttConn({ conn });
 
   const packets = [];
   for await (const packet of mqttConn) {
@@ -52,7 +52,7 @@ Deno.test("MqttConn should act as asyncIterator", async () => {
 Deno.test("MqttConn should close on malformed length", async () => {
   const reader = dummyReader([new Uint8Array([1, 175])]);
   const conn = dummyConn(reader, new Buffer());
-  const mqttConn = createMqttConn({ conn });
+  const mqttConn = new MqttConn({ conn });
 
   const packets = [];
   for await (const packet of mqttConn) {
@@ -70,7 +70,7 @@ Deno.test("MqttConn should close on failed packets", async () => {
 
   const reader = dummyReader([connect, brokenPublish]);
   const conn = dummyConn(reader, new Buffer());
-  const mqttConn = createMqttConn({ conn });
+  const mqttConn = new MqttConn({ conn });
 
   const packets = [];
   for await (const packet of mqttConn) {
@@ -87,7 +87,7 @@ Deno.test("MqttConn should close on packets too large", async () => {
   const connect = encode(connectPacket);
   const reader = dummyReader([connect]);
   const conn = dummyConn(reader, new Buffer());
-  const mqttConn = createMqttConn({ conn, maxPacketSize: 20 });
+  const mqttConn = new MqttConn({ conn, maxPacketSize: 20 });
   const packets = [];
   for await (const packet of mqttConn) {
     packets.push(packet);
@@ -103,7 +103,7 @@ Deno.test("MqttConn should be writable", async () => {
   const reader = dummyReader([connect]);
   const writer = new Buffer();
   const conn = dummyConn(reader, writer);
-  const mqttConn = createMqttConn({ conn });
+  const mqttConn = new MqttConn({ conn });
   await mqttConn.send(connectPacket);
   assertEquals(writer.bytes(), connect);
 });
