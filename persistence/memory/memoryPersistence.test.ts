@@ -49,7 +49,7 @@ Deno.test("pub/sub should work", async () => {
   async function handler(queue: PacketStore) {
     numCalls++;
     await delay(5); // slow handler
-    for await (const [id,] of queue) {
+    for await (const [id] of queue) {
       seen.add(id);
     }
   }
@@ -86,7 +86,7 @@ Deno.test("many packets should work", async () => {
   };
 
   function makePacket(id: number | undefined) {
-    const newPacket = Object.assign({},publishPacket);
+    const newPacket = Object.assign({}, publishPacket);
     newPacket.id = id;
     return newPacket;
   }
@@ -95,10 +95,10 @@ Deno.test("many packets should work", async () => {
 
   async function handler(queue: PacketStore) {
     numCalls++;
-    for await (const [id,] of queue) {
-      assertEquals(seen.has(id),false), "Not seen ID ${id} before";
-      seen.add(id)
-      queue.delete(id)
+    for await (const [id] of queue) {
+      assertEquals(seen.has(id), false), "Not seen ID ${id} before";
+      seen.add(id);
+      queue.delete(id);
     }
   }
 
@@ -110,9 +110,9 @@ Deno.test("many packets should work", async () => {
     true,
     "topic is not registered as subscription",
   );
-  for (let i=0; i<numMessages; i++){
+  for (let i = 0; i < numMessages; i++) {
     persistence.publish(topic, makePacket(i));
-    if ((i % 100) === 0){
+    if ((i % 100) === 0) {
       await delay(1);
     }
   }

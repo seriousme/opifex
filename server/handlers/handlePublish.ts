@@ -1,12 +1,12 @@
 import { Context, SysPrefix } from "../context.ts";
-import { PublishPacket, PacketType, Topic } from "../deps.ts";
+import { PacketType, PublishPacket, Topic } from "../deps.ts";
 
 function authorizedToPublish(ctx: Context, topic: Topic) {
   if (topic.startsWith(SysPrefix)) {
     return false;
   }
-  if (ctx.handlers.isAuthorizedToPublish){
-    return ctx.handlers.isAuthorizedToPublish(ctx,topic);
+  if (ctx.handlers.isAuthorizedToPublish) {
+    return ctx.handlers.isAuthorizedToPublish(ctx, topic);
   }
   return true;
 }
@@ -45,6 +45,3 @@ export async function handlePublish(
     }
   }
 }
-
-
-

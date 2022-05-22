@@ -63,6 +63,7 @@ Deno.test("MqttConn should close on malformed length", async () => {
   assertEquals(mqttConn.isClosed, true);
   assertEquals(mqttConn.reason, MqttConnError.UnexpectedEof);
 });
+
 Deno.test("MqttConn should close on failed packets", async () => {
   const connect = encode(connectPacket);
   const publish = encode(publishPacket);

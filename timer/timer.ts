@@ -11,7 +11,7 @@ export class Timer {
     this.reset();
   }
 
-  private startTimer(delay:number): void {
+  private startTimer(delay: number): void {
     this.running = true;
     this.timer = setTimeout(() => this.ring(), delay);
   }

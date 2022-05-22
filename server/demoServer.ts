@@ -1,5 +1,5 @@
 import { AuthenticationResult, Context, MqttServer, Topic } from "./mod.ts";
-import { debug } from "./deps.ts"
+import { debug } from "./deps.ts";
 
 const utf8Decoder = new TextDecoder();
 const localhost = "::";

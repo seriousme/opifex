@@ -14,7 +14,7 @@ Deno.test("decode Int16", () => {
   const value = 0xf0f2;
   const msb = 0xf0;
   const lsb = 0xf2;
-  const decoder = new Decoder(Uint8Array.from([msb,lsb]));
+  const decoder = new Decoder(Uint8Array.from([msb, lsb]));
   assertEquals(decoder.getInt16(), value);
   assertEquals(decoder.done(), true);
 });
@@ -23,7 +23,7 @@ Deno.test("decode Int16 with remainder", () => {
   const value = 0xf0f2;
   const msb = 0xf0;
   const lsb = 0xf2;
-  const decoder = new Decoder(Uint8Array.from([msb,lsb, 0xff]));
+  const decoder = new Decoder(Uint8Array.from([msb, lsb, 0xff]));
   assertEquals(decoder.getInt16(), value, "value is correct");
   assertEquals(decoder.atEnd(), false);
 });

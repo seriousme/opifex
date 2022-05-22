@@ -1,16 +1,14 @@
-import { Context,  Handlers } from "./context.ts";
+import { Context, Handlers } from "./context.ts";
 import {
-  MemoryPersistence,
   AuthenticationResult,
+  debug,
+  MemoryPersistence,
   Persistence,
   SockConn,
   Topic,
-  debug
 } from "./deps.ts";
 
 import { handlePacket } from "./handlers/handlePacket.ts";
-
-
 
 const defaultIsAuthenticated = (
   ctx: Context,
@@ -56,4 +54,3 @@ export class MqttServer {
     }
   }
 }
-

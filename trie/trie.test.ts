@@ -8,11 +8,10 @@ type Data = Array<[string, number]>;
 type Matches = Array<[string, number[]]>;
 
 function doTest(data: Data, matches: Matches) {
-
   const root = new Trie<number>();
   data.forEach(([key, value]) => root.add(key, value));
   matches.forEach(([match, result]) => {
-    assertArrayIncludes(root.match(match), result,`Matching '${match}'`);
+    assertArrayIncludes(root.match(match), result, `Matching '${match}'`);
   });
 }
 
@@ -34,13 +33,13 @@ Deno.test("match() should find the correct nodes in the trie structure", () => {
     ["", []],
     ["foo", [1]],
     ["foo/bar", [2]],
-    ["foo/bar/buzz", [ 3, 4]],
+    ["foo/bar/buzz", [3, 4]],
     ["foo/bar/buzz/", []],
     ["/foo/bar/buzz/", []],
     ["$SYS/foo/bar/buzz/", []],
   ];
 
-  doTest(data,matches);
+  doTest(data, matches);
 });
 
 Deno.test("wildCardOne works", () => {
@@ -95,7 +94,7 @@ Deno.test("Overlapping wildcards work", () => {
   ];
 
   const matches: Matches = [
-    ["foo/bar/buzz", [1,2]],
+    ["foo/bar/buzz", [1, 2]],
   ];
 
   doTest(data, matches);
@@ -110,8 +109,8 @@ Deno.test("Reserved prefixes are excluded from toplevel wildcards", () => {
   ];
 
   const matches: Matches = [
-    ["foo/bar/buzz", [1,2]],
-    ["$SYS/foo/bar/buzz", [3,4]],
+    ["foo/bar/buzz", [1, 2]],
+    ["$SYS/foo/bar/buzz", [3, 4]],
   ];
 
   doTest(data, matches);
@@ -121,7 +120,7 @@ Deno.test("Removal works", () => {
   const root = new Trie<number>();
   root.add("foo/bar", 1);
   root.add("foo/bar", 2);
-  assertArrayIncludes(root.match("foo/bar"), [1,2]);
+  assertArrayIncludes(root.match("foo/bar"), [1, 2]);
   root.remove("foo/bar", 2);
   assertArrayIncludes(root.match("foo/bar"), [1]);
   root.remove("foo/bar", 1);

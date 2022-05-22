@@ -14,7 +14,7 @@ import {
   Topic,
 } from "../persistence.ts";
 
-import { assert, Trie, debug } from "../deps.ts";
+import { assert, debug, Trie } from "../deps.ts";
 
 const maxPacketId = 0xffff;
 const maxQueueLength = 42;

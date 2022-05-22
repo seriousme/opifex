@@ -1,5 +1,5 @@
-import { parse } from 'https://deno.land/std@0.140.0/flags/mod.ts';
-import { Client, DEFAULTURL } from '../client/client.ts';
+import { parse } from "https://deno.land/std@0.140.0/flags/mod.ts";
+import { Client, DEFAULTURL } from "../client/client.ts";
 
 const logger = console.log;
 const client = new Client(logger);
@@ -20,7 +20,7 @@ const ConnectHelp = `
   -P/--password   the password to connect to the server
   -c/--certFile   the path to a certFile
   -h/--help       this text
-  `
+  `;
 
 const PublishHelp = `Usage: MQTT.ts publish <options>
 
@@ -34,29 +34,28 @@ Example: MQTT.ts publish -t hello -m world`;
 
 const connectOpts = {
   string: [
-    'url',
-    'username',
-    'password',
-    'certFile',
-    'clientId',
+    "url",
+    "username",
+    "password",
+    "certFile",
+    "clientId",
   ],
   alias: {
-    u: 'url',
-    U: 'username',
-    P: 'password',
-    c: 'certFile',
-    i: 'clientId',
-    h: 'help'
+    u: "url",
+    U: "username",
+    P: "password",
+    c: "certFile",
+    i: "clientId",
+    h: "help",
   },
-  boolean: ['help']
+  boolean: ["help"],
 };
-
 
 async function subscribe(args: any) {
   try {
     const connack = await client.connect(args);
     await client.disconnect();
-    logger('Disconnected !');
+    logger("Disconnected !");
   } catch (err) {
     logger(err.message);
   }
@@ -64,56 +63,56 @@ async function subscribe(args: any) {
 
 const publishOpts = {
   string: [
-    'topic',
-    'message',
+    "topic",
+    "message",
   ],
-  boolean: ['retain', 'help'],
+  boolean: ["retain", "help"],
   alias: {
-    t: 'topic',
-    m: 'message',
-    q: 'qos',
-    r: 'retain',
+    t: "topic",
+    m: "message",
+    q: "qos",
+    r: "retain",
   },
   default: {
     qos: 0,
     dup: false,
     retain: false,
-    topic: '',
-    message: '',
+    topic: "",
+    message: "",
   },
 };
 
-async function publish(args:string[]) {
-  const connectArgs = parse(Deno.args, connectOpts)
-  const publishArgs = parse(Deno.args, publishOpts)
-  if (connectArgs.help){
-    console.log(PublishHelp)
+async function publish(args: string[]) {
+  const connectArgs = parse(Deno.args, connectOpts);
+  const publishArgs = parse(Deno.args, publishOpts);
+  if (connectArgs.help) {
+    console.log(PublishHelp);
     return;
   }
   if (publishArgs.topic === undefined) {
-    console.log('Missing `topic`');
+    console.log("Missing `topic`");
     return;
   }
   try {
     await client.connect({
       url: connectArgs.url,
       certFile: connectArgs.certFile,
-      options:{
+      options: {
         username: connectArgs.username,
         password: connectArgs.password,
         clientId: connectArgs.clientId,
-      }
+      },
     });
-    logger('Connected !');
+    logger("Connected !");
     await client.publish({
       topic: publishArgs.topic,
       payload: encoder.encode(publishArgs.message),
       retain: publishArgs.retain,
       qos: publishArgs.qos,
     });
-    logger('Published!');
+    logger("Published!");
     client.disconnect();
-    logger('Disconnected !');
+    logger("Disconnected !");
   } catch (err) {
     logger(err.message);
   }
@@ -122,10 +121,10 @@ async function publish(args:string[]) {
 function processArgs(args: any) {
   const cmd = args[0];
   switch (cmd) {
-    case 'publish':
+    case "publish":
       publish(args);
       break;
-    case 'subscribe':
+    case "subscribe":
       subscribe(args);
       break;
     default:

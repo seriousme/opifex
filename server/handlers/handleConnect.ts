@@ -2,10 +2,10 @@ import { Context } from "../context.ts";
 import {
   AuthenticationResult,
   ConnectPacket,
+  debug,
   PacketStore,
   PacketType,
   Timer,
-  debug
 } from "../deps.ts";
 
 function makeHandler(

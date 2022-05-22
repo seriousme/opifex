@@ -3,6 +3,7 @@ import {
   AuthenticationResult,
   Client,
   ClientState,
+  debug,
   MqttConn,
   PacketType,
   Persistence,
@@ -10,7 +11,6 @@ import {
   SockConn,
   Timer,
   Topic,
-  debug
 } from "./deps.ts";
 
 export const SysPrefix = "$";

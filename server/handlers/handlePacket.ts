@@ -10,7 +10,7 @@ import { handlePubcomp } from "./handlePubcomp.ts";
 import { handleSubscribe } from "./handleSubscribe.ts";
 import { handleUnsubscribe } from "./handleUnsubscribe.ts";
 import { handleDisconnect } from "./handleDisconnect.ts";
-import { debug } from "../deps.ts"
+import { debug } from "../deps.ts";
 
 export async function handlePacket(
   ctx: Context,
@@ -60,7 +60,7 @@ export async function handlePacket(
           `Received unexpected ${packet.type} packet after connect`,
         );
     }
-    if (typeof ctx.timer === "object" ){
+    if (typeof ctx.timer === "object") {
       ctx.timer.reset();
     }
   }

@@ -1,5 +1,5 @@
 import { AuthenticationResult, Context, MqttServer, Topic } from "./mod.ts";
-import { debug } from "./deps.ts"
+import { debug } from "./deps.ts";
 
 const utf8Decoder = new TextDecoder();
 const localhost = "::";
@@ -8,7 +8,7 @@ userTable.set("IoTester_1", "strong_password");
 userTable.set("IoTester_2", "strong_password");
 const strictUsername = new RegExp(/^[a-zA-Z0-9]{0,23}$/);
 const notAuthorizedTable = new Set();
-notAuthorizedTable.add(['123-456-789','eclipse/iot/tesware/0data'])
+notAuthorizedTable.add(["123-456-789", "eclipse/iot/tesware/0data"]);
 
 function isAuthenticated(
   ctx: Context,

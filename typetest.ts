@@ -17,7 +17,7 @@ type Main = {
 function test(params: Main = {
   a: "a",
   b: "b",
-  opts:{
-    as:"as"
-  }
+  opts: {
+    as: "as",
+  },
 }) {}
