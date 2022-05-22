@@ -1,11 +1,11 @@
 export type {
+  AnyPacket,
   ConnackPacket,
   ConnectPacket,
   DisconnectPacket,
   PublishPacket,
   SubscribePacket,
-  AnyPacket,
-  Topic
+  Topic,
 } from "../mqttPacket/mod.ts";
 
 export {
