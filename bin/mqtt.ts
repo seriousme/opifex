@@ -1,5 +1,5 @@
 import { parse } from "https://deno.land/std@0.140.0/flags/mod.ts";
-import { Client, DEFAULTURL } from "../client/client.ts";
+import { Client, DEFAULTURL, SubscribeParameters } from "../client/client.ts";
 
 const logger = console.log;
 const client = new Client(logger);
@@ -19,18 +19,9 @@ const ConnectHelp = `
   -U/--username   the username to connect to the server
   -P/--password   the password to connect to the server
   -c/--certFile   the path to a certFile
+  -n/--noClean    try to resume a previous session
   -h/--help       this text
   `;
-
-const PublishHelp = `Usage: MQTT.ts publish <options>
-
-Where options are:
-  -t/--topic      the topic to use
-  -m/--message    the message to send
-  -q/--qos        the QoS (0/1/2) to use
-  -r/--retain     if the message should be retained
-${ConnectHelp}
-Example: MQTT.ts publish -t hello -m world`;
 
 const connectOpts = {
   string: [
@@ -46,27 +37,93 @@ const connectOpts = {
     P: "password",
     c: "certFile",
     i: "clientId",
+    n: "noClean",
     h: "help",
   },
-  boolean: ["help"],
+  boolean: ["noClean","help"],
+  default: {
+    noClean: false
+  }
 };
 
-async function subscribe(args: any) {
+const SubscribeHelp = `Usage: MQTT.ts subscribe <options>
+
+Where options are:
+  -t/--topic      the topic to use
+  -q/--qos        the QoS (0/1/2) to use, default is 0
+${ConnectHelp}
+Example: MQTT.ts subscribe -t hello`;
+
+const subscribeOpts = {
+  string: [
+    "topic",
+  ],
+  alias: {
+    t: "topic",
+    q: "qos",
+  },
+  default: {
+    qos: 0,
+    topic: "",
+  },
+};
+
+async function subscribe(args: string[]) {
+  const connectArgs = parse(Deno.args, connectOpts);
+  const subscribeArgs = parse(Deno.args, subscribeOpts);
+  if (connectArgs.help) {
+    console.log(SubscribeHelp);
+    return;
+  }
+  if (subscribeArgs.topic === undefined) {
+    console.log("Missing `topic`");
+    return;
+  }
   try {
-    const connack = await client.connect(args);
-    await client.disconnect();
-    logger("Disconnected !");
+    await client.connect({
+      url: connectArgs.url,
+      certFile: connectArgs.certFile,
+      options: {
+        username: connectArgs.username,
+        password: connectArgs.password,
+        clientId: connectArgs.clientId,
+        clean: !connectArgs.noClean,
+        keepAlive: 60,
+      },
+    });
+    logger("Connected !");
+    client.onmessage = (packet) => {
+      console.log(decoder.decode(packet.payload));
+    };
+    client.subscribe({
+      subscriptions: [ {
+        topicFilter: subscribeArgs.topic, 
+        qos: subscribeArgs.qos
+      }
+      ],
+    });
+    logger("Subscribed!");
   } catch (err) {
     logger(err.message);
   }
 }
+
+const PublishHelp = `Usage: MQTT.ts publish <options>
+
+Where options are:
+  -t/--topic      the topic to use
+  -m/--message    the message to send
+  -q/--qos        the QoS (0/1/2) to use, default is 0
+  -r/--retain     if the message should be retained, default is false
+${ConnectHelp}
+Example: MQTT.ts publish -t hello -m world`;
 
 const publishOpts = {
   string: [
     "topic",
     "message",
   ],
-  boolean: ["retain", "help"],
+  boolean: ["retain"],
   alias: {
     t: "topic",
     m: "message",
@@ -101,6 +158,7 @@ async function publish(args: string[]) {
         username: connectArgs.username,
         password: connectArgs.password,
         clientId: connectArgs.clientId,
+        clean: !connectArgs.noClean
       },
     });
     logger("Connected !");

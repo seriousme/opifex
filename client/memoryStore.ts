@@ -1,7 +1,7 @@
 import { assert } from "https://deno.land/std@0.140.0/testing/asserts.ts";
 import { PublishPacket, Topic } from "./deps.ts";
-const maxPacketId = Math.pow(2, 16) - 1;
-const maxQueueLength = 42;
+const maxPacketId = 0xffff;
+const maxQueueLength = 0xffff;
 
 export type Packet = PublishPacket;
 export type PacketId = number;
@@ -12,9 +12,9 @@ export type PacketStore = Map<
 >;
 
 export enum ClientState {
-    online,
-    offline,
-  }
+  online,
+  offline,
+}
 
 export class MemoryStore {
   state: ClientState;
@@ -38,7 +38,7 @@ export class MemoryStore {
     do {
       this.packetId++;
       if (this.packetId > maxPacketId) {
-        this.packetId = 0;
+        this.packetId = 1;
       }
     } while (
       (this.outgoing.has(this.packetId) ||
@@ -55,7 +55,7 @@ export class MemoryStore {
     if (this.outgoing.size > maxQueueLength) {
       return;
     }
-    
+
     // set packetId to client specific id
     const nextId = this.nextId();
     packet.id = nextId;
@@ -72,4 +72,3 @@ export class MemoryStore {
     }
   }
 }
-

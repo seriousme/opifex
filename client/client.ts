@@ -10,6 +10,8 @@ import {
   Timer,
 } from "./deps.ts";
 
+import { MemoryStore } from "./memoryStore.ts"
+
 function generateClientId(prefix: string): string {
   return `${prefix}-${Math.random().toString().slice(-10)}`;
 }
@@ -60,8 +62,9 @@ export class Client {
   private mqttConn?: MqttConn;
   private debug: Function;
   private pingTimer?: Timer;
-  private keepAlive = 60000;
+  private keepAlive = 60; // 60 seconds
   private unresolvedConnect?: Deferred<ConnackPacket>;
+  private store = new MemoryStore()
   onopen = () => {};
   onconnect = () => {};
   onmessage = (message: PublishPacket) => {};
@@ -77,6 +80,7 @@ export class Client {
   }
 
   private doClose() {
+    console.log("closing connection")
     this.connectionState = ConnectionState.disconnected;
     this.pingTimer?.clear();
     this.onclose();
@@ -152,6 +156,8 @@ export class Client {
   ): Promise<ConnackPacket> {
     this.url = params.url ? new URL(params.url) : this.url;
     this.certFile = params?.certFile;
+    const keepAlive = params?.options?.keepAlive;
+    this.keepAlive = keepAlive !== undefined ? keepAlive : this.keepAlive;
     const packet: ConnectPacket = {
       clientId: this.clientId,
       type: PacketType.connect,
@@ -178,13 +184,19 @@ export class Client {
   async publish(params: PublishParameters): Promise<void> {
     const packet: PublishPacket = {
       type: PacketType.publish,
-      id: 1,
       ...params,
     };
     await this.sendPacket(packet);
   }
 
-  async subscribe(params: SubscribeParameters): Promise<void> {}
+  async subscribe(params: SubscribeParameters): Promise<void> {
+    const packet: SubscribePacket = {
+      type: PacketType.subscribe,
+      id: this.store.nextId(),
+      ...params,
+    };
+    await this.sendPacket(packet);
+  }
 
   private async sendPacket(packet: AnyPacket) {
     console.log({ sendPacket: packet });
@@ -213,12 +225,12 @@ export class Client {
             this.connectionState = ConnectionState.connected;
             this.pingTimer = new Timer(
               this.sendPing.bind(this),
-              this.keepAlive,
+              this.keepAlive *1000,
             );
             this.unresolvedConnect?.resolve(packet);
             this.onconnect();
           } else {
-            throw new Error(`Received ${packet.type} packet before connect`);
+            throw new Error(`Received ${PacketType[packet.type]} packet before connect`);
           }
         } else {
           switch (packet.type) {
@@ -231,9 +243,11 @@ export class Client {
               break;
             case PacketType.pingres:
               break;
+            case PacketType.suback:
+              break;
             default:
               throw new Error(
-                `Received unexpected ${packet.type} packet after connect`,
+                `Received unexpected ${PacketType[packet.type]} packet after connect`,
               );
               break;
           }
