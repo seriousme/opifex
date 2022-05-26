@@ -13,6 +13,10 @@ export class Deferred<T> {
 
 export const noop = (...args: any) => {};
 
+export function nextTick(fn: (...args: any[]) => void){
+  setTimeout(fn, 0);
+}
+
 export const debug = {
   info: console.info,
   log: console.log,

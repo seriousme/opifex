@@ -17,4 +17,4 @@ export {
 
 export { MqttConn } from "../mqttConn/mqttConn.ts";
 export { Timer } from "../timer/timer.ts";
-export { Deferred } from "../utils/utils.ts";
+export { debug, Deferred, nextTick } from "../utils/utils.ts";

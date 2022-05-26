@@ -1,16 +1,16 @@
 import {
-  AnyPacket,
-  ConnackPacket,
+  AuthenticationResult,
   ConnectPacket,
+  debug,
   Deferred,
-  MqttConn,
   PacketType,
   PublishPacket,
   SubscribePacket,
   Timer,
 } from "./deps.ts";
 
-import { MemoryStore } from "./memoryStore.ts"
+import { MemoryStore } from "./memoryStore.ts";
+import { Ctx } from "./context.ts";
 
 function generateClientId(prefix: string): string {
   return `${prefix}-${Math.random().toString().slice(-10)}`;
@@ -21,8 +21,8 @@ type ConnectOptions = Omit<
   "type" | "protocolName" | "protocolLevel"
 >;
 export type ConnectParameters = {
-  url?: string;
-  certFile?: string;
+  url?: URL;
+  caCerts?: string[];
   numberOfRetries?: number;
   options?: ConnectOptions;
 };
@@ -39,55 +39,33 @@ function backOffSleep(random: boolean, attempt: number): Promise<void> {
   const delay = Math.floor(
     Math.min(randomness * min * Math.pow(factor, attempt), max),
   );
+  debug.log({delay})
   return new Promise((resolve) => setTimeout(resolve, delay));
 }
 
-export const DEFAULTURL = "mqtt://localhost:1883/";
-
-enum ConnectionState {
-  offline = "offline",
-  connecting = "connecting",
-  connected = "connected",
-  disconnecting = "disconnecting",
-  disconnected = "disconnected",
-}
+export const DEFAULT_URL = "mqtt://localhost:1883/";
+const DEFAULT_KEEPALIVE = 60; // 60 seconds
+const DEFAULT_RETRIES = 3; // on first connect
+const CLIENTID_PREFIX = "opifex"; // on first connect
 
 export class Client {
-  protected clientIdPrefix = "opifex";
-  private url: URL;
-  private certFile?: string;
-  private numberOfRetries: number;
+  protected clientIdPrefix = CLIENTID_PREFIX;
+  protected numberOfRetries = DEFAULT_RETRIES;
+  protected url = new URL(DEFAULT_URL);
+  protected keepAlive = DEFAULT_KEEPALIVE;
+  private caCerts?: string[];
   private clientId: string;
-  private connectionState: ConnectionState;
-  private mqttConn?: MqttConn;
-  private debug: Function;
-  private pingTimer?: Timer;
-  private keepAlive = 60; // 60 seconds
-  private unresolvedConnect?: Deferred<ConnackPacket>;
-  private store = new MemoryStore()
-  onopen = () => {};
-  onconnect = () => {};
-  onmessage = (message: PublishPacket) => {};
-  onclose = () => {};
-  onerror = (err: Error) => {};
+  private ctx = new Ctx(new MemoryStore());
+  private connectPacket?: ConnectPacket;
 
-  constructor(logger?: Function) {
-    this.connectionState = ConnectionState.offline;
-    this.url = new URL(DEFAULTURL);
+  constructor() {
     this.clientId = generateClientId(this.clientIdPrefix);
-    this.numberOfRetries = 3; // Infinity;
-    this.debug = logger || (() => {});
-  }
-
-  private doClose() {
-    console.log("closing connection")
-    this.connectionState = ConnectionState.disconnected;
-    this.pingTimer?.clear();
-    this.onclose();
+    this.numberOfRetries = DEFAULT_RETRIES;
+    this.ctx.reconnect = this.doConnect.bind(this);
   }
 
   private async connectMQTT(hostname: string, port = 1883) {
-    this.debug({ hostname, port });
+    debug.log({ hostname, port });
     return await Deno.connect({ hostname, port });
   }
 
@@ -96,7 +74,7 @@ export class Client {
     port = 8883,
     caCerts?: string[],
   ) {
-    this.debug({ hostname, port, caCerts });
+    debug.log({ hostname, port, caCerts });
     return await Deno.connectTls({ hostname, port, caCerts });
   }
 
@@ -117,68 +95,63 @@ export class Client {
     throw `Unsupported protocol: ${protocol}`;
   }
 
-  private async doConnect(
-    packet: ConnectPacket,
-    numberOfRetries: number,
-    url: URL,
-    caCerts?: string[],
-  ): Promise<void> {
+  private async doConnect(isReconnect: boolean): Promise<void> {
+    if (!this.connectPacket) {
+      return;
+    }
     let ipConnected = false;
     let attempt = 0;
     let lastMessage = "";
-    while ((ipConnected === false) && (attempt < numberOfRetries)) {
+    while ((ipConnected === false) && (attempt < this.numberOfRetries)) {
+      debug.log(`${isReconnect ? "re" : ""}connecting`);
       try {
         const conn = await this.createConn(
-          url.protocol,
-          url.hostname,
-          Number(url.port) || undefined,
-          caCerts,
+          this.url.protocol,
+          this.url.hostname,
+          Number(this.url.port) || undefined,
+          this.caCerts,
         );
-        this.mqttConn = new MqttConn({ conn });
-        this.handleConnection(this.mqttConn);
-        await this.mqttConn.send(packet);
+        this.ctx.handleConnection(conn);
+        await this.ctx.connect(this.connectPacket);
         ipConnected = true;
-        this.onopen();
       } catch (err) {
         lastMessage = `Connection failed: ${err.message}`;
-        this.debug(lastMessage);
-        await backOffSleep(true, attempt++);
+        debug.log(lastMessage);
+        if (isReconnect) {
+          await backOffSleep(true, 3);
+        } else {
+          await backOffSleep(true, attempt++);
+        }
       }
     }
     if (ipConnected === false) {
-      this.unresolvedConnect?.reject(Error(lastMessage));
-      this.onerror(Error(lastMessage));
+      this.ctx.unresolvedConnect?.reject(Error(lastMessage));
+      this.ctx.onerror(Error(lastMessage));
     }
   }
 
   connect(
     params: ConnectParameters = {},
-  ): Promise<ConnackPacket> {
-    this.url = params.url ? new URL(params.url) : this.url;
-    this.certFile = params?.certFile;
-    const keepAlive = params?.options?.keepAlive;
-    this.keepAlive = keepAlive !== undefined ? keepAlive : this.keepAlive;
-    const packet: ConnectPacket = {
-      clientId: this.clientId,
-      type: PacketType.connect,
-      ...params?.options,
-    };
+  ): Promise<AuthenticationResult> {
+    this.url = params?.url || this.url;
     this.numberOfRetries = params.numberOfRetries || this.numberOfRetries;
-    const deferred = new Deferred<ConnackPacket>();
-    this.unresolvedConnect = deferred;
-    this.doConnect(packet, this.numberOfRetries, this.url);
+    this.caCerts = params?.caCerts;
+    const options = Object.assign({
+      keepAlive: this.keepAlive,
+      clientId: this.clientId,
+    }, params?.options);
+    this.connectPacket = {
+      type: PacketType.connect,
+      ...options,
+    };
+    const deferred = new Deferred<AuthenticationResult>();
+    this.ctx.unresolvedConnect = deferred;
+    this.doConnect(false);
     return deferred.promise;
   }
 
   async disconnect(): Promise<void> {
-    if (this.connectionState !== ConnectionState.connected) {
-      throw "Not connected";
-    }
-    if (this.mqttConn) {
-      await this.mqttConn.send({ type: PacketType.disconnect });
-      this.mqttConn.close();
-    }
-    this.doClose();
+    await this.ctx.disconnect();
   }
 
   async publish(params: PublishParameters): Promise<void> {
@@ -186,79 +159,35 @@ export class Client {
       type: PacketType.publish,
       ...params,
     };
-    await this.sendPacket(packet);
+    await this.ctx.sendPacket(packet);
   }
 
   async subscribe(params: SubscribeParameters): Promise<void> {
     const packet: SubscribePacket = {
       type: PacketType.subscribe,
-      id: this.store.nextId(),
+      id: this.ctx.store.nextId(),
       ...params,
     };
-    await this.sendPacket(packet);
+    await this.ctx.sendPacket(packet);
   }
 
-  private async sendPacket(packet: AnyPacket) {
-    console.log({ sendPacket: packet });
-    if (this.connectionState === ConnectionState.connected) {
-      await this.mqttConn?.send(packet);
-      this.pingTimer?.reset();
-      return;
-    }
-    console.log("not connected");
-    this.pingTimer?.clear();
+  onopen(callback: () => void) {
+    this.ctx.onopen = async () => callback;
   }
 
-  private sendPing() {
-    this.sendPacket({ type: PacketType.pingreq });
+  onconnect(callback: () => void) {
+    this.ctx.onconnect = async () => callback;
   }
 
-  private async handleConnection(mqttConn: MqttConn): Promise<void> {
-    if (mqttConn === undefined) {
-      return;
-    }
-    try {
-      for await (const packet of mqttConn) {
-        this.debug({ received: JSON.stringify(packet, null, 2) });
-        if (this.connectionState !== ConnectionState.connected) {
-          if (packet.type === PacketType.connack) {
-            this.connectionState = ConnectionState.connected;
-            this.pingTimer = new Timer(
-              this.sendPing.bind(this),
-              this.keepAlive *1000,
-            );
-            this.unresolvedConnect?.resolve(packet);
-            this.onconnect();
-          } else {
-            throw new Error(`Received ${PacketType[packet.type]} packet before connect`);
-          }
-        } else {
-          switch (packet.type) {
-            case PacketType.publish:
-              const message = new TextDecoder().decode(packet.payload);
-              this.debug(
-                `publish: topic: ${packet.topic} message: ${message}`,
-              );
-              this.onmessage(packet);
-              break;
-            case PacketType.pingres:
-              break;
-            case PacketType.suback:
-              break;
-            default:
-              throw new Error(
-                `Received unexpected ${PacketType[packet.type]} packet after connect`,
-              );
-              break;
-          }
-        }
-      }
-    } catch (err) {
-      console.error(`Failed to handle packet: ${err}`);
-      if (!mqttConn.isClosed) {
-        mqttConn.close();
-      }
-      this.doClose();
-    }
+  onmessage(callback: (message: PublishPacket) => void) {
+    this.ctx.onmessage = async (message) => callback(message);
+  }
+
+  onclose(callback: () => void) {
+    this.ctx.onclose = async () => callback;
+  }
+
+  onerror(callback: (err: Error) => void) {
+    this.ctx.onerror = async (err) => callback(err);
   }
 }

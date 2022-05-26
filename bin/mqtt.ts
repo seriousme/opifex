@@ -1,8 +1,8 @@
 import { parse } from "https://deno.land/std@0.140.0/flags/mod.ts";
-import { Client, DEFAULTURL, SubscribeParameters } from "../client/client.ts";
+import { Client, DEFAULT_URL } from "../client/client.ts";
+import { debug } from "../client/deps.ts"
 
-const logger = console.log;
-const client = new Client(logger);
+const client = new Client();
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
@@ -14,7 +14,7 @@ const MQTTHelp = `MQTT.ts command line interface, available commands are:
 Launch 'mqtt.ts [command] --help' to know more about the commands.`;
 
 const ConnectHelp = `
-  -u/--url        the URL to connect to: default is ${DEFAULTURL}
+  -u/--url        the URL to connect to: default is ${DEFAULT_URL}
   -i/--clientId   the clientId to connect to the server
   -U/--username   the username to connect to the server
   -P/--password   the password to connect to the server
@@ -68,8 +68,16 @@ const subscribeOpts = {
   },
 };
 
+async function getCaCerts(filename:string|undefined){
+  if (!filename){
+    return;
+  }
+  return Deno.readTextFile(filename);
+}
+
 async function subscribe(args: string[]) {
   const connectArgs = parse(Deno.args, connectOpts);
+  connectArgs.caCerts = getCaCerts(connectArgs.certFile);
   const subscribeArgs = parse(Deno.args, subscribeOpts);
   if (connectArgs.help) {
     console.log(SubscribeHelp);
@@ -82,7 +90,7 @@ async function subscribe(args: string[]) {
   try {
     await client.connect({
       url: connectArgs.url,
-      certFile: connectArgs.certFile,
+      caCerts: connectArgs.caCerts,
       options: {
         username: connectArgs.username,
         password: connectArgs.password,
@@ -91,10 +99,10 @@ async function subscribe(args: string[]) {
         keepAlive: 60,
       },
     });
-    logger("Connected !");
-    client.onmessage = (packet) => {
+    debug.log("Connected !");
+    client.onmessage((packet) => {
       console.log(decoder.decode(packet.payload));
-    };
+    });
     client.subscribe({
       subscriptions: [ {
         topicFilter: subscribeArgs.topic, 
@@ -102,9 +110,9 @@ async function subscribe(args: string[]) {
       }
       ],
     });
-    logger("Subscribed!");
+    debug.log("Subscribed!");
   } catch (err) {
-    logger(err.message);
+    debug.log(err.message);
   }
 }
 
@@ -141,6 +149,7 @@ const publishOpts = {
 
 async function publish(args: string[]) {
   const connectArgs = parse(Deno.args, connectOpts);
+  connectArgs.caCerts = getCaCerts(connectArgs.certFile);
   const publishArgs = parse(Deno.args, publishOpts);
   if (connectArgs.help) {
     console.log(PublishHelp);
@@ -153,7 +162,7 @@ async function publish(args: string[]) {
   try {
     await client.connect({
       url: connectArgs.url,
-      certFile: connectArgs.certFile,
+      caCerts: connectArgs.caCerts,
       options: {
         username: connectArgs.username,
         password: connectArgs.password,
@@ -161,18 +170,18 @@ async function publish(args: string[]) {
         clean: !connectArgs.noClean
       },
     });
-    logger("Connected !");
+    debug.log("Connected !");
     await client.publish({
       topic: publishArgs.topic,
       payload: encoder.encode(publishArgs.message),
       retain: publishArgs.retain,
       qos: publishArgs.qos,
     });
-    logger("Published!");
+    debug.log("Published!");
     client.disconnect();
-    logger("Disconnected !");
+    debug.log("Disconnected !");
   } catch (err) {
-    logger(err.message);
+    debug.log(err.message);
   }
 }
 
