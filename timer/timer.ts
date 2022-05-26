@@ -3,12 +3,14 @@ export class Timer {
   private action: Function; // function to perform when timer expires
   private timer: number = 0;
   private end: number = 0;
-  private running: boolean = false;
+  private running = false;
 
-  constructor(action: Function, delay: number) {
+  constructor(action: Function, delay: number, wait = false) {
     this.delay = delay;
     this.action = action;
-    this.reset();
+    if (!wait) {
+      this.reset();
+    }
   }
 
   private startTimer(delay: number): void {
@@ -36,5 +38,6 @@ export class Timer {
 
   clear(): void {
     clearTimeout(this.timer);
+    this.running = false;
   }
 }
