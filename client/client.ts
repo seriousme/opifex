@@ -39,7 +39,7 @@ function backOffSleep(random: boolean, attempt: number): Promise<void> {
   const delay = Math.floor(
     Math.min(randomness * min * Math.pow(factor, attempt), max),
   );
-  debug.log({delay})
+  debug.log({ delay });
   return new Promise((resolve) => setTimeout(resolve, delay));
 }
 
@@ -53,6 +53,7 @@ export class Client {
   protected numberOfRetries = DEFAULT_RETRIES;
   protected url = new URL(DEFAULT_URL);
   protected keepAlive = DEFAULT_KEEPALIVE;
+  protected autoReconnect = true;
   private caCerts?: string[];
   private clientId: string;
   private ctx = new Ctx(new MemoryStore());
@@ -61,7 +62,6 @@ export class Client {
   constructor() {
     this.clientId = generateClientId(this.clientIdPrefix);
     this.numberOfRetries = DEFAULT_RETRIES;
-    this.ctx.reconnect = this.doConnect.bind(this);
   }
 
   private async connectMQTT(hostname: string, port = 1883) {
@@ -95,14 +95,15 @@ export class Client {
     throw `Unsupported protocol: ${protocol}`;
   }
 
-  private async doConnect(isReconnect: boolean): Promise<void> {
+  private async doConnect(): Promise<void> {
     if (!this.connectPacket) {
       return;
     }
-    let ipConnected = false;
-    let attempt = 0;
+    let isReconnect = false;
+    let attempt = 1;
     let lastMessage = "";
-    while ((ipConnected === false) && (attempt < this.numberOfRetries)) {
+    let tryConnect = true;
+    while (tryConnect) {
       debug.log(`${isReconnect ? "re" : ""}connecting`);
       try {
         const conn = await this.createConn(
@@ -111,20 +112,26 @@ export class Client {
           Number(this.url.port) || undefined,
           this.caCerts,
         );
-        this.ctx.handleConnection(conn);
-        await this.ctx.connect(this.connectPacket);
-        ipConnected = true;
+        // if we get this far we have a connection
+        tryConnect =
+          await this.ctx.handleConnection(conn, this.connectPacket) &&
+          this.autoReconnect;
+        debug.log({ tryConnect });
+        isReconnect = true;
+        this.connectPacket.clean = false;
+        this.ctx.close();
       } catch (err) {
         lastMessage = `Connection failed: ${err.message}`;
         debug.log(lastMessage);
-        if (isReconnect) {
-          await backOffSleep(true, 3);
+        if (!isReconnect && attempt > this.numberOfRetries) {
+          tryConnect = false;
         } else {
           await backOffSleep(true, attempt++);
         }
       }
     }
-    if (ipConnected === false) {
+
+    if (isReconnect === false) {
       this.ctx.unresolvedConnect?.reject(Error(lastMessage));
       this.ctx.onerror(Error(lastMessage));
     }
@@ -146,7 +153,7 @@ export class Client {
     };
     const deferred = new Deferred<AuthenticationResult>();
     this.ctx.unresolvedConnect = deferred;
-    this.doConnect(false);
+    this.doConnect();
     return deferred.promise;
   }
 

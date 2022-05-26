@@ -31,7 +31,6 @@ export class Ctx {
   pingTimer?: Timer;
   unresolvedConnect?: Deferred<AuthenticationResult>;
   store: MemoryStore;
-  reconnect = async (reconnect: boolean): Promise<void> => {};
   onopen = () => {};
   onconnect = () => {};
   onmessage = (message: PublishPacket) => {};
@@ -88,11 +87,12 @@ export class Ctx {
     this.sendPacket({ type: PacketType.pingreq });
   }
 
-  async handleConnection(conn: Deno.Conn): Promise<void> {
+  async handleConnection(conn: Deno.Conn, connectPacket:ConnectPacket): Promise<boolean> {
     this.mqttConn = new MqttConn({ conn });
     if (this.mqttConn === undefined) {
-      return;
+      return true;
     }
+    await this.connect(connectPacket);
     try {
       for await (const packet of this.mqttConn) {
         handlePacket(this, packet);
@@ -103,11 +103,10 @@ export class Ctx {
         this.mqttConn.close();
       }
     }
-    if (this.connectionState !== ConnectionState.disconnecting) {
-      nextTick(() => this.reconnect(true));
-    } else {
-      this.close();
-    }
+    if (this.connectionState === ConnectionState.disconnecting) {
+      return false;
+    } 
+    return true;
   }
 
   close() {
