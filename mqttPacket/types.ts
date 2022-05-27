@@ -34,3 +34,5 @@ export type Payload = Uint8Array;
 export type Topic = string;
 
 export type TopicFilter = string;
+
+export type Dup = boolean;

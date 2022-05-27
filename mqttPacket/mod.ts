@@ -1,4 +1,4 @@
-import { PacketType, QoS, Topic, TopicFilter } from "./types.ts";
+import { Dup, PacketType, Payload, QoS, Topic, TopicFilter } from "./types.ts";
 import { invalidTopic, invalidTopicFilter, invalidUTF8 } from "./validators.ts";
 import { decodeLength, encodeLength } from "./length.ts";
 import connect, { ConnectPacket } from "./connect.ts";
@@ -37,6 +37,8 @@ export type {
   ConnackPacket,
   ConnectPacket,
   DisconnectPacket,
+  Dup,
+  Payload,
   PingreqPacket,
   PingresPacket,
   PubackPacket,
