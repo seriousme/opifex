@@ -3,7 +3,13 @@ export type {
   ConnackPacket,
   ConnectPacket,
   DisconnectPacket,
+  Dup,
+  Payload,
+  PubackPacket,
+  PubcompPacket,
   PublishPacket,
+  PubrecPacket,
+  PubrelPacket,
   SubscribePacket,
   Topic,
 } from "../mqttPacket/mod.ts";
@@ -17,4 +23,4 @@ export {
 
 export { MqttConn } from "../mqttConn/mqttConn.ts";
 export { Timer } from "../timer/timer.ts";
-export { debug, Deferred, nextTick } from "../utils/utils.ts";
+export { debug, Deferred } from "../utils/utils.ts";

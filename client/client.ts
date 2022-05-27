@@ -3,14 +3,16 @@ import {
   ConnectPacket,
   debug,
   Deferred,
+  Dup,
   PacketType,
+  Payload,
   PublishPacket,
   SubscribePacket,
-  Timer,
+  Topic,
 } from "./deps.ts";
 
 import { MemoryStore } from "./memoryStore.ts";
-import { Ctx } from "./context.ts";
+import { Context } from "./context.ts";
 
 function generateClientId(prefix: string): string {
   return `${prefix}-${Math.random().toString().slice(-10)}`;
@@ -56,7 +58,7 @@ export class Client {
   protected autoReconnect = true;
   private caCerts?: string[];
   private clientId: string;
-  private ctx = new Ctx(new MemoryStore());
+  private ctx = new Context(new MemoryStore());
   private connectPacket?: ConnectPacket;
 
   constructor() {
@@ -166,7 +168,7 @@ export class Client {
       type: PacketType.publish,
       ...params,
     };
-    await this.ctx.sendPacket(packet);
+    await this.ctx.send(packet);
   }
 
   async subscribe(params: SubscribeParameters): Promise<void> {
@@ -175,7 +177,7 @@ export class Client {
       id: this.ctx.store.nextId(),
       ...params,
     };
-    await this.ctx.sendPacket(packet);
+    await this.ctx.send(packet);
   }
 
   onopen(callback: () => void) {
@@ -186,8 +188,9 @@ export class Client {
     this.ctx.onconnect = async () => callback;
   }
 
-  onmessage(callback: (message: PublishPacket) => void) {
-    this.ctx.onmessage = async (message) => callback(message);
+  onmessage(callback: (topic:Topic, payload:Payload, dup:Dup) => void) {
+    this.ctx.onmessage = async (topic:Topic, payload:Payload, dup?:Dup) =>
+      callback(topic, payload, dup || false);
   }
 
   onclose(callback: () => void) {

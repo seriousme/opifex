@@ -1,16 +1,16 @@
 import {
   AnyPacket,
   AuthenticationResult,
-  ConnackPacket,
   ConnectPacket,
+  PublishPacket,
   debug,
   Deferred,
+  Dup,
   MqttConn,
-  nextTick,
   PacketType,
-  PublishPacket,
-  SubscribePacket,
+  Payload,
   Timer,
+  Topic,
 } from "./deps.ts";
 
 import { handlePacket } from "./handlers/handlePacket.ts";
@@ -25,7 +25,7 @@ export enum ConnectionState {
   disconnected = "disconnected",
 }
 
-export class Ctx {
+export class Context {
   mqttConn?: MqttConn;
   connectionState: ConnectionState;
   pingTimer?: Timer;
@@ -33,7 +33,7 @@ export class Ctx {
   store: MemoryStore;
   onopen = () => {};
   onconnect = () => {};
-  onmessage = (message: PublishPacket) => {};
+  onmessage = (topic: Topic, payload: Payload, dup?: Dup) => {};
   onclose = () => {};
   onerror = (err: Error) => {};
 
@@ -56,6 +56,10 @@ export class Ctx {
     this.onopen();
   }
 
+  publish(packet:PublishPacket){
+    this.onmessage(packet.topic, packet.payload, packet.dup)
+  }
+
   async disconnect() {
     if (this.connectionState !== ConnectionState.connected) {
       throw "Not connected";
@@ -67,8 +71,8 @@ export class Ctx {
     }
   }
 
-  async sendPacket(packet: AnyPacket) {
-    debug.log({ sendPacket: packet });
+  async send(packet: AnyPacket) {
+    debug.log({ send: packet });
     if (
       this.connectionState === ConnectionState.connected &&
       !this.mqttConn?.isClosed
@@ -84,10 +88,13 @@ export class Ctx {
   }
 
   sendPing() {
-    this.sendPacket({ type: PacketType.pingreq });
+    this.send({ type: PacketType.pingreq });
   }
 
-  async handleConnection(conn: Deno.Conn, connectPacket:ConnectPacket): Promise<boolean> {
+  async handleConnection(
+    conn: Deno.Conn,
+    connectPacket: ConnectPacket,
+  ): Promise<boolean> {
     this.mqttConn = new MqttConn({ conn });
     if (this.mqttConn === undefined) {
       return true;
@@ -105,7 +112,7 @@ export class Ctx {
     }
     if (this.connectionState === ConnectionState.disconnecting) {
       return false;
-    } 
+    }
     return true;
   }
 

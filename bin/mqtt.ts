@@ -100,8 +100,8 @@ async function subscribe(args: string[]) {
       },
     });
     debug.log("Connected !");
-    client.onmessage((packet) => {
-      console.log(decoder.decode(packet.payload));
+    client.onmessage((topic,payload,dup) => {
+      console.log(decoder.decode(payload));
     });
     client.subscribe({
       subscriptions: [ {
