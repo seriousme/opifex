@@ -11,6 +11,43 @@ export class Deferred<T> {
   }
 }
 
+class AsyncQueue<T> {
+  private queue: T[] = [];
+  private maxQueueLength = Infinity;
+  private nextResolve = (value: T) => {};
+  private hasNext = false;
+
+  constructor(maxQueueLength?: number) {
+    if (maxQueueLength) {
+      this.maxQueueLength = maxQueueLength;
+    }
+  }
+
+  async *[Symbol.asyncIterator]() {
+    while (true) {
+      yield new Promise((resolve) => {
+        if (this.queue.length > 0) {
+          return resolve(this.queue.shift());
+        }
+        this.nextResolve = resolve;
+        this.hasNext = true;
+      });
+    }
+  }
+
+  push(item: T) {
+    if (this.hasNext) {
+      this.nextResolve(item);
+      this.hasNext = false;
+      return;
+    }
+    if (this.queue.length > this.maxQueueLength) {
+      this.queue.shift();
+    }
+    this.queue.push(item);
+  }
+}
+
 export const noop = (...args: any) => {};
 
 export function nextTick(fn: (...args: any[]) => void){
