@@ -14,11 +14,11 @@ export async function handlePubrel(
     const storedPacket = ctx.client.incomming.get(id);
     if (storedPacket) {
       ctx.persistence.publish(storedPacket.topic, storedPacket);
+      ctx.client.incomming.delete(id);
+      await ctx.send({
+        type: PacketType.pubcomp,
+        id,
+      });
     }
-    ctx.client.incomming.delete(id);
-    await ctx.send({
-      type: PacketType.pubcomp,
-      id,
-    });
   }
 }

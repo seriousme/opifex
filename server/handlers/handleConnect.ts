@@ -57,8 +57,8 @@ function validateConnect(
 }
 
 export async function handleConnect(
-  packet: ConnectPacket,
   ctx: Context,
+  packet: ConnectPacket,
 ): Promise<void> {
   const clientId = packet.clientId || `Opifex-${crypto.randomUUID()}`;
   const returnCode = validateConnect(ctx, packet);

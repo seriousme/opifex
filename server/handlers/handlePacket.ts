@@ -20,7 +20,7 @@ export async function handlePacket(
   debug.log(JSON.stringify(packet, null, 2));
   if (!ctx.connected) {
     if (packet.type === PacketType.connect) {
-      await handleConnect(packet, ctx);
+      await handleConnect(ctx, packet);
     } else {
       throw new Error(
         `Received ${PacketType[packet.type]} packet before connect`,
@@ -60,8 +60,6 @@ export async function handlePacket(
           `Received unexpected ${packet.type} packet after connect`,
         );
     }
-    if (typeof ctx.timer === "object") {
-      ctx.timer.reset();
-    }
+    ctx.timer?.reset();
   }
 }
