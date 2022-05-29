@@ -36,3 +36,5 @@ export type Topic = string;
 export type TopicFilter = string;
 
 export type Dup = boolean;
+
+export type PacketId = number;

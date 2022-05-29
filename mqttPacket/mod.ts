@@ -1,4 +1,4 @@
-import { Dup, PacketType, Payload, QoS, Topic, TopicFilter } from "./types.ts";
+import { Dup, PacketType, Payload, QoS, Topic, TopicFilter, PacketId } from "./types.ts";
 import { invalidTopic, invalidTopicFilter, invalidUTF8 } from "./validators.ts";
 import { decodeLength, encodeLength } from "./length.ts";
 import connect, { ConnectPacket } from "./connect.ts";
@@ -53,6 +53,7 @@ export type {
   TopicFilter,
   UnsubackPacket,
   UnsubscribePacket,
+  PacketId
 };
 
 export type { Subscription } from "./subscribe.ts";

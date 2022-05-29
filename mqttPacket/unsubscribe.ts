@@ -1,10 +1,10 @@
-import { BitMask, PacketType, Topic, TopicFilter } from "./types.ts";
+import { BitMask, PacketId, PacketType, Topic, TopicFilter } from "./types.ts";
 import { Encoder } from "./encoder.ts";
 import { booleanFlag, Decoder, DecoderError } from "./decoder.ts";
 
 export type UnsubscribePacket = {
   type: PacketType.unsubscribe;
-  id: number;
+  id: PacketId;
   topicFilters: TopicFilter[];
 };
 

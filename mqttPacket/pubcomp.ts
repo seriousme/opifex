@@ -1,10 +1,10 @@
-import { PacketType } from "./types.ts";
+import { PacketId, PacketType } from "./types.ts";
 import { Decoder } from "./decoder.ts";
 import { Encoder } from "./encoder.ts";
 
 export type PubcompPacket = {
   type: PacketType.pubcomp;
-  id: number;
+  id: PacketId;
 };
 
 export default {

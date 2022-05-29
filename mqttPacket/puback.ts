@@ -1,10 +1,10 @@
-import { PacketType } from "./types.ts";
+import { PacketType, PacketId } from "./types.ts";
 import { Decoder } from "./decoder.ts";
 import { Encoder } from "./encoder.ts";
 
 export type PubackPacket = {
   type: PacketType.puback;
-  id: number;
+  id: PacketId;
 };
 
 export default {
