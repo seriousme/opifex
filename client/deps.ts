@@ -4,14 +4,19 @@ export type {
   ConnectPacket,
   DisconnectPacket,
   Dup,
+  PacketId,
   Payload,
   PubackPacket,
   PubcompPacket,
   PublishPacket,
   PubrecPacket,
   PubrelPacket,
+  SubackPacket,
   SubscribePacket,
   Topic,
+  UnsubackPacket,
+  UnsubscribePacket,
+  ReturnCodes
 } from "../mqttPacket/mod.ts";
 
 export {
@@ -23,4 +28,4 @@ export {
 
 export { MqttConn } from "../mqttConn/mqttConn.ts";
 export { Timer } from "../timer/timer.ts";
-export { debug, Deferred } from "../utils/utils.ts";
+export { AsyncQueue, debug, Deferred } from "../utils/utils.ts";

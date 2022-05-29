@@ -1,8 +1,10 @@
 import { Context } from "../context.ts";
 import { PacketType, PubrelPacket } from "../deps.ts";
 
-// qos 2 only
-// Method A, Initiate onward delivery of the Application Message1  then discard message
+// A PUBREL Packet is the response to a PUBREC Packet. 
+// It is the third packet of the QoS 2 protocol exchange.
+
+// Method A, Initiate onward delivery of the Application Message then discard message
 // Send PUBCOMP <Packet Identifier>
 
 export async function handlePubrel(
@@ -10,11 +12,11 @@ export async function handlePubrel(
   packet: PubrelPacket,
 ): Promise<void> {
   const id = packet.id;
-  if (ctx.store.incomming.has(id)) {
-    const storedPacket = ctx.store.incomming.get(id);
+  if (ctx.store.pendingIncomming.has(id)) {
+    const storedPacket = ctx.store.pendingIncomming.get(id);
     if (storedPacket) {
-      ctx.publish(storedPacket);
-      ctx.store.incomming.delete(id);
+      ctx.receivePublish(storedPacket);
+      ctx.store.pendingIncomming.delete(id);
       await ctx.send({
         type: PacketType.pubcomp,
         id,

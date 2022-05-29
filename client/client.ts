@@ -180,6 +180,10 @@ export class Client {
     await this.ctx.send(packet);
   }
 
+  async *messages() {
+    yield* this.ctx.incomming;
+  }
+
   onopen(callback: () => void) {
     this.ctx.onopen = async () => callback;
   }
@@ -188,12 +192,11 @@ export class Client {
     this.ctx.onconnect = async () => callback;
   }
 
-  onmessage(callback: (topic:Topic, payload:Payload, dup:Dup) => void) {
-    this.ctx.onmessage = async (topic:Topic, payload:Payload, dup?:Dup) =>
-      callback(topic, payload, dup || false);
+  onmessage(callback: (message: PublishPacket) => void) {
+    this.ctx.onmessage = async (message: PublishPacket) => callback(message);
   }
 
-  onclose(callback: () => void) {
+  onclose(callback: () => void): void {
     this.ctx.onclose = async () => callback;
   }
 

@@ -1,6 +1,6 @@
 import { parse } from "https://deno.land/std@0.140.0/flags/mod.ts";
 import { Client, DEFAULT_URL } from "../client/client.ts";
-import { debug } from "../client/deps.ts"
+import { debug, PublishPacket } from "../client/deps.ts"
 
 const client = new Client();
 const encoder = new TextEncoder();
@@ -100,8 +100,8 @@ async function subscribe(args: string[]) {
       },
     });
     debug.log("Connected !");
-    client.onmessage((topic,payload,dup) => {
-      console.log(decoder.decode(payload));
+    client.onmessage((message:PublishPacket) => {
+      console.log(decoder.decode(message.payload));
     });
     client.subscribe({
       subscriptions: [ {

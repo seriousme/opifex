@@ -1,16 +1,18 @@
 import {
   AnyPacket,
+  AsyncQueue,
   AuthenticationResult,
   ConnectPacket,
-  PublishPacket,
   debug,
   Deferred,
-  Dup,
   MqttConn,
+  PacketId,
   PacketType,
-  Payload,
+  PublishPacket,
+  ReturnCodes,
+  SubscribePacket,
   Timer,
-  Topic,
+  UnsubscribePacket,
 } from "./deps.ts";
 
 import { handlePacket } from "./handlers/handlePacket.ts";
@@ -30,16 +32,24 @@ export class Context {
   connectionState: ConnectionState;
   pingTimer?: Timer;
   unresolvedConnect?: Deferred<AuthenticationResult>;
+  unresolvedPublish: Map<PacketId, Deferred<void>>;
+  unresolvedSubscribe: Map<PacketId, Deferred<ReturnCodes>>;
+  unresolvedUnSubscribe: Map<PacketId, Deferred<void>>;
   store: MemoryStore;
+  incomming: AsyncQueue<PublishPacket>;
   onopen = () => {};
   onconnect = () => {};
-  onmessage = (topic: Topic, payload: Payload, dup?: Dup) => {};
+  onmessage?: (message: PublishPacket) => void;
   onclose = () => {};
   onerror = (err: Error) => {};
 
   constructor(store: MemoryStore) {
     this.store = store;
     this.connectionState = ConnectionState.offline;
+    this.incomming = new AsyncQueue();
+    this.unresolvedPublish = new Map();
+    this.unresolvedSubscribe = new Map();
+    this.unresolvedUnSubscribe = new Map();
   }
 
   async connect(packet: ConnectPacket) {
@@ -56,10 +66,6 @@ export class Context {
     this.onopen();
   }
 
-  publish(packet:PublishPacket){
-    this.onmessage(packet.topic, packet.payload, packet.dup)
-  }
-
   async disconnect() {
     if (this.connectionState !== ConnectionState.connected) {
       throw "Not connected";
@@ -71,14 +77,12 @@ export class Context {
     }
   }
 
-  async send(packet: AnyPacket) {
+  async send(packet: AnyPacket){
     debug.log({ send: packet });
     if (
       this.connectionState === ConnectionState.connected &&
       !this.mqttConn?.isClosed
     ) {
-      debug.log("sending", this.mqttConn?.isClosed);
-
       await this.mqttConn?.send(packet);
       this.pingTimer?.reset();
       return;
@@ -121,5 +125,79 @@ export class Context {
     this.connectionState = ConnectionState.disconnected;
     this.pingTimer?.clear();
     this.onclose();
+  }
+
+  receivePublish(packet: PublishPacket) {
+    if (!this.onmessage) {
+      this.incomming.push(packet);
+      return;
+    }
+    this.onmessage(packet);
+  }
+
+  async publish(packet: PublishPacket): Promise<void> {
+    const qos = packet.qos || 0;
+    if (qos === 0) {
+      packet.id = 0;
+      this.send(packet);
+      return;
+    }
+    packet.id = this.store.nextId();
+    this.store.pendingOutgoing.set(packet.id, packet);
+    const deferred = new Deferred<void>();
+    this.unresolvedPublish.set(packet.id, deferred);
+    this.send(packet);
+    return deferred.promise;
+  }
+
+  async subscribe(packet: SubscribePacket): Promise<ReturnCodes> {
+    packet.id = this.store.nextId();
+    this.store.pendingOutgoing.set(packet.id, packet);
+    const deferred = new Deferred<ReturnCodes>();
+    this.unresolvedSubscribe.set(packet.id, deferred);
+    this.send(packet);
+    return deferred.promise;
+  }
+
+  async unsubscribe(packet: UnsubscribePacket): Promise<void> {
+    packet.id = this.store.nextId();
+    this.store.pendingOutgoing.set(packet.id, packet);
+    const deferred = new Deferred<void>();
+    this.unresolvedUnSubscribe.set(packet.id, deferred);
+    this.send(packet);
+    return deferred.promise;
+  }
+
+  receivePuback(id: PacketId): boolean {
+    const unresolvedMap = this.unresolvedPublish;
+    if (unresolvedMap.has(id)) {
+      const deferred = unresolvedMap.get(id);
+      unresolvedMap.delete(id);
+      deferred?.resolve();
+      return true;
+    }
+    return false;
+  }
+
+  receiveSuback(id: PacketId, returnCodes: ReturnCodes): boolean {
+    const unresolvedMap = this.unresolvedSubscribe;
+    if (unresolvedMap.has(id)) {
+      const deferred = unresolvedMap.get(id);
+      unresolvedMap.delete(id);
+      deferred?.resolve(returnCodes);
+      return true;
+    }
+    return false;
+  }
+
+  receiveUnsuback(id: PacketId): boolean {
+    const unresolvedMap = this.unresolvedUnSubscribe;
+    if (unresolvedMap.has(id)) {
+      const deferred = unresolvedMap.get(id);
+      unresolvedMap.delete(id);
+      deferred?.resolve();
+      return true;
+    }
+    return false;
   }
 }

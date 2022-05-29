@@ -11,7 +11,7 @@ export class Deferred<T> {
   }
 }
 
-class AsyncQueue<T> {
+export class AsyncQueue<T> {
   private queue: T[] = [];
   private maxQueueLength = Infinity;
   private nextResolve = (value: T) => {};
@@ -46,12 +46,6 @@ class AsyncQueue<T> {
     }
     this.queue.push(item);
   }
-}
-
-export const noop = (...args: any) => {};
-
-export function nextTick(fn: (...args: any[]) => void){
-  setTimeout(fn, 0);
 }
 
 export const debug = {

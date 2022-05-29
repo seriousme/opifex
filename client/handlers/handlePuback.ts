@@ -6,10 +6,8 @@ import { PubackPacket } from "../deps.ts";
 export async function handlePuback(
   ctx: Context,
   packet: PubackPacket,
-) {
-  // qos 1 only
+): Promise<void> {
   const id = packet.id;
-  if (ctx.client?.pendingOutgoing.has(id)) {
-    ctx.client.pendingOutgoing.delete(id);
-  }
+  ctx.store.pendingOutgoing.delete(id);
+  ctx.receivePuback(id);
 }
