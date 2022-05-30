@@ -37,11 +37,6 @@ export class Context {
   unresolvedUnSubscribe: Map<PacketId, Deferred<void>>;
   store: MemoryStore;
   incomming: AsyncQueue<PublishPacket>;
-  onopen = () => {};
-  onconnect = () => {};
-  onmessage?: (message: PublishPacket) => void;
-  onclose = () => {};
-  onerror = (err: Error) => {};
 
   constructor(store: MemoryStore) {
     this.store = store;
@@ -63,7 +58,6 @@ export class Context {
         true,
       );
     }
-    this.onopen();
   }
 
   async disconnect() {
@@ -77,7 +71,7 @@ export class Context {
     }
   }
 
-  async send(packet: AnyPacket){
+  async send(packet: AnyPacket) {
     debug.log({ send: packet });
     if (
       this.connectionState === ConnectionState.connected &&
@@ -124,15 +118,10 @@ export class Context {
     debug.log("closing connection");
     this.connectionState = ConnectionState.disconnected;
     this.pingTimer?.clear();
-    this.onclose();
   }
 
   receivePublish(packet: PublishPacket) {
-    if (!this.onmessage) {
-      this.incomming.push(packet);
-      return;
-    }
-    this.onmessage(packet);
+    this.incomming.push(packet);
   }
 
   async publish(packet: PublishPacket): Promise<void> {

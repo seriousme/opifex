@@ -23,15 +23,22 @@ export class AsyncQueue<T> {
     }
   }
 
-  async *[Symbol.asyncIterator]() {
-    while (true) {
-      yield new Promise((resolve) => {
-        if (this.queue.length > 0) {
-          return resolve(this.queue.shift());
+  private makePromise(): Promise<T> {
+    return new Promise((resolve) => {
+      if (this.queue.length > 0) {
+        const item = this.queue.shift();
+        if (item) {
+          return resolve(item);
         }
-        this.nextResolve = resolve;
-        this.hasNext = true;
-      });
+      }
+      this.nextResolve = resolve;
+      this.hasNext = true;
+    });
+  }
+
+  async *[Symbol.asyncIterator](): AsyncGenerator<Awaited<T>, void, unknown> {
+    while (true) {
+      yield this.makePromise();
     }
   }
 

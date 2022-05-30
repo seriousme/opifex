@@ -135,7 +135,6 @@ export class Client {
 
     if (isReconnect === false) {
       this.ctx.unresolvedConnect?.reject(Error(lastMessage));
-      this.ctx.onerror(Error(lastMessage));
     }
   }
 
@@ -180,27 +179,7 @@ export class Client {
     await this.ctx.send(packet);
   }
 
-  async *messages() {
+  async *messages(): AsyncGenerator<PublishPacket, void, unknown> {
     yield* this.ctx.incomming;
-  }
-
-  onopen(callback: () => void) {
-    this.ctx.onopen = async () => callback;
-  }
-
-  onconnect(callback: () => void) {
-    this.ctx.onconnect = async () => callback;
-  }
-
-  onmessage(callback: (message: PublishPacket) => void) {
-    this.ctx.onmessage = async (message: PublishPacket) => callback(message);
-  }
-
-  onclose(callback: () => void): void {
-    this.ctx.onclose = async () => callback;
-  }
-
-  onerror(callback: (err: Error) => void) {
-    this.ctx.onerror = async (err) => callback(err);
   }
 }

@@ -1,6 +1,6 @@
 import { parse } from "https://deno.land/std@0.140.0/flags/mod.ts";
 import { Client, DEFAULT_URL } from "../client/client.ts";
-import { debug, PublishPacket } from "../client/deps.ts"
+import { debug } from "../client/deps.ts";
 
 const client = new Client();
 const encoder = new TextEncoder();
@@ -40,10 +40,10 @@ const connectOpts = {
     n: "noClean",
     h: "help",
   },
-  boolean: ["noClean","help"],
+  boolean: ["noClean", "help"],
   default: {
-    noClean: false
-  }
+    noClean: false,
+  },
 };
 
 const SubscribeHelp = `Usage: MQTT.ts subscribe <options>
@@ -68,8 +68,8 @@ const subscribeOpts = {
   },
 };
 
-async function getCaCerts(filename:string|undefined){
-  if (!filename){
+async function getCaCerts(filename: string | undefined) {
+  if (!filename) {
     return;
   }
   return Deno.readTextFile(filename);
@@ -100,17 +100,18 @@ async function subscribe(args: string[]) {
       },
     });
     debug.log("Connected !");
-    client.onmessage((message:PublishPacket) => {
-      console.log(decoder.decode(message.payload));
-    });
+
     client.subscribe({
-      subscriptions: [ {
-        topicFilter: subscribeArgs.topic, 
-        qos: subscribeArgs.qos
-      }
-      ],
+      subscriptions: [{
+        topicFilter: subscribeArgs.topic,
+        qos: subscribeArgs.qos,
+      }],
     });
     debug.log("Subscribed!");
+
+    for await (const message of client.messages()){
+      console.log(decoder.decode(message.payload));
+    }
   } catch (err) {
     debug.log(err.message);
   }
@@ -167,7 +168,7 @@ async function publish(args: string[]) {
         username: connectArgs.username,
         password: connectArgs.password,
         clientId: connectArgs.clientId,
-        clean: !connectArgs.noClean
+        clean: !connectArgs.noClean,
       },
     });
     debug.log("Connected !");
