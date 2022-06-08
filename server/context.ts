@@ -1,17 +1,18 @@
 import {
   AnyPacket,
   AuthenticationResult,
-  Client,
-  ClientState,
   debug,
   MqttConn,
   PacketType,
   Persistence,
   PublishPacket,
   SockConn,
+  Store,
   Timer,
   Topic,
 } from "./deps.ts";
+
+export type ClientId = string;
 
 export const SysPrefix = "$";
 
@@ -20,7 +21,7 @@ export const utf8Encoder = new TextEncoder();
 export type Handlers = {
   isAuthenticated?(
     ctx: Context,
-    clientId: string,
+    clientId: ClientId,
     username: string,
     password: Uint8Array,
   ): AuthenticationResult;
@@ -34,7 +35,8 @@ export class Context {
   mqttConn: MqttConn;
   persistence: Persistence;
   handlers: Handlers;
-  client?: Client;
+  static clientList: Map<ClientId, Context> = new Map();
+  store?: Store;
   will?: PublishPacket;
   timer?: Timer;
 
@@ -46,45 +48,35 @@ export class Context {
     this.handlers = handlers;
   }
 
-  async send(packet: AnyPacket): Promise<void> {
+  async send(packet: AnyPacket): Promise<void>  {
     debug.log("Sending", PacketType[packet.type]);
     debug.log(JSON.stringify(packet, null, 2));
-    this.mqttConn.send(packet);
+    await this.mqttConn.send(packet);
   }
 
   connect(
     clientId: string,
     clean: boolean,
-    handler: Function,
-    close: Function,
   ): void {
-    this.client = this.getClient(clientId, clean, handler, close);
+    debug.log("Connecting", clientId);
+    const existingSession = Context.clientList.get(clientId);
+    if (existingSession) {
+      existingSession.close(false);
+    }
+    this.store = this.persistence.registerClient(
+      clientId,
+      this.doPublish.bind(this),
+      clean,
+    );
+
     this.connected = true;
-    this.client.state = ClientState.online;
     this.broadcast("$SYS/connect/clients", clientId);
+    debug.log("Connected", clientId);
   }
 
-  private getClient(
-    clientId: string,
-    clean: boolean,
-    handler: Function,
-    close: Function,
-  ) {
-    const existingClient = this.persistence.getClient(clientId);
-    if (existingClient) {
-      existingClient.close(false);
-      if (!clean) {
-        existingClient.handler = handler;
-        existingClient.close = close;
-        return existingClient;
-      }
-      this.clean(clientId);
-    }
-    return this.persistence.registerClient(
-      clientId,
-      handler,
-      close,
-    );
+  doPublish(packet: PublishPacket):void {
+    debug.log("doPublish", PacketType[packet.type]);
+    this.send(packet);
   }
 
   clean(clientId: string) {
@@ -94,20 +86,16 @@ export class Context {
   close(executewill = true): void {
     if (this.connected) {
       debug.log(
-        `Closing ${this.client
-          ?.id} while mqttConn is ${
+        `Closing ${this.store?.clientId} while mqttConn is ${
           this.mqttConn.isClosed ? "" : "not "
         }closed`,
       );
       this.connected = false;
-      if (this.client) {
-        this.client.state = ClientState.offline;
-        this.client.handler = () => {};
-        this.client.close = () => {};
-        this.broadcast("$SYS/disconnect/clients", this.client.id);
-        if (typeof this.timer === "object") {
-          this.timer.clear();
-        }
+      if (typeof this.timer === "object") {
+        this.timer.clear();
+      }
+      if (this.store) {
+        this.broadcast("$SYS/disconnect/clients", this.store.clientId);
       }
       if (executewill) {
         this.handleWill();

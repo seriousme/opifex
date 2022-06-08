@@ -1,4 +1,4 @@
-import { BitMask, PacketType, Payload, QoS, Topic } from "./types.ts";
+import { BitMask, ClientId, PacketType, Payload, QoS, Topic } from "./types.ts";
 import { Encoder } from "./encoder.ts";
 import {
   booleanFlag,
@@ -11,7 +11,7 @@ export type ConnectPacket = {
   type: PacketType.connect;
   protocolName?: string;
   protocolLevel?: number;
-  clientId?: string;
+  clientId?: ClientId;
   username?: string;
   password?: Uint8Array;
   will?: {

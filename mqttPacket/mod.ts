@@ -1,4 +1,5 @@
 import {
+  ClientId,
   Dup,
   PacketId,
   PacketType,
@@ -43,6 +44,7 @@ export type AnyPacket =
   | DisconnectPacket;
 
 export type {
+  ClientId,
   ConnackPacket,
   ConnectPacket,
   DisconnectPacket,

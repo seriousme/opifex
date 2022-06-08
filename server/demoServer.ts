@@ -32,17 +32,18 @@ function isAuthenticated(
   // }
   // return AuthenticationResult.badUsernameOrPassword;
 }
+
 function isAuthorizedToPublish(ctx: Context, topic: Topic): boolean {
   debug.log(
-    `Checking authorization of client '${ctx.client
-      ?.id}' to publish on topic '${topic}'`,
+    `Checking authorization of client '${ctx.store
+      ?.clientId}' to publish on topic '${topic}'`,
   );
   return true;
 }
 function isAuthorizedToSubscribe(ctx: Context, topic: Topic): boolean {
   debug.log(
-    `Checking authorization of client '${ctx.client
-      ?.id}' to subscribe to topic '${topic}'`,
+    `Checking authorization of client '${ctx.store
+      ?.clientId}' to subscribe to topic '${topic}'`,
   );
   return true;
 }

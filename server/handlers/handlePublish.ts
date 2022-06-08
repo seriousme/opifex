@@ -36,8 +36,8 @@ export async function handlePublish(
       return;
     }
     // qos 2
-    if (ctx.client) {
-      ctx.client.incomming.set(packet.id, packet);
+    if (ctx.store) {
+      ctx.store.pendingIncoming.set(packet.id, packet);
       await ctx.send({
         type: PacketType.pubrec,
         id: packet.id,

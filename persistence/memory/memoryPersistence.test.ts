@@ -1,13 +1,12 @@
 import {
-  MemoryClient as Client,
   MemoryPersistence as Persistence,
+  MemoryStore as Store,
 } from "./memoryPersistence.ts";
 
-import { Packet, PacketStore } from "../persistence.ts";
-import { assertEquals, PacketType } from "../deps.ts";
+import { assertEquals, PacketType, PublishPacket } from "../deps.ts";
 
 const payloadAny = new TextEncoder().encode("any");
-const qos = 0;
+const qos = 1;
 
 function delay(ms: number): Promise<unknown> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -19,20 +18,20 @@ Deno.test("new should create new Persistence object", () => {
   assertEquals(persistence instanceof Persistence, true);
 });
 
-Deno.test("Registring a client should register the client and return a Client Object", () => {
+Deno.test("Registring a client should register the client and return a Store Object", () => {
   const persistence = new Persistence();
   const clientId = "myClient";
-  const client = persistence.registerClient(clientId, () => {}, () => {});
+  const client = persistence.registerClient(clientId, () => {},false);
   assertEquals(persistence.clientList.has(clientId), true);
   assertEquals(typeof client, "object");
-  assertEquals(client instanceof Client, true);
+  assertEquals(client instanceof Store, true);
 });
 
 Deno.test("pub/sub should work", async () => {
   const persistence = new Persistence();
   const clientId = "myClient";
   const topic = "/myTopic";
-  const publishPacket: Packet = {
+  const publishPacket: PublishPacket = {
     type: PacketType.publish,
     id: 1,
     topic,
@@ -44,21 +43,16 @@ Deno.test("pub/sub should work", async () => {
     return publishPacket;
   }
   const seen = new Set();
-  let numCalls = 0;
 
-  async function handler(queue: PacketStore) {
-    numCalls++;
-    await delay(5); // slow handler
-    for await (const [id] of queue) {
-      seen.add(id);
-    }
+  async function handler(packet: PublishPacket) {
+    seen.add(packet.id);
   }
 
-  const client = persistence.registerClient(clientId, handler, () => {});
+  const store = persistence.registerClient(clientId, handler, false);
 
-  persistence.subscribe(client, topic, qos);
+  persistence.subscribe(store, topic, qos);
   assertEquals(
-    client.subscriptions.has(topic),
+    store.subscriptions.has(topic),
     true,
     "topic is registered as subscription",
   );
@@ -67,10 +61,7 @@ Deno.test("pub/sub should work", async () => {
   persistence.publish(topic, makePacket(undefined));
   persistence.publish("noTopic", makePacket(undefined));
   await delay(10);
-  assertEquals(client.outgoing.size, 3);
-  assertEquals(client.outgoing.has(1), true);
-  assertEquals(seen.size, 3, "received messages");
-  assertEquals(numCalls, 1, "handler is called");
+  assertEquals(seen.size, 3, `received ${seen.size} messages`);
 });
 
 Deno.test("many packets should work", async () => {
@@ -78,7 +69,7 @@ Deno.test("many packets should work", async () => {
   const clientId = "myClient";
   const topic = "/myTopic";
   const numMessages = 1000;
-  const publishPacket: Packet = {
+  const publishPacket: PublishPacket = {
     type: PacketType.publish,
     id: 1,
     topic,
@@ -91,41 +82,32 @@ Deno.test("many packets should work", async () => {
     return newPacket;
   }
   const seen = new Set();
-  let numCalls = 0;
 
-  async function handler(queue: PacketStore) {
-    numCalls++;
-    for await (const [id] of queue) {
-      assertEquals(seen.has(id), false), "Not seen ID ${id} before";
-      seen.add(id);
-      queue.delete(id);
-    }
+  async function handler(packet: PublishPacket) {
+    assertEquals(seen.has(packet.id), false, `Not seen ${packet.id} before`);
+    seen.add(packet.id);
   }
 
-  const client = persistence.registerClient(clientId, handler, () => {});
+  const store = persistence.registerClient(clientId, handler, false);
 
-  persistence.subscribe(client, topic, qos);
+  persistence.subscribe(store, topic, qos);
   assertEquals(
-    client.subscriptions.has(topic),
+    store.subscriptions.has(topic),
     true,
-    "topic is not registered as subscription",
+    "topic is registered as subscription",
   );
   for (let i = 0; i < numMessages; i++) {
     persistence.publish(topic, makePacket(i));
-    if ((i % 100) === 0) {
-      await delay(1);
-    }
   }
   await delay(10);
-  assertEquals(client.outgoing.size, 0);
-  assertEquals(seen.size, numMessages, "received all messages");
+  assertEquals(seen.size, numMessages, `received all ${numMessages} messages`);
 });
 
 Deno.test("unsubscribe should work", () => {
   const persistence = new Persistence();
   const clientId = "myClient";
   const topic = "/myTopic";
-  const publishPacket: Packet = {
+  const publishPacket: PublishPacket = {
     type: PacketType.publish,
     id: 1,
     topic,
@@ -133,21 +115,20 @@ Deno.test("unsubscribe should work", () => {
   };
 
   const seen = new Set();
-  async function callback(queue: PacketStore) {
-    for await (const packet of queue) {
-      seen.add(packet[0]);
-    }
+  async function handler(packet: PublishPacket) {
+    assertEquals(seen.has(packet.id), false, `Not seen ${packet.id} before`);
+    seen.add(packet.id);
   }
 
-  const client = persistence.registerClient(clientId, callback, () => {});
-  persistence.subscribe(client, topic, qos);
-  persistence.unsubscribe(client, topic);
+  const store = persistence.registerClient(clientId, handler,false);
+  persistence.subscribe(store, topic, qos);
+  persistence.unsubscribe(store, topic);
 
   assertEquals(
-    client.subscriptions.has(topic),
+    store.subscriptions.has(topic),
     false,
     "topic is still registered as subscription after unsubscription",
   );
   persistence.publish(topic, publishPacket);
-  assertEquals(client.outgoing.size, 0);
+  assertEquals(seen.size, 0);
 });

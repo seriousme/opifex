@@ -1,47 +1,36 @@
 import {
-  Client,
+  assert,
   ClientId,
-  ClientState,
-  Handler,
-  Packet,
+  debug,
   PacketId,
-  PacketStore,
-  Persistence,
+  PublishPacket,
   QoS,
-  RetainStore,
-  Subscription,
-  SubscriptionStore,
   Topic,
-} from "../persistence.ts";
+  TopicFilter,
+  Trie,
+} from "../deps.ts";
 
-import { assert, debug, Trie } from "../deps.ts";
+import { Client, Handler, Persistence, RetainStore } from "../persistence.ts";
+import { PacketStore, Store, SubscriptionStore } from "../store.ts";
 
 const maxPacketId = 0xffff;
-const maxQueueLength = 42;
+const maxQueueLength = 0xffff;
 
-export class MemoryClient implements Client {
-  id: ClientId;
-  state: ClientState;
+export class MemoryStore implements Store {
+  clientId: ClientId;
   private packetId: PacketId;
-  incomming: PacketStore;
-  outgoing: PacketStore;
+  pendingIncoming: PacketStore;
   pendingOutgoing: PacketStore;
   pendingAckOutgoing: Set<PacketId>;
   subscriptions: SubscriptionStore;
-  handler: Handler;
-  close: Handler;
 
-  constructor(id: ClientId, handler: Handler, close: Handler) {
-    this.id = id;
+  constructor(clientId: ClientId) {
     this.packetId = 0;
-    this.state = ClientState.online;
-    this.incomming = new Map();
-    this.outgoing = new Map();
+    this.pendingIncoming = new Map();
     this.pendingOutgoing = new Map();
     this.pendingAckOutgoing = new Set();
     this.subscriptions = new Map();
-    this.handler = handler;
-    this.close = close;
+    this.clientId = clientId;
   }
 
   nextId(): PacketId {
@@ -52,58 +41,19 @@ export class MemoryClient implements Client {
         this.packetId = 0;
       }
     } while (
-      (this.outgoing.has(this.packetId) ||
-        this.pendingOutgoing.has(this.packetId) ||
+      (this.pendingOutgoing.has(this.packetId) ||
         this.pendingAckOutgoing.has(this.packetId)) &&
       (this.packetId !== currentId)
     );
     assert(this.packetId !== currentId, "No unused packetId available");
     return this.packetId;
   }
-
-  publish(topic: Topic, packet: Packet): void {
-    // don't queue if there are too many packets in queue
-    if (this.outgoing.size > maxQueueLength) {
-      return;
-    }
-    // shallow clone is intentional
-    const cPacket = Object.assign({}, packet);
-    // set packetId to client specific id
-    const nextId = this.nextId();
-    if (cPacket.id !== undefined) {
-      cPacket.id = nextId;
-    }
-
-    // retain flag is unset towards clients
-    if (cPacket.retain) {
-      cPacket.retain = false;
-    }
-    // set qos to qos requested during subscription
-    const qos = this.subscriptions.get(topic);
-    cPacket.qos = qos;
-
-    // if client is online just send
-    if (this.state === ClientState.online) {
-      debug.log(`Client ${this.id} is online`);
-      this.outgoing.set(nextId, cPacket);
-      if (this.outgoing.size === 1) {
-        (async () => {
-          await this.handler(this.outgoing, this.pendingOutgoing);
-        })();
-      }
-      return;
-    }
-    // client is offline, enqueue but only for qos > 0
-    if ((qos || 0) > 0) {
-      this.outgoing.set(nextId, cPacket);
-    }
-  }
 }
 
 export class MemoryPersistence implements Persistence {
   clientList: Map<ClientId, Client>;
   retained: RetainStore;
-  private trie: Trie<Client>;
+  private trie: Trie<ClientId>;
 
   constructor() {
     this.clientList = new Map();
@@ -111,47 +61,42 @@ export class MemoryPersistence implements Persistence {
     this.trie = new Trie();
   }
 
-  registerClient(clientId: ClientId, handler: Handler, close: Handler): Client {
-    const client = new MemoryClient(clientId, handler, close);
-    this.clientList.set(clientId, client);
-    return client;
-  }
-
-  getClient(clientId: ClientId): Client | undefined {
-    return this.clientList.get(clientId);
+  registerClient(clientId: ClientId, handler: Handler, clean: boolean): Store {
+    const existingClient = this.clientList.get(clientId);
+    const store = (!clean && existingClient)? existingClient.store:new MemoryStore(clientId);
+    this.clientList.set(clientId, { store, handler });
+    return store;
   }
 
   deregisterClient(clientId: ClientId): void {
-    if (this.clientList.has(clientId)) {
-      const client = this.getClient(clientId);
-      if (client) {
-        this.unsubscribeAll(client);
-      }
+    const client = this.clientList.get(clientId);
+    if (client) {
+      this.unsubscribeAll(client.store);
       this.clientList.delete(clientId);
     }
   }
 
-  subscribe(client: Client, topic: Topic, qos: QoS): void {
-    if (!client.subscriptions.has(topic)) {
-      client.subscriptions.set(topic, qos);
-      this.trie.add(topic, client);
+  subscribe(store: Store, topicFilter: TopicFilter, qos: QoS): void {
+    if (!store.subscriptions.has(topicFilter)) {
+      store.subscriptions.set(topicFilter, qos);
+      this.trie.add(topicFilter, store.clientId);
     }
   }
 
-  unsubscribe(client: Client, topic: Topic): void {
-    if (client.subscriptions.has(topic)) {
-      client.subscriptions.delete(topic);
-      this.trie.remove(topic, client);
+  unsubscribe(store: Store, topic: Topic): void {
+    if (store.subscriptions.has(topic)) {
+      store.subscriptions.delete(topic);
+      this.trie.remove(topic, store.clientId);
     }
   }
 
-  private unsubscribeAll(client: Client) {
-    for (const [topic, qos] of client.subscriptions) {
-      this.unsubscribe(client, topic);
+  private unsubscribeAll(store: Store) {
+    for (const [topic, qos] of store.subscriptions) {
+      this.unsubscribe(store, topic);
     }
   }
 
-  publish(topic: Topic, packet: Packet): void {
+  publish(topic: Topic, packet: PublishPacket): void {
     if (packet.retain) {
       this.retained.set(packet.topic, packet);
       if (packet.payload === undefined) {
@@ -161,20 +106,26 @@ export class MemoryPersistence implements Persistence {
 
     // dedup clients
     const clients = new Set(this.trie.match(topic));
-    for (const client of clients) {
-      debug.log(`publish ${topic} to client ${client.id}`);
-      client.publish(topic, packet);
+    // publish the message to all clients
+    for (const clientId of clients) {
+      // debug.log(`publish ${topic} to client ${clientId}`);
+      const client = this.clientList.get(clientId);
+      client?.handler(packet);
     }
   }
 
-  handleRetained(client: Client, subscriptions: Subscription[]): void {
-    const retainedTrie: Trie<Client> = new Trie();
-    for (const sub of subscriptions) {
-      retainedTrie.add(sub.topicFilter, client);
-    }
-    for (const [topic, packet] of this.retained) {
-      if (retainedTrie.match(topic).length > 0) {
-        client.publish(topic, packet);
+  handleRetained(clientId: ClientId): void {
+    const retainedTrie: Trie<ClientId> = new Trie();
+    const client = this.clientList.get(clientId);
+    const store = client?.store;
+    if (store) {
+      for (const [topicFilter, qos] of store.subscriptions) {
+        retainedTrie.add(topicFilter, clientId);
+      }
+      for (const [topic, packet] of this.retained) {
+        if (retainedTrie.match(topic).length > 0) {
+          client?.handler(packet);
+        }
       }
     }
   }

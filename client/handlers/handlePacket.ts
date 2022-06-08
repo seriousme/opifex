@@ -7,21 +7,24 @@ import { handlePubrec } from "./handlePubrec.ts";
 import { handlePubrel } from "./handlePubrel.ts";
 import { handlePubcomp } from "./handlePubcomp.ts";
 import { handleSuback } from "./handleSuback.ts";
-import { handleUnsuback} from "./handleUnsuback.ts";
+import { handleUnsuback } from "./handleUnsuback.ts";
 import { debug } from "../deps.ts";
 
-export  async function handlePacket(ctx:Context, packet: AnyPacket): Promise <void> {
+export async function handlePacket(
+  ctx: Context,
+  packet: AnyPacket,
+): Promise<void> {
   debug.log({ received: JSON.stringify(packet, null, 2) });
-  if(ctx.connectionState !== ConnectionState.connected) {
-    if(packet.type === PacketType.connack) {
-      handleConnack(packet,ctx)
+  if (ctx.connectionState !== ConnectionState.connected) {
+    if (packet.type === PacketType.connack) {
+      handleConnack(packet, ctx);
     } else {
       throw new Error(
-        `Received ${PacketType[packet.type]} packet before connect`
+        `Received ${PacketType[packet.type]} packet before connect`,
       );
     }
   } else {
-    switch(packet.type) {
+    switch (packet.type) {
       case PacketType.pingreq:
         break;
       case PacketType.publish:
@@ -48,10 +51,9 @@ export  async function handlePacket(ctx:Context, packet: AnyPacket): Promise <vo
 
       default:
         throw new Error(
-          `Received unexpected ${PacketType[packet.type]} packet after connect`
+          `Received unexpected ${PacketType[packet.type]} packet after connect`,
         );
         break;
     }
   }
 }
-

@@ -109,7 +109,7 @@ async function subscribe(args: string[]) {
     });
     debug.log("Subscribed!");
 
-    for await (const message of client.messages()){
+    for await (const message of client.messages()) {
       console.log(decoder.decode(message.payload));
     }
   } catch (err) {

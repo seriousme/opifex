@@ -3,33 +3,9 @@ import {
   AuthenticationResult,
   ConnectPacket,
   debug,
-  PacketStore,
   PacketType,
   Timer,
 } from "../deps.ts";
-
-function makeHandler(
-  ctx: Context,
-): (queue: PacketStore, pending: PacketStore) => Promise<void> {
-  async function handler(queue: PacketStore, pending: PacketStore) {
-    for await (const item of queue) {
-      const [id, packet] = item;
-      await ctx.send(packet);
-      const qos = packet.qos || 0;
-      if (qos > 0) {
-        pending.set(id, packet);
-      }
-      queue.delete(id);
-    }
-  }
-  return handler;
-}
-
-function makeClose(ctx: Context) {
-  return function close() {
-    ctx.close();
-  };
-}
 
 function isAuthenticated(
   ctx: Context,
@@ -77,8 +53,6 @@ export async function handleConnect(
     ctx.connect(
       clientId,
       packet.clean || false,
-      makeHandler(ctx),
-      makeClose(ctx),
     );
 
     const keepAlive = packet.keepAlive || 0;

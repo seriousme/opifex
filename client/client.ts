@@ -11,7 +11,7 @@ import {
   Topic,
 } from "./deps.ts";
 
-import { MemoryStore } from "./memoryStore.ts";
+import { MemoryStore } from "./deps.ts";
 import { Context } from "./context.ts";
 
 function generateClientId(prefix: string): string {
@@ -180,6 +180,6 @@ export class Client {
   }
 
   async *messages(): AsyncGenerator<PublishPacket, void, unknown> {
-    yield* this.ctx.incomming;
+    yield* this.ctx.incoming;
   }
 }

@@ -2,6 +2,7 @@ import { assert } from "https://deno.land/std@0.140.0/testing/asserts.ts";
 import {
   PacketId,
   PublishPacket,
+  PubrelPacket,
   SubscribePacket,
   UnsubscribePacket,
 } from "./deps.ts";
@@ -12,20 +13,22 @@ export type PacketStore<T> = Map<
   T
 >;
 
+type PendingOutgoing = PublishPacket | SubscribePacket | UnsubscribePacket;
+type PendingAckOutgoing = PubrelPacket;
+type PendingOutgoingPackets = PendingAckOutgoing | PendingOutgoing;
+
 export class MemoryStore {
   private packetId: PacketId;
 
-  pendingIncomming: PacketStore<PublishPacket>;
-  pendingOutgoing: PacketStore<
-    PublishPacket | SubscribePacket | UnsubscribePacket
-  >;
-  pendingAckOutgoing: Set<PacketId>;
+  pendingIncoming: PacketStore<PublishPacket>;
+  pendingOutgoing: PacketStore<PendingOutgoing>;
+  pendingAckOutgoing: PacketStore<PendingAckOutgoing>;
 
   constructor() {
     this.packetId = 0;
-    this.pendingIncomming = new Map();
+    this.pendingIncoming = new Map();
     this.pendingOutgoing = new Map();
-    this.pendingAckOutgoing = new Set();
+    this.pendingAckOutgoing = new Map();
   }
 
   nextId(): PacketId {
@@ -36,12 +39,25 @@ export class MemoryStore {
         this.packetId = 1;
       }
     } while (
-      (this.pendingIncomming.has(this.packetId) ||
+      (this.pendingIncoming.has(this.packetId) ||
         this.pendingOutgoing.has(this.packetId) ||
         this.pendingAckOutgoing.has(this.packetId)) &&
       (this.packetId !== currentId)
     );
     assert(this.packetId !== currentId, "No unused packetId available");
     return this.packetId;
+  }
+
+  async *pendingOutgoingPackets(): AsyncGenerator<
+    PendingOutgoing | PubrelPacket,
+    void,
+    unknown
+  > {
+    for (const [id, packet] of this.pendingAckOutgoing) {
+      yield packet;
+    }
+    for (const [id, packet] of this.pendingOutgoing) {
+      yield packet;
+    }
   }
 }

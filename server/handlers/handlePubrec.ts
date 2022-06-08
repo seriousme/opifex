@@ -9,9 +9,9 @@ export async function handlePubrec(
   packet: PubrecPacket,
 ): Promise<void> {
   const id = packet.id;
-  if (ctx.client?.pendingOutgoing.has(id)) {
-    ctx.client.pendingOutgoing.delete(id);
-    ctx.client.pendingAckOutgoing.add(id);
+  if (ctx.store?.pendingOutgoing.has(id)) {
+    ctx.store.pendingOutgoing.delete(id);
+    ctx.store.pendingAckOutgoing.add(id);
     await ctx.send({
       type: PacketType.pubrel,
       id,

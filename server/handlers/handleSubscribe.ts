@@ -18,11 +18,11 @@ export async function handleSubscribe(
 
   const validSubscriptions: Subscription[] = [];
   const returnCodes = packet.subscriptions.map((sub) => {
-    if (ctx.client) {
+    if (ctx.store) {
       if (!authorizedToSubscribe(ctx, sub.topicFilter)) {
         return SubscriptionFailure;
       }
-      ctx.persistence.subscribe(ctx.client, sub.topicFilter, sub.qos);
+      ctx.persistence.subscribe(ctx.store, sub.topicFilter, sub.qos);
       validSubscriptions.push(sub);
       return sub.qos;
     }
@@ -36,7 +36,7 @@ export async function handleSubscribe(
   });
 
   // send any retained messages that match these subscriptions
-  if (ctx.client) {
-    ctx.persistence.handleRetained(ctx.client, validSubscriptions);
+  if (ctx.store) {
+    ctx.persistence.handleRetained(ctx.store.clientId);
   }
 }

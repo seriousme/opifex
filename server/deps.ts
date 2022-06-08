@@ -1,19 +1,15 @@
 export type { SockConn } from "../mqttConn/mqttConn.ts";
 export { MqttConn } from "../mqttConn/mqttConn.ts";
-export type {
-  Client,
-  PacketStore,
-  Persistence,
-  QoS,
-  Topic,
-} from "../persistence/persistence.ts";
-export { ClientState } from "../persistence/persistence.ts";
+export type { Persistence } from "../persistence/persistence.ts";
+export type { Store } from "../persistence/store.ts";
 export { MemoryPersistence } from "../persistence/memory/memoryPersistence.ts";
 export type {
   AnyPacket,
+  ClientId,
   ConnackPacket,
   ConnectPacket,
   DisconnectPacket,
+  PacketId,
   PingreqPacket,
   PingresPacket,
   PubackPacket,
@@ -21,12 +17,15 @@ export type {
   PublishPacket,
   PubrecPacket,
   PubrelPacket,
+  QoS,
   SubackPacket,
   SubscribePacket,
   Subscription,
+  Topic,
+  TopicFilter,
   UnsubackPacket,
   UnsubscribePacket,
-} from "../mqttConn/deps.ts";
+} from "../mqttPacket/mod.ts";
 
 export { AuthenticationResult, PacketType } from "../mqttConn/deps.ts";
 export { Timer } from "../timer/timer.ts";

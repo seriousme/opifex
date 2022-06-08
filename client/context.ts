@@ -5,6 +5,7 @@ import {
   ConnectPacket,
   debug,
   Deferred,
+  MemoryStore,
   MqttConn,
   PacketId,
   PacketType,
@@ -16,8 +17,6 @@ import {
 } from "./deps.ts";
 
 import { handlePacket } from "./handlers/handlePacket.ts";
-
-import { MemoryStore } from "./memoryStore.ts";
 
 export enum ConnectionState {
   offline = "offline",
@@ -36,12 +35,12 @@ export class Context {
   unresolvedSubscribe: Map<PacketId, Deferred<ReturnCodes>>;
   unresolvedUnSubscribe: Map<PacketId, Deferred<void>>;
   store: MemoryStore;
-  incomming: AsyncQueue<PublishPacket>;
+  incoming: AsyncQueue<PublishPacket>;
 
   constructor(store: MemoryStore) {
     this.store = store;
     this.connectionState = ConnectionState.offline;
-    this.incomming = new AsyncQueue();
+    this.incoming = new AsyncQueue();
     this.unresolvedPublish = new Map();
     this.unresolvedSubscribe = new Map();
     this.unresolvedUnSubscribe = new Map();
@@ -121,7 +120,7 @@ export class Context {
   }
 
   receivePublish(packet: PublishPacket) {
-    this.incomming.push(packet);
+    this.incoming.push(packet);
   }
 
   async publish(packet: PublishPacket): Promise<void> {
