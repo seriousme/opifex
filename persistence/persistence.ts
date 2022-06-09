@@ -13,7 +13,7 @@ export type Client = { store: Store; handler: Handler };
 export interface Persistence {
   clientList: Map<ClientId, Client>;
   retained: RetainStore;
-  registerClient(clientId: ClientId, handler: Handler, clean:boolean): Store;
+  registerClient(clientId: ClientId, handler: Handler, clean: boolean): Store;
   deregisterClient(clientId: ClientId): void;
   publish(topic: Topic, packet: PublishPacket): void;
   subscribe(store: Store, topic: Topic, qos: QoS): void;

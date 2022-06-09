@@ -21,7 +21,7 @@ Deno.test("new should create new Persistence object", () => {
 Deno.test("Registring a client should register the client and return a Store Object", () => {
   const persistence = new Persistence();
   const clientId = "myClient";
-  const client = persistence.registerClient(clientId, () => {},false);
+  const client = persistence.registerClient(clientId, () => {}, false);
   assertEquals(persistence.clientList.has(clientId), true);
   assertEquals(typeof client, "object");
   assertEquals(client instanceof Store, true);
@@ -120,7 +120,7 @@ Deno.test("unsubscribe should work", () => {
     seen.add(packet.id);
   }
 
-  const store = persistence.registerClient(clientId, handler,false);
+  const store = persistence.registerClient(clientId, handler, false);
   persistence.subscribe(store, topic, qos);
   persistence.unsubscribe(store, topic);
 

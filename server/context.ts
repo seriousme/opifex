@@ -48,7 +48,7 @@ export class Context {
     this.handlers = handlers;
   }
 
-  async send(packet: AnyPacket): Promise<void>  {
+  async send(packet: AnyPacket): Promise<void> {
     debug.log("Sending", PacketType[packet.type]);
     debug.log(JSON.stringify(packet, null, 2));
     await this.mqttConn.send(packet);
@@ -74,9 +74,18 @@ export class Context {
     debug.log("Connected", clientId);
   }
 
-  doPublish(packet: PublishPacket):void {
-    debug.log("doPublish", PacketType[packet.type]);
-    this.send(packet);
+  async doPublish(packet: PublishPacket): Promise<void> {
+    const qos = packet.qos || 0;
+    if (qos === 0) {
+      packet.id = 0;
+      this.send(packet);
+      return;
+    }
+    if (this.store) {
+      packet.id = this.store.nextId();
+      this.store.pendingOutgoing.set(packet.id, packet);
+      this.send(packet);
+    }
   }
 
   clean(clientId: string) {

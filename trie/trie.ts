@@ -7,10 +7,12 @@ export class Trie<T> {
   private wildcardOne = "+";
   private wildcardSubtree = "#";
   private reservedPrefix = "$";
+  private looseCompare: boolean;
 
-  constructor() {
+  constructor(looseCompare = false) {
     this.#value = [];
     this.#children = new Map();
+    this.looseCompare = looseCompare;
   }
 
   matchChild(child: string, parts: Parts): Array<T> {
@@ -61,7 +63,7 @@ export class Trie<T> {
     if (child instanceof Trie) {
       child._add(rest, value);
     } else {
-      const node = new Trie<T>();
+      const node = new Trie<T>(this.looseCompare);
       this.#children.set(first, node);
       node._add(rest, value);
     }
@@ -72,10 +74,10 @@ export class Trie<T> {
     return this._remove(key.split(this.separator), value);
   }
 
-  private _remove(parts: Parts, value: T) {
+  private _remove(parts: Parts, value: T): void {
     if (parts.length === 0) {
       const arr = this.#value || [];
-      this.#value = arr.filter((item) => item !== value);
+      this.#value = arr.filter(this.filter(value));
       return;
     }
     const [first, ...rest] = parts;
@@ -86,5 +88,19 @@ export class Trie<T> {
         this.#children.delete(first);
       }
     }
+  }
+
+  private filter(value: T): (value: T, index: number, array: T[]) => boolean {
+    if (this.looseCompare && typeof value === "object") {
+      return (item) => {
+        for (const key in value) {
+          if (value[key] !== item[key]) {
+            return true;
+          }
+        }
+        return false;
+      };
+    }
+    return (item) => item !== value;
   }
 }

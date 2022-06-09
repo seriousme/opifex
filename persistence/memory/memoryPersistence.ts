@@ -16,6 +16,11 @@ import { PacketStore, Store, SubscriptionStore } from "../store.ts";
 const maxPacketId = 0xffff;
 const maxQueueLength = 0xffff;
 
+type ClientSubscription = {
+  clientId: ClientId;
+  qos: QoS;
+};
+
 export class MemoryStore implements Store {
   clientId: ClientId;
   private packetId: PacketId;
@@ -53,17 +58,19 @@ export class MemoryStore implements Store {
 export class MemoryPersistence implements Persistence {
   clientList: Map<ClientId, Client>;
   retained: RetainStore;
-  private trie: Trie<ClientId>;
+  private trie: Trie<ClientSubscription>;
 
   constructor() {
     this.clientList = new Map();
     this.retained = new Map();
-    this.trie = new Trie();
+    this.trie = new Trie(true);
   }
 
   registerClient(clientId: ClientId, handler: Handler, clean: boolean): Store {
     const existingClient = this.clientList.get(clientId);
-    const store = (!clean && existingClient)? existingClient.store:new MemoryStore(clientId);
+    const store = (!clean && existingClient)
+      ? existingClient.store
+      : new MemoryStore(clientId);
     this.clientList.set(clientId, { store, handler });
     return store;
   }
@@ -77,22 +84,25 @@ export class MemoryPersistence implements Persistence {
   }
 
   subscribe(store: Store, topicFilter: TopicFilter, qos: QoS): void {
+    const clientId = store.clientId;
     if (!store.subscriptions.has(topicFilter)) {
       store.subscriptions.set(topicFilter, qos);
-      this.trie.add(topicFilter, store.clientId);
+      this.trie.add(topicFilter, { clientId, qos });
     }
   }
 
-  unsubscribe(store: Store, topic: Topic): void {
-    if (store.subscriptions.has(topic)) {
-      store.subscriptions.delete(topic);
-      this.trie.remove(topic, store.clientId);
+  unsubscribe(store: Store, topicFilter: TopicFilter): void {
+    const clientId = store.clientId;
+    const qos = store.subscriptions.get(topicFilter);
+    if (qos) {
+      store.subscriptions.delete(topicFilter);
+      this.trie.remove(topicFilter, { clientId, qos });
     }
   }
 
   private unsubscribeAll(store: Store) {
-    for (const [topic, qos] of store.subscriptions) {
-      this.unsubscribe(store, topic);
+    for (const [topicFilter, qos] of store.subscriptions) {
+      this.unsubscribe(store, topicFilter);
     }
   }
 
@@ -105,9 +115,19 @@ export class MemoryPersistence implements Persistence {
     }
 
     // dedup clients
-    const clients = new Set(this.trie.match(topic));
+    const clients = new Map();
+    for (const { clientId, qos } of this.trie.match(topic)) {
+      const prevQos = clients.get(clientId);
+      if (!prevQos || prevQos < qos) {
+        clients.set(clientId, qos);
+      }
+    }
+
     // publish the message to all clients
-    for (const clientId of clients) {
+    for (const [clientId, qos] of clients) {
+      const newPacket = Object.assign({}, packet);
+      newPacket.retain = false;
+      newPacket.qos = qos;
       // debug.log(`publish ${topic} to client ${clientId}`);
       const client = this.clientList.get(clientId);
       client?.handler(packet);

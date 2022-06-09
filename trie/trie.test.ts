@@ -124,5 +124,21 @@ Deno.test("Removal works", () => {
   root.remove("foo/bar", 2);
   assertArrayIncludes(root.match("foo/bar"), [1]);
   root.remove("foo/bar", 1);
+  assertEquals(root.match("foo/bar").length, 0, "matches left");
+});
+
+Deno.test("Removal of object values works", () => {
+  type ComplexValue = { a: number; b: number; c: number };
+
+  const root = new Trie<ComplexValue>(true);
+  const c1: ComplexValue = { a: 1, b: 2, c: 3 };
+  const c2: ComplexValue = { a: 2, b: 4, c: 6 };
+  root.add("foo/bar", c1);
+  root.add("foo/bar", c2);
+  assertArrayIncludes(root.match("foo/bar"), [c1, c2]);
+  root.remove("foo/bar", c2);
+  assertArrayIncludes(root.match("foo/bar"), [c1]);
+  root.remove("foo/bar", { a: 1, b: 2, c: 3 });
   assertArrayIncludes(root.match("foo/bar"), []);
+  assertEquals(root.match("foo/bar").length, 0, "matches left");
 });
