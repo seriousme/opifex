@@ -1,6 +1,6 @@
 # Opifex
 
-Opifex aims to provide a MQTT server in Typescript to be used with
+Opifex aims to provide a MQTT server and MQTT client in Typescript to be used with
 [Deno](https://deno.land) It has _no_ third party dependencies, it only relies
 on built in Deno modules.
 
