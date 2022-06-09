@@ -11,7 +11,7 @@ persistence.
 
 Make sure you have [Deno](https://deno.land) installed.
 
-Then use:
+### Server
 
 ```bash
 deno run https://raw.githubusercontent.com/seriousme/opifex/master/server/demoServer.ts
@@ -26,6 +26,20 @@ Deno requests net access to ":::1883". Run again with --allow-net to bypass this
 ```
 
 After you select `yes` you should have a working MQTT server.
+
+### Client
+
+```bash
+deno run https://raw.githubusercontent.com/seriousme/opifex/master/bin/mqtt.ts
+```
+
+On the first invocation Deno will download all dependencies. It will then pop
+the question:
+
+```
+Deno requests net access to "localhost:1883". Run again with --allow-net to bypass this prompt.
+   Allow? [y/n (y = yes allow, n = no deny)]  
+```
 
 ## Naming
 
