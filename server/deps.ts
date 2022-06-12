@@ -1,7 +1,7 @@
 export type { SockConn } from "../mqttConn/mqttConn.ts";
 export { MqttConn } from "../mqttConn/mqttConn.ts";
-export type { Persistence } from "../persistence/persistence.ts";
-export type { Store } from "../persistence/store.ts";
+export type { IPersistence } from "../persistence/persistence.ts";
+export type { IStore } from "../persistence/store.ts";
 export { MemoryPersistence } from "../persistence/memory/memoryPersistence.ts";
 export type {
   AnyPacket,

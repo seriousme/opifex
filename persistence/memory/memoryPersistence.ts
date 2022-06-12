@@ -10,8 +10,8 @@ import {
   Trie,
 } from "../deps.ts";
 
-import { Client, Handler, Persistence, RetainStore } from "../persistence.ts";
-import { PacketStore, Store, SubscriptionStore } from "../store.ts";
+import { Client, Handler, IPersistence, RetainStore } from "../persistence.ts";
+import { PacketStore, IStore, SubscriptionStore } from "../store.ts";
 
 const maxPacketId = 0xffff;
 const maxQueueLength = 0xffff;
@@ -21,7 +21,7 @@ type ClientSubscription = {
   qos: QoS;
 };
 
-export class MemoryStore implements Store {
+export class MemoryStore implements IStore {
   clientId: ClientId;
   private packetId: PacketId;
   pendingIncoming: PacketStore;
@@ -55,7 +55,7 @@ export class MemoryStore implements Store {
   }
 }
 
-export class MemoryPersistence implements Persistence {
+export class MemoryPersistence implements IPersistence {
   clientList: Map<ClientId, Client>;
   retained: RetainStore;
   private trie: Trie<ClientSubscription>;
@@ -66,7 +66,7 @@ export class MemoryPersistence implements Persistence {
     this.trie = new Trie(true);
   }
 
-  registerClient(clientId: ClientId, handler: Handler, clean: boolean): Store {
+  registerClient(clientId: ClientId, handler: Handler, clean: boolean): IStore {
     const existingClient = this.clientList.get(clientId);
     const store = (!clean && existingClient)
       ? existingClient.store
@@ -83,7 +83,7 @@ export class MemoryPersistence implements Persistence {
     }
   }
 
-  subscribe(store: Store, topicFilter: TopicFilter, qos: QoS): void {
+  subscribe(store: IStore, topicFilter: TopicFilter, qos: QoS): void {
     const clientId = store.clientId;
     if (!store.subscriptions.has(topicFilter)) {
       store.subscriptions.set(topicFilter, qos);
@@ -91,7 +91,7 @@ export class MemoryPersistence implements Persistence {
     }
   }
 
-  unsubscribe(store: Store, topicFilter: TopicFilter): void {
+  unsubscribe(store: IStore, topicFilter: TopicFilter): void {
     const clientId = store.clientId;
     const qos = store.subscriptions.get(topicFilter);
     if (qos) {
@@ -100,7 +100,7 @@ export class MemoryPersistence implements Persistence {
     }
   }
 
-  private unsubscribeAll(store: Store) {
+  private unsubscribeAll(store: IStore) {
     for (const [topicFilter, qos] of store.subscriptions) {
       this.unsubscribe(store, topicFilter);
     }

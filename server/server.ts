@@ -3,7 +3,7 @@ import {
   AuthenticationResult,
   debug,
   MemoryPersistence,
-  Persistence,
+  IPersistence,
   SockConn,
   Topic,
 } from "./deps.ts";
@@ -21,10 +21,10 @@ const defaultIsAuthorized = (ctx: Context, topic: Topic) => true;
 
 export class MqttServer {
   handlers: Handlers;
-  persistence: Persistence;
+  persistence: IPersistence;
   constructor(
     { persistence, handlers }: {
-      persistence?: Persistence;
+      persistence?: IPersistence;
       handlers?: Handlers;
     },
   ) {

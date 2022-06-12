@@ -1,5 +1,5 @@
 import { ClientId, PublishPacket, QoS, Subscription, Topic } from "./deps.ts";
-import { Store } from "./store.ts";
+import { IStore } from "./store.ts";
 
 export type Handler = Function;
 
@@ -8,15 +8,15 @@ export type RetainStore = Map<
   PublishPacket
 >;
 
-export type Client = { store: Store; handler: Handler };
+export type Client = { store: IStore; handler: Handler };
 
-export interface Persistence {
+export interface IPersistence {
   clientList: Map<ClientId, Client>;
   retained: RetainStore;
-  registerClient(clientId: ClientId, handler: Handler, clean: boolean): Store;
+  registerClient(clientId: ClientId, handler: Handler, clean: boolean): IStore;
   deregisterClient(clientId: ClientId): void;
   publish(topic: Topic, packet: PublishPacket): void;
-  subscribe(store: Store, topic: Topic, qos: QoS): void;
-  unsubscribe(store: Store, topic: Topic): void;
+  subscribe(store: IStore, topic: Topic, qos: QoS): void;
+  unsubscribe(store: IStore, topic: Topic): void;
   handleRetained(clientId: ClientId): void;
 }

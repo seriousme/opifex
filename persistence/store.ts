@@ -10,7 +10,7 @@ export type SubscriptionStore = Map<
   QoS
 >;
 
-export interface Store {
+export interface IStore {
   clientId: ClientId;
   pendingIncoming: PacketStore;
   pendingOutgoing: PacketStore;

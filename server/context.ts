@@ -4,10 +4,10 @@ import {
   debug,
   MqttConn,
   PacketType,
-  Persistence,
+  IPersistence,
   PublishPacket,
   SockConn,
-  Store,
+  IStore,
   Timer,
   Topic,
 } from "./deps.ts";
@@ -33,14 +33,14 @@ export class Context {
   connected: boolean;
   conn: SockConn;
   mqttConn: MqttConn;
-  persistence: Persistence;
+  persistence: IPersistence;
   handlers: Handlers;
   static clientList: Map<ClientId, Context> = new Map();
-  store?: Store;
+  store?: IStore;
   will?: PublishPacket;
   timer?: Timer;
 
-  constructor(persistence: Persistence, conn: SockConn, handlers: Handlers) {
+  constructor(persistence: IPersistence, conn: SockConn, handlers: Handlers) {
     this.persistence = persistence;
     this.connected = false;
     this.conn = conn;

@@ -7,10 +7,10 @@ import {
   pendingIncoming,
   PendingOutgoing,
   PendingOutgoingPackets,
-  Store,
+  IStore,
 } from "./store.ts";
 
-export class MemoryStore implements Store {
+export class MemoryStore implements IStore {
   private packetId: PacketId;
 
   pendingIncoming: PacketStore<pendingIncoming>;

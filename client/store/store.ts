@@ -20,7 +20,7 @@ export type PendingOutgoing =
 export type PendingAckOutgoing = PubrelPacket;
 export type PendingOutgoingPackets = PendingAckOutgoing | PendingOutgoing;
 
-export interface Store {
+export interface IStore {
   pendingIncoming: PacketStore<pendingIncoming>;
   pendingOutgoing: PacketStore<PendingOutgoing>;
   pendingAckOutgoing: PacketStore<PendingAckOutgoing>;
