@@ -1,3 +1,5 @@
+// this server is intended to be used with https://github.com/eclipse/iottestware
+
 import { AuthenticationResult, Context, MqttServer, Topic } from "../server/mod.ts";
 import { debug } from "../utils/utils.ts";
 
