@@ -93,7 +93,7 @@ async function subscribe(args: string[]) {
       caCerts: connectArgs.caCerts,
       options: {
         username: connectArgs.username,
-        password: connectArgs.password,
+        password: encoder.encode(connectArgs.password),
         clientId: connectArgs.clientId,
         clean: !connectArgs.noClean,
         keepAlive: 60,
@@ -166,7 +166,7 @@ async function publish(args: string[]) {
       caCerts: connectArgs.caCerts,
       options: {
         username: connectArgs.username,
-        password: connectArgs.password,
+        password: encoder.encode(connectArgs.password),
         clientId: connectArgs.clientId,
         clean: !connectArgs.noClean,
       },
