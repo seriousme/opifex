@@ -14,7 +14,7 @@ Make sure you have [Deno](https://deno.land) installed.
 ### Server
 
 ```bash
-deno run https://raw.githubusercontent.com/seriousme/opifex/master/server/demoServer.ts
+deno run https://raw.githubusercontent.com/seriousme/opifex/master/bin/demoServer.ts
 ```
 
 On the first invocation Deno will download all dependencies. It will then pop

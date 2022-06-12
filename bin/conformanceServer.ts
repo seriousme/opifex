@@ -1,5 +1,5 @@
-import { AuthenticationResult, Context, MqttServer, Topic } from "./mod.ts";
-import { debug } from "./deps.ts";
+import { AuthenticationResult, Context, MqttServer, Topic } from "../server/mod.ts";
+import { debug } from "../utils/utils.ts";
 
 const utf8Decoder = new TextDecoder();
 const localhost = "::";
@@ -7,6 +7,8 @@ const userTable = new Map();
 userTable.set("IoTester_1", "strong_password");
 userTable.set("IoTester_2", "strong_password");
 const strictUsername = new RegExp(/^[a-zA-Z0-9]{0,23}$/);
+const notAuthorizedTable = new Set();
+notAuthorizedTable.add(["123-456-789", "eclipse/iot/tesware/0data"]);
 
 function isAuthenticated(
   ctx: Context,
@@ -15,22 +17,20 @@ function isAuthenticated(
   password: Uint8Array,
 ): AuthenticationResult {
   const pwd = utf8Decoder.decode(password);
-  debug.info(
+  debug.log(
     `Verifying authentication of client '${clientId}' with username '${username}' and password '${pwd}'`,
   );
 
-  return AuthenticationResult.ok;
-  // if (!userTable.has(username)) {
-  //   if (!strictUsername.test(username)) {
-  //     return AuthenticationResult.badUsernameOrPassword;
-  //   }
-  // }
-
-  // const pass = userTable.get(username);
-  // if (pwd === pass) {
-  //   return AuthenticationResult.ok;
-  // }
-  // return AuthenticationResult.badUsernameOrPassword;
+  if (!userTable.has(username)) {
+    if (!strictUsername.test(username)) {
+      return AuthenticationResult.badUsernameOrPassword;
+    }
+  }
+  const pass = userTable.get(username);
+  if (pwd === pass) {
+    return AuthenticationResult.ok;
+  }
+  return AuthenticationResult.notAuthorized;
 }
 
 function isAuthorizedToPublish(ctx: Context, topic: Topic): boolean {
@@ -38,6 +38,9 @@ function isAuthorizedToPublish(ctx: Context, topic: Topic): boolean {
     `Checking authorization of client '${ctx.store
       ?.clientId}' to publish on topic '${topic}'`,
   );
+  // if (notAuthorizedTable.has([ctx.client,topic])){
+  //   return false;
+  // }
   return true;
 }
 function isAuthorizedToSubscribe(ctx: Context, topic: Topic): boolean {
@@ -60,7 +63,7 @@ const mqttServer = new MqttServer({
   },
 });
 if (listener.addr.transport === "tcp") {
-  debug.info(
+  debug.log(
     `MQTT server is running on hostname: "${listener.addr.hostname}" port:${listener.addr.port}`,
   );
 }

@@ -3,15 +3,12 @@ import {
   ConnectPacket,
   debug,
   Deferred,
-  Dup,
+  MemoryStore,
   PacketType,
-  Payload,
   PublishPacket,
   SubscribePacket,
-  Topic,
 } from "./deps.ts";
 
-import { MemoryStore } from "./deps.ts";
 import { Context } from "./context.ts";
 
 function generateClientId(prefix: string): string {
