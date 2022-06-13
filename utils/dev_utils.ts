@@ -44,7 +44,6 @@ export function dummyWriter(
   buffs: Uint8Array[],
   isClosed: boolean,
 ): Deno.Writer {
-  let idx = 0;
   return {
     write(p: Uint8Array): Promise<number> {
       if (isClosed) {

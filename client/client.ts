@@ -1,8 +1,8 @@
 import {
   AuthenticationResult,
   ConnectPacket,
-  debug,
   Deferred,
+  log,
   MemoryStore,
   PacketType,
   PublishPacket,
@@ -38,7 +38,7 @@ function backOffSleep(random: boolean, attempt: number): Promise<void> {
   const delay = Math.floor(
     Math.min(randomness * min * Math.pow(factor, attempt), max),
   );
-  debug.log({ delay });
+  log.debug({ delay });
   return new Promise((resolve) => setTimeout(resolve, delay));
 }
 
@@ -64,7 +64,7 @@ export class Client {
   }
 
   private async connectMQTT(hostname: string, port = 1883) {
-    debug.log({ hostname, port });
+    log.debug({ hostname, port });
     return await Deno.connect({ hostname, port });
   }
 
@@ -73,7 +73,7 @@ export class Client {
     port = 8883,
     caCerts?: string[],
   ) {
-    debug.log({ hostname, port, caCerts });
+    log.debug({ hostname, port, caCerts });
     return await Deno.connectTls({ hostname, port, caCerts });
   }
 
@@ -103,7 +103,7 @@ export class Client {
     let lastMessage = "";
     let tryConnect = true;
     while (tryConnect) {
-      debug.log(`${isReconnect ? "re" : ""}connecting`);
+      log.debug(`${isReconnect ? "re" : ""}connecting`);
       try {
         const conn = await this.createConn(
           this.url.protocol,
@@ -115,13 +115,13 @@ export class Client {
         tryConnect =
           await this.ctx.handleConnection(conn, this.connectPacket) &&
           this.autoReconnect;
-        debug.log({ tryConnect });
+        log.debug({ tryConnect });
         isReconnect = true;
         this.connectPacket.clean = false;
         this.ctx.close();
       } catch (err) {
         lastMessage = `Connection failed: ${err.message}`;
-        debug.log(lastMessage);
+        log.debug(lastMessage);
         if (!isReconnect && attempt > this.numberOfRetries) {
           tryConnect = false;
         } else {

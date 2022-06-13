@@ -1,8 +1,8 @@
 # Opifex
 
-Opifex aims to provide a MQTT server and MQTT client in Typescript to be used with
-[Deno](https://deno.land) It has _no_ third party dependencies, it only relies
-on built in Deno modules.
+Opifex aims to provide a MQTT server and MQTT client in Typescript to be used
+with [Deno](https://deno.land) It has _no_ third party dependencies, it only
+relies on built in Deno modules.
 
 Its a work in progress, only does MQTT 3.1.1 and currently only has memory based
 persistence.
@@ -38,7 +38,7 @@ the question:
 
 ```
 Deno requests net access to "localhost:1883". Run again with --allow-net to bypass this prompt.
-   Allow? [y/n (y = yes allow, n = no deny)]  
+   Allow? [y/n (y = yes allow, n = no deny)]
 ```
 
 ## Naming

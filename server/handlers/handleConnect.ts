@@ -2,7 +2,7 @@ import { Context } from "../context.ts";
 import {
   AuthenticationResult,
   ConnectPacket,
-  debug,
+  log,
   PacketType,
   Timer,
 } from "../deps.ts";
@@ -57,7 +57,7 @@ export async function handleConnect(
 
     const keepAlive = packet.keepAlive || 0;
     if (keepAlive > 0) {
-      debug.log(`Setting keepalive to ${keepAlive * 1500} ms`);
+      log.debug(`Setting keepalive to ${keepAlive * 1500} ms`);
       ctx.timer = new Timer(() => {
         ctx.close();
       }, Math.floor(keepAlive * 1500));

@@ -1,13 +1,13 @@
 import { assert, PacketId } from "./deps.ts";
 
 import {
+  IStore,
   maxPacketId,
   PacketStore,
   PendingAckOutgoing,
   pendingIncoming,
   PendingOutgoing,
   PendingOutgoingPackets,
-  IStore,
 } from "./store.ts";
 
 export class MemoryStore implements IStore {

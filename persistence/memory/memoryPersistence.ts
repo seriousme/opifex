@@ -1,7 +1,7 @@
 import {
   assert,
   ClientId,
-  debug,
+  log,
   PacketId,
   PublishPacket,
   QoS,
@@ -11,7 +11,7 @@ import {
 } from "../deps.ts";
 
 import { Client, Handler, IPersistence, RetainStore } from "../persistence.ts";
-import { PacketStore, IStore, SubscriptionStore } from "../store.ts";
+import { IStore, PacketStore, SubscriptionStore } from "../store.ts";
 
 const maxPacketId = 0xffff;
 const maxQueueLength = 0xffff;
@@ -128,7 +128,7 @@ export class MemoryPersistence implements IPersistence {
       const newPacket = Object.assign({}, packet);
       newPacket.retain = false;
       newPacket.qos = qos;
-      // debug.log(`publish ${topic} to client ${clientId}`);
+      // log.debug(`publish ${topic} to client ${clientId}`);
       const client = this.clientList.get(clientId);
       client?.handler(packet);
     }
