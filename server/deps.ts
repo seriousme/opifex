@@ -29,4 +29,4 @@ export type {
 
 export { AuthenticationResult, PacketType } from "../mqttConn/deps.ts";
 export { Timer } from "../timer/timer.ts";
-export { log } from "../utils/utils.ts";
+export { logger } from "../utils/utils.ts";

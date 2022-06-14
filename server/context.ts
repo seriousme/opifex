@@ -3,7 +3,7 @@ import {
   AuthenticationResult,
   IPersistence,
   IStore,
-  log,
+  logger,
   MqttConn,
   PacketType,
   PublishPacket,
@@ -49,8 +49,8 @@ export class Context {
   }
 
   async send(packet: AnyPacket): Promise<void> {
-    log.debug("Sending", PacketType[packet.type]);
-    log.debug(JSON.stringify(packet, null, 2));
+    logger.debug("Sending", PacketType[packet.type]);
+    logger.debug(JSON.stringify(packet, null, 2));
     await this.mqttConn.send(packet);
   }
 
@@ -58,7 +58,7 @@ export class Context {
     clientId: string,
     clean: boolean,
   ): void {
-    log.debug("Connecting", clientId);
+    logger.debug("Connecting", clientId);
     const existingSession = Context.clientList.get(clientId);
     if (existingSession) {
       existingSession.close(false);
@@ -71,7 +71,7 @@ export class Context {
 
     this.connected = true;
     this.broadcast("$SYS/connect/clients", clientId);
-    log.debug("Connected", clientId);
+    logger.debug("Connected", clientId);
   }
 
   async doPublish(packet: PublishPacket): Promise<void> {
@@ -94,7 +94,7 @@ export class Context {
 
   close(executewill = true): void {
     if (this.connected) {
-      log.debug(
+      logger.debug(
         `Closing ${this.store?.clientId} while mqttConn is ${
           this.mqttConn.isClosed ? "" : "not "
         }closed`,

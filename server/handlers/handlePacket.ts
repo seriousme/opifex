@@ -10,14 +10,14 @@ import { handlePubcomp } from "./handlePubcomp.ts";
 import { handleSubscribe } from "./handleSubscribe.ts";
 import { handleUnsubscribe } from "./handleUnsubscribe.ts";
 import { handleDisconnect } from "./handleDisconnect.ts";
-import { log } from "../deps.ts";
+import { logger } from "../deps.ts";
 
 export async function handlePacket(
   ctx: Context,
   packet: AnyPacket,
 ): Promise<void> {
-  log.debug("handling", PacketType[packet.type]);
-  log.debug(JSON.stringify(packet, null, 2));
+  logger.debug("handling", PacketType[packet.type]);
+  logger.debug(JSON.stringify(packet, null, 2));
   if (!ctx.connected) {
     if (packet.type === PacketType.connect) {
       await handleConnect(ctx, packet);

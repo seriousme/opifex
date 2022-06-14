@@ -1,7 +1,7 @@
 import {
   assert,
   ClientId,
-  log,
+  logger,
   PacketId,
   PublishPacket,
   QoS,
@@ -128,7 +128,7 @@ export class MemoryPersistence implements IPersistence {
       const newPacket = Object.assign({}, packet);
       newPacket.retain = false;
       newPacket.qos = qos;
-      // log.debug(`publish ${topic} to client ${clientId}`);
+      //  logger.debug(`publish ${topic} to client ${clientId}`);
       const client = this.clientList.get(clientId);
       client?.handler(packet);
     }

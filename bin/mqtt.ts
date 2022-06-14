@@ -1,6 +1,6 @@
 import { parse } from "https://deno.land/std@0.140.0/flags/mod.ts";
 import { Client, DEFAULT_URL } from "../client/client.ts";
-import { log } from "../client/deps.ts";
+import { logger } from "../client/deps.ts";
 
 const client = new Client();
 const encoder = new TextEncoder();
@@ -99,7 +99,7 @@ async function subscribe(args: string[]) {
         keepAlive: 60,
       },
     });
-    log.debug("Connected !");
+    logger.debug("Connected !");
 
     client.subscribe({
       subscriptions: [{
@@ -107,13 +107,13 @@ async function subscribe(args: string[]) {
         qos: subscribeArgs.qos,
       }],
     });
-    log.debug("Subscribed!");
+    logger.debug("Subscribed!");
 
     for await (const message of client.messages()) {
       console.log(decoder.decode(message.payload));
     }
   } catch (err) {
-    log.debug(err.message);
+    logger.debug(err.message);
   }
 }
 
@@ -171,18 +171,18 @@ async function publish(args: string[]) {
         clean: !connectArgs.noClean,
       },
     });
-    log.debug("Connected !");
+    logger.debug("Connected !");
     await client.publish({
       topic: publishArgs.topic,
       payload: encoder.encode(publishArgs.message),
       retain: publishArgs.retain,
       qos: publishArgs.qos,
     });
-    log.debug("Published!");
+    logger.debug("Published!");
     client.disconnect();
-    log.debug("Disconnected !");
+    logger.debug("Disconnected !");
   } catch (err) {
-    log.debug(err.message);
+    logger.debug(err.message);
   }
 }
 

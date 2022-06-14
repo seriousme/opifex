@@ -4,7 +4,7 @@ import {
   AuthenticationResult,
   ConnectPacket,
   Deferred,
-  log,
+  logger,
   MemoryStore,
   MqttConn,
   PacketId,
@@ -71,7 +71,7 @@ export class Context {
   }
 
   async send(packet: AnyPacket) {
-    log.debug({ send: packet });
+    logger.debug({ send: packet });
     if (
       this.connectionState === ConnectionState.connected &&
       !this.mqttConn?.isClosed
@@ -80,7 +80,7 @@ export class Context {
       this.pingTimer?.reset();
       return;
     }
-    log.debug("not connected");
+    logger.debug("not connected");
     this.pingTimer?.clear();
   }
 
@@ -102,7 +102,7 @@ export class Context {
         handlePacket(this, packet);
       }
     } catch (err) {
-      log.debug(err);
+      logger.debug(err);
       if (this.mqttConn.isClosed) {
         this.mqttConn.close();
       }
@@ -114,7 +114,7 @@ export class Context {
   }
 
   close() {
-    log.debug("closing connection");
+    logger.debug("closing connection");
     this.connectionState = ConnectionState.disconnected;
     this.pingTimer?.clear();
   }

@@ -8,13 +8,13 @@ import { handlePubrel } from "./handlePubrel.ts";
 import { handlePubcomp } from "./handlePubcomp.ts";
 import { handleSuback } from "./handleSuback.ts";
 import { handleUnsuback } from "./handleUnsuback.ts";
-import { log } from "../deps.ts";
+import { logger } from "../deps.ts";
 
 export async function handlePacket(
   ctx: Context,
   packet: AnyPacket,
 ): Promise<void> {
-  log.debug({ received: JSON.stringify(packet, null, 2) });
+  logger.debug({ received: JSON.stringify(packet, null, 2) });
   if (ctx.connectionState !== ConnectionState.connected) {
     if (packet.type === PacketType.connack) {
       handleConnack(packet, ctx);

@@ -1,5 +1,5 @@
 import { AuthenticationResult, Context, MqttServer, Topic } from "../mod.ts";
-import { log } from "../../utils/utils.ts";
+import { logger } from "../../utils/utils.ts";
 
 const utf8Decoder = new TextDecoder();
 const localhost = "::";
@@ -15,7 +15,7 @@ function isAuthenticated(
   password: Uint8Array,
 ): AuthenticationResult {
   const pwd = utf8Decoder.decode(password);
-  log.debug(
+  logger.debug(
     `Verifying authentication of client '${clientId}' with username '${username}' and password '${pwd}'`,
   );
 
@@ -33,14 +33,14 @@ function isAuthenticated(
 }
 
 function isAuthorizedToPublish(ctx: Context, topic: Topic): boolean {
-  log.debug(
+  logger.debug(
     `Checking authorization of client '${ctx.store
       ?.clientId}' to publish on topic '${topic}'`,
   );
   return true;
 }
 function isAuthorizedToSubscribe(ctx: Context, topic: Topic): boolean {
-  log.debug(
+  logger.debug(
     `Checking authorization of client '${ctx.store
       ?.clientId}' to subscribe to topic '${topic}'`,
   );

@@ -63,7 +63,7 @@ export enum LogLevel {
   debug = 4,
 }
 
-class Log {
+class Logger {
   private defaultError = console.error;
   private defaultWarn = console.warn;
   private defaultInfo = console.info;
@@ -87,4 +87,4 @@ class Log {
   }
 }
 
-export const log = new Log();
+export const logger = new Logger();
