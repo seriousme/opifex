@@ -1,8 +1,6 @@
 import {
   AnyPacket,
-  assert,
   BufReader,
-  BufWriter,
   decodePayload,
   encode,
   getLengthDecoder,
@@ -28,17 +26,15 @@ export interface IMqttConn extends AsyncIterable<AnyPacket> {
   close(): void;
 }
 
-/** Write MQTT packet to connection */
-export async function writePacket(
-  writer: BufWriter,
-  packet: AnyPacket,
-): Promise<void> {
-  await writer.write(encode(packet));
-  await writer.flush();
+
+function assert(expr: unknown, msg = ""): asserts expr {
+  if (!expr) {
+    throw new Error(msg);
+  }
 }
 
 /** Read MQTT packet from given BufReader
- * @throws `Error` Packet is invalid
+ * @throws `Error` if packet is invalid
  */
 export async function readPacket(
   reader: BufReader,
@@ -46,8 +42,6 @@ export async function readPacket(
 ): Promise<AnyPacket> {
   // fixed header is 1 byte of type + flags
   // + a maximum of 4 bytes to encode the remaining length
-  const singleByte = new Uint8Array(1);
-  const fixedHeader = new Uint8Array(5);
   let firstByte = await reader.readByte();
   assert(firstByte !== null, MqttConnError.UnexpectedEof);
   const decodeLength = getLengthDecoder();
@@ -59,10 +53,7 @@ export async function readPacket(
   } while (!result.done);
 
   const remainingLength = result.length;
-  assert(
-    remainingLength < (maxPacketSize - 1),
-    MqttConnError.packetTooLarge,
-  );
+  assert(remainingLength < (maxPacketSize - 1), MqttConnError.packetTooLarge);
   const packetBuf = new Uint8Array(remainingLength);
   // read the rest of the packet
   assert(
@@ -70,34 +61,29 @@ export async function readPacket(
     MqttConnError.UnexpectedEof,
   );
   const packet = decodePayload(firstByte, packetBuf);
-  assert(packet !== null, MqttConnError.invalidPacket);
+  assert(packet !== null, MqttConnError.UnexpectedEof);
   return packet;
 }
 
 export class MqttConn implements IMqttConn {
   readonly conn: SockConn;
   private readonly bufReader: BufReader;
-  private readonly bufWriter: BufWriter;
   private readonly maxPacketSize: number;
+  private _reason: string | undefined = undefined;
+  private _isClosed = false;
 
   constructor({
     conn,
-    bufReader,
-    bufWriter,
     maxPacketSize,
   }: {
     conn: SockConn;
-    bufReader?: BufReader;
-    bufWriter?: BufWriter;
     maxPacketSize?: number;
   }) {
     this.conn = conn;
-    this.bufReader = bufReader || new BufReader(conn);
-    this.bufWriter = bufWriter || new BufWriter(conn);
+    this.bufReader = new BufReader(conn);
     this.maxPacketSize = maxPacketSize || 2 * 1024 * 1024;
   }
 
-  private _reason = undefined;
   get reason(): string | undefined {
     return this._reason;
   }
@@ -120,13 +106,12 @@ export class MqttConn implements IMqttConn {
 
   async send(data: AnyPacket): Promise<void> {
     try {
-      await writePacket(this.bufWriter, data);
+      this.conn.write(encode(data));
     } catch {
       this.close();
     }
   }
 
-  private _isClosed = false;
   get isClosed(): boolean {
     return this._isClosed;
   }

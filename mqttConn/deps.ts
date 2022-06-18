@@ -1,9 +1,6 @@
 export {
   BufReader,
-  BufWriter,
 } from "https://deno.land/std@0.140.0/io/buffer.ts";
-
-export { assert } from "https://deno.land/std@0.140.0/testing/asserts.ts";
 
 export type {
   AnyPacket,

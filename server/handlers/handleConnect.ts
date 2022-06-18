@@ -66,7 +66,7 @@ export async function handleConnect(
 
   const sessionPresent = false;
 
-  await ctx.send({
+  ctx.send({
     type: PacketType.connack,
     sessionPresent,
     returnCode,
