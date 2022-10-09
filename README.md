@@ -17,7 +17,7 @@ Make sure you have [Deno](https://deno.land) installed.
 ### Server
 
 ```bash
-deno run https://raw.githubusercontent.com/seriousme/opifex/master/bin/demoServer.ts
+deno run https://deno.land/x/opifex/bin/demoServer.ts
 ```
 
 On the first invocation Deno will download all dependencies. It will then pop
@@ -33,7 +33,7 @@ After you select `yes` you should have a working MQTT server.
 ### Client
 
 ```bash
-deno run https://raw.githubusercontent.com/seriousme/opifex/master/bin/mqtt.ts
+deno run https://deno.land/x/opifex/bin/mqtt.ts
 ```
 
 On the first invocation Deno will download all dependencies. It will then pop
