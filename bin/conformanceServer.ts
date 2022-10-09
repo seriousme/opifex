@@ -18,7 +18,7 @@ const notAuthorizedTable = new Set();
 notAuthorizedTable.add(["123-456-789", "eclipse/iot/tesware/0data"]);
 
 function isAuthenticated(
-  ctx: Context,
+  _ctx: Context,
   clientId: string,
   username: string,
   password: Uint8Array,

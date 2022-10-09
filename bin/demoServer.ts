@@ -13,10 +13,10 @@ const localhost = "::";
 const userTable = new Map();
 userTable.set("IoTester_1", "strong_password");
 userTable.set("IoTester_2", "strong_password");
-const strictUsername = new RegExp(/^[a-zA-Z0-9]{0,23}$/);
+// const strictUsername = new RegExp(/^[a-zA-Z0-9]{0,23}$/);
 
 function isAuthenticated(
-  ctx: Context,
+  _ctx: Context,
   clientId: string,
   username: string,
   password: Uint8Array,
