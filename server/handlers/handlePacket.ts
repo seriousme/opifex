@@ -57,7 +57,7 @@ export async function handlePacket(
         break;
       default:
         throw new Error(
-          `Received unexpected ${packet.type} packet after connect`,
+          `Received unexpected ${PacketType[packet.type]} packet after connect`,
         );
     }
     ctx.timer?.reset();

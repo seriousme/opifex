@@ -91,7 +91,7 @@ export class MqttConn implements IMqttConn {
   async *[Symbol.asyncIterator](): AsyncIterableIterator<AnyPacket> {
     while (!this._isClosed) {
       try {
-        yield await readPacket(this.bufReader, this.maxPacketSize);
+        yield await readPacket(this.bufReader, this.maxPacketSize)
       } catch (err) {
         if (err.name === "PartialReadError") {
           err.message = MqttConnError.UnexpectedEof;

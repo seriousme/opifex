@@ -11,10 +11,16 @@ export class Deferred<T> {
   }
 }
 
+export async function nextTick() {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 export class AsyncQueue<T> {
   private queue: T[] = [];
   private maxQueueLength = Infinity;
   private nextResolve = (value: T) => {};
+  private nextReject = (reason?: any) => {};
+  private done = false;
   private hasNext = false;
 
   constructor(maxQueueLength?: number) {
@@ -23,8 +29,12 @@ export class AsyncQueue<T> {
     }
   }
 
-  private makePromise(): Promise<T> {
-    return new Promise((resolve) => {
+  async next(): Promise<T> {
+    await nextTick();
+    if (this.done && this.queue.length === 0) {
+      return Promise.reject("Closed");
+    }
+    return new Promise((resolve, reject) => {
       if (this.queue.length > 0) {
         const item = this.queue.shift();
         if (item) {
@@ -32,13 +42,21 @@ export class AsyncQueue<T> {
         }
       }
       this.nextResolve = resolve;
+      this.nextReject = reject;
       this.hasNext = true;
     });
   }
 
+  close(reason='closed'): void {
+    this.done = true;
+    if (this.hasNext){
+      this.nextReject(reason);
+    }
+  }
+
   async *[Symbol.asyncIterator](): AsyncGenerator<Awaited<T>, void, unknown> {
     while (true) {
-      yield this.makePromise();
+      yield this.next();
     }
   }
 
@@ -52,6 +70,10 @@ export class AsyncQueue<T> {
       this.queue.shift();
     }
     this.queue.push(item);
+  }
+
+  get isDone(): boolean {
+    return this.done;
   }
 }
 
