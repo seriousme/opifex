@@ -26,7 +26,6 @@ export interface IMqttConn extends AsyncIterable<AnyPacket> {
   close(): void;
 }
 
-
 function assert(expr: unknown, msg = ""): asserts expr {
   if (!expr) {
     throw new Error(msg);
@@ -42,7 +41,7 @@ export async function readPacket(
 ): Promise<AnyPacket> {
   // fixed header is 1 byte of type + flags
   // + a maximum of 4 bytes to encode the remaining length
-  let firstByte = await reader.readByte();
+  const firstByte = await reader.readByte();
   assert(firstByte !== null, MqttConnError.UnexpectedEof);
   const decodeLength = getLengthDecoder();
   let byte, result;
@@ -91,7 +90,7 @@ export class MqttConn implements IMqttConn {
   async *[Symbol.asyncIterator](): AsyncIterableIterator<AnyPacket> {
     while (!this._isClosed) {
       try {
-        yield await readPacket(this.bufReader, this.maxPacketSize)
+        yield await readPacket(this.bufReader, this.maxPacketSize);
       } catch (err) {
         if (err.name === "PartialReadError") {
           err.message = MqttConnError.UnexpectedEof;
@@ -106,7 +105,7 @@ export class MqttConn implements IMqttConn {
 
   async send(data: AnyPacket): Promise<void> {
     try {
-      this.conn.write(encode(data));
+      await this.conn.write(encode(data));
     } catch {
       this.close();
     }

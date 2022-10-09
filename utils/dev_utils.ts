@@ -76,11 +76,10 @@ export function dummyQueueWriter(
 export function dummyQueueConn(
   r: AsyncQueue<Uint8Array>,
   w: AsyncQueue<Uint8Array>,
-  closer=()=>{}
+  closer = () => {},
 ): Deno.Conn {
-  const reader = dummyQueueReader(r);
   const writer = dummyQueueWriter(w);
-  
+
   return {
     rid: -1,
     closeWrite: () => {

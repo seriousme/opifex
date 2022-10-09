@@ -11,15 +11,15 @@ export class Deferred<T> {
   }
 }
 
-export async function nextTick() {
+export function nextTick(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
 export class AsyncQueue<T> {
   private queue: T[] = [];
   private maxQueueLength = Infinity;
-  private nextResolve = (value: T) => {};
-  private nextReject = (reason?: any) => {};
+  private nextResolve = (_value: T) => {};
+  private nextReject = (_reason?: string) => {};
   private done = false;
   private hasNext = false;
 
@@ -47,9 +47,9 @@ export class AsyncQueue<T> {
     });
   }
 
-  close(reason='closed'): void {
+  close(reason = "closed"): void {
     this.done = true;
-    if (this.hasNext){
+    if (this.hasNext) {
       this.nextReject(reason);
     }
   }
@@ -91,7 +91,8 @@ class Logger {
   private defaultInfo = console.info;
   private defaultVerbose = console.log;
   private defaultDebug = console.log;
-  private noop = (...data: any[]) => {};
+  // deno-lint-ignore no-explicit-any
+  private noop = (..._data: any[]) => {};
   error = this.defaultError;
   warn = this.defaultWarn;
   info = this.defaultInfo;

@@ -1,22 +1,13 @@
-import {
-  assertEquals,
-  Buffer,
-  dummyQueueConn,
-  dummyReader,
-  dummyWriter,
-} from "./dev_deps.ts";
+import { assertEquals, dummyQueueConn } from "./dev_deps.ts";
 import { handlers } from "./test-handlers.ts";
 import {
   AnyPacket,
   AuthenticationResult,
-  decodePayload,
-  encode,
   PacketType,
 } from "../../mqttPacket/mod.ts";
 import { MqttServer } from "../mod.ts";
 import { MqttConn } from "../deps.ts";
-import { AsyncQueue, logger, LogLevel, nextTick } from "../../utils/utils.ts";
-import { dummyQueueReader } from "../../utils/dev_utils.ts";
+import { AsyncQueue, nextTick } from "../../utils/utils.ts";
 
 const txtEncoder = new TextEncoder();
 // logger.level(LogLevel.debug);
@@ -31,16 +22,6 @@ const connectPacket: AnyPacket = {
   "username": "IoTester_1",
   "password": txtEncoder.encode("strong_password"),
   "will": undefined,
-};
-
-const publishPacket: AnyPacket = {
-  "type": PacketType.publish,
-  "topic": "hello",
-  "payload": txtEncoder.encode("world"),
-  "dup": false,
-  "retain": false,
-  "qos": 0,
-  "id": 0,
 };
 
 const disconnectPacket: AnyPacket = {
@@ -83,7 +64,7 @@ Deno.test("Authentication with invalid username fails", async () => {
   newPacket.username = "wrong";
   const { reader, mqttConn } = startServer();
   mqttConn.send(newPacket);
-  const { value: connack, done } = await reader.next();
+  const { value: connack } = await reader.next();
   assertEquals(connack.type, PacketType.connack, "Expected Connack packet");
   if (connack.type === PacketType.connack) {
     assertEquals(
@@ -101,7 +82,7 @@ Deno.test("Authentication with invalid password fails", async () => {
   newPacket.password = undefined;
   const { reader, mqttConn } = startServer();
   mqttConn.send(newPacket);
-  const { value: connack, done } = await reader.next();
+  const { value: connack } = await reader.next();
   assertEquals(connack.type, PacketType.connack, "Expected Connack packet");
   if (connack.type === PacketType.connack) {
     assertEquals(
