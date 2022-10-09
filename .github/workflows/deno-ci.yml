@@ -1,0 +1,14 @@
+# This workflow will test on Deno lastest stable major and canary
+# see https://github.com/marketplace/actions/setup-deno for details
+name: Deno CI
+on: [push, pull_request]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: denoland/setup-deno@v1.1.0
+        with:
+          deno-version: v1.x # Run with latest stable Deno.
+      - run: deno fmt --check
+      - run: deno test
