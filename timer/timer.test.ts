@@ -14,7 +14,6 @@ Deno.test("timer should ring", async () => {
   }, wait);
   await delay(wait);
   const timeDiff = (end - start) - wait;
-  console.log(timeDiff);
   assertEquals(timeDiff < 10, true);
 });
 
