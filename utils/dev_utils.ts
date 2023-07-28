@@ -26,7 +26,10 @@ export function dummyConn(r: Deno.Reader, w: Deno.Writer): Deno.Conn {
     close: (): void => {},
     localAddr: { transport: "tcp", hostname: "0.0.0.0", port: 0 },
     remoteAddr: { transport: "tcp", hostname: "0.0.0.0", port: 0 },
-  };
+    ref: () => {},
+    unref: () => {},
+  }
+  ;
 }
 
 export function dummyReader(buffs: Uint8Array[]): Deno.Reader {
@@ -119,5 +122,7 @@ export function dummyQueueConn(
     },
     localAddr: { transport: "tcp", hostname: "0.0.0.0", port: 0 },
     remoteAddr: { transport: "tcp", hostname: "0.0.0.0", port: 0 },
+    ref: () => {},
+    unref: () => {},
   };
 }
