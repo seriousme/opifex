@@ -19,4 +19,4 @@ export type {
   UnsubscribePacket,
 } from "../../mqttPacket/mod.ts";
 
-export { assert } from "https://deno.land/std@0.140.0/testing/asserts.ts";
+export { assert } from "https://deno.land/std@0.196.0/testing/asserts.ts";
