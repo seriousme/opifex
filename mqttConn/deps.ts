@@ -1,4 +1,4 @@
-export { BufReader } from "https://deno.land/std@0.140.0/io/buffer.ts";
+export { BufReader } from "https://deno.land/std@0.196.0/io/mod.ts";
 
 export type {
   AnyPacket,

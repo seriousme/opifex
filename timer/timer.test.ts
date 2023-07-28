@@ -1,8 +1,5 @@
 import { Timer } from "./timer.ts";
-import {
-  assertArrayIncludes,
-  assertEquals,
-} from "https://deno.land/std@0.140.0/testing/asserts.ts";
+import { assertEquals } from "https://deno.land/std@0.196.0/testing/asserts.ts";
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -17,6 +14,7 @@ Deno.test("timer should ring", async () => {
   }, wait);
   await delay(wait);
   const timeDiff = (end - start) - wait;
+  console.log(timeDiff);
   assertEquals(timeDiff < 10, true);
 });
 
