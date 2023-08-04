@@ -72,13 +72,34 @@ async function getCaCerts(filename: string | undefined) {
   if (!filename) {
     return;
   }
-  return Deno.readTextFile(filename);
+  const caCerts =  await Deno.readTextFile(filename);
+  if (caCerts === "") {
+    return;
+  }
+  return [caCerts];
 }
+
+function parseQos(qosArg:string|number) {
+  const qos= Number(qosArg);
+  switch (qos) {
+    case 0:
+      return 0;
+    case 1:
+      return 1;
+    case 2:
+      return 2;
+    default:
+      break;
+  }
+  console.log("QoS must be between 0 and 2");
+  return 0;
+}
+
 
 async function subscribe(args: string[]) {
   const connectArgs = parse(Deno.args, connectOpts);
-  connectArgs.caCerts = getCaCerts(connectArgs.certFile);
-  const subscribeArgs = parse(Deno.args, subscribeOpts);
+  const caCerts = await getCaCerts(connectArgs.certFile);
+  const subscribeArgs = parse(args, subscribeOpts);
   if (connectArgs.help) {
     console.log(SubscribeHelp);
     return;
@@ -90,7 +111,7 @@ async function subscribe(args: string[]) {
   try {
     await client.connect({
       url: connectArgs.url,
-      caCerts: connectArgs.caCerts,
+      caCerts,
       options: {
         username: connectArgs.username,
         password: encoder.encode(connectArgs.password),
@@ -104,7 +125,7 @@ async function subscribe(args: string[]) {
     client.subscribe({
       subscriptions: [{
         topicFilter: subscribeArgs.topic,
-        qos: subscribeArgs.qos,
+        qos: parseQos(subscribeArgs.qos), 
       }],
     });
     logger.debug("Subscribed!");
@@ -150,8 +171,8 @@ const publishOpts = {
 
 async function publish(args: string[]) {
   const connectArgs = parse(Deno.args, connectOpts);
-  connectArgs.caCerts = getCaCerts(connectArgs.certFile);
-  const publishArgs = parse(Deno.args, publishOpts);
+  const caCerts = await getCaCerts(connectArgs.certFile);
+  const publishArgs = parse(args, publishOpts);
   if (connectArgs.help) {
     console.log(PublishHelp);
     return;
@@ -163,7 +184,7 @@ async function publish(args: string[]) {
   try {
     await client.connect({
       url: connectArgs.url,
-      caCerts: connectArgs.caCerts,
+      caCerts,
       options: {
         username: connectArgs.username,
         password: encoder.encode(connectArgs.password),
@@ -176,7 +197,7 @@ async function publish(args: string[]) {
       topic: publishArgs.topic,
       payload: encoder.encode(publishArgs.message),
       retain: publishArgs.retain,
-      qos: publishArgs.qos,
+      qos: parseQos(publishArgs.qos),
     });
     logger.debug("Published!");
     client.disconnect();
@@ -186,7 +207,7 @@ async function publish(args: string[]) {
   }
 }
 
-function processArgs(args: any) {
+function processArgs(args: string[]) {
   const cmd = args[0];
   switch (cmd) {
     case "publish":
