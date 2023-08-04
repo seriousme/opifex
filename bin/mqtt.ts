@@ -72,15 +72,15 @@ async function getCaCerts(filename: string | undefined) {
   if (!filename) {
     return;
   }
-  const caCerts =  await Deno.readTextFile(filename);
+  const caCerts = await Deno.readTextFile(filename);
   if (caCerts === "") {
     return;
   }
   return [caCerts];
 }
 
-function parseQos(qosArg:string|number) {
-  const qos= Number(qosArg);
+function parseQos(qosArg: string | number) {
+  const qos = Number(qosArg);
   switch (qos) {
     case 0:
       return 0;
@@ -94,7 +94,6 @@ function parseQos(qosArg:string|number) {
   console.log("QoS must be between 0 and 2");
   return 0;
 }
-
 
 async function subscribe(args: string[]) {
   const connectArgs = parse(Deno.args, connectOpts);
@@ -125,7 +124,7 @@ async function subscribe(args: string[]) {
     client.subscribe({
       subscriptions: [{
         topicFilter: subscribeArgs.topic,
-        qos: parseQos(subscribeArgs.qos), 
+        qos: parseQos(subscribeArgs.qos),
       }],
     });
     logger.debug("Subscribed!");
