@@ -1,4 +1,4 @@
-import { readerFromIterable } from "https://deno.land/std@0.196.0/streams/mod.ts";
+import { readerFromIterable } from "./dev_deps.ts";
 import { AsyncQueue, nextTick } from "./utils.ts";
 
 export function dummyConn(r: Deno.Reader, w: Deno.Writer): Deno.Conn {
