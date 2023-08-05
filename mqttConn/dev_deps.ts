@@ -1,3 +1,2 @@
-export { assertEquals } from "https://deno.land/std@0.196.0/testing/asserts.ts";
-export { Buffer } from "https://deno.land/std@0.196.0/io/buffer.ts";
+export { assertEquals, Buffer } from "../utils/dev_deps.ts";
 export { dummyConn, dummyReader } from "../utils/dev_utils.ts";

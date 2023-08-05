@@ -1,8 +1,5 @@
 import { Trie } from "./trie.ts";
-import {
-  assertArrayIncludes,
-  assertEquals,
-} from "https://deno.land/std@0.196.0/testing/asserts.ts";
+import { assertArrayIncludes, assertEquals } from "../utils/dev_deps.ts";
 
 type Data = Array<[string, number]>;
 type Matches = Array<[string, number[]]>;

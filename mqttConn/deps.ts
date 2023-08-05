@@ -1,5 +1,3 @@
-export { BufReader } from "https://deno.land/std@0.196.0/io/mod.ts";
-
 export type {
   AnyPacket,
   ConnackPacket,
@@ -27,3 +25,4 @@ export {
 } from "../mqttPacket/mod.ts";
 
 export { getLengthDecoder } from "../mqttPacket/length.ts";
+export { assert, BufReader } from "../utils/deps.ts";

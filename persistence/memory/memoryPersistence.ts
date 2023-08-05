@@ -1,5 +1,4 @@
 import {
-  assert,
   ClientId,
   logger,
   PacketId,
@@ -12,6 +11,7 @@ import {
 
 import { Client, Handler, IPersistence, RetainStore } from "../persistence.ts";
 import { IStore, PacketStore, SubscriptionStore } from "../store.ts";
+import { assert } from "../../utils/deps.ts";
 
 const maxPacketId = 0xffff;
 const maxQueueLength = 0xffff;

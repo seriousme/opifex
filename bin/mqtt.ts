@@ -1,4 +1,4 @@
-import { parse } from "https://deno.land/std@0.196.0/flags/mod.ts";
+import { parse } from "../utils/deps.ts";
 import { Client, DEFAULT_URL } from "../client/client.ts";
 import { logger } from "../client/deps.ts";
 

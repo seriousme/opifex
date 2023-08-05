@@ -1,5 +1,6 @@
 import {
   AnyPacket,
+  assert,
   BufReader,
   decodePayload,
   encode,
@@ -24,12 +25,6 @@ export interface IMqttConn extends AsyncIterable<AnyPacket> {
   send(data: AnyPacket): Promise<void>;
 
   close(): void;
-}
-
-function assert(expr: unknown, msg = ""): asserts expr {
-  if (!expr) {
-    throw new Error(msg);
-  }
 }
 
 /** Read MQTT packet from given BufReader

@@ -3,7 +3,8 @@ import {
   MemoryStore as Store,
 } from "./memoryPersistence.ts";
 
-import { assertEquals, PacketType, PublishPacket } from "../deps.ts";
+import { PacketType, PublishPacket } from "../deps.ts";
+import { assertEquals } from "../../utils/dev_deps.ts";
 
 const payloadAny = new TextEncoder().encode("any");
 const qos = 1;
