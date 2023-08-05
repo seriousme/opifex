@@ -46,14 +46,13 @@ export async function handlePacket(
         await handleSuback(ctx, packet);
         break;
       case PacketType.unsuback:
-        await handleUnsuback(ctx, packet);
+        handleUnsuback(ctx, packet);
         break;
 
       default:
         throw new Error(
           `Received unexpected ${PacketType[packet.type]} packet after connect`,
         );
-        break;
     }
   }
 }

@@ -3,7 +3,7 @@ import { PubackPacket } from "../deps.ts";
 
 // A PUBACK Packet is the response to a PUBLISH Packet with QoS level 1.
 
-export async function handlePuback(
+export function handlePuback(
   ctx: Context,
   packet: PubackPacket,
 ) {

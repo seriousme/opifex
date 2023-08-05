@@ -9,7 +9,7 @@ Deno.test("timer should ring", async () => {
   const wait = 50;
   const start = Date.now();
   let end = Date.now();
-  const timer = new Timer(() => {
+  const _timer = new Timer(() => {
     end = Date.now();
   }, wait);
   await delay(wait);
@@ -36,11 +36,8 @@ Deno.test("snooze should work", async () => {
   assertEquals(timeDiff < 15, true, `TimeDiff of ${timeDiff} < 15`);
 });
 
-Deno.test("clear should work", async () => {
+Deno.test("clear should work", () => {
   const wait = 50;
-  const quarterWait = Math.floor(wait / 4);
-  const halfWait = quarterWait * 2;
-  const start = Date.now();
   let end = 0;
   const timer = new Timer(() => {
     end = Date.now();

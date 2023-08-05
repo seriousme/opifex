@@ -1,8 +1,8 @@
 import { PacketType } from "./types.ts";
 import { assertEquals, assertThrows } from "./dev_deps.ts";
-import { decode, encode, PublishPacket } from "./mod.ts";
+import { decode, encode } from "./mod.ts";
 
-const utf8Decoder = new TextDecoder();
+// const utf8Decoder = new TextDecoder();
 const utf8Encoder = new TextEncoder();
 const payload = utf8Encoder.encode("payload");
 

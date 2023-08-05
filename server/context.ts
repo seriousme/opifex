@@ -74,7 +74,7 @@ export class Context {
     logger.debug("Connected", clientId);
   }
 
-  async doPublish(packet: PublishPacket): Promise<void> {
+  doPublish(packet: PublishPacket): void {
     const qos = packet.qos || 0;
     if (qos === 0) {
       packet.id = 0;

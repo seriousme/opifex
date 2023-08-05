@@ -1,7 +1,7 @@
-import { ClientId, PublishPacket, QoS, Subscription, Topic } from "./deps.ts";
+import { ClientId, PublishPacket, QoS, Topic } from "./deps.ts";
 import { IStore } from "./store.ts";
 
-export type Handler = Function;
+export type Handler = (packet: PublishPacket) => void;
 
 export type RetainStore = Map<
   Topic,

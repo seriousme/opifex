@@ -45,7 +45,7 @@ Deno.test("pub/sub should work", async () => {
   }
   const seen = new Set();
 
-  async function handler(packet: PublishPacket) {
+  function handler(packet: PublishPacket): void {
     seen.add(packet.id);
   }
 
@@ -84,7 +84,7 @@ Deno.test("many packets should work", async () => {
   }
   const seen = new Set();
 
-  async function handler(packet: PublishPacket) {
+  function handler(packet: PublishPacket): void {
     assertEquals(seen.has(packet.id), false, `Not seen ${packet.id} before`);
     seen.add(packet.id);
   }
@@ -116,7 +116,7 @@ Deno.test("unsubscribe should work", () => {
   };
 
   const seen = new Set();
-  async function handler(packet: PublishPacket) {
+  function handler(packet: PublishPacket): void {
     assertEquals(seen.has(packet.id), false, `Not seen ${packet.id} before`);
     seen.add(packet.id);
   }

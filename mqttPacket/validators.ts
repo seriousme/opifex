@@ -1,7 +1,10 @@
-import { QoS, Topic, TopicFilter } from "./types.ts";
+import { Topic, TopicFilter } from "./types.ts";
 
+// deno-lint-ignore no-control-regex
 const invalidUTF8regEx = new RegExp(/\x00|\uFFFD/);
+// deno-lint-ignore no-control-regex
 const invalidTopicRegEx = new RegExp(/^$|\+|#|\x00|\uFFFD/);
+// deno-lint-ignore no-control-regex
 const invalidTopicFilterRegEx = new RegExp(/^$|#.|[^\/]\+|\+[^\/]|\x00|\uFFFD/);
 
 export function invalidUTF8(value: string): boolean {

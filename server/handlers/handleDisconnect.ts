@@ -1,8 +1,8 @@
 import { Context } from "../context.ts";
 
-export async function handleDisconnect(
+export function handleDisconnect(
   ctx: Context,
-): Promise<void> {
+): void {
   ctx.will = undefined;
   ctx.close();
 }

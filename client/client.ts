@@ -77,7 +77,7 @@ export class Client {
     return await Deno.connectTls({ hostname, port, caCerts });
   }
 
-  protected async createConn(
+  protected createConn(
     protocol: string,
     hostname: string,
     port?: number,

@@ -11,13 +11,13 @@ import {
 import { handlePacket } from "./handlers/handlePacket.ts";
 
 const defaultIsAuthenticated = (
-  ctx: Context,
-  clientId: string,
-  username: string,
-  password: Uint8Array,
+  _ctx: Context,
+  _clientId: string,
+  _username: string,
+  _password: Uint8Array,
 ) => AuthenticationResult.ok;
 
-const defaultIsAuthorized = (ctx: Context, topic: Topic) => true;
+const defaultIsAuthorized = (_ctx: Context, _topic: Topic) => true;
 
 export class MqttServer {
   handlers: Handlers;

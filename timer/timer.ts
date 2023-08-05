@@ -1,10 +1,12 @@
 export class Timer {
   readonly delay: number; // delay in microseconds
+  // deno-lint-ignore ban-types
   private action: Function; // function to perform when timer expires
-  private timer: number = 0;
-  private end: number = 0;
+  private timer = 0;
+  private end = 0;
   private running = false;
 
+  // deno-lint-ignore ban-types
   constructor(action: Function, delay: number, wait = false) {
     this.delay = delay;
     this.action = action;

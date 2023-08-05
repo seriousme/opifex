@@ -61,7 +61,7 @@ export class Encoder {
     return this;
   }
 
-  setRemainder(value: any): this {
+  setRemainder(value: Uint8Array | number[]): this {
     this.buffer.push(...value);
     return this;
   }

@@ -1,5 +1,5 @@
 import { ConnectionState, Context } from "../context.ts";
-import { AuthenticationResult, ConnackPacket, PacketType } from "../deps.ts";
+import { AuthenticationResult, ConnackPacket } from "../deps.ts";
 
 export async function handleConnack(packet: ConnackPacket, ctx: Context) {
   if (packet.returnCode === 0) {

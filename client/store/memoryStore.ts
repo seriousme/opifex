@@ -46,10 +46,10 @@ export class MemoryStore implements IStore {
     void,
     unknown
   > {
-    for (const [id, packet] of this.pendingAckOutgoing) {
+    for (const [_id, packet] of this.pendingAckOutgoing) {
       yield packet;
     }
-    for (const [id, packet] of this.pendingOutgoing) {
+    for (const [_id, packet] of this.pendingOutgoing) {
       yield packet;
     }
   }

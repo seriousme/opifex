@@ -20,7 +20,7 @@ export async function handlePacket(
   logger.debug(JSON.stringify(packet, null, 2));
   if (!ctx.connected) {
     if (packet.type === PacketType.connect) {
-      await handleConnect(ctx, packet);
+      handleConnect(ctx, packet);
     } else {
       throw new Error(
         `Received ${PacketType[packet.type]} packet before connect`,
@@ -35,7 +35,7 @@ export async function handlePacket(
         await handlePublish(ctx, packet);
         break;
       case PacketType.puback:
-        await handlePuback(ctx, packet);
+        handlePuback(ctx, packet);
         break;
       case PacketType.pubrel:
         await handlePubrel(ctx, packet);
@@ -44,7 +44,7 @@ export async function handlePacket(
         await handlePubrec(ctx, packet);
         break;
       case PacketType.pubcomp:
-        await handlePubcomp(ctx, packet);
+        handlePubcomp(ctx, packet);
         break;
       case PacketType.subscribe:
         await handleSubscribe(ctx, packet);
@@ -53,7 +53,7 @@ export async function handlePacket(
         await handleUnsubscribe(ctx, packet);
         break;
       case PacketType.disconnect:
-        await handleDisconnect(ctx);
+        handleDisconnect(ctx);
         break;
       default:
         throw new Error(

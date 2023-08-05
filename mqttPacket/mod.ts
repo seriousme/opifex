@@ -100,6 +100,7 @@ const packetsByType = [
 
 export function encode(packet: AnyPacket) {
   const packetType: number = packet.type;
+  // deno-lint-ignore no-explicit-any
   const pkt: any = packet;
   const encoded = packetsByType[packetType]?.encode(pkt);
   if (!encoded) {

@@ -123,12 +123,13 @@ export class Context {
     this.incoming.push(packet);
   }
 
-  async publish(packet: PublishPacket): Promise<void> {
+  publish(packet: PublishPacket): Promise<void> {
     const qos = packet.qos || 0;
     if (qos === 0) {
       packet.id = 0;
       this.send(packet);
-      return;
+      // return empty promise
+      return Promise.resolve();
     }
     packet.id = this.store.nextId();
     this.store.pendingOutgoing.set(packet.id, packet);
@@ -138,7 +139,7 @@ export class Context {
     return deferred.promise;
   }
 
-  async subscribe(packet: SubscribePacket): Promise<ReturnCodes> {
+  subscribe(packet: SubscribePacket): Promise<ReturnCodes> {
     packet.id = this.store.nextId();
     this.store.pendingOutgoing.set(packet.id, packet);
     const deferred = new Deferred<ReturnCodes>();
@@ -147,7 +148,7 @@ export class Context {
     return deferred.promise;
   }
 
-  async unsubscribe(packet: UnsubscribePacket): Promise<void> {
+  unsubscribe(packet: UnsubscribePacket): Promise<void> {
     packet.id = this.store.nextId();
     this.store.pendingOutgoing.set(packet.id, packet);
     const deferred = new Deferred<void>();

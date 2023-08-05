@@ -32,10 +32,10 @@ function validateConnect(
   return isAuthenticated(ctx, packet);
 }
 
-export async function handleConnect(
+export function handleConnect(
   ctx: Context,
   packet: ConnectPacket,
-): Promise<void> {
+): void {
   const clientId = packet.clientId || `Opifex-${crypto.randomUUID()}`;
   const returnCode = validateConnect(ctx, packet);
   // connect is ok

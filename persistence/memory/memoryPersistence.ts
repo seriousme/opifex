@@ -1,6 +1,5 @@
 import {
   ClientId,
-  logger,
   PacketId,
   PublishPacket,
   QoS,
@@ -14,7 +13,7 @@ import { IStore, PacketStore, SubscriptionStore } from "../store.ts";
 import { assert } from "../../utils/deps.ts";
 
 const maxPacketId = 0xffff;
-const maxQueueLength = 0xffff;
+// const maxQueueLength = 0xffff;
 
 type ClientSubscription = {
   clientId: ClientId;
@@ -101,7 +100,7 @@ export class MemoryPersistence implements IPersistence {
   }
 
   private unsubscribeAll(store: IStore) {
-    for (const [topicFilter, qos] of store.subscriptions) {
+    for (const [topicFilter, _qos] of store.subscriptions) {
       this.unsubscribe(store, topicFilter);
     }
   }
@@ -139,7 +138,7 @@ export class MemoryPersistence implements IPersistence {
     const client = this.clientList.get(clientId);
     const store = client?.store;
     if (store) {
-      for (const [topicFilter, qos] of store.subscriptions) {
+      for (const [topicFilter, _qos] of store.subscriptions) {
         retainedTrie.add(topicFilter, clientId);
       }
       for (const [topic, packet] of this.retained) {
