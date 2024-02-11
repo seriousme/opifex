@@ -1,9 +1,9 @@
 import {
-	PacketId,
-	PublishPacket,
-	PubrelPacket,
-	SubscribePacket,
-	UnsubscribePacket,
+  PacketId,
+  PublishPacket,
+  PubrelPacket,
+  SubscribePacket,
+  UnsubscribePacket,
 } from "./deps.ts";
 export const maxPacketId = 0xffff;
 
@@ -11,19 +11,19 @@ export type PacketStore<T> = Map<PacketId, T>;
 
 export type pendingIncoming = PublishPacket;
 export type PendingOutgoing =
-	| PublishPacket
-	| SubscribePacket
-	| UnsubscribePacket;
+  | PublishPacket
+  | SubscribePacket
+  | UnsubscribePacket;
 export type PendingAckOutgoing = PubrelPacket;
 export type PendingOutgoingPackets = PendingAckOutgoing | PendingOutgoing;
 
 export interface IStore {
-	pendingIncoming: PacketStore<pendingIncoming>;
-	pendingOutgoing: PacketStore<PendingOutgoing>;
-	pendingAckOutgoing: PacketStore<PendingAckOutgoing>;
-	pendingOutgoingPackets(): AsyncGenerator<
-		PendingOutgoing | PubrelPacket,
-		void,
-		unknown
-	>;
+  pendingIncoming: PacketStore<pendingIncoming>;
+  pendingOutgoing: PacketStore<PendingOutgoing>;
+  pendingAckOutgoing: PacketStore<PendingAckOutgoing>;
+  pendingOutgoingPackets(): AsyncGenerator<
+    PendingOutgoing | PubrelPacket,
+    void,
+    unknown
+  >;
 }

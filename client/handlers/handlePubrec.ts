@@ -8,17 +8,17 @@ import { PacketType, PubrecPacket, PubrelPacket } from "../deps.ts";
 // send PUBREL <Packet Identifier>
 
 export async function handlePubrec(
-	ctx: Context,
-	packet: PubrecPacket,
+  ctx: Context,
+  packet: PubrecPacket,
 ): Promise<void> {
-	const id = packet.id;
-	const ack: PubrelPacket = {
-		type: PacketType.pubrel,
-		id,
-	};
-	if (ctx.store.pendingOutgoing.has(id)) {
-		ctx.store.pendingAckOutgoing.set(id, ack);
-		ctx.store.pendingOutgoing.delete(id);
-		await ctx.send(ack);
-	}
+  const id = packet.id;
+  const ack: PubrelPacket = {
+    type: PacketType.pubrel,
+    id,
+  };
+  if (ctx.store.pendingOutgoing.has(id)) {
+    ctx.store.pendingAckOutgoing.set(id, ack);
+    ctx.store.pendingOutgoing.delete(id);
+    await ctx.send(ack);
+  }
 }

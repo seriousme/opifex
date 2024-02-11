@@ -8,7 +8,7 @@ import { SubackPacket } from "../deps.ts";
 // that was granted in each Subscription that was requested by the SUBSCRIBE.
 
 export function handleSuback(ctx: Context, packet: SubackPacket): void {
-	const id = packet.id;
-	ctx.store.pendingOutgoing.delete(id);
-	ctx.receiveSuback(id, packet.returnCodes);
+  const id = packet.id;
+  ctx.store.pendingOutgoing.delete(id);
+  ctx.receiveSuback(id, packet.returnCodes);
 }

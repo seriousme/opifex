@@ -1,12 +1,12 @@
 {
-	"deno.enable": true,
-	"deno.suggest.imports.hosts": {
-		"https://deno.land": true,
-		"https://io": false,
-		"https://d": false,
-		"https://de": false,
-		"https://deno": false,
-		"https://deno.": false,
-		"https://deno.la": false
-	}
+  "deno.enable": true,
+  "deno.suggest.imports.hosts": {
+    "https://deno.land": true,
+    "https://io": false,
+    "https://d": false,
+    "https://de": false,
+    "https://deno": false,
+    "https://deno.": false,
+    "https://deno.la": false
+  }
 }

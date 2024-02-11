@@ -6,19 +6,19 @@ import { PacketType, PubrelPacket } from "../deps.ts";
 // Send PUBCOMP <Packet Identifier>
 
 export async function handlePubrel(
-	ctx: Context,
-	packet: PubrelPacket,
+  ctx: Context,
+  packet: PubrelPacket,
 ): Promise<void> {
-	const id = packet.id;
-	if (ctx.store?.pendingIncoming.has(id)) {
-		const storedPacket = ctx.store.pendingIncoming.get(id);
-		if (storedPacket) {
-			ctx.persistence.publish(storedPacket.topic, storedPacket);
-			ctx.store.pendingIncoming.delete(id);
-			await ctx.send({
-				type: PacketType.pubcomp,
-				id,
-			});
-		}
-	}
+  const id = packet.id;
+  if (ctx.store?.pendingIncoming.has(id)) {
+    const storedPacket = ctx.store.pendingIncoming.get(id);
+    if (storedPacket) {
+      ctx.persistence.publish(storedPacket.topic, storedPacket);
+      ctx.store.pendingIncoming.delete(id);
+      await ctx.send({
+        type: PacketType.pubcomp,
+        id,
+      });
+    }
+  }
 }

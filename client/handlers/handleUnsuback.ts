@@ -5,7 +5,7 @@ import { UnsubackPacket } from "../deps.ts";
 // of an UNSUBSCRIBE Packet.
 
 export function handleUnsuback(ctx: Context, packet: UnsubackPacket): void {
-	const id = packet.id;
-	ctx.store.pendingOutgoing.delete(id);
-	ctx.receiveUnsuback(id);
+  const id = packet.id;
+  ctx.store.pendingOutgoing.delete(id);
+  ctx.receiveUnsuback(id);
 }

@@ -24,20 +24,20 @@ const ConnectHelp = `
   `;
 
 const connectOpts = {
-	string: ["url", "username", "password", "certFile", "clientId"],
-	alias: {
-		u: "url",
-		U: "username",
-		P: "password",
-		c: "certFile",
-		i: "clientId",
-		n: "noClean",
-		h: "help",
-	},
-	boolean: ["noClean", "help"],
-	default: {
-		noClean: false,
-	},
+  string: ["url", "username", "password", "certFile", "clientId"],
+  alias: {
+    u: "url",
+    U: "username",
+    P: "password",
+    c: "certFile",
+    i: "clientId",
+    n: "noClean",
+    h: "help",
+  },
+  boolean: ["noClean", "help"],
+  default: {
+    noClean: false,
+  },
 };
 
 const SubscribeHelp = `Usage: MQTT.ts subscribe <options>
@@ -49,86 +49,86 @@ ${ConnectHelp}
 Example: MQTT.ts subscribe -t hello`;
 
 const subscribeOpts = {
-	string: ["topic"],
-	alias: {
-		t: "topic",
-		q: "qos",
-	},
-	default: {
-		qos: 0,
-		topic: "",
-	},
+  string: ["topic"],
+  alias: {
+    t: "topic",
+    q: "qos",
+  },
+  default: {
+    qos: 0,
+    topic: "",
+  },
 };
 
 async function getCaCerts(filename: string | undefined) {
-	if (!filename) {
-		return;
-	}
-	const caCerts = await Deno.readTextFile(filename);
-	if (caCerts === "") {
-		return;
-	}
-	return [caCerts];
+  if (!filename) {
+    return;
+  }
+  const caCerts = await Deno.readTextFile(filename);
+  if (caCerts === "") {
+    return;
+  }
+  return [caCerts];
 }
 
 function parseQos(qosArg: string | number) {
-	const qos = Number(qosArg);
-	switch (qos) {
-		case 0:
-			return 0;
-		case 1:
-			return 1;
-		case 2:
-			return 2;
-		default:
-			break;
-	}
-	console.log("QoS must be between 0 and 2");
-	return 0;
+  const qos = Number(qosArg);
+  switch (qos) {
+    case 0:
+      return 0;
+    case 1:
+      return 1;
+    case 2:
+      return 2;
+    default:
+      break;
+  }
+  console.log("QoS must be between 0 and 2");
+  return 0;
 }
 
 async function subscribe(args: string[]) {
-	const connectArgs = parse(Deno.args, connectOpts);
-	const caCerts = await getCaCerts(connectArgs.certFile);
-	const subscribeArgs = parse(args, subscribeOpts);
-	if (connectArgs.help) {
-		console.log(SubscribeHelp);
-		return;
-	}
-	if (subscribeArgs.topic === undefined) {
-		console.log("Missing `topic`");
-		return;
-	}
-	try {
-		await client.connect({
-			url: connectArgs.url,
-			caCerts,
-			options: {
-				username: connectArgs.username,
-				password: encoder.encode(connectArgs.password),
-				clientId: connectArgs.clientId,
-				clean: !connectArgs.noClean,
-				keepAlive: 60,
-			},
-		});
-		logger.debug("Connected !");
+  const connectArgs = parse(Deno.args, connectOpts);
+  const caCerts = await getCaCerts(connectArgs.certFile);
+  const subscribeArgs = parse(args, subscribeOpts);
+  if (connectArgs.help) {
+    console.log(SubscribeHelp);
+    return;
+  }
+  if (subscribeArgs.topic === undefined) {
+    console.log("Missing `topic`");
+    return;
+  }
+  try {
+    await client.connect({
+      url: connectArgs.url,
+      caCerts,
+      options: {
+        username: connectArgs.username,
+        password: encoder.encode(connectArgs.password),
+        clientId: connectArgs.clientId,
+        clean: !connectArgs.noClean,
+        keepAlive: 60,
+      },
+    });
+    logger.debug("Connected !");
 
-		client.subscribe({
-			subscriptions: [
-				{
-					topicFilter: subscribeArgs.topic,
-					qos: parseQos(subscribeArgs.qos),
-				},
-			],
-		});
-		logger.debug("Subscribed!");
+    client.subscribe({
+      subscriptions: [
+        {
+          topicFilter: subscribeArgs.topic,
+          qos: parseQos(subscribeArgs.qos),
+        },
+      ],
+    });
+    logger.debug("Subscribed!");
 
-		for await (const message of client.messages()) {
-			console.log(decoder.decode(message.payload));
-		}
-	} catch (err) {
-		logger.debug(err.message);
-	}
+    for await (const message of client.messages()) {
+      console.log(decoder.decode(message.payload));
+    }
+  } catch (err) {
+    logger.debug(err.message);
+  }
 }
 
 const PublishHelp = `Usage: MQTT.ts publish <options>
@@ -142,74 +142,74 @@ ${ConnectHelp}
 Example: MQTT.ts publish -t hello -m world`;
 
 const publishOpts = {
-	string: ["topic", "message"],
-	boolean: ["retain"],
-	alias: {
-		t: "topic",
-		m: "message",
-		q: "qos",
-		r: "retain",
-	},
-	default: {
-		qos: 0,
-		dup: false,
-		retain: false,
-		topic: "",
-		message: "",
-	},
+  string: ["topic", "message"],
+  boolean: ["retain"],
+  alias: {
+    t: "topic",
+    m: "message",
+    q: "qos",
+    r: "retain",
+  },
+  default: {
+    qos: 0,
+    dup: false,
+    retain: false,
+    topic: "",
+    message: "",
+  },
 };
 
 async function publish(args: string[]) {
-	const connectArgs = parse(Deno.args, connectOpts);
-	const caCerts = await getCaCerts(connectArgs.certFile);
-	const publishArgs = parse(args, publishOpts);
-	if (connectArgs.help) {
-		console.log(PublishHelp);
-		return;
-	}
-	if (publishArgs.topic === undefined) {
-		console.log("Missing `topic`");
-		return;
-	}
-	try {
-		await client.connect({
-			url: connectArgs.url,
-			caCerts,
-			options: {
-				username: connectArgs.username,
-				password: encoder.encode(connectArgs.password),
-				clientId: connectArgs.clientId,
-				clean: !connectArgs.noClean,
-			},
-		});
-		logger.debug("Connected !");
-		await client.publish({
-			topic: publishArgs.topic,
-			payload: encoder.encode(publishArgs.message),
-			retain: publishArgs.retain,
-			qos: parseQos(publishArgs.qos),
-		});
-		logger.debug("Published!");
-		client.disconnect();
-		logger.debug("Disconnected !");
-	} catch (err) {
-		logger.debug(err.message);
-	}
+  const connectArgs = parse(Deno.args, connectOpts);
+  const caCerts = await getCaCerts(connectArgs.certFile);
+  const publishArgs = parse(args, publishOpts);
+  if (connectArgs.help) {
+    console.log(PublishHelp);
+    return;
+  }
+  if (publishArgs.topic === undefined) {
+    console.log("Missing `topic`");
+    return;
+  }
+  try {
+    await client.connect({
+      url: connectArgs.url,
+      caCerts,
+      options: {
+        username: connectArgs.username,
+        password: encoder.encode(connectArgs.password),
+        clientId: connectArgs.clientId,
+        clean: !connectArgs.noClean,
+      },
+    });
+    logger.debug("Connected !");
+    await client.publish({
+      topic: publishArgs.topic,
+      payload: encoder.encode(publishArgs.message),
+      retain: publishArgs.retain,
+      qos: parseQos(publishArgs.qos),
+    });
+    logger.debug("Published!");
+    client.disconnect();
+    logger.debug("Disconnected !");
+  } catch (err) {
+    logger.debug(err.message);
+  }
 }
 
 function processArgs(args: string[]) {
-	const cmd = args[0];
-	switch (cmd) {
-		case "publish":
-			publish(args);
-			break;
-		case "subscribe":
-			subscribe(args);
-			break;
-		default:
-			console.log(MQTTHelp);
-			break;
-	}
+  const cmd = args[0];
+  switch (cmd) {
+    case "publish":
+      publish(args);
+      break;
+    case "subscribe":
+      subscribe(args);
+      break;
+    default:
+      console.log(MQTTHelp);
+      break;
+  }
 }
 
 processArgs(Deno.args);

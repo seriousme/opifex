@@ -5,10 +5,10 @@ export type PacketStore = Map<PacketId, PublishPacket>;
 export type SubscriptionStore = Map<Topic, QoS>;
 
 export interface IStore {
-	clientId: ClientId;
-	pendingIncoming: PacketStore;
-	pendingOutgoing: PacketStore;
-	pendingAckOutgoing: Set<PacketId>;
-	subscriptions: SubscriptionStore;
-	nextId(): PacketId;
+  clientId: ClientId;
+  pendingIncoming: PacketStore;
+  pendingOutgoing: PacketStore;
+  pendingAckOutgoing: Set<PacketId>;
+  subscriptions: SubscriptionStore;
+  nextId(): PacketId;
 }
