@@ -1,4 +1,4 @@
-import { assertEquals, dummyQueueConn } from "./dev_deps.ts";
+import { assertEquals, DummyQueueConn } from "./dev_deps.ts";
 import { handlers } from "./test-handlers.ts";
 import {
   AnyPacket,
@@ -37,9 +37,9 @@ function startServer(): {
   const reader = new AsyncQueue<Uint8Array>();
   const writer = new AsyncQueue<Uint8Array>();
 
-  const outputConn = dummyQueueConn(writer, reader);
+  const outputConn = new DummyQueueConn(writer, reader);
   const mqttConn = new MqttConn({ conn: outputConn });
-  const inputConn = dummyQueueConn(reader, writer, () => {
+  const inputConn = new DummyQueueConn(reader, writer, () => {
     mqttConn.close();
   });
   mqttServer.serve(inputConn);

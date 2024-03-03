@@ -1,5 +1,6 @@
-export function encodeLength(x: number): number[] {
+export function encodeLength(n: number): number[] {
   const output = [];
+  let x = n;
   do {
     let encodedByte = x % 0x80;
     x = Math.floor(x / 0x80);
@@ -29,11 +30,13 @@ export function decodeLength(
   throw Error("length decoding failed");
 }
 
-export function getLengthDecoder(): (encodedByte: number) => {
+export type LengthDecoderResult = {
   done: boolean;
   length: number;
   numLengthBytes: number;
-} {
+};
+
+export function getLengthDecoder(): (encodedByte: number) => LengthDecoderResult {
   let numLengthBytes = 1;
   let length = 0;
   let multiplier = 1;

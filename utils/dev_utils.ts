@@ -1,117 +1,181 @@
 import { readerFromIterable } from "./dev_deps.ts";
-import { AsyncQueue, nextTick } from "./utils.ts";
+import { AsyncQueue } from "./utils.ts";
 
-export function dummyConn(r: Deno.Reader, w: Deno.Writer): Deno.Conn {
-  return {
-    rid: -1,
-    closeWrite: () => Promise.resolve(),
-    read: (x: Uint8Array): Promise<number | null> => r.read(x),
-    write: (x: Uint8Array): Promise<number> => w.write(x),
-    readable: new ReadableStream({
-      type: "bytes",
-      async pull(_controller) {},
-      cancel() {},
-      autoAllocateChunkSize: 1,
-    }),
-    writable: new WritableStream({
-      async write(_chunk, _controller) {},
-      close() {},
-      abort() {},
-    }),
-    close: (): void => {},
-    localAddr: { transport: "tcp", hostname: "0.0.0.0", port: 0 },
-    remoteAddr: { transport: "tcp", hostname: "0.0.0.0", port: 0 },
-    ref: () => {},
-    unref: () => {},
-    [Symbol.dispose]: () => {},
-  };
+class Uint8Writer implements WritableStreamDefaultWriter {
+  private buff: Uint8Array;
+  private pos: number;
+  closed = Promise.resolve();
+  close = () => Promise.resolve();
+  abort = () => Promise.resolve();
+  ready = Promise.resolve();
+  releaseLock = () => {};
+  desiredSize = 20;
+
+  constructor(
+    buff: Uint8Array,
+  ) {
+    this.buff = buff;
+    this.pos = 0;
+  }
+  write(chunk: Uint8Array): Promise<void> {
+    this.buff.set(chunk, this.pos);
+    this.pos += chunk.length;
+    return Promise.resolve();
+  }
 }
 
-export function dummyReader(buffs: Uint8Array[]): Deno.Reader {
-  let idx = 0;
-  return {
-    read(p: Uint8Array): Promise<number | null> {
-      const buff = buffs[idx++];
-      if (buff instanceof Uint8Array) {
-        p.set(buff);
-        return Promise.resolve(buff.byteLength);
+class Uint8QueuedWriter implements WritableStreamDefaultWriter {
+  private queue: AsyncQueue<Uint8Array>;
+  closed = Promise.resolve();
+  close = () => Promise.resolve();
+  abort = () => Promise.resolve();
+  ready = Promise.resolve();
+  releaseLock = () => {};
+  desiredSize = 20;
+
+  constructor(
+    queue: AsyncQueue<Uint8Array>,
+  ) {
+    this.queue = queue;
+  }
+  write(chunk: Uint8Array): Promise<void> {
+    this.queue.push(chunk);
+    return Promise.resolve();
+  }
+}
+
+function ReadableStreamFrom(
+  iterable: AsyncIterable<Uint8Array>,
+): ReadableStream {
+  if (!iterable || !(Symbol.asyncIterator in iterable)) {
+    throw new TypeError("Argument must be an asyncIterable");
+  }
+
+  return new ReadableStream({
+    type: "bytes",
+    async pull(controller) {
+      const iterator = iterable[Symbol.asyncIterator]();
+      const next = await iterator.next();
+
+      if (next.done) {
+        controller.close();
+        return;
       }
-      return Promise.resolve(null);
+      controller.enqueue(next.value);
     },
-  };
+  });
 }
 
-export function dummyWriter(
-  buffs: Uint8Array[],
-  isClosed: boolean,
-): Deno.Writer {
-  return {
-    write(p: Uint8Array): Promise<number> {
-      if (isClosed) {
-        return Promise.reject();
-      }
-      buffs.push(p);
-      return Promise.resolve(p.byteLength);
-    },
-  };
+export class DummyConn implements Deno.Conn {
+  private closed = false;
+  readable: ReadableStream;
+  reader: ReadableStreamBYOBReader;
+  writable: WritableStream<Uint8Array>;
+  writer: WritableStreamDefaultWriter<Uint8Array>;
+  rid = -1;
+  localAddr: Deno.Addr = { transport: "tcp", hostname: "0.0.0.0", port: 0 };
+  remoteAddr: Deno.Addr;
+
+  constructor(
+    readerBuffs: Uint8Array[],
+    writerBuf: Uint8Array,
+    remoteAddr: Deno.Addr = { transport: "tcp", hostname: "0.0.0.0", port: 0 },
+  ) {
+    const readBlob = new Blob(readerBuffs);
+    this.readable = readBlob.stream();
+    this.reader = this.readable.getReader({ mode: "byob" });
+    this.writable = new WritableStream(new Uint8Writer(writerBuf));
+    this.writer = this.writable.getWriter();
+    this.remoteAddr = remoteAddr;
+  }
+
+  async read(buff: Uint8Array) {
+    const buff2 = new Uint8Array(buff.length);
+    const result = await this.reader.read(buff2);
+    if (!result.done) {
+      buff.set(result.value);
+    }
+    return result.value?.byteLength || null;
+  }
+
+  write(data: Uint8Array): Promise<number> {
+    if (this.closed) {
+      return Promise.reject();
+    }
+    this.writer.write(data);
+    return new Promise((resolve) => resolve(data.length));
+  }
+
+  close() {
+    if (!this.closed) {
+      this.closed = true;
+    }
+  }
+
+  closeWrite() {
+    return Promise.resolve();
+  }
+
+  ref() {}
+  unref() {}
+  [Symbol.dispose]() {}
 }
 
-export function dummyQueueReader(queue: AsyncQueue<Uint8Array>): Deno.Reader {
-  return readerFromIterable(queue);
-}
+export class DummyQueueConn implements Deno.Conn {
+  closed = false;
+  readable: ReadableStream;
+  reader: ReadableStreamBYOBReader;
+  writable: WritableStream<Uint8Array>;
+  writer: WritableStreamDefaultWriter<Uint8Array>;
+  rid = -1;
+  localAddr: Deno.Addr = { transport: "tcp", hostname: "0.0.0.0", port: 0 };
+  remoteAddr: Deno.Addr;
+  closer: () => void;
 
-export function dummyQueueWriter(queue: AsyncQueue<Uint8Array>): Deno.Writer {
-  return {
-    write(p: Uint8Array): Promise<number> {
-      queue.push(p);
-      return Promise.resolve(p.byteLength);
-    },
-  };
-}
+  constructor(
+    r: AsyncQueue<Uint8Array>,
+    w: AsyncQueue<Uint8Array>,
+    closer = () => {},
+    remoteAddr: Deno.Addr = { transport: "tcp", hostname: "0.0.0.0", port: 0 },
+  ) {
+    this.readable = ReadableStreamFrom(r);
+    this.reader = this.readable.getReader({ mode: "byob" });
+    this.writable = new WritableStream(new Uint8QueuedWriter(w));
+    this.writer = this.writable.getWriter();
+    this.remoteAddr = remoteAddr;
+    this.closer = closer;
+  }
 
-export function dummyQueueConn(
-  r: AsyncQueue<Uint8Array>,
-  w: AsyncQueue<Uint8Array>,
-  closer = () => {},
-): Deno.Conn {
-  const writer = dummyQueueWriter(w);
+  async read(buff: Uint8Array) {
+    const buff2 = new Uint8Array(buff.length);
+    const result = await this.reader.read(buff2);
+    if (!result.done) {
+      buff.set(result.value);
+    }
+    return result.value?.byteLength || null;
+  }
 
-  return {
-    rid: -1,
-    closeWrite: () => {
-      return Promise.resolve();
-    },
-    read: async (x: Uint8Array): Promise<number | null> => {
-      try {
-        const buff = await r.next();
-        x.set(buff);
-        return await Promise.resolve(buff.byteLength);
-      } catch {
-        await nextTick();
-        return await Promise.resolve(null);
-      }
-    },
-    write: (x: Uint8Array): Promise<number> => writer.write(x),
-    readable: new ReadableStream({
-      type: "bytes",
-      async pull(_controller) {},
-      cancel() {},
-      autoAllocateChunkSize: 1,
-    }),
-    writable: new WritableStream({
-      async write(_chunk, _controller) {},
-      close() {},
-      abort() {},
-    }),
-    close: (): void => {
-      w.close();
-      r.close();
-      closer();
-    },
-    localAddr: { transport: "tcp", hostname: "0.0.0.0", port: 0 },
-    remoteAddr: { transport: "tcp", hostname: "0.0.0.0", port: 0 },
-    ref: () => {},
-    unref: () => {},
-    [Symbol.dispose]: () => {},
-  };
+  write(data: Uint8Array): Promise<number> {
+    if (this.closed) {
+      return Promise.reject();
+    }
+    this.writer.write(data);
+    return new Promise((resolve) => resolve(data.length));
+  }
+
+  close() {
+    if (!this.closed) {
+      this.closeWrite();
+    }
+  }
+
+  closeWrite() {
+    this.closed = true;
+    this.closer();
+    return Promise.resolve();
+  }
+
+  ref() {}
+  unref() {}
+  [Symbol.dispose]() {}
 }

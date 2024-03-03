@@ -25,4 +25,5 @@ export {
 } from "../mqttPacket/mod.ts";
 
 export { getLengthDecoder } from "../mqttPacket/length.ts";
+export type { LengthDecoderResult } from "../mqttPacket/length.ts";
 export { assert, BufReader } from "../utils/deps.ts";

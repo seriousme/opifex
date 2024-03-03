@@ -1,10 +1,10 @@
 import {
   AnyPacket,
   assert,
-  BufReader,
   decodePayload,
   encode,
   getLengthDecoder,
+  LengthDecoderResult,
 } from "./deps.ts";
 
 export type SockConn = Deno.Conn;
@@ -19,30 +19,43 @@ export interface IMqttConn extends AsyncIterable<AnyPacket> {
   readonly conn: SockConn;
   readonly isClosed: boolean;
   readonly reason: string | undefined;
-
   [Symbol.asyncIterator](): AsyncIterableIterator<AnyPacket>;
-
   send(data: AnyPacket): Promise<void>;
-
   close(): void;
+}
+
+async function readByte(conn: SockConn): Promise<number> {
+  const buf = new Uint8Array(1);
+  const bytesRead = await conn.read(buf);
+  assert(bytesRead !== null, MqttConnError.UnexpectedEof);
+  assert(bytesRead !== 0, MqttConnError.UnexpectedEof);
+  return buf[0];
+}
+
+async function readFull(conn: SockConn, buf: Uint8Array): Promise<void> {
+  let bytesRead = 0;
+  while (bytesRead < buf.length) {
+    const read = await conn.read(buf.subarray(bytesRead));
+    assert(read !== null, MqttConnError.UnexpectedEof);
+    assert(read !== 0, MqttConnError.UnexpectedEof);
+    bytesRead += read;
+  }
 }
 
 /** Read MQTT packet from given BufReader
  * @throws `Error` if packet is invalid
  */
 export async function readPacket(
-  reader: BufReader,
+  conn: SockConn,
   maxPacketSize: number,
 ): Promise<AnyPacket> {
   // fixed header is 1 byte of type + flags
   // + a maximum of 4 bytes to encode the remaining length
-  const firstByte = await reader.readByte();
-  assert(firstByte !== null, MqttConnError.UnexpectedEof);
   const decodeLength = getLengthDecoder();
-  let byte, result;
+  const firstByte = await readByte(conn);
+  let result: LengthDecoderResult;
   do {
-    byte = await reader.readByte();
-    assert(byte !== null, MqttConnError.UnexpectedEof);
+    const byte = await readByte(conn);
     result = decodeLength(byte);
   } while (!result.done);
 
@@ -50,10 +63,7 @@ export async function readPacket(
   assert(remainingLength < maxPacketSize - 1, MqttConnError.packetTooLarge);
   const packetBuf = new Uint8Array(remainingLength);
   // read the rest of the packet
-  assert(
-    (await reader.readFull(packetBuf)) !== null,
-    MqttConnError.UnexpectedEof,
-  );
+  await readFull(conn, packetBuf);
   const packet = decodePayload(firstByte, packetBuf);
   assert(packet !== null, MqttConnError.UnexpectedEof);
   return packet;
@@ -61,7 +71,6 @@ export async function readPacket(
 
 export class MqttConn implements IMqttConn {
   readonly conn: SockConn;
-  private readonly bufReader: BufReader;
   private readonly maxPacketSize: number;
   private _reason: string | undefined = undefined;
   private _isClosed = false;
@@ -74,7 +83,6 @@ export class MqttConn implements IMqttConn {
     maxPacketSize?: number;
   }) {
     this.conn = conn;
-    this.bufReader = new BufReader(conn);
     this.maxPacketSize = maxPacketSize || 2 * 1024 * 1024;
   }
 
@@ -85,7 +93,7 @@ export class MqttConn implements IMqttConn {
   async *[Symbol.asyncIterator](): AsyncIterableIterator<AnyPacket> {
     while (!this._isClosed) {
       try {
-        yield await readPacket(this.bufReader, this.maxPacketSize);
+        yield await readPacket(this.conn, this.maxPacketSize);
       } catch (err) {
         if (err.name === "PartialReadError") {
           err.message = MqttConnError.UnexpectedEof;
