@@ -1,4 +1,3 @@
-import { readerFromIterable } from "./dev_deps.ts";
 import { AsyncQueue } from "./utils.ts";
 
 class Uint8Writer implements WritableStreamDefaultWriter {
