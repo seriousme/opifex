@@ -86,3 +86,4 @@ $RECYCLE.BIN/
 *.lnk
 # generated NPM
 npm/
+scripts/
