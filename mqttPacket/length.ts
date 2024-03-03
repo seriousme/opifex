@@ -36,7 +36,9 @@ export type LengthDecoderResult = {
   numLengthBytes: number;
 };
 
-export function getLengthDecoder(): (encodedByte: number) => LengthDecoderResult {
+export function getLengthDecoder(): (
+  encodedByte: number,
+) => LengthDecoderResult {
   let numLengthBytes = 1;
   let length = 0;
   let multiplier = 1;

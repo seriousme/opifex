@@ -84,7 +84,7 @@ Deno.test("MqttConn should close on failed packets", async () => {
 Deno.test("MqttConn should close on packets too large", async () => {
   const connect = encode(connectPacket);
 
-   const conn = new DummyConn([connect], new Uint8Array());
+  const conn = new DummyConn([connect], new Uint8Array());
   const mqttConn = new MqttConn({ conn, maxPacketSize: 20 });
   const packets = [];
   for await (const packet of mqttConn) {
