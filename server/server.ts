@@ -19,16 +19,18 @@ const defaultIsAuthenticated = (
 
 const defaultIsAuthorized = (_ctx: Context, _topic: Topic) => true;
 
+export type MqttServerOptions = {
+  persistence?: IPersistence;
+  handlers?: Handlers;
+};
+
 export class MqttServer {
   handlers: Handlers;
   persistence: IPersistence;
   constructor({
     persistence,
     handlers,
-  }: {
-    persistence?: IPersistence;
-    handlers?: Handlers;
-  }) {
+  }: MqttServerOptions) {
     this.persistence = persistence || new MemoryPersistence();
     this.handlers = {
       isAuthenticated: handlers?.isAuthenticated || defaultIsAuthenticated,

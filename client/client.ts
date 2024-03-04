@@ -6,6 +6,7 @@ import {
   MemoryStore,
   PacketType,
   PublishPacket,
+  SockConn,
   SubscribePacket,
 } from "./deps.ts";
 
@@ -36,7 +37,7 @@ function backOffSleep(random: boolean, attempt: number): Promise<void> {
   const max = 5000;
   const randomness = 1 + (random ? Math.random() : 0);
   const delay = Math.floor(
-    Math.min(randomness * min * Math.pow(factor, attempt), max),
+    Math.min(randomness * min * (factor ** attempt), max),
   );
   logger.debug({ delay });
   return new Promise((resolve) => setTimeout(resolve, delay));
@@ -63,34 +64,14 @@ export class Client {
     this.numberOfRetries = DEFAULT_RETRIES;
   }
 
-  private async connectMQTT(hostname: string, port = 1883) {
-    logger.debug({ hostname, port });
-    return await Deno.connect({ hostname, port });
-  }
-
-  private async connectMQTTS(
-    hostname: string,
-    port = 8883,
-    caCerts?: string[],
-  ) {
-    logger.debug({ hostname, port, caCerts });
-    return await Deno.connectTls({ hostname, port, caCerts });
-  }
-
   protected createConn(
     protocol: string,
-    hostname: string,
-    port?: number,
-    caCerts?: string[],
-  ): Promise<Deno.Conn> {
+    _hostname: string,
+    _port?: number,
+    _caCerts?: string[],
+  ): Promise<SockConn> {
     // if you need to support alternative connection types just
     // overload this method in your subclass
-    if (protocol === "mqtts:") {
-      return this.connectMQTTS(hostname, port, caCerts);
-    }
-    if (protocol === "mqtt:") {
-      return this.connectMQTT(hostname, port);
-    }
     throw `Unsupported protocol: ${protocol}`;
   }
 

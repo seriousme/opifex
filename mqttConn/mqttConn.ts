@@ -7,7 +7,14 @@ import {
   LengthDecoderResult,
 } from "./deps.ts";
 
-export type SockConn = Deno.Conn;
+export type SockConn = {
+  readable: ReadableStream<Uint8Array>;
+  writable: WritableStream<Uint8Array>;
+  read: (p: Uint8Array) => Promise<number | null>;
+  write: (p: Uint8Array) => Promise<number>;
+  close: () => void;
+  remoteAddr: Deno.Addr;
+};
 
 export enum MqttConnError {
   invalidPacket = "Invalid Packet",

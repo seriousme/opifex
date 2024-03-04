@@ -1,6 +1,6 @@
-import { parse } from "../utils/deps.ts";
-import { Client, DEFAULT_URL } from "../client/client.ts";
-import { logger } from "../client/deps.ts";
+import { parseArgs } from "../utils/deps.ts";
+import { DenoClient as Client } from "../deno/client.ts";
+import { DEFAULT_URL, logger } from "../client/mod.ts";
 
 const client = new Client();
 const encoder = new TextEncoder();
@@ -88,9 +88,9 @@ function parseQos(qosArg: string | number) {
 }
 
 async function subscribe(args: string[]) {
-  const connectArgs = parse(Deno.args, connectOpts);
+  const connectArgs = parseArgs(Deno.args, connectOpts);
   const caCerts = await getCaCerts(connectArgs.certFile);
-  const subscribeArgs = parse(args, subscribeOpts);
+  const subscribeArgs = parseArgs(args, subscribeOpts);
   if (connectArgs.help) {
     console.log(SubscribeHelp);
     return;
@@ -160,9 +160,9 @@ const publishOpts = {
 };
 
 async function publish(args: string[]) {
-  const connectArgs = parse(Deno.args, connectOpts);
+  const connectArgs = parseArgs(Deno.args, connectOpts);
   const caCerts = await getCaCerts(connectArgs.certFile);
-  const publishArgs = parse(args, publishOpts);
+  const publishArgs = parseArgs(args, publishOpts);
   if (connectArgs.help) {
     console.log(PublishHelp);
     return;

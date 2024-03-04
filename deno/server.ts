@@ -1,12 +1,14 @@
-import { handlers } from "./test-handlers.ts";
-import { MqttServer } from "../mod.ts";
+import { MqttServer, MqttServerOptions } from "../server/mod.ts";
 
-export class testServer {
+export class DenoServer {
   private listener: Deno.Listener<Deno.Conn>;
   private mqttServer: MqttServer;
-  constructor(port = 0) {
-    this.listener = Deno.listen({ port });
-    this.mqttServer = new MqttServer({ handlers });
+  constructor(
+    serverOptions: Deno.TcpListenOptions,
+    mqttOptions: MqttServerOptions,
+  ) {
+    this.listener = Deno.listen(serverOptions);
+    this.mqttServer = new MqttServer(mqttOptions);
   }
 
   async start() {
@@ -18,9 +20,10 @@ export class testServer {
     this.listener.close();
   }
 
-  port() {
+  get port() {
     if (this.listener.addr.transport === "tcp") {
       return this.listener.addr.port;
     }
+    return undefined;
   }
 }

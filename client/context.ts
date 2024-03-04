@@ -11,6 +11,7 @@ import {
   PacketType,
   PublishPacket,
   ReturnCodes,
+  SockConn,
   SubscribePacket,
   Timer,
   UnsubscribePacket,
@@ -89,7 +90,7 @@ export class Context {
   }
 
   async handleConnection(
-    conn: Deno.Conn,
+    conn: SockConn,
     connectPacket: ConnectPacket,
   ): Promise<boolean> {
     this.mqttConn = new MqttConn({ conn });

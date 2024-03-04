@@ -1,15 +1,10 @@
 // this server is intended to be used with https://github.com/eclipse/iottestware
 
-import {
-  AuthenticationResult,
-  Context,
-  MqttServer,
-  Topic,
-} from "../server/mod.ts";
-import { logger } from "../utils/utils.ts";
+import { AuthenticationResult, Context, Topic } from "../server/mod.ts";
+import { DenoServer } from "../deno/server.ts";
+import { logger, LogLevel } from "../utils/utils.ts";
 
 const utf8Decoder = new TextDecoder();
-const localhost = "::";
 const userTable = new Map();
 userTable.set("IoTester_1", "strong_password");
 userTable.set("IoTester_2", "strong_password");
@@ -56,23 +51,16 @@ function isAuthorizedToSubscribe(ctx: Context, topic: Topic): boolean {
   return true;
 }
 
-/** MQTT server */
+/** start the server **/
 const port = Number(Deno.args[0]) || 1883;
-const hostname = localhost;
-const listener = Deno.listen({ hostname, port });
-const mqttServer = new MqttServer({
+const hostname = "::";
+logger.level(LogLevel.info);
+const denoServer = new DenoServer({ port, hostname }, {
   handlers: {
     isAuthenticated,
     isAuthorizedToPublish,
     isAuthorizedToSubscribe,
   },
 });
-if (listener.addr.transport === "tcp") {
-  logger.info(
-    `MQTT server is running on hostname: "${listener.addr.hostname}" port:${listener.addr.port}`,
-  );
-}
-
-for await (const conn of listener) {
-  mqttServer.serve(conn);
-}
+denoServer.start();
+logger.info(`Server started on port ${denoServer.port}`);

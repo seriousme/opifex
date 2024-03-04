@@ -1,4 +1,5 @@
 import { AsyncQueue } from "./utils.ts";
+import { SockConn } from "../mqttConn/mqttConn.ts";
 
 class Uint8Writer implements WritableStreamDefaultWriter {
   private buff: Uint8Array;
@@ -65,14 +66,12 @@ function ReadableStreamFrom(
   });
 }
 
-export class DummyConn implements Deno.Conn {
+export class DummyConn implements SockConn {
   private closed = false;
   readable: ReadableStream;
   reader: ReadableStreamBYOBReader;
   writable: WritableStream<Uint8Array>;
   writer: WritableStreamDefaultWriter<Uint8Array>;
-  rid = -1;
-  localAddr: Deno.Addr = { transport: "tcp", hostname: "0.0.0.0", port: 0 };
   remoteAddr: Deno.Addr;
 
   constructor(
@@ -114,20 +113,14 @@ export class DummyConn implements Deno.Conn {
   closeWrite() {
     return Promise.resolve();
   }
-
-  ref() {}
-  unref() {}
-  [Symbol.dispose]() {}
 }
 
-export class DummyQueueConn implements Deno.Conn {
+export class DummyQueueConn implements SockConn {
   closed = false;
   readable: ReadableStream;
   reader: ReadableStreamBYOBReader;
   writable: WritableStream<Uint8Array>;
   writer: WritableStreamDefaultWriter<Uint8Array>;
-  rid = -1;
-  localAddr: Deno.Addr = { transport: "tcp", hostname: "0.0.0.0", port: 0 };
   remoteAddr: Deno.Addr;
   closer: () => void;
 
@@ -173,8 +166,4 @@ export class DummyQueueConn implements Deno.Conn {
     this.closer();
     return Promise.resolve();
   }
-
-  ref() {}
-  unref() {}
-  [Symbol.dispose]() {}
 }
