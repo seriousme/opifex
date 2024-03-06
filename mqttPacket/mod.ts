@@ -136,3 +136,6 @@ export function decode(buffer: Uint8Array): AnyPacket {
   const end = start + length;
   return decodePayload(buffer[0], buffer.subarray(start, end));
 }
+
+export { getLengthDecoder } from "../mqttPacket/length.ts";
+export type { LengthDecoderResult } from "../mqttPacket/length.ts";

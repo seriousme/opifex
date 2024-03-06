@@ -1,4 +1,4 @@
-import { AsyncQueue } from "./utils.ts";
+import { AsyncQueue } from "../utils/mod.ts";
 import { SockConn } from "../mqttConn/mqttConn.ts";
 
 class Uint8Writer implements WritableStreamDefaultWriter {

@@ -1,5 +1,5 @@
 import { AuthenticationResult, Context, Topic } from "../mod.ts";
-import { logger } from "../../utils/utils.ts";
+import { logger } from "../../utils/mod.ts";
 
 const utf8Decoder = new TextDecoder();
 const userTable = new Map();

@@ -1,5 +1,5 @@
 import { Timer } from "./timer.ts";
-import { assertEquals } from "../utils/dev_deps.ts";
+import { assertEquals } from "../dev_utils/mod.ts";
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));

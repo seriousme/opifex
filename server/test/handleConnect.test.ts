@@ -1,4 +1,4 @@
-import { assertEquals, DummyQueueConn } from "./dev_deps.ts";
+import { assertEquals, DummyQueueConn } from "../../dev_utils/mod.ts";
 import { handlers } from "./test-handlers.ts";
 import {
   AnyPacket,
@@ -7,7 +7,7 @@ import {
 } from "../../mqttPacket/mod.ts";
 import { MqttServer } from "../mod.ts";
 import { MqttConn } from "../deps.ts";
-import { AsyncQueue, nextTick } from "../../utils/utils.ts";
+import { AsyncQueue, nextTick } from "../../utils/mod.ts";
 
 const txtEncoder = new TextEncoder();
 // logger.level(LogLevel.debug);

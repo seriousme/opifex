@@ -1,4 +1,4 @@
-import { parseArgs } from "../utils/deps.ts";
+import { parseArgs } from "../utils/mod.ts";
 import { DenoClient as Client } from "../deno/client.ts";
 import { DEFAULT_URL, logger } from "../client/mod.ts";
 

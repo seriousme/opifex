@@ -85,7 +85,7 @@ export enum LogLevel {
   debug = 4,
 }
 
-class Logger {
+export class Logger {
   private defaultError = console.error;
   private defaultWarn = console.warn;
   private defaultInfo = console.info;

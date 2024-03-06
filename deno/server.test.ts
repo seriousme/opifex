@@ -1,5 +1,5 @@
 import { DenoServer } from "./server.ts";
-import { assertEquals } from "../utils/dev_deps.ts";
+import { assertEquals } from "../dev_utils/mod.ts";
 
 Deno.test("testServer", () => {
   const server = new DenoServer({ port: 0 }, {});

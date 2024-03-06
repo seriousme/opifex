@@ -1,5 +1,5 @@
 import { Trie } from "./trie.ts";
-import { assertArrayIncludes, assertEquals } from "../utils/dev_deps.ts";
+import { assertArrayIncludes, assertEquals } from "../dev_utils/mod.ts";
 
 type Data = Array<[string, number]>;
 type Matches = Array<[string, number[]]>;

@@ -51,7 +51,7 @@ const CLIENTID_PREFIX = "opifex"; // on first connect
 export class Client {
   protected clientIdPrefix = CLIENTID_PREFIX;
   protected numberOfRetries = DEFAULT_RETRIES;
-  protected url = new URL(DEFAULT_URL);
+  protected url: URL = new URL(DEFAULT_URL);
   protected keepAlive = DEFAULT_KEEPALIVE;
   protected autoReconnect = true;
   private caCerts?: string[];

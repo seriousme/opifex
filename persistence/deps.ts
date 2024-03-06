@@ -9,4 +9,4 @@ export type {
 } from "../mqttPacket/mod.ts";
 export { PacketType } from "../mqttPacket/mod.ts";
 export { Trie } from "../trie/trie.ts";
-export { logger } from "../utils/utils.ts";
+export { logger } from "../utils/mod.ts";

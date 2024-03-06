@@ -1,5 +1,5 @@
 import { PacketType } from "./types.ts";
-import { assertEquals, assertThrows } from "./dev_deps.ts";
+import { assertEquals, assertThrows } from "../dev_utils/mod.ts";
 import { decode, encode } from "./mod.ts";
 
 // const utf8Decoder = new TextDecoder();

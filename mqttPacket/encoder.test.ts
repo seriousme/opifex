@@ -1,4 +1,4 @@
-import { assertEquals } from "./dev_deps.ts";
+import { assertEquals } from "../dev_utils/mod.ts";
 import { Encoder } from "./encoder.ts";
 
 const utf8Encoder = new TextEncoder();

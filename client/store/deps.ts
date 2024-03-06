@@ -19,4 +19,4 @@ export type {
   UnsubscribePacket,
 } from "../../mqttPacket/mod.ts";
 
-export { assert } from "../../utils/deps.ts";
+export { assert } from "../../utils/mod.ts";

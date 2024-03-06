@@ -2,7 +2,7 @@
 
 import { AuthenticationResult, Context, Topic } from "../server/mod.ts";
 import { DenoServer } from "../deno/server.ts";
-import { logger, LogLevel } from "../utils/utils.ts";
+import { logger, LogLevel } from "../utils/mod.ts";
 
 const utf8Decoder = new TextDecoder();
 const userTable = new Map();

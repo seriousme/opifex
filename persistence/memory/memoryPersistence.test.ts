@@ -4,7 +4,7 @@ import {
 } from "./memoryPersistence.ts";
 
 import { PacketType, PublishPacket } from "../deps.ts";
-import { assertEquals } from "../../utils/dev_deps.ts";
+import { assertEquals } from "../../dev_utils/mod.ts";
 
 const payloadAny = new TextEncoder().encode("any");
 const qos = 1;

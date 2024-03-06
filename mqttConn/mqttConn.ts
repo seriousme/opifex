@@ -1,11 +1,12 @@
 import {
   AnyPacket,
-  assert,
   decodePayload,
   encode,
   getLengthDecoder,
   LengthDecoderResult,
-} from "./deps.ts";
+} from "../mqttPacket/mod.ts";
+
+import { assert } from "../utils/mod.ts"
 
 export type SockConn = {
   readable: ReadableStream<Uint8Array>;
@@ -49,7 +50,7 @@ async function readFull(conn: SockConn, buf: Uint8Array): Promise<void> {
   }
 }
 
-/** Read MQTT packet from given BufReader
+/** Read MQTT packet
  * @throws `Error` if packet is invalid
  */
 export async function readPacket(

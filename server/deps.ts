@@ -27,6 +27,6 @@ export type {
   UnsubscribePacket,
 } from "../mqttPacket/mod.ts";
 
-export { AuthenticationResult, PacketType } from "../mqttConn/deps.ts";
+export { AuthenticationResult, PacketType } from "../mqttPacket/mod.ts";
 export { Timer } from "../timer/timer.ts";
-export { logger } from "../utils/utils.ts";
+export { logger } from "../utils/mod.ts";

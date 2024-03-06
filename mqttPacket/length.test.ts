@@ -1,4 +1,4 @@
-import { assertEquals, assertThrows } from "./dev_deps.ts";
+import { assertEquals, assertThrows } from "../dev_utils/mod.ts";
 import { decodeLength as decode, encodeLength as encode } from "./length.ts";
 
 Deno.test("encodeLength", function encodeLength() {
