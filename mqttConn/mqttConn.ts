@@ -6,7 +6,7 @@ import {
   LengthDecoderResult,
 } from "../mqttPacket/mod.ts";
 
-import { assert } from "../utils/mod.ts"
+import { assert } from "../utils/mod.ts";
 
 export type SockConn = {
   readable: ReadableStream<Uint8Array>;
