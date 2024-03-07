@@ -1,5 +1,6 @@
 import { Client } from "../client/client.ts";
 import { logger } from "../client/deps.ts";
+export { parseArgs } from "https://deno.land/std@0.215.0/cli/parse_args.ts";
 
 export class DenoClient extends Client {
   protected async connectMQTT(hostname: string, port = 1883) {

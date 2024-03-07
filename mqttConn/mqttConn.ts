@@ -7,15 +7,7 @@ import {
 } from "../mqttPacket/mod.ts";
 
 import { assert } from "../utils/mod.ts";
-
-export type SockConn = {
-  readable: ReadableStream<Uint8Array>;
-  writable: WritableStream<Uint8Array>;
-  read: (p: Uint8Array) => Promise<number | null>;
-  write: (p: Uint8Array) => Promise<number>;
-  close: () => void;
-  remoteAddr: Deno.Addr;
-};
+import { SockConn } from "../socket/socket.ts";
 
 export enum MqttConnError {
   invalidPacket = "Invalid Packet",

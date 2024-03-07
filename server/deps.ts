@@ -1,4 +1,4 @@
-export type { SockConn } from "../mqttConn/mqttConn.ts";
+export type { SockConn } from "../socket/socket.ts";
 export { MqttConn } from "../mqttConn/mqttConn.ts";
 export type { IPersistence } from "../persistence/persistence.ts";
 export type { IStore } from "../persistence/store.ts";

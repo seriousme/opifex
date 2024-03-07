@@ -6,10 +6,13 @@ type Matches = Array<[string, number[]]>;
 
 function doTest(data: Data, matches: Matches) {
   const root = new Trie<number>();
-  data.forEach(([key, value]) => root.add(key, value));
-  matches.forEach(([match, result]) => {
+  for (const [key, value] of data) {
+    root.add(key, value);
+  }
+
+  for (const [match, result] of matches) {
     assertArrayIncludes(root.match(match), result, `Matching '${match}'`);
-  });
+  }
 }
 
 Deno.test("new should create new Trie object", () => {

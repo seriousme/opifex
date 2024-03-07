@@ -1,5 +1,4 @@
-import { parseArgs } from "../utils/mod.ts";
-import { DenoClient as Client } from "../deno/client.ts";
+import { DenoClient as Client, parseArgs } from "../deno/client.ts";
 import { DEFAULT_URL, logger } from "../client/mod.ts";
 
 const client = new Client();
