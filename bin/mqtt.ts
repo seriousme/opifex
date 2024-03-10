@@ -1,5 +1,6 @@
 import { DenoClient as Client, parseArgs } from "../deno/client.ts";
-import { DEFAULT_URL, logger } from "../client/mod.ts";
+import { DEFAULT_URL } from "../client/mod.ts";
+import { logger } from "../utils/mod.ts";
 
 const client = new Client();
 const encoder = new TextEncoder();
