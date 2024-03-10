@@ -27,7 +27,7 @@ export {
 } from "../mqttPacket/mod.ts";
 
 export { MqttConn } from "../mqttConn/mqttConn.ts";
-export type { SockConn } from "../mqttConn/mqttConn.ts";
+export type { SockConn } from "../socket/socket.ts";
 export { Timer } from "../timer/timer.ts";
 export { AsyncQueue, Deferred, logger } from "../utils/mod.ts";
 export { MemoryStore } from "./store/memoryStore.ts";

@@ -109,4 +109,4 @@ export class Logger {
   }
 }
 
-export const logger = new Logger();
+export const logger: Logger = new Logger();
