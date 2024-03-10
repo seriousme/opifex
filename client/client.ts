@@ -54,14 +54,14 @@ const DEFAULT_RETRIES = 3; // on first connect
 const CLIENTID_PREFIX = "opifex"; // on first connect
 
 /**
-The Client class provides an MQTT Client that can be used to connect to
-a MQTT broker and publish/subscribe messages.
-
-The Client class is not meant to be used directly, but
-instead should be subclassed and the subclass should
-override the createConn() method to provide a
-connection type that is supported by the subclass.
-*/
+ * The Client class provides an MQTT Client that can be used to connect to
+ * a MQTT broker and publish/subscribe messages.
+ *
+ * The Client class is not meant to be used directly, but
+ * instead should be subclassed and the subclass should
+ * override the createConn() method to provide a
+ * connection type that is supported by the subclass.
+ */
 
 export class Client {
   protected clientIdPrefix = CLIENTID_PREFIX;

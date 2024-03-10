@@ -29,13 +29,12 @@ export type MqttServerOptions = {
  * authentication/authorization handlers.
  *
  * The default handlers are:
- * - isAuthenticated: always returns ok
- * - isAuthorizedToPublish: always returns true
- * - isAuthorizedToSubscribe: always returns true
+ *  - isAuthenticated: always returns ok
+ *  - isAuthorizedToPublish: always returns true
+ *  - isAuthorizedToSubscribe: always returns true
  *
  * To customize the handlers, pass in a Handlers object.
  * To customize the persistence, pass in a Persistence object.
- *
  */
 
 export class MqttServer {
