@@ -25,7 +25,7 @@ export type MqttServerOptions = {
   handlers?: Handlers;
 };
 
-/* The MqttServer class provides a MQTT server with configurable persistence and
+/** The MqttServer class provides a MQTT server with configurable persistence and
  * authentication/authorization handlers.
  *
  * The default handlers are:
