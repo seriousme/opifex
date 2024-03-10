@@ -1,6 +1,7 @@
 import { BitMask, PacketType } from "./types.ts";
 import { booleanFlag, Decoder, DecoderError } from "./decoder.ts";
 
+// Possible MQTT authentication results
 export enum AuthenticationResult {
   ok = 0,
   unacceptableProtocol = 1,

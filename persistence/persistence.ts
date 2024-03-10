@@ -7,6 +7,7 @@ export type RetainStore = Map<Topic, PublishPacket>;
 
 export type Client = { store: IStore; handler: Handler };
 
+// IPersistence is the interface for various types of Persistence
 export interface IPersistence {
   clientList: Map<ClientId, Client>;
   retained: RetainStore;

@@ -20,6 +20,8 @@ type ConnectOptions = Omit<
   ConnectPacket,
   "type" | "protocolName" | "protocolLevel"
 >;
+
+// ConnectParameters define how to connect
 export type ConnectParameters = {
   url?: URL;
   caCerts?: string[];
@@ -27,7 +29,9 @@ export type ConnectParameters = {
   options?: ConnectOptions;
 };
 
+// PublishParameters define how a message should be published
 export type PublishParameters = Omit<PublishPacket, "type" | "id">;
+// SubscribeParameters define how to subscribe to a topic
 export type SubscribeParameters = Omit<SubscribePacket, "type" | "id">;
 
 function backOffSleep(random: boolean, attempt: number): Promise<void> {
@@ -43,11 +47,21 @@ function backOffSleep(random: boolean, attempt: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, delay));
 }
 
+// the default MQTT URL to connect to
 export const DEFAULT_URL = "mqtt://localhost:1883/";
 const DEFAULT_KEEPALIVE = 60; // 60 seconds
 const DEFAULT_RETRIES = 3; // on first connect
 const CLIENTID_PREFIX = "opifex"; // on first connect
 
+/*
+The Client class provides an MQTT Client that can be used to connect to
+a MQTT broker and publish/subscribe messages.
+
+The Client class is not meant to be used directly, but
+instead should be subclassed and the subclass should
+override the createConn() method to provide a
+connection type that is supported by the subclass.
+*/
 export class Client {
   protected clientIdPrefix = CLIENTID_PREFIX;
   protected numberOfRetries = DEFAULT_RETRIES;

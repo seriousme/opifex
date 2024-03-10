@@ -29,6 +29,15 @@ export type Handlers = {
   isAuthorizedToSubscribe?(ctx: Context, topic: Topic): boolean;
 };
 
+/*
+The Context class is used to maintain state of a MQTT connection
+It handles:
+- connect/disconnect including broadcasting of these events
+- publish
+- persistence
+- the will
+*/
+
 export class Context {
   connected: boolean;
   conn: SockConn;
