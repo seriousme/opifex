@@ -4,8 +4,8 @@
 # Opifex
 
 Opifex aims to provide a MQTT server and MQTT client in Typescript to be used
-with [Deno](https://deno.land) and [Bun](https://bun.sh/) It has _no_ third party dependencies, it only
-relies on built in modules.
+with [Deno](https://deno.land) and [Bun](https://bun.sh/) It has _no_ third
+party dependencies, it only relies on built in modules.
 
 Its a work in progress, only does MQTT 3.1.1 and currently only has memory based
 persistence.
@@ -54,11 +54,11 @@ This will create a local copy of Opifex:
 
 For Bun:
 
-```bash 
+```bash
 bun bin/demoServer.ts
 ```
 
-```bash 
+```bash
 bun bin/mqtt.ts
 ```
 
