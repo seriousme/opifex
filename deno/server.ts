@@ -1,6 +1,6 @@
 import { MqttServer, MqttServerOptions } from "../server/mod.ts";
 
-export class DenoServer {
+export class TcpServer {
   private listener: Deno.Listener<Deno.Conn>;
   private mqttServer: MqttServer;
   constructor(

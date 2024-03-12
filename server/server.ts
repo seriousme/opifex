@@ -56,7 +56,7 @@ export class MqttServer {
 
   async serve(conn: SockConn): Promise<void> {
     const ctx = new Context(this.persistence, conn, this.handlers);
-    if (conn.remoteAddr.transport === "tcp") {
+    if (conn.remoteAddr?.transport === "tcp") {
       logger.debug(`socket connected from ${conn.remoteAddr.hostname}`);
     }
     try {
