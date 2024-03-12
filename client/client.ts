@@ -104,7 +104,7 @@ export class Client {
         const conn = await this.createConn(
           this.url.protocol,
           this.url.hostname,
-          Number(this.url.port) || undefined,
+          Number(this.url.port) ?? undefined,
           this.caCerts,
         );
         // if we get this far we have a connection

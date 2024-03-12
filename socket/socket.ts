@@ -11,10 +11,10 @@ export interface UnixAddr {
 }
 
 export type SockConn = {
-  readable: ReadableStream<Uint8Array>;
-  writable: WritableStream<Uint8Array>;
+  readable?: ReadableStream<Uint8Array>;
+  writable?: WritableStream<Uint8Array>;
   read: (p: Uint8Array) => Promise<number | null>;
   write: (p: Uint8Array) => Promise<number>;
   close: () => void;
-  remoteAddr: Deno.Addr;
+  remoteAddr?: Deno.Addr;
 };

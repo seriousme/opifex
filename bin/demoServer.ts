@@ -1,6 +1,9 @@
 import { AuthenticationResult, Context, Topic } from "../server/mod.ts";
-import { DenoServer } from "../deno/server.ts";
 import { logger, LogLevel } from "../utils/mod.ts";
+import { getArgs, getPlatform, parseArgs } from "../utils/mod.ts";
+
+const platform = getPlatform()?.toLowerCase();
+const { TcpServer } = await import(`../${platform}/server.ts`);
 
 const utf8Decoder = new TextDecoder();
 const userTable = new Map();
@@ -47,16 +50,16 @@ function isAuthorizedToSubscribe(ctx: Context, topic: Topic): boolean {
 }
 
 /** start the server **/
-
-const port = Number(Deno.args[0]) || 1883;
+const { _: [portNum] } = parseArgs(getArgs());
+const port = Number(portNum ?? 1883);
 const hostname = "::";
 logger.level(LogLevel.info);
-const denoServer = new DenoServer({ port, hostname }, {
+const tcpServer = new TcpServer({ port, hostname }, {
   handlers: {
     isAuthenticated,
     isAuthorizedToPublish,
     isAuthorizedToSubscribe,
   },
 });
-denoServer.start();
-logger.info(`Server started on port ${denoServer.port}`);
+tcpServer.start();
+logger.info(`Server started on port ${tcpServer.port}`);

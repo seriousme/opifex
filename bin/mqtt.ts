@@ -1,10 +1,14 @@
-import { DenoClient as Client, parseArgs } from "../deno/client.ts";
 import { DEFAULT_URL } from "../client/mod.ts";
-import { logger } from "../utils/mod.ts";
+import { logger, LogLevel } from "../utils/mod.ts";
+import { getArgs, getPlatform, parseArgs } from "../utils/mod.ts";
 
-const client = new Client();
+const platform = getPlatform()?.toLowerCase();
+const { TcpClient, getCaCerts } = await import(`../${platform}/client.ts`);
+
+const client = new TcpClient();
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
+logger.level(LogLevel.info);
 
 const MQTTHelp = `MQTT.ts command line interface, available commands are:
 
@@ -60,17 +64,6 @@ const subscribeOpts = {
   },
 };
 
-async function getCaCerts(filename: string | undefined) {
-  if (!filename) {
-    return;
-  }
-  const caCerts = await Deno.readTextFile(filename);
-  if (caCerts === "") {
-    return;
-  }
-  return [caCerts];
-}
-
 function parseQos(qosArg: string | number) {
   const qos = Number(qosArg);
   switch (qos) {
@@ -87,10 +80,10 @@ function parseQos(qosArg: string | number) {
   return 0;
 }
 
-async function subscribe(args: string[]) {
-  const connectArgs = parseArgs(Deno.args, connectOpts);
+async function subscribe() {
+  const connectArgs = parseArgs(getArgs(), connectOpts);
   const caCerts = await getCaCerts(connectArgs.certFile);
-  const subscribeArgs = parseArgs(args, subscribeOpts);
+  const subscribeArgs = parseArgs(getArgs(), subscribeOpts);
   if (connectArgs.help) {
     console.log(SubscribeHelp);
     return;
@@ -127,7 +120,7 @@ async function subscribe(args: string[]) {
       console.log(decoder.decode(message.payload));
     }
   } catch (err) {
-    logger.debug(err.message);
+    logger.info(err.message);
   }
 }
 
@@ -154,15 +147,15 @@ const publishOpts = {
     qos: 0,
     dup: false,
     retain: false,
-    topic: "",
+    topic: undefined,
     message: "",
   },
 };
 
-async function publish(args: string[]) {
-  const connectArgs = parseArgs(Deno.args, connectOpts);
+async function publish() {
+  const connectArgs = parseArgs(getArgs(), connectOpts);
   const caCerts = await getCaCerts(connectArgs.certFile);
-  const publishArgs = parseArgs(args, publishOpts);
+  const publishArgs = parseArgs(getArgs(), publishOpts);
   if (connectArgs.help) {
     console.log(PublishHelp);
     return;
@@ -197,14 +190,14 @@ async function publish(args: string[]) {
   }
 }
 
-function processArgs(args: string[]) {
-  const cmd = args[0];
+function processArgs() {
+  const { _: [cmd] } = parseArgs(getArgs());
   switch (cmd) {
     case "publish":
-      publish(args);
+      publish();
       break;
     case "subscribe":
-      subscribe(args);
+      subscribe();
       break;
     default:
       console.log(MQTTHelp);
@@ -212,4 +205,4 @@ function processArgs(args: string[]) {
   }
 }
 
-processArgs(Deno.args);
+processArgs();

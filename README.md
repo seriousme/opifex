@@ -4,8 +4,8 @@
 # Opifex
 
 Opifex aims to provide a MQTT server and MQTT client in Typescript to be used
-with [Deno](https://deno.land) It has _no_ third party dependencies, it only
-relies on built in Deno modules.
+with [Deno](https://deno.land) and [Bun](https://bun.sh/) It has _no_ third
+party dependencies, it only relies on built in modules.
 
 Its a work in progress, only does MQTT 3.1.1 and currently only has memory based
 persistence.
@@ -42,6 +42,34 @@ the question:
 ```
 Deno requests net access to "localhost:1883". Run again with --allow-net to bypass this prompt.
    Allow? [y/n (y = yes allow, n = no deny)]
+```
+
+### Git clone
+
+```bash
+git clone https://github.com/seriousme/opifex.git
+```
+
+This will create a local copy of Opifex:
+
+For Bun:
+
+```bash
+bun bin/demoServer.ts
+```
+
+```bash
+bun bin/mqtt.ts
+```
+
+And if you want to use Deno this way then use:
+
+```bash
+deno run -A bin/demoServer.ts
+```
+
+```bash
+deno run -A bin/mqtt.ts
 ```
 
 ## Naming
