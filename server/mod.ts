@@ -1,3 +1,8 @@
+/**
+ *  This module provides an MQTT Server interface
+ *  see the /bin folder for examples
+ *  @module
+ */
 export { AuthenticationResult } from "./deps.ts";
 export type { IPersistence, Topic } from "./deps.ts";
 export { MqttServer } from "./server.ts";
