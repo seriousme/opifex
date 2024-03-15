@@ -4,3 +4,4 @@ export { Logger, logger, LogLevel } from "./logger.ts";
 export { AsyncQueue } from "./asyncQueue.ts";
 export { nextTick } from "./nextTick.ts";
 export { parseArgs } from "./args.ts";
+export { getArgs } from "./platform.ts";
