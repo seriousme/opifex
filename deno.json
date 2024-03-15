@@ -7,8 +7,5 @@
   },
   "imports": {
     "@std/assert": "jsr:@std/assert@0.215.0"
-  },
-  "test": {
-    "exclude": ["./utils", "./bun"]
   }
 }
