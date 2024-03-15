@@ -44,13 +44,15 @@ Deno requests net access to "localhost:1883". Run again with --allow-net to bypa
    Allow? [y/n (y = yes allow, n = no deny)]
 ```
 
-If you want to use Deno locally then use:
+## Local deployment
+
+If you want to use Deno locally then clone the repository, e.g. using:
 
 ```bash
 git clone https://github.com/seriousme/opifex.git
 ```
 
-to clone the repository and:
+and then use:
 
 ```bash
 deno run -A bin/demoServer.ts
@@ -59,6 +61,10 @@ deno run -A bin/demoServer.ts
 ```bash
 deno run -A bin/mqtt.ts
 ```
+
+## JSR.io
+
+Opifex is also available on [JSR.io](https://jsr.io/@seriousme/opifex).
 
 ## Naming
 
