@@ -31,6 +31,9 @@ export type QoS = 0 | 1 | 2;
 
 export type Payload = Uint8Array;
 
+/**
+ * The MQTT topic to publish or subscribe to
+ */
 export type Topic = string;
 
 export type TopicFilter = string;
