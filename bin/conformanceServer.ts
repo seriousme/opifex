@@ -2,10 +2,8 @@
 
 import { AuthenticationResult, Context, Topic } from "../server/mod.ts";
 import { logger, LogLevel } from "../utils/mod.ts";
-import { getArgs, getPlatform, parseArgs } from "../utils/mod.ts";
-
-const platform = getPlatform()?.toLowerCase();
-const { TcpServer } = await import(`../${platform}/server.ts`);
+import { getArgs, parseArgs } from "../utils/mod.ts";
+import { TcpServer } from "../deno/server.ts";
 
 const utf8Decoder = new TextDecoder();
 const userTable = new Map();

@@ -1,9 +1,7 @@
 import { DEFAULT_URL } from "../client/mod.ts";
 import { logger, LogLevel } from "../utils/mod.ts";
-import { getArgs, getPlatform, parseArgs } from "../utils/mod.ts";
-
-const platform = getPlatform()?.toLowerCase();
-const { TcpClient, getCaCerts } = await import(`../${platform}/client.ts`);
+import { getArgs, parseArgs } from "../utils/mod.ts";
+import { TcpClient } from "../deno/client.ts";
 
 const client = new TcpClient();
 const encoder = new TextEncoder();
