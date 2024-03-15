@@ -18,6 +18,14 @@ export const SysPrefix = "$";
 
 export const utf8Encoder = new TextEncoder();
 
+/**
+ * Handlers are hooks that the server will call
+ * and let you influence the servers behaviour.
+ * The following handlers can be configured:
+ *  - isAuthenticated()
+ *  - isAuthorizedToPublish()
+ *  - isAuthorizedToSubscribe()
+ */
 export type Handlers = {
   isAuthenticated?(
     ctx: Context,

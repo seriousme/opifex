@@ -19,7 +19,9 @@ const defaultIsAuthenticated = (
 
 const defaultIsAuthorized = (_ctx: Context, _topic: Topic) => true;
 
-// The options to configure the MqttServer
+/**
+ * The options to configure the MqttServer
+ */
 export type MqttServerOptions = {
   persistence?: IPersistence;
   handlers?: Handlers;
