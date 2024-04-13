@@ -1,7 +1,7 @@
 import { assertEquals, DummyQueueConn } from "../../dev_utils/mod.ts";
 import { handlers } from "./test-handlers.ts";
 import {
-  AnyPacket,
+  type AnyPacket,
   AuthenticationResult,
   PacketType,
 } from "../../mqttPacket/mod.ts";

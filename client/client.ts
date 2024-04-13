@@ -1,13 +1,13 @@
 import {
-  AuthenticationResult,
-  ConnectPacket,
+  type AuthenticationResult,
+  type ConnectPacket,
   Deferred,
   logger,
   MemoryStore,
   PacketType,
-  PublishPacket,
-  SockConn,
-  SubscribePacket,
+  type PublishPacket,
+  type SockConn,
+  type SubscribePacket,
 } from "./deps.ts";
 
 import { Context } from "./context.ts";

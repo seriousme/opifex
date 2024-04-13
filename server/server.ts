@@ -1,11 +1,11 @@
-import { Context, Handlers } from "./context.ts";
+import { Context, type Handlers } from "./context.ts";
 import {
   AuthenticationResult,
-  IPersistence,
+  type IPersistence,
   logger,
   MemoryPersistence,
-  SockConn,
-  Topic,
+  type SockConn,
+  type Topic,
 } from "./deps.ts";
 
 import { handlePacket } from "./handlers/handlePacket.ts";

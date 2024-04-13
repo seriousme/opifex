@@ -1,5 +1,5 @@
-import { Context } from "../context.ts";
-import { PacketType, PubrecPacket, PubrelPacket } from "../deps.ts";
+import type { Context } from "../context.ts";
+import { PacketType, type PubrecPacket, type PubrelPacket } from "../deps.ts";
 
 // A PUBREC Packet is the response to a PUBLISH Packet with QoS 2.
 // It is the second packet of the QoS 2 protocol exchange.

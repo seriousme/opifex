@@ -1,4 +1,4 @@
-import { ClientId, PacketId, PublishPacket, QoS, Topic } from "./deps.ts";
+import type { ClientId, PacketId, PublishPacket, QoS, Topic } from "./deps.ts";
 
 export type PacketStore = Map<PacketId, PublishPacket>;
 

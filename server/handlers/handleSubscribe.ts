@@ -1,5 +1,5 @@
-import { Context } from "../context.ts";
-import { PacketType, SubscribePacket, Subscription, Topic } from "../deps.ts";
+import type { Context } from "../context.ts";
+import { PacketType, type SubscribePacket, type Subscription, type Topic } from "../deps.ts";
 
 const SubscriptionFailure = 0x80;
 function authorizedToSubscribe(ctx: Context, topicFilter: Topic) {

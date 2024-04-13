@@ -1,5 +1,5 @@
-import { Context } from "../context.ts";
-import { PubackPacket } from "../deps.ts";
+import type { Context } from "../context.ts";
+import type { PubackPacket } from "../deps.ts";
 
 // A PUBACK Packet is the response to a PUBLISH Packet with QoS level 1.
 

@@ -1,4 +1,4 @@
-import { AuthenticationResult, Context, Topic } from "../mod.ts";
+import { AuthenticationResult, type Context, type Topic } from "../mod.ts";
 import { logger } from "../../utils/mod.ts";
 
 const utf8Decoder = new TextDecoder();

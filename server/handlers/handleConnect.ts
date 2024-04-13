@@ -1,7 +1,7 @@
-import { Context } from "../context.ts";
+import type { Context } from "../context.ts";
 import {
   AuthenticationResult,
-  ConnectPacket,
+  type ConnectPacket,
   logger,
   PacketType,
   Timer,

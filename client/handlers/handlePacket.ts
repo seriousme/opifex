@@ -1,5 +1,5 @@
-import { ConnectionState, Context } from "../context.ts";
-import { AnyPacket, PacketType } from "../deps.ts";
+import { ConnectionState, type Context } from "../context.ts";
+import { type AnyPacket, PacketType } from "../deps.ts";
 import { handleConnack } from "./handleConnack.ts";
 import { handlePublish } from "./handlePublish.ts";
 import { handlePuback } from "./handlePuback.ts";

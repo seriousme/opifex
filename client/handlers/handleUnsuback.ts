@@ -1,5 +1,5 @@
-import { Context } from "../context.ts";
-import { UnsubackPacket } from "../deps.ts";
+import type { Context } from "../context.ts";
+import type { UnsubackPacket } from "../deps.ts";
 
 // The UNSUBACK Packet is sent by the Server to the Client to confirm receipt
 // of an UNSUBSCRIBE Packet.

@@ -1,6 +1,6 @@
 import { MqttConn, MqttConnError } from "./mqttConn.ts";
 import { assertEquals, DummyConn } from "../dev_utils/mod.ts";
-import { AnyPacket, encode, PacketType } from "../mqttPacket/mod.ts";
+import { type AnyPacket, encode, PacketType } from "../mqttPacket/mod.ts";
 
 const connectPacket: AnyPacket = {
   type: PacketType.connect,

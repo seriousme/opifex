@@ -1,5 +1,5 @@
-import { Context, SysPrefix } from "../context.ts";
-import { PacketType, PublishPacket, Topic } from "../deps.ts";
+import { type Context, SysPrefix } from "../context.ts";
+import { PacketType, type PublishPacket, type Topic } from "../deps.ts";
 
 function authorizedToPublish(ctx: Context, topic: Topic) {
   if (topic.startsWith(SysPrefix)) {

@@ -1,5 +1,5 @@
-import { Context } from "../context.ts";
-import { PacketType, PublishPacket } from "../deps.ts";
+import type { Context } from "../context.ts";
+import { PacketType, type PublishPacket } from "../deps.ts";
 
 // Incoming publish
 

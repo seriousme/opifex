@@ -1,5 +1,5 @@
-import { Context } from "../context.ts";
-import { PacketType, UnsubscribePacket } from "../deps.ts";
+import type { Context } from "../context.ts";
+import { PacketType, type UnsubscribePacket } from "../deps.ts";
 
 export async function handleUnsubscribe(
   ctx: Context,

@@ -1,5 +1,5 @@
-import { ClientId, PublishPacket, QoS, Topic } from "./deps.ts";
-import { IStore } from "./store.ts";
+import type { ClientId, PublishPacket, QoS, Topic } from "./deps.ts";
+import type { IStore } from "./store.ts";
 
 export type Handler = (packet: PublishPacket) => void;
 

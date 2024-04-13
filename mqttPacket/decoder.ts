@@ -1,4 +1,4 @@
-import { BitMask, Topic, TopicFilter } from "./types.ts";
+import type { BitMask, Topic, TopicFilter } from "./types.ts";
 import { invalidTopic, invalidTopicFilter } from "./validators.ts";
 
 const utf8Decoder = new TextDecoder("utf-8");

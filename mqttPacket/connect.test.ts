@@ -1,6 +1,6 @@
 import { PacketType } from "./types.ts";
 import { assertEquals, assertThrows } from "../dev_utils/mod.ts";
-import { ConnectPacket, decode, encode } from "./mod.ts";
+import { type ConnectPacket, decode, encode } from "./mod.ts";
 
 Deno.test("encode Connect with ClientId", () => {
   assertEquals(

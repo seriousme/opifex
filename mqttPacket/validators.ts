@@ -1,4 +1,4 @@
-import { Topic, TopicFilter } from "./types.ts";
+import type { Topic, TopicFilter } from "./types.ts";
 
 // deno-lint-ignore no-control-regex
 const invalidUTF8regEx = new RegExp(/\x00|\uFFFD/);

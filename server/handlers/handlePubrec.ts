@@ -1,5 +1,5 @@
-import { Context } from "../context.ts";
-import { PacketType, PubrecPacket } from "../deps.ts";
+import type { Context } from "../context.ts";
+import { PacketType, type PubrecPacket } from "../deps.ts";
 
 // qos 2
 // Discard message, Store PUBREC received <Packet Identifier>

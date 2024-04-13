@@ -1,5 +1,5 @@
 const utf8Encoder = new TextEncoder();
-import { Topic, TopicFilter } from "./types.ts";
+import type { Topic, TopicFilter } from "./types.ts";
 import { invalidTopic, invalidTopicFilter } from "./validators.ts";
 
 export class EncoderError extends Error {

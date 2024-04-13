@@ -1,4 +1,4 @@
-import { Context } from "../context.ts";
+import type { Context } from "../context.ts";
 
 export function handleDisconnect(ctx: Context): void {
   ctx.will = undefined;

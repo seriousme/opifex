@@ -1,13 +1,13 @@
 import {
-  AnyPacket,
+  type AnyPacket,
   decodePayload,
   encode,
   getLengthDecoder,
-  LengthDecoderResult,
+  type LengthDecoderResult,
 } from "../mqttPacket/mod.ts";
 
 import { assert } from "../utils/mod.ts";
-import { SockConn } from "../socket/socket.ts";
+import type { SockConn } from "../socket/socket.ts";
 
 export enum MqttConnError {
   invalidPacket = "Invalid Packet",

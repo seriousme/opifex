@@ -1,5 +1,5 @@
-import { Context } from "../context.ts";
-import { AnyPacket, PacketType } from "../deps.ts";
+import type { Context } from "../context.ts";
+import { type AnyPacket, PacketType } from "../deps.ts";
 import { handleConnect } from "./handleConnect.ts";
 import { handlePingreq } from "./handlePingreq.ts";
 import { handlePublish } from "./handlePublish.ts";

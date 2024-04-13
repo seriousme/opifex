@@ -1,5 +1,5 @@
-import { Context } from "../context.ts";
-import { PacketType, PubrelPacket } from "../deps.ts";
+import type { Context } from "../context.ts";
+import { PacketType, type PubrelPacket } from "../deps.ts";
 
 // qos 2 only
 // Method A, Initiate onward delivery of the Application Message1  then discard message

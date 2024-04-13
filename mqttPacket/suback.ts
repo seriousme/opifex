@@ -1,4 +1,4 @@
-import { PacketId, PacketType, ReturnCodes } from "./types.ts";
+import { type PacketId, PacketType, type ReturnCodes } from "./types.ts";
 import { Encoder } from "./encoder.ts";
 import { Decoder } from "./decoder.ts";
 

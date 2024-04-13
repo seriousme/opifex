@@ -1,15 +1,15 @@
 import {
-  ClientId,
-  PacketId,
-  PublishPacket,
-  QoS,
-  Topic,
-  TopicFilter,
+  type ClientId,
+  type PacketId,
+  type PublishPacket,
+  type QoS,
+  type Topic,
+  type TopicFilter,
   Trie,
 } from "../deps.ts";
 
-import { Client, Handler, IPersistence, RetainStore } from "../persistence.ts";
-import { IStore, PacketStore, SubscriptionStore } from "../store.ts";
+import { type Client, type Handler, IPersistence, type RetainStore } from "../persistence.ts";
+import { IStore, type PacketStore, type SubscriptionStore } from "../store.ts";
 import { assert } from "../../utils/mod.ts";
 
 const maxPacketId = 0xffff;
