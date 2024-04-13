@@ -1,6 +1,10 @@
 // this server is intended to be used with https://github.com/eclipse/iottestware
 
-import { AuthenticationResult, type Context, type Topic } from "../server/mod.ts";
+import {
+  AuthenticationResult,
+  type Context,
+  type Topic,
+} from "../server/mod.ts";
 import { logger, LogLevel } from "../utils/mod.ts";
 import { getArgs, parseArgs } from "../utils/mod.ts";
 import { TcpServer } from "../deno/server.ts";

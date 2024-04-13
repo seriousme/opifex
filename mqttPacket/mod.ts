@@ -12,7 +12,10 @@ import {
 import { invalidTopic, invalidTopicFilter, invalidUTF8 } from "./validators.ts";
 import { decodeLength, encodeLength } from "./length.ts";
 import connect, { type ConnectPacket } from "./connect.ts";
-import connack, { AuthenticationResult, type ConnackPacket } from "./connack.ts";
+import connack, {
+  AuthenticationResult,
+  type ConnackPacket,
+} from "./connack.ts";
 import publish, { type PublishPacket } from "./publish.ts";
 import puback, { type PubackPacket } from "./puback.ts";
 import pubrec, { type PubrecPacket } from "./pubrec.ts";

@@ -8,7 +8,12 @@ import {
   Trie,
 } from "../deps.ts";
 
-import { type Client, type Handler, IPersistence, type RetainStore } from "../persistence.ts";
+import {
+  type Client,
+  type Handler,
+  IPersistence,
+  type RetainStore,
+} from "../persistence.ts";
 import { IStore, type PacketStore, type SubscriptionStore } from "../store.ts";
 import { assert } from "../../utils/mod.ts";
 

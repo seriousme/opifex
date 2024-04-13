@@ -1,4 +1,11 @@
-import { BitMask, type ClientId, PacketType, type Payload, type QoS, type Topic } from "./types.ts";
+import {
+  BitMask,
+  type ClientId,
+  PacketType,
+  type Payload,
+  type QoS,
+  type Topic,
+} from "./types.ts";
 import { Encoder } from "./encoder.ts";
 import {
   booleanFlag,
