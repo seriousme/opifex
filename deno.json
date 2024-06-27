@@ -6,6 +6,6 @@
     "./client": "./client/mod.ts"
   },
   "imports": {
-    "@std/assert": "jsr:@std/assert@0.220.1"
+    "@std/assert": "jsr:@std/assert@0.226.0"
   }
 }
