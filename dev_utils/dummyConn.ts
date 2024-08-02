@@ -4,10 +4,10 @@ import { SockConn } from "../socket/socket.ts";
 class Uint8Writer implements WritableStreamDefaultWriter {
   private buff: Uint8Array;
   private pos: number;
-  closed = Promise.resolve();
+  closed = Promise.resolve(undefined);
   close = () => Promise.resolve();
   abort = () => Promise.resolve();
-  ready = Promise.resolve();
+  ready = Promise.resolve(undefined);
   releaseLock = () => {};
   desiredSize = 20;
 
@@ -26,10 +26,10 @@ class Uint8Writer implements WritableStreamDefaultWriter {
 
 class Uint8QueuedWriter implements WritableStreamDefaultWriter {
   private queue: AsyncQueue<Uint8Array>;
-  closed = Promise.resolve();
+  closed = Promise.resolve(undefined);
   close = () => Promise.resolve();
   abort = () => Promise.resolve();
-  ready = Promise.resolve();
+  ready = Promise.resolve(undefined);
   releaseLock = () => {};
   desiredSize = 20;
 
