@@ -8,13 +8,13 @@ import {
   Trie,
 } from "../deps.ts";
 
-import {
-  type Client,
-  type Handler,
+import type {
+  Client,
+  Handler,
   IPersistence,
-  type RetainStore,
+  RetainStore,
 } from "../persistence.ts";
-import { IStore, type PacketStore, type SubscriptionStore } from "../store.ts";
+import type { IStore, PacketStore, SubscriptionStore } from "../store.ts";
 import { assert } from "../../utils/mod.ts";
 
 const maxPacketId = 0xffff;
