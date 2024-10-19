@@ -1,7 +1,7 @@
 import { assert, type PacketId } from "./deps.ts";
 
 import {
-  IStore,
+  type IStore,
   maxPacketId,
   type PacketStore,
   type PendingAckOutgoing,

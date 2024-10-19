@@ -1,5 +1,5 @@
 import type { AsyncQueue } from "../utils/mod.ts";
-import { SockConn } from "../socket/socket.ts";
+import type { SockConn } from "../socket/socket.ts";
 
 class Uint8Writer implements WritableStreamDefaultWriter {
   private buff: Uint8Array;

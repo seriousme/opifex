@@ -118,7 +118,9 @@ async function subscribe() {
       console.log(decoder.decode(message.payload));
     }
   } catch (err) {
-    logger.info(err.message);
+    if (err instanceof Error) {
+      logger.info(err.message);
+    }
   }
 }
 
@@ -184,7 +186,9 @@ async function publish() {
     client.disconnect();
     logger.debug("Disconnected !");
   } catch (err) {
-    logger.debug(err.message);
+    if (err instanceof Error) {
+      logger.info(err.message);
+    }
   }
 }
 
