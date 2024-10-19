@@ -95,10 +95,12 @@ export class MqttConn implements IMqttConn {
       try {
         yield await readPacket(this.conn, this.maxPacketSize);
       } catch (err) {
-        if (err.name === "PartialReadError") {
-          err.message = MqttConnError.UnexpectedEof;
+        if (err instanceof Error) {
+          if (err.name === "PartialReadError") {
+            err.message = MqttConnError.UnexpectedEof;
+          }
+          this._reason = err.message;
         }
-        this._reason = err.message;
         // packet too large, malformed packet or connection closed
         this.close();
         break;
