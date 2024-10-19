@@ -1,6 +1,6 @@
 {
   "name": "@seriousme/opifex",
-  "version": "1.0.17",
+  "version": "1.0.18",
   "exports": {
     "./server": "./server/mod.ts",
     "./client": "./client/mod.ts"
