@@ -16,5 +16,5 @@ export type SockConn = {
   read: (p: Uint8Array) => Promise<number | null>;
   write: (p: Uint8Array) => Promise<number>;
   close: () => void;
-  remoteAddr?: Deno.Addr;
+  remoteAddr?: SockAddr;
 };
