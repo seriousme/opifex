@@ -116,7 +116,9 @@ export class Client {
         this.connectPacket.clean = false;
         this.ctx.close();
       } catch (err) {
-        lastMessage = `Connection failed: ${err.message}`;
+        if (err instanceof Error) {
+          lastMessage = `Connection failed: ${err.message}`;
+        }
         logger.debug(lastMessage);
         if (!isReconnect && attempt > this.numberOfRetries) {
           tryConnect = false;
