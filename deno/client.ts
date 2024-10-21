@@ -27,7 +27,7 @@ export class TcpClient extends Client {
     return await Deno.connectTls({ hostname, port, caCerts });
   }
 
-  protected createConn(
+  protected override createConn(
     protocol: string,
     hostname: string,
     port?: number,

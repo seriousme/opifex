@@ -1,11 +1,7 @@
-import {
-  AuthenticationResult,
-  type Context,
-  type Topic,
-} from "../server/mod.ts";
-import { logger, LogLevel } from "../utils/mod.ts";
-import { getArgs, parseArgs } from "../utils/mod.ts";
 import { TcpServer } from "../deno/server.ts";
+import type { Context, TAuthenticationResult, Topic } from "../server/mod.ts";
+import { AuthenticationResult } from "../server/mod.ts";
+import { getArgs, logger, LogLevel, parseArgs } from "../utils/mod.ts";
 
 const utf8Decoder = new TextDecoder();
 const userTable = new Map();
@@ -18,7 +14,7 @@ function isAuthenticated(
   clientId: string,
   username: string,
   password: Uint8Array,
-): AuthenticationResult {
+): TAuthenticationResult {
   const pwd = utf8Decoder.decode(password);
   logger.info(
     `Verifying authentication of client '${clientId}' with username '${username}' and password '${pwd}'`,

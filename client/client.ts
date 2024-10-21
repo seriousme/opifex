@@ -1,5 +1,4 @@
 import {
-  type TAuthenticationResult,
   type ConnectPacket,
   Deferred,
   logger,
@@ -8,6 +7,7 @@ import {
   type PublishPacket,
   type SockConn,
   type SubscribePacket,
+  type TAuthenticationResult,
 } from "./deps.ts";
 
 import { Context } from "./context.ts";
