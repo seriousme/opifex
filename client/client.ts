@@ -1,5 +1,5 @@
 import {
-  type AuthenticationResult,
+  type TAuthenticationResult,
   type ConnectPacket,
   Deferred,
   logger,
@@ -133,7 +133,7 @@ export class Client {
     }
   }
 
-  connect(params: ConnectParameters = {}): Promise<AuthenticationResult> {
+  connect(params: ConnectParameters = {}): Promise<TAuthenticationResult> {
     this.url = params?.url || this.url;
     this.numberOfRetries = params.numberOfRetries || this.numberOfRetries;
     this.caCerts = params?.caCerts;
@@ -148,7 +148,7 @@ export class Client {
       type: PacketType.connect,
       ...options,
     };
-    const deferred = new Deferred<AuthenticationResult>();
+    const deferred = new Deferred<TAuthenticationResult>();
     this.ctx.unresolvedConnect = deferred;
     this.doConnect();
     return deferred.promise;
