@@ -14,6 +14,7 @@ export type {
   ReturnCodes,
   SubackPacket,
   SubscribePacket,
+  TAuthenticationResult,
   Topic,
   UnsubackPacket,
   UnsubscribePacket,
@@ -21,8 +22,10 @@ export type {
 
 export {
   AuthenticationResult,
+  AuthenticationResultByNumber,
   decodePayload,
   encode,
+  PacketNameByType,
   PacketType,
 } from "../mqttPacket/mod.ts";
 

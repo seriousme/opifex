@@ -1,15 +1,11 @@
-import {
-  BitMask,
-  type PacketId,
-  PacketType,
-  type QoS,
-  type TopicFilter,
-} from "./types.ts";
+import type { PacketId, QoS, TopicFilter, TPacketType } from "./types.ts";
+import { PacketType } from "./PacketType.ts";
+import { BitMask } from "./BitMask.ts";
 import { Encoder } from "./encoder.ts";
 import { booleanFlag, Decoder, DecoderError } from "./decoder.ts";
 
 export type SubscribePacket = {
-  type: PacketType.subscribe;
+  type: TPacketType;
   id: PacketId;
   subscriptions: Subscription[];
 };

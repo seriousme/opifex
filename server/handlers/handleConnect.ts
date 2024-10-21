@@ -4,13 +4,14 @@ import {
   type ConnectPacket,
   logger,
   PacketType,
+  type TAuthenticationResult,
   Timer,
 } from "../deps.ts";
 
 function isAuthenticated(
   ctx: Context,
   packet: ConnectPacket,
-): AuthenticationResult {
+): TAuthenticationResult {
   if (ctx.handlers.isAuthenticated) {
     return ctx.handlers.isAuthenticated(
       ctx,
@@ -25,7 +26,7 @@ function isAuthenticated(
 function validateConnect(
   ctx: Context,
   packet: ConnectPacket,
-): AuthenticationResult {
+): TAuthenticationResult {
   if (packet.protocolLevel !== 4) {
     return AuthenticationResult.unacceptableProtocol;
   }

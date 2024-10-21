@@ -1,22 +1,13 @@
-import { BitMask, PacketType } from "./types.ts";
+import type { TAuthenticationResult, TPacketType } from "./types.ts";
+import { PacketType } from "./PacketType.ts";
+import { BitMask } from "./BitMask.ts";
 import { booleanFlag, Decoder, DecoderError } from "./decoder.ts";
-
-/**
- *  Possible MQTT authentication results
- */
-export enum AuthenticationResult {
-  ok = 0,
-  unacceptableProtocol = 1,
-  rejectedUsername = 2,
-  serverUnavailable = 3,
-  badUsernameOrPassword = 4,
-  notAuthorized = 5,
-}
+import { AuthenticationResultByNumber } from "./AuthenticationResult.ts";
 
 export type ConnackPacket = {
-  type: PacketType.connack;
+  type: TPacketType;
   sessionPresent: boolean;
-  returnCode: AuthenticationResult;
+  returnCode: TAuthenticationResult;
 };
 
 export default {
@@ -32,9 +23,9 @@ export default {
     const decoder = new Decoder(buffer);
 
     const sessionPresent = booleanFlag(decoder.getByte(), BitMask.bit0);
-    const returnCode = decoder.getByte();
+    const returnCode = decoder.getByte() as TAuthenticationResult;
     decoder.done();
-    if (!AuthenticationResult[returnCode]) {
+    if (!AuthenticationResultByNumber[returnCode]) {
       throw new DecoderError("Invalid return code");
     }
     return {

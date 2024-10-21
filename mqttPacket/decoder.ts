@@ -1,9 +1,9 @@
-import type { BitMask, Topic, TopicFilter } from "./types.ts";
+import type { TBitMask, Topic, TopicFilter } from "./types.ts";
 import { invalidTopic, invalidTopicFilter } from "./validators.ts";
 
 const utf8Decoder = new TextDecoder("utf-8");
 
-export function booleanFlag(byte: number, mask: BitMask): boolean {
+export function booleanFlag(byte: number, mask: TBitMask): boolean {
   return !!(byte & mask);
 }
 

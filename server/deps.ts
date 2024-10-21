@@ -21,12 +21,17 @@ export type {
   SubackPacket,
   SubscribePacket,
   Subscription,
+  TAuthenticationResult,
   Topic,
   TopicFilter,
   UnsubackPacket,
   UnsubscribePacket,
 } from "../mqttPacket/mod.ts";
 
-export { AuthenticationResult, PacketType } from "../mqttPacket/mod.ts";
+export {
+  AuthenticationResult,
+  PacketNameByType,
+  PacketType,
+} from "../mqttPacket/mod.ts";
 export { Timer } from "../timer/timer.ts";
 export { logger } from "../utils/mod.ts";

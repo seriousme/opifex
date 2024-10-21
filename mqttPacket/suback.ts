@@ -1,9 +1,10 @@
-import { type PacketId, PacketType, type ReturnCodes } from "./types.ts";
+import type { PacketId, ReturnCodes, TPacketType } from "./types.ts";
+import { PacketType } from "./PacketType.ts";
 import { Encoder } from "./encoder.ts";
 import { Decoder } from "./decoder.ts";
 
 export type SubackPacket = {
-  type: PacketType.suback;
+  type: TPacketType;
   id: PacketId;
   returnCodes: ReturnCodes;
 };

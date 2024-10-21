@@ -1,4 +1,4 @@
-import { PacketType } from "./types.ts";
+import { PacketType } from "./PacketType.ts";
 import { assertEquals, assertThrows } from "../dev_utils/mod.ts";
 import { decode, encode } from "./mod.ts";
 

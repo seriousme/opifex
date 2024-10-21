@@ -1,7 +1,6 @@
 import {
   type AnyPacket,
   AsyncQueue,
-  type AuthenticationResult,
   type ConnectPacket,
   Deferred,
   logger,
@@ -13,25 +12,29 @@ import {
   type ReturnCodes,
   type SockConn,
   type SubscribePacket,
+  type TAuthenticationResult,
   Timer,
   type UnsubscribePacket,
 } from "./deps.ts";
 
 import { handlePacket } from "./handlers/handlePacket.ts";
 
-export enum ConnectionState {
-  offline = "offline",
-  connecting = "connecting",
-  connected = "connected",
-  disconnecting = "disconnecting",
-  disconnected = "disconnected",
-}
+export const ConnectionState = {
+  offline: "offline",
+  connecting: "connecting",
+  connected: "connected",
+  disconnecting: "disconnecting",
+  disconnected: "disconnected",
+} as const;
+
+export type TConnectionState =
+  typeof ConnectionState[keyof typeof ConnectionState];
 
 export class Context {
   mqttConn?: MqttConn;
-  connectionState: ConnectionState;
+  connectionState: TConnectionState;
   pingTimer?: Timer;
-  unresolvedConnect?: Deferred<AuthenticationResult>;
+  unresolvedConnect?: Deferred<TAuthenticationResult>;
   unresolvedPublish: Map<PacketId, Deferred<void>>;
   unresolvedSubscribe: Map<PacketId, Deferred<ReturnCodes>>;
   unresolvedUnSubscribe: Map<PacketId, Deferred<void>>;
