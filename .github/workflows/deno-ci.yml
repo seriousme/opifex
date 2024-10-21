@@ -7,9 +7,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: denoland/setup-deno@v1
+      - uses: denoland/setup-deno@v2
         with:
-          deno-version: v1.40 # Run with latest stable Deno.
+          deno-version: vx.x.x # Run with latest stable Deno.
       - run: deno fmt --check
       - run: deno lint
       - run: deno test -A
