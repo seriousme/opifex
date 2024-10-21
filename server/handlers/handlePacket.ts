@@ -1,5 +1,16 @@
 import type { Context } from "../context.ts";
-import { type AnyPacket, PacketType } from "../deps.ts";
+import {
+  type AnyPacket,
+  PacketNameByType,
+  PacketType,
+  type PubackPacket,
+  type PubcompPacket,
+  type PublishPacket,
+  type PubrecPacket,
+  type PubrelPacket,
+  type SubscribePacket,
+  type UnsubscribePacket,
+} from "../deps.ts";
 import { handleConnect } from "./handleConnect.ts";
 import { handlePingreq } from "./handlePingreq.ts";
 import { handlePublish } from "./handlePublish.ts";
@@ -16,14 +27,14 @@ export async function handlePacket(
   ctx: Context,
   packet: AnyPacket,
 ): Promise<void> {
-  logger.debug("handling", PacketType[packet.type]);
+  logger.debug("handling", PacketNameByType[packet.type]);
   logger.debug(JSON.stringify(packet, null, 2));
   if (!ctx.connected) {
     if (packet.type === PacketType.connect) {
       handleConnect(ctx, packet);
     } else {
       throw new Error(
-        `Received ${PacketType[packet.type]} packet before connect`,
+        `Received ${PacketNameByType[packet.type]} packet before connect`,
       );
     }
   } else {
@@ -32,32 +43,34 @@ export async function handlePacket(
         await handlePingreq(ctx);
         break;
       case PacketType.publish:
-        await handlePublish(ctx, packet);
+        await handlePublish(ctx, packet as PublishPacket);
         break;
       case PacketType.puback:
-        handlePuback(ctx, packet);
+        handlePuback(ctx, packet as PubackPacket);
         break;
       case PacketType.pubrel:
-        await handlePubrel(ctx, packet);
+        await handlePubrel(ctx, packet as PubrelPacket);
         break;
       case PacketType.pubrec:
-        await handlePubrec(ctx, packet);
+        await handlePubrec(ctx, packet as PubrecPacket);
         break;
       case PacketType.pubcomp:
-        handlePubcomp(ctx, packet);
+        handlePubcomp(ctx, packet as PubcompPacket);
         break;
       case PacketType.subscribe:
-        await handleSubscribe(ctx, packet);
+        await handleSubscribe(ctx, packet as SubscribePacket);
         break;
       case PacketType.unsubscribe:
-        await handleUnsubscribe(ctx, packet);
+        await handleUnsubscribe(ctx, packet as UnsubscribePacket);
         break;
       case PacketType.disconnect:
         handleDisconnect(ctx);
         break;
       default:
         throw new Error(
-          `Received unexpected ${PacketType[packet.type]} packet after connect`,
+          `Received unexpected ${
+            PacketNameByType[packet.type]
+          } packet after connect`,
         );
     }
     ctx.timer?.reset();

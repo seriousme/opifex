@@ -1,5 +1,5 @@
 import { ConnectionState, type Context } from "../context.ts";
-import { AuthenticationResult, type ConnackPacket } from "../deps.ts";
+import { AuthenticationResultByNumber, type ConnackPacket } from "../deps.ts";
 
 export async function handleConnack(packet: ConnackPacket, ctx: Context) {
   if (packet.returnCode === 0) {
@@ -13,7 +13,7 @@ export async function handleConnack(packet: ConnackPacket, ctx: Context) {
     return;
   }
   const err = new Error(
-    `Connect failed: ${AuthenticationResult[packet.returnCode]}`,
+    `Connect failed: ${AuthenticationResultByNumber[packet.returnCode]}`,
   );
   ctx.connectionState = ConnectionState.disconnecting;
   ctx.pingTimer?.clear();

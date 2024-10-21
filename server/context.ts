@@ -1,13 +1,14 @@
 import {
   type AnyPacket,
-  type AuthenticationResult,
   type IPersistence,
   type IStore,
   logger,
   MqttConn,
+  PacketNameByType,
   PacketType,
   type PublishPacket,
   type SockConn,
+  type TAuthenticationResult,
   type Timer,
   type Topic,
 } from "./deps.ts";
@@ -32,7 +33,7 @@ export type Handlers = {
     clientId: ClientId,
     username: string,
     password: Uint8Array,
-  ): AuthenticationResult;
+  ): TAuthenticationResult;
   isAuthorizedToPublish?(ctx: Context, topic: Topic): boolean;
   isAuthorizedToSubscribe?(ctx: Context, topic: Topic): boolean;
 };
@@ -66,7 +67,7 @@ export class Context {
   }
 
   async send(packet: AnyPacket): Promise<void> {
-    logger.debug("Sending", PacketType[packet.type]);
+    logger.debug("Sending", PacketNameByType[packet.type]);
     logger.debug(JSON.stringify(packet, null, 2));
     await this.mqttConn.send(packet);
   }

@@ -1,5 +1,6 @@
 import { AuthenticationResult, type Context, type Topic } from "../mod.ts";
 import { logger } from "../../utils/mod.ts";
+import type { TAuthenticationResult } from "../deps.ts";
 
 const utf8Decoder = new TextDecoder();
 const userTable = new Map();
@@ -12,7 +13,7 @@ function isAuthenticated(
   clientId: string,
   username: string,
   password: Uint8Array,
-): AuthenticationResult {
+): TAuthenticationResult {
   const pwd = utf8Decoder.decode(password);
   logger.debug(
     `Verifying authentication of client '${clientId}' with username '${username}' and password '${pwd}'`,

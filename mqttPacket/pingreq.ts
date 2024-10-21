@@ -1,8 +1,9 @@
-import { PacketType } from "./types.ts";
+import { PacketType } from "./PacketType.ts";
 import { hasEmptyFlags, isEmptyBuf } from "./decoder.ts";
+import type { TPacketType } from "./types.ts";
 
 export type PingreqPacket = {
-  type: PacketType.pingreq;
+  type: TPacketType;
 };
 
 export default {

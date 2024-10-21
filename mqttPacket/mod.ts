@@ -1,21 +1,24 @@
-import {
-  type ClientId,
-  type Dup,
-  type PacketId,
-  PacketType,
-  type Payload,
-  type QoS,
-  type ReturnCodes,
-  type Topic,
-  type TopicFilter,
+import type {
+  ClientId,
+  Dup,
+  PacketId,
+  Payload,
+  QoS,
+  ReturnCodes,
+  TAuthenticationResult,
+  Topic,
+  TopicFilter,
+  TPacketType,
 } from "./types.ts";
+import { PacketNameByType, PacketType } from "./PacketType.ts";
 import { invalidTopic, invalidTopicFilter, invalidUTF8 } from "./validators.ts";
 import { decodeLength, encodeLength } from "./length.ts";
 import connect, { type ConnectPacket } from "./connect.ts";
-import connack, {
+import connack, { type ConnackPacket } from "./connack.ts";
+import {
   AuthenticationResult,
-  type ConnackPacket,
-} from "./connack.ts";
+  AuthenticationResultByNumber,
+} from "./AuthenticationResult.ts";
 import publish, { type PublishPacket } from "./publish.ts";
 import puback, { type PubackPacket } from "./puback.ts";
 import pubrec, { type PubrecPacket } from "./pubrec.ts";
@@ -65,8 +68,10 @@ export type {
   ReturnCodes,
   SubackPacket,
   SubscribePacket,
+  TAuthenticationResult,
   Topic,
   TopicFilter,
+  TPacketType,
   UnsubackPacket,
   UnsubscribePacket,
 };
@@ -75,15 +80,17 @@ export type { Subscription } from "./subscribe.ts";
 
 export {
   AuthenticationResult,
+  AuthenticationResultByNumber,
   decodeLength,
   encodeLength,
   invalidTopic,
   invalidTopicFilter,
   invalidUTF8,
+  PacketNameByType,
   PacketType,
 };
 
-const packetsByType = [
+export const packetsByType = [
   null,
   connect, // 1
   connack, // 2
@@ -99,7 +106,7 @@ const packetsByType = [
   pingreq, // 12
   pingres, // 13
   disconnect, // 14
-];
+] as const;
 
 export function encode(packet: AnyPacket) {
   const packetType: number = packet.type;
@@ -121,7 +128,7 @@ export function decodePayload(
   firstByte: number,
   buffer: Uint8Array,
 ): AnyPacket {
-  const packetType: PacketType = firstByte >> 4;
+  const packetType = firstByte >> 4;
   const flags = firstByte & 0x0f;
   const packet = packetsByType[packetType]?.decode(buffer, flags);
   if (packet !== undefined) {

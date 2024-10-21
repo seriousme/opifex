@@ -1,10 +1,12 @@
-export enum LogLevel {
-  error = 0,
-  warn = 1,
-  info = 2,
-  verbose = 3,
-  debug = 4,
-}
+export const LogLevel = {
+  error: 0,
+  warn: 1,
+  info: 2,
+  verbose: 3,
+  debug: 4,
+} as const;
+
+export type TLogLevel = typeof LogLevel[keyof typeof LogLevel];
 
 export class Logger {
   private defaultError = console.error;
@@ -22,7 +24,7 @@ export class Logger {
 
   constructor() {}
 
-  level(logLevel: LogLevel) {
+  level(logLevel: TLogLevel) {
     this.warn = logLevel > 0 ? this.defaultWarn : this.noop;
     this.info = logLevel > 1 ? this.defaultInfo : this.noop;
     this.verbose = logLevel > 2 ? this.defaultVerbose : this.noop;

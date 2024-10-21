@@ -9,11 +9,11 @@ import {
 import { assert } from "../utils/mod.ts";
 import type { SockConn } from "../socket/socket.ts";
 
-export enum MqttConnError {
-  invalidPacket = "Invalid Packet",
-  packetTooLarge = "Packet too large",
-  UnexpectedEof = "Unexpected EOF",
-}
+export const MqttConnError = {
+  invalidPacket: "Invalid Packet",
+  packetTooLarge: "Packet too large",
+  UnexpectedEof: "Unexpected EOF",
+} as const;
 
 export interface IMqttConn extends AsyncIterable<AnyPacket> {
   readonly conn: SockConn;

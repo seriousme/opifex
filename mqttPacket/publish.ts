@@ -1,15 +1,11 @@
-import {
-  BitMask,
-  PacketType,
-  type Payload,
-  type QoS,
-  type Topic,
-} from "./types.ts";
+import type { Payload, QoS, Topic, TPacketType } from "./types.ts";
+import { PacketType } from "./PacketType.ts";
+import { BitMask } from "./BitMask.ts";
 import { Encoder, EncoderError } from "./encoder.ts";
 import { booleanFlag, Decoder, DecoderError } from "./decoder.ts";
 
 export type PublishPacket = {
-  type: PacketType.publish;
+  type: TPacketType;
   topic: Topic;
   payload: Payload;
   dup?: boolean;
