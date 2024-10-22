@@ -1,9 +1,11 @@
 import { PacketType } from "./PacketType.ts";
-import { assertEquals, assertThrows } from "../dev_utils/mod.ts";
+import assert from "node:assert/strict";
+import { test } from "node:test";
+;
 import { decode, encode } from "./mod.ts";
 
-Deno.test("encode Pingres", () => {
-  assertEquals(
+test("encode Pingres", () => {
+  assert.deepStrictEqual(
     encode({
       type: PacketType.pingres,
     }),
@@ -15,8 +17,8 @@ Deno.test("encode Pingres", () => {
   );
 });
 
-Deno.test("decode Pingres", () => {
-  assertEquals(
+test("decode Pingres", () => {
+  assert.deepStrictEqual(
     decode(
       Uint8Array.from([
         // fixedHeader
@@ -30,8 +32,8 @@ Deno.test("decode Pingres", () => {
   );
 });
 
-Deno.test("decode invalid Pingres", () => {
-  assertThrows(
+test("decode invalid Pingres", () => {
+  assert.throws(
     () =>
       decode(
         Uint8Array.from([

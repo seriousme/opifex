@@ -1,11 +1,13 @@
 import { Timer } from "./timer.ts";
-import { assertEquals } from "../dev_utils/mod.ts";
+import assert from "node:assert/strict";
+import { test } from "node:test";
+
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-Deno.test("timer should ring", async () => {
+test("timer should ring", async () => {
   const wait = 50;
   const start = Date.now();
   let end = Date.now();
@@ -14,10 +16,10 @@ Deno.test("timer should ring", async () => {
   }, wait);
   await delay(wait);
   const timeDiff = end - start - wait;
-  assertEquals(timeDiff < 10, true);
+  assert.deepStrictEqual(timeDiff < 10, true);
 });
 
-Deno.test("snooze should work", async () => {
+test("snooze should work", async () => {
   const wait = 50;
   const quarterWait = Math.floor(wait / 4);
   const halfWait = quarterWait * 2;
@@ -27,21 +29,21 @@ Deno.test("snooze should work", async () => {
     end = Date.now();
   }, wait);
   await delay(halfWait);
-  assertEquals(end, 0);
+  assert.deepStrictEqual(end, 0);
   timer.reset();
   await delay(halfWait + quarterWait);
-  assertEquals(end, 0);
+  assert.deepStrictEqual(end, 0);
   await delay(wait + halfWait);
   const timeDiff = end - start - (wait + halfWait);
-  assertEquals(timeDiff < 15, true, `TimeDiff of ${timeDiff} < 15`);
+  assert.deepStrictEqual(timeDiff < 15, true, `TimeDiff of ${timeDiff} < 15`);
 });
 
-Deno.test("clear should work", () => {
+test("clear should work", () => {
   const wait = 50;
   let end = 0;
   const timer = new Timer(() => {
     end = Date.now();
   }, wait);
   timer.clear();
-  assertEquals(end, 0);
+  assert.deepStrictEqual(end, 0);
 });

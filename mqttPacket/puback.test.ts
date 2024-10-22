@@ -1,9 +1,11 @@
 import { PacketType } from "./PacketType.ts";
-import { assertEquals, assertThrows } from "../dev_utils/mod.ts";
+import assert from "node:assert/strict";
+import { test } from "node:test";
+;
 import { decode, encode } from "./mod.ts";
 
-Deno.test("encode Puback", () => {
-  assertEquals(
+test("encode Puback", () => {
+  assert.deepStrictEqual(
     encode({
       type: PacketType.puback,
       id: 1337,
@@ -19,8 +21,8 @@ Deno.test("encode Puback", () => {
   );
 });
 
-Deno.test("decode Puback ", () => {
-  assertEquals(
+test("decode Puback ", () => {
+  assert.deepStrictEqual(
     decode(
       Uint8Array.from([
         // fixedHeader
@@ -38,10 +40,10 @@ Deno.test("decode Puback ", () => {
   );
 });
 
-Deno.test("decodeShortPubackPackets", () => {
-  assertThrows(() => decode(Uint8Array.from([0x40])), Error, "decoding failed");
-  assertThrows(() => decode(Uint8Array.from([0x40, 2])), Error, "too short");
-  assertThrows(
+test("decodeShortPubackPackets", () => {
+  assert.throws(() => decode(Uint8Array.from([0x40])), Error, "decoding failed");
+  assert.throws(() => decode(Uint8Array.from([0x40, 2])), Error, "too short");
+  assert.throws(
     () => decode(Uint8Array.from([0x40, 3, 0, 0, 0])),
     Error,
     "too long",

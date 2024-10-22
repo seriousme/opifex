@@ -1,9 +1,11 @@
 import { PacketType } from "./PacketType.ts";
-import { assertEquals } from "../dev_utils/mod.ts";
+import assert from "node:assert/strict";
+import { test } from "node:test";
+
 import { decode, encode } from "./mod.ts";
 
-Deno.test("encode Suback", () => {
-  assertEquals(
+test("encode Suback", () => {
+  assert.deepStrictEqual(
     encode({
       type: PacketType.suback,
       id: 1,
@@ -23,8 +25,8 @@ Deno.test("encode Suback", () => {
   );
 });
 
-Deno.test("decode Suback", () => {
-  assertEquals(
+test("decode Suback", () => {
+  assert.deepStrictEqual(
     decode(
       Uint8Array.from([
         // fixedHeader

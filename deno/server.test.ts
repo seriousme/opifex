@@ -1,10 +1,12 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
 import { TcpServer } from "./server.ts";
-import { assertEquals } from "../dev_utils/mod.ts";
 
-Deno.test("testServer", () => {
+
+test("testServer", () => {
   const server = new TcpServer({ port: 0 }, {});
   server.start();
-  assertEquals(
+  assert.deepStrictEqual(
     server.port !== undefined,
     true,
     "server runs a a random port",

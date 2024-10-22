@@ -1,9 +1,11 @@
 import { PacketType } from "./PacketType.ts";
-import { assertEquals, assertThrows } from "../dev_utils/mod.ts";
+import assert from "node:assert/strict";
+import { test } from "node:test";
+;
 import { decode, encode } from "./mod.ts";
 
-Deno.test("encode Disconnect", () => {
-  assertEquals(
+test("encode Disconnect", () => {
+  assert.deepStrictEqual(
     encode({
       type: PacketType.disconnect,
     }),
@@ -15,8 +17,8 @@ Deno.test("encode Disconnect", () => {
   );
 });
 
-Deno.test("decode Disconnect", () => {
-  assertEquals(
+test("decode Disconnect", () => {
+  assert.deepStrictEqual(
     decode(
       Uint8Array.from([
         // fixedHeader
@@ -30,8 +32,8 @@ Deno.test("decode Disconnect", () => {
   );
 });
 
-Deno.test("decode invalid Disconnect", () => {
-  assertThrows(
+test("decode invalid Disconnect", () => {
+  assert.throws(
     () =>
       decode(
         Uint8Array.from([

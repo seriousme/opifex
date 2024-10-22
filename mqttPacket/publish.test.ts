@@ -1,13 +1,15 @@
 import { PacketType } from "./PacketType.ts";
-import { assertEquals, assertThrows } from "../dev_utils/mod.ts";
+import assert from "node:assert/strict";
+import { test } from "node:test";
+;
 import { decode, encode } from "./mod.ts";
 
 // const utf8Decoder = new TextDecoder();
 const utf8Encoder = new TextEncoder();
 const payload = utf8Encoder.encode("payload");
 
-Deno.test("encode Publish", () => {
-  assertEquals(
+test("encode Publish", () => {
+  assert.deepStrictEqual(
     encode({
       type: PacketType.publish,
       topic: "a/b",
@@ -35,8 +37,8 @@ Deno.test("encode Publish", () => {
   );
 });
 
-Deno.test("decode Publish", () => {
-  assertEquals(
+test("decode Publish", () => {
+  assert.deepStrictEqual(
     decode(
       Uint8Array.from([
         // fixedHeader
@@ -78,8 +80,8 @@ Deno.test("decode Publish", () => {
   );
 });
 
-Deno.test("decode Publish with extra bytes", () => {
-  assertEquals(
+test("decode Publish with extra bytes", () => {
+  assert.deepStrictEqual(
     decode(
       Uint8Array.from([
         // fixedHeader
@@ -124,8 +126,8 @@ Deno.test("decode Publish with extra bytes", () => {
   );
 });
 
-Deno.test("decode Publish no payload", () => {
-  assertEquals(
+test("decode Publish no payload", () => {
+  assert.deepStrictEqual(
     decode(
       Uint8Array.from([
         // fixedHeader
@@ -152,8 +154,8 @@ Deno.test("decode Publish no payload", () => {
   );
 });
 
-Deno.test("Invalid qos", () => {
-  assertThrows(
+test("Invalid qos", () => {
+  assert.throws(
     () =>
       decode(
         Uint8Array.from([
@@ -173,8 +175,8 @@ Deno.test("Invalid qos", () => {
     "Invalid qos",
   );
 });
-Deno.test("Invalid qos for duplicate", () => {
-  assertThrows(
+test("Invalid qos for duplicate", () => {
+  assert.throws(
     () =>
       decode(
         Uint8Array.from([

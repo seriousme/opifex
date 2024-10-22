@@ -1,9 +1,11 @@
 import { PacketType } from "./PacketType.ts";
-import { assertEquals, assertThrows } from "../dev_utils/mod.ts";
+import assert from "node:assert/strict";
+import { test } from "node:test";
+;
 import { decode, encode } from "./mod.ts";
 
-Deno.test("encode Unsubscribe", () => {
-  assertEquals(
+test("encode Unsubscribe", () => {
+  assert.deepStrictEqual(
     encode({
       type: PacketType.unsubscribe,
       id: 1,
@@ -31,8 +33,8 @@ Deno.test("encode Unsubscribe", () => {
   );
 });
 
-Deno.test("decode Unsubscribe", () => {
-  assertEquals(
+test("decode Unsubscribe", () => {
+  assert.deepStrictEqual(
     decode(
       Uint8Array.from([
         // fixedHeader
@@ -62,8 +64,8 @@ Deno.test("decode Unsubscribe", () => {
   );
 });
 
-Deno.test("decode Unsubscribe missing bit 1 flag", () => {
-  assertThrows(
+test("decode Unsubscribe missing bit 1 flag", () => {
+  assert.throws(
     () =>
       decode(
         Uint8Array.from([
@@ -91,8 +93,8 @@ Deno.test("decode Unsubscribe missing bit 1 flag", () => {
   );
 });
 
-Deno.test("decode unsubscribe packet too short", () => {
-  assertThrows(
+test("decode unsubscribe packet too short", () => {
+  assert.throws(
     () =>
       decode(
         Uint8Array.from([
@@ -116,7 +118,7 @@ Deno.test("decode unsubscribe packet too short", () => {
     Error,
     "too short",
   );
-  assertThrows(
+  assert.throws(
     () =>
       decode(
         Uint8Array.from([

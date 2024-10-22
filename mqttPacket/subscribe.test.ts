@@ -1,9 +1,11 @@
 import { PacketType } from "./PacketType.ts";
-import { assertEquals, assertThrows } from "../dev_utils/mod.ts";
+import assert from "node:assert/strict";
+import { test } from "node:test";
+;
 import { decode, encode } from "./mod.ts";
 
-Deno.test("encode Subscribe", () => {
-  assertEquals(
+test("encode Subscribe", () => {
+  assert.deepStrictEqual(
     encode({
       type: PacketType.subscribe,
       id: 1,
@@ -36,8 +38,8 @@ Deno.test("encode Subscribe", () => {
   );
 });
 
-Deno.test("decode Subscribe", () => {
-  assertEquals(
+test("decode Subscribe", () => {
+  assert.deepStrictEqual(
     decode(
       Uint8Array.from([
         // fixedHeader
@@ -72,8 +74,8 @@ Deno.test("decode Subscribe", () => {
   );
 });
 
-Deno.test("decode Subscribe missing bit 1 flag", () => {
-  assertThrows(
+test("decode Subscribe missing bit 1 flag", () => {
+  assert.throws(
     () =>
       decode(
         Uint8Array.from([
@@ -103,8 +105,8 @@ Deno.test("decode Subscribe missing bit 1 flag", () => {
   );
 });
 
-Deno.test("decode Subscribe packet too short", () => {
-  assertThrows(
+test("decode Subscribe packet too short", () => {
+  assert.throws(
     () =>
       decode(
         Uint8Array.from([
@@ -131,7 +133,7 @@ Deno.test("decode Subscribe packet too short", () => {
     Error,
     "Invalid qos",
   );
-  assertThrows(
+  assert.throws(
     () =>
       decode(
         Uint8Array.from([
@@ -156,7 +158,7 @@ Deno.test("decode Subscribe packet too short", () => {
     Error,
     "too short",
   );
-  assertThrows(
+  assert.throws(
     () =>
       decode(
         Uint8Array.from([
@@ -173,8 +175,8 @@ Deno.test("decode Subscribe packet too short", () => {
   );
 });
 
-Deno.test("decode Subscribe packet invalid packet id with QoS > 0", () => {
-  assertThrows(
+test("decode Subscribe packet invalid packet id with QoS > 0", () => {
+  assert.throws(
     () =>
       decode(
         Uint8Array.from([
@@ -201,7 +203,7 @@ Deno.test("decode Subscribe packet invalid packet id with QoS > 0", () => {
     Error,
     "Invalid packet identifier",
   );
-  assertThrows(
+  assert.throws(
     () =>
       decode(
         Uint8Array.from([

@@ -1,8 +1,13 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
 import { Trie } from "./trie.ts";
-import { assertArrayIncludes, assertEquals } from "../dev_utils/mod.ts";
 
 type Data = Array<[string, number]>;
 type Matches = Array<[string, number[]]>;
+type MatchResult = Array<number|object>;
+
+const includesAll = (arr:MatchResult, values:MatchResult) => values.every(v => arr.includes(v));
+
 
 function doTest(data: Data, matches: Matches) {
   const root = new Trie<number>();
@@ -11,17 +16,17 @@ function doTest(data: Data, matches: Matches) {
   }
 
   for (const [match, result] of matches) {
-    assertArrayIncludes(root.match(match), result, `Matching '${match}'`);
+   assert.ok(includesAll(root.match(match),result), `${match} found`)
   }
 }
 
-Deno.test("new should create new Trie object", () => {
+test("new should create new Trie object", () => {
   const root = new Trie<number>();
-  assertEquals(typeof root, "object");
-  assertEquals(root instanceof Trie, true);
+  assert.deepStrictEqual(typeof root, "object");
+  assert.deepStrictEqual(root instanceof Trie, true);
 });
 
-Deno.test("match() should find the correct nodes in the trie structure", () => {
+test("match() should find the correct nodes in the trie structure", () => {
   const data: Data = [
     ["foo", 1],
     ["foo/bar", 2],
@@ -42,7 +47,7 @@ Deno.test("match() should find the correct nodes in the trie structure", () => {
   doTest(data, matches);
 });
 
-Deno.test("wildCardOne works", () => {
+test("wildCardOne works", () => {
   const data: Data = [
     ["foo", 1],
     ["foo/+/buzz", 2],
@@ -65,7 +70,7 @@ Deno.test("wildCardOne works", () => {
   doTest(data, matches);
 });
 
-Deno.test("wildCardSubtree works", () => {
+test("wildCardSubtree works", () => {
   const data: Data = [
     ["foo", 1],
     ["foo/#", 2],
@@ -87,7 +92,7 @@ Deno.test("wildCardSubtree works", () => {
   doTest(data, matches);
 });
 
-Deno.test("Overlapping wildcards work", () => {
+test("Overlapping wildcards work", () => {
   const data: Data = [
     ["foo/+/buzz", 1],
     ["+/bar/buzz", 2],
@@ -98,7 +103,7 @@ Deno.test("Overlapping wildcards work", () => {
   doTest(data, matches);
 });
 
-Deno.test("Reserved prefixes are excluded from toplevel wildcards", () => {
+test("Reserved prefixes are excluded from toplevel wildcards", () => {
   const data: Data = [
     ["+/bar/buzz", 1],
     ["#", 2],
@@ -114,18 +119,18 @@ Deno.test("Reserved prefixes are excluded from toplevel wildcards", () => {
   doTest(data, matches);
 });
 
-Deno.test("Removal works", () => {
+test("Removal works", () => {
   const root = new Trie<number>();
   root.add("foo/bar", 1);
   root.add("foo/bar", 2);
-  assertArrayIncludes(root.match("foo/bar"), [1, 2]);
+  assert.ok(includesAll(root.match("foo/bar"), [1, 2]), 'two items found');
   root.remove("foo/bar", 2);
-  assertArrayIncludes(root.match("foo/bar"), [1]);
+  assert.ok(includesAll(root.match("foo/bar"), [1]), 'one item found');
   root.remove("foo/bar", 1);
-  assertEquals(root.match("foo/bar").length, 0, "matches left");
+  assert.deepStrictEqual(root.match("foo/bar").length, 0, "no items left");
 });
 
-Deno.test("Removal of object values works", () => {
+test("Removal of object values works", () => {
   type ComplexValue = { a: number; b: number; c: number };
 
   const root = new Trie<ComplexValue>(true);
@@ -133,10 +138,10 @@ Deno.test("Removal of object values works", () => {
   const c2: ComplexValue = { a: 2, b: 4, c: 6 };
   root.add("foo/bar", c1);
   root.add("foo/bar", c2);
-  assertArrayIncludes(root.match("foo/bar"), [c1, c2]);
+  assert.ok(includesAll(root.match("foo/bar"), [c1, c2]), 'two items found');
   root.remove("foo/bar", c2);
-  assertArrayIncludes(root.match("foo/bar"), [c1]);
+  assert.ok(includesAll(root.match("foo/bar"), [c1]), 'one item found');
   root.remove("foo/bar", { a: 1, b: 2, c: 3 });
-  assertArrayIncludes(root.match("foo/bar"), []);
-  assertEquals(root.match("foo/bar").length, 0, "matches left");
+  assert.ok(includesAll(root.match("foo/bar"), []), 'empty array');
+  assert.deepStrictEqual(root.match("foo/bar").length, 0, "matches left");
 });
