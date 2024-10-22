@@ -1,7 +1,7 @@
 import { PacketType } from "./PacketType.ts";
 import assert from "node:assert/strict";
 import { test } from "node:test";
-;
+
 import { type ConnectPacket, decode, encode } from "./mod.ts";
 
 test("encode Connect with ClientId", () => {
@@ -171,7 +171,10 @@ test("encode Connect with username and password", () => {
 });
 
 test("decode Connect with username and password", () => {
-  assert.deepStrictEqual(decode(Uint8Array.from(encodedConnect)), decodedConnect);
+  assert.deepStrictEqual(
+    decode(Uint8Array.from(encodedConnect)),
+    decodedConnect,
+  );
 });
 
 const decodedConnectWithWill = Object.assign({}, decodedConnect);

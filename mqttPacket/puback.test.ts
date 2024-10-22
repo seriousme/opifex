@@ -1,7 +1,7 @@
 import { PacketType } from "./PacketType.ts";
 import assert from "node:assert/strict";
 import { test } from "node:test";
-;
+
 import { decode, encode } from "./mod.ts";
 
 test("encode Puback", () => {
@@ -41,7 +41,11 @@ test("decode Puback ", () => {
 });
 
 test("decodeShortPubackPackets", () => {
-  assert.throws(() => decode(Uint8Array.from([0x40])), Error, "decoding failed");
+  assert.throws(
+    () => decode(Uint8Array.from([0x40])),
+    Error,
+    "decoding failed",
+  );
   assert.throws(() => decode(Uint8Array.from([0x40, 2])), Error, "too short");
   assert.throws(
     () => decode(Uint8Array.from([0x40, 3, 0, 0, 0])),

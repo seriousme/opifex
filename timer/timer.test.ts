@@ -2,7 +2,6 @@ import { Timer } from "./timer.ts";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }

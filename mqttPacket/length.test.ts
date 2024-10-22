@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-;
+
 import { decodeLength as decode, encodeLength as encode } from "./length.ts";
 
 test("encodeLength", function encodeLength() {

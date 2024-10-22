@@ -4,10 +4,10 @@ import { Trie } from "./trie.ts";
 
 type Data = Array<[string, number]>;
 type Matches = Array<[string, number[]]>;
-type MatchResult = Array<number|object>;
+type MatchResult = Array<number | object>;
 
-const includesAll = (arr:MatchResult, values:MatchResult) => values.every(v => arr.includes(v));
-
+const includesAll = (arr: MatchResult, values: MatchResult) =>
+  values.every((v) => arr.includes(v));
 
 function doTest(data: Data, matches: Matches) {
   const root = new Trie<number>();
@@ -16,7 +16,7 @@ function doTest(data: Data, matches: Matches) {
   }
 
   for (const [match, result] of matches) {
-   assert.ok(includesAll(root.match(match),result), `${match} found`)
+    assert.ok(includesAll(root.match(match), result), `${match} found`);
   }
 }
 
@@ -123,9 +123,9 @@ test("Removal works", () => {
   const root = new Trie<number>();
   root.add("foo/bar", 1);
   root.add("foo/bar", 2);
-  assert.ok(includesAll(root.match("foo/bar"), [1, 2]), 'two items found');
+  assert.ok(includesAll(root.match("foo/bar"), [1, 2]), "two items found");
   root.remove("foo/bar", 2);
-  assert.ok(includesAll(root.match("foo/bar"), [1]), 'one item found');
+  assert.ok(includesAll(root.match("foo/bar"), [1]), "one item found");
   root.remove("foo/bar", 1);
   assert.deepStrictEqual(root.match("foo/bar").length, 0, "no items left");
 });
@@ -138,10 +138,10 @@ test("Removal of object values works", () => {
   const c2: ComplexValue = { a: 2, b: 4, c: 6 };
   root.add("foo/bar", c1);
   root.add("foo/bar", c2);
-  assert.ok(includesAll(root.match("foo/bar"), [c1, c2]), 'two items found');
+  assert.ok(includesAll(root.match("foo/bar"), [c1, c2]), "two items found");
   root.remove("foo/bar", c2);
-  assert.ok(includesAll(root.match("foo/bar"), [c1]), 'one item found');
+  assert.ok(includesAll(root.match("foo/bar"), [c1]), "one item found");
   root.remove("foo/bar", { a: 1, b: 2, c: 3 });
-  assert.ok(includesAll(root.match("foo/bar"), []), 'empty array');
+  assert.ok(includesAll(root.match("foo/bar"), []), "empty array");
   assert.deepStrictEqual(root.match("foo/bar").length, 0, "matches left");
 });

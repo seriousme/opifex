@@ -1,7 +1,7 @@
 import { PacketType } from "./PacketType.ts";
 import assert from "node:assert/strict";
 import { test } from "node:test";
-;
+
 import { decode, encode } from "./mod.ts";
 
 test("encode Pubrec", () => {
@@ -41,7 +41,11 @@ test("decode Pubrec ", () => {
 });
 
 test("decodeShortPubrecPackets", () => {
-  assert.throws(() => decode(Uint8Array.from([0x50])), Error, "decoding failed");
+  assert.throws(
+    () => decode(Uint8Array.from([0x50])),
+    Error,
+    "decoding failed",
+  );
   assert.throws(() => decode(Uint8Array.from([0x50, 2])), Error, "too short");
   assert.throws(
     () => decode(Uint8Array.from([0x50, 3, 0, 0, 0])),

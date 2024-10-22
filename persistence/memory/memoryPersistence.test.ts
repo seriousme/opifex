@@ -89,7 +89,11 @@ test("many packets should work", async () => {
   const seen = new Set();
 
   function handler(packet: PublishPacket): void {
-    assert.deepStrictEqual(seen.has(packet.id), false, `Not seen ${packet.id} before`);
+    assert.deepStrictEqual(
+      seen.has(packet.id),
+      false,
+      `Not seen ${packet.id} before`,
+    );
     seen.add(packet.id);
   }
 
@@ -105,7 +109,11 @@ test("many packets should work", async () => {
     persistence.publish(topic, makePacket(i));
   }
   await delay(10);
-  assert.deepStrictEqual(seen.size, numMessages, `received all ${numMessages} messages`);
+  assert.deepStrictEqual(
+    seen.size,
+    numMessages,
+    `received all ${numMessages} messages`,
+  );
 });
 
 test("unsubscribe should work", () => {
@@ -121,7 +129,11 @@ test("unsubscribe should work", () => {
 
   const seen = new Set();
   function handler(packet: PublishPacket): void {
-    assert.deepStrictEqual(seen.has(packet.id), false, `Not seen ${packet.id} before`);
+    assert.deepStrictEqual(
+      seen.has(packet.id),
+      false,
+      `Not seen ${packet.id} before`,
+    );
     seen.add(packet.id);
   }
 

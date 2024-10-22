@@ -52,13 +52,25 @@ test("Authentication with valid username and password works", async () => {
   const { reader, mqttConn } = startServer();
   mqttConn.send(connectPacket);
   const { value: connack } = await reader.next();
-  assert.deepStrictEqual(connack.type, PacketType.connack, "Expect Connack packet");
+  assert.deepStrictEqual(
+    connack.type,
+    PacketType.connack,
+    "Expect Connack packet",
+  );
   if (connack.type === PacketType.connack) {
-    assert.deepStrictEqual(connack.returnCode, AuthenticationResult.ok, "Expected OK");
+    assert.deepStrictEqual(
+      connack.returnCode,
+      AuthenticationResult.ok,
+      "Expected OK",
+    );
   }
   mqttConn.send(disconnectPacket);
   await nextTick();
-  assert.deepStrictEqual(mqttConn.isClosed, true, "Expected connection to be closed");
+  assert.deepStrictEqual(
+    mqttConn.isClosed,
+    true,
+    "Expected connection to be closed",
+  );
 });
 
 test("Authentication with invalid username fails", async () => {
@@ -67,7 +79,11 @@ test("Authentication with invalid username fails", async () => {
   const { reader, mqttConn } = startServer();
   mqttConn.send(newPacket);
   const { value: connack } = await reader.next();
-  assert.deepStrictEqual(connack.type, PacketType.connack, "Expected Connack packet");
+  assert.deepStrictEqual(
+    connack.type,
+    PacketType.connack,
+    "Expected Connack packet",
+  );
   if (connack.type === PacketType.connack) {
     assert.deepStrictEqual(
       connack.returnCode,
@@ -76,7 +92,11 @@ test("Authentication with invalid username fails", async () => {
     );
   }
   await nextTick();
-  assert.deepStrictEqual(mqttConn.isClosed, true, "Expected connection to be closed");
+  assert.deepStrictEqual(
+    mqttConn.isClosed,
+    true,
+    "Expected connection to be closed",
+  );
 });
 
 test("Authentication with invalid password fails", async () => {
@@ -85,7 +105,11 @@ test("Authentication with invalid password fails", async () => {
   const { reader, mqttConn } = startServer();
   mqttConn.send(newPacket);
   const { value: connack } = await reader.next();
-  assert.deepStrictEqual(connack.type, PacketType.connack, "Expected Connack packet");
+  assert.deepStrictEqual(
+    connack.type,
+    PacketType.connack,
+    "Expected Connack packet",
+  );
   if (connack.type === PacketType.connack) {
     assert.deepStrictEqual(
       connack.returnCode,
@@ -94,5 +118,9 @@ test("Authentication with invalid password fails", async () => {
     );
   }
   await nextTick();
-  assert.deepStrictEqual(mqttConn.isClosed, true, "Expected connection to be closed");
+  assert.deepStrictEqual(
+    mqttConn.isClosed,
+    true,
+    "Expected connection to be closed",
+  );
 });

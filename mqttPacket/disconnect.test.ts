@@ -1,7 +1,7 @@
 import { PacketType } from "./PacketType.ts";
 import assert from "node:assert/strict";
 import { test } from "node:test";
-;
+
 import { decode, encode } from "./mod.ts";
 
 test("encode Disconnect", () => {

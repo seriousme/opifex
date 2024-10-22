@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-;
+
 import { Decoder } from "./decoder.ts";
 
 const utf8encoder = new TextEncoder();
