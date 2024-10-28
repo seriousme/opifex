@@ -1,4 +1,6 @@
-import { MqttServer, type MqttServerOptions } from "../server/mod.ts";
+import { MqttServer } from "../server/mod.ts";
+import type { MqttServerOptions } from "../server/mod.ts";
+import { wrapDenoConn } from "./wrapDenoConn.ts";
 
 export class TcpServer {
   private listener: Deno.Listener<Deno.Conn>;
@@ -13,7 +15,7 @@ export class TcpServer {
 
   async start() {
     for await (const conn of this.listener) {
-      this.mqttServer.serve(conn);
+      this.mqttServer.serve(wrapDenoConn(conn));
     }
   }
   stop() {

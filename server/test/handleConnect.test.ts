@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { DummyQueueConn } from "../../dev_utils/mod.ts";
+import { makeDummyQueueSockConn } from "../../dev_utils/mod.ts";
 import {
   type AnyPacket,
   AuthenticationResult,
@@ -39,9 +39,9 @@ function startServer(): {
   const reader = new AsyncQueue<Uint8Array>();
   const writer = new AsyncQueue<Uint8Array>();
 
-  const outputConn = new DummyQueueConn(writer, reader);
+  const outputConn = makeDummyQueueSockConn(writer, reader);
   const mqttConn = new MqttConn({ conn: outputConn });
-  const inputConn = new DummyQueueConn(reader, writer, () => {
+  const inputConn = makeDummyQueueSockConn(reader, writer, () => {
     mqttConn.close();
   });
   mqttServer.serve(inputConn);

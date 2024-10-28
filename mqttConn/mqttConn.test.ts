@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { DummyConn } from "../dev_utils/mod.ts";
+import { makeDummySockConn } from "../dev_utils/mod.ts";
 import { type AnyPacket, encode, PacketType } from "../mqttPacket/mod.ts";
 import { MqttConn, MqttConnError } from "./mqttConn.ts";
 
@@ -35,7 +35,10 @@ test("MqttConn should act as asyncIterator", async () => {
   const publish = encode(publishPacket);
   const disconnect = encode(disconnectPacket);
 
-  const conn = new DummyConn([connect, publish, disconnect], new Uint8Array());
+  const conn = makeDummySockConn(
+    [connect, publish, disconnect],
+    new Uint8Array(),
+  );
   const mqttConn = new MqttConn({ conn });
 
   const packets = [];
@@ -50,7 +53,7 @@ test("MqttConn should act as asyncIterator", async () => {
 });
 
 test("MqttConn should close on malformed length", async () => {
-  const conn = new DummyConn([new Uint8Array([1, 175])], new Uint8Array());
+  const conn = makeDummySockConn([new Uint8Array([1, 175])], new Uint8Array());
   const mqttConn = new MqttConn({ conn });
 
   const packets = [];
@@ -68,7 +71,7 @@ test("MqttConn should close on failed packets", async () => {
   const publish = encode(publishPacket);
   const brokenPublish = publish.slice(0, 7);
 
-  const conn = new DummyConn([connect, brokenPublish], new Uint8Array());
+  const conn = makeDummySockConn([connect, brokenPublish], new Uint8Array());
   const mqttConn = new MqttConn({ conn });
 
   const packets = [];
@@ -85,7 +88,7 @@ test("MqttConn should close on failed packets", async () => {
 test("MqttConn should close on packets too large", async () => {
   const connect = encode(connectPacket);
 
-  const conn = new DummyConn([connect], new Uint8Array());
+  const conn = makeDummySockConn([connect], new Uint8Array());
   const mqttConn = new MqttConn({ conn, maxPacketSize: 20 });
   const packets = [];
   for await (const packet of mqttConn) {
@@ -100,7 +103,7 @@ test("MqttConn should close on packets too large", async () => {
 test("MqttConn should be writable", async () => {
   const connect = encode(connectPacket);
   const writer = new Uint8Array(24);
-  const conn = new DummyConn([connect], writer);
+  const conn = makeDummySockConn([connect], writer);
   const mqttConn = new MqttConn({ conn });
   await mqttConn.send(connectPacket);
   assert.deepStrictEqual(writer, connect);

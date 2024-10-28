@@ -1,1 +1,1 @@
-export { DummyConn, DummyQueueConn } from "./dummyConn.ts";
+export { makeDummyQueueSockConn, makeDummySockConn } from "./dummyConn.ts";
