@@ -1,4 +1,4 @@
-import { TcpServer } from "../deno/server.ts";
+import { TcpServer } from "../node/server.ts";
 import type { Context, TAuthenticationResult, Topic } from "../server/mod.ts";
 import { AuthenticationResult } from "../server/mod.ts";
 import { getArgs, logger, LogLevel, parseArgs } from "../utils/mod.ts";

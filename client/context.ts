@@ -105,6 +105,7 @@ export class Context {
       for await (const packet of this.mqttConn) {
         handlePacket(this, packet);
       }
+      logger.debug("No more packets");
     } catch (err) {
       logger.debug(err);
       if (this.mqttConn.isClosed) {

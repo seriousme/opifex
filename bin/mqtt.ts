@@ -1,7 +1,7 @@
 import { DEFAULT_URL } from "../client/mod.ts";
 import { logger, LogLevel } from "../utils/mod.ts";
 import { getArgs, parseArgs } from "../utils/mod.ts";
-import { getCaCerts, TcpClient } from "../deno/client.ts";
+import { getCaCerts, TcpClient } from "../node/client.ts";
 
 const client = new TcpClient();
 const encoder = new TextEncoder();

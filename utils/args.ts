@@ -1,10 +1,11 @@
+// deno-lint-ignore no-explicit-any
+export type Args = Record<string, any>;
 export type ArgsValue = string | number | boolean;
-export type Args = Record<string, ArgsValue>;
 
 type ArgOpts = {
   string?: string[];
   boolean?: string[];
-  alias?: Record<string,string>;
+  alias?: Record<string, string>;
   default?: Args;
 };
 
