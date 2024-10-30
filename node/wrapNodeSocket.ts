@@ -22,13 +22,12 @@ export function wrapNodeSocket(socket: Socket): SockConn {
             socket.pause();
           }
         });
-        socket.on("error", (err)=> controller.error(err));
+        socket.on("error", (err) => controller.error(err));
         socket.on("end", () => {
           // unlock the last BYOB read request
           controller.byobRequest?.respond(1);
-          controller.close()
-          }
-        );
+          controller.close();
+        });
       },
       pull: () => {
         socket.resume();
