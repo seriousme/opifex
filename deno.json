@@ -1,11 +1,8 @@
 {
   "name": "@seriousme/opifex",
-  "version": "1.0.20",
+  "version": "1.1.0",
   "exports": {
     "./server": "./server/mod.ts",
     "./client": "./client/mod.ts"
-  },
-  "imports": {
-    "@std/assert": "jsr:@std/assert@1.0.2"
   }
 }
