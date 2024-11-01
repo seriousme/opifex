@@ -13,8 +13,8 @@
     "mqtt-broker"
   ],
   "bin": {
-    "mqtt": "./bin/mqtt.ts",
-    "demoServer": "./bin/demoServer.ts"
+    "mqtt": "bin/mqtt.ts",
+    "demoServer": "bin/demoServer.ts"
   },
   "author": "Hans Klunder",
   "license": "MIT",
