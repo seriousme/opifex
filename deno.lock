@@ -3,7 +3,8 @@
   "specifiers": {
     "jsr:@std/assert@1.0.2": "1.0.2",
     "jsr:@std/internal@^1.0.1": "1.0.1",
-    "npm:@types/node@*": "22.5.4"
+    "npm:@types/node@*": "22.5.4",
+    "npm:@types/node@^22.8.6": "22.8.6"
   },
   "jsr": {
     "@std/assert@1.0.2": {
@@ -19,6 +20,12 @@
   "npm": {
     "@types/node@22.5.4": {
       "integrity": "sha512-FDuKUJQm/ju9fT/SeX/6+gBzoPzlVCzfzmGkwKvRHQVxi4BntVbyIwf6a4Xn62mrvndLiml6z/UBXIdEVjQLXg==",
+      "dependencies": [
+        "undici-types"
+      ]
+    },
+    "@types/node@22.8.6": {
+      "integrity": "sha512-tosuJYKrIqjQIlVCM4PEGxOmyg3FCPa/fViuJChnGeEIhjA46oy8FMVoF9su1/v8PNs2a8Q0iFNyOx0uOF91nw==",
       "dependencies": [
         "undici-types"
       ]
