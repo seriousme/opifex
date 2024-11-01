@@ -13,7 +13,7 @@ export function wrapNodeSocket(socket: Socket): SockConn {
     {
       type: "bytes",
       start(controller) {
-        socket.on("data", (data) => {
+        socket.on("data", (data:ArrayBufferView) => {
           controller.enqueue(data);
           const desiredSize = controller.desiredSize ?? 0;
           if (desiredSize <= 0) {
@@ -22,10 +22,11 @@ export function wrapNodeSocket(socket: Socket): SockConn {
             socket.pause();
           }
         });
-        socket.on("error", (err) => controller.error(err));
+        socket.on("error", (err:unknown) => controller.error(err));
         socket.on("end", () => {
           // unlock the last BYOB read request
           controller.byobRequest?.respond(1);
+          // and close the controller
           controller.close();
         });
       },

@@ -1,0 +1,35 @@
+{
+  "name": "@seriousme/opifex",
+  "version": "1.0.20",
+  "description": "MQTT client & server",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "node --experimental-strip-types --test --test-skip-pattern='/^Deno/'"
+  },
+  "keywords": [
+    "MQTT",
+    "typescript",
+    "mqtt-broker"
+  ],
+  "bin": {
+    "mqtt": "./bin/mqtt.ts",
+    "demoServer": "./bin/demoServer.ts"
+  },
+  "author": "Hans Klunder",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/seriousme/opifex.git"
+  },
+  "bugs": {
+    "url": "https://github.com/seriousme/opifex/issues"
+  },
+  "homepage": "https://github.com/seriousme/opifex#readme",
+  "engines": {
+    "node": ">=22.6.0"
+  },
+  "dependencies": {
+    "@types/node": "^22.8.6"
+  }
+}

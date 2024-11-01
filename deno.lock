@@ -30,6 +30,11 @@
   "workspace": {
     "dependencies": [
       "jsr:@std/assert@1.0.2"
-    ]
+    ],
+    "packageJson": {
+      "dependencies": [
+        "npm:@types/node@^22.8.6"
+      ]
+    }
   }
 }

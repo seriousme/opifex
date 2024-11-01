@@ -1,3 +1,4 @@
+#!/usr/bin/env -S node --experimental-strip-types
 // this server is intended to be used with https://github.com/eclipse/iottestware
 
 import { AuthenticationResult } from "../server/mod.ts";

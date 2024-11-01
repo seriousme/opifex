@@ -1,3 +1,4 @@
+#!/usr/bin/env -S node --experimental-strip-types
 import { DEFAULT_URL } from "../client/mod.ts";
 import { logger, LogLevel } from "../utils/mod.ts";
 import { getArgs, parseArgs } from "../utils/mod.ts";
