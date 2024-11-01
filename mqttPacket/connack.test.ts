@@ -1,9 +1,10 @@
-import { PacketType } from "./PacketType.ts";
-import { assertEquals, assertThrows } from "../dev_utils/mod.ts";
+import assert from "node:assert/strict";
+import { test } from "node:test";
 import { decode, encode } from "./mod.ts";
+import { PacketType } from "./PacketType.ts";
 
-Deno.test("encode Connack packet", () => {
-  assertEquals(
+test("encode Connack packet", () => {
+  assert.deepStrictEqual(
     encode({
       type: PacketType.connack,
       sessionPresent: false,
@@ -20,8 +21,8 @@ Deno.test("encode Connack packet", () => {
   );
 });
 
-Deno.test("decode Connack packet", () => {
-  assertEquals(
+test("decode Connack packet", () => {
+  assert.deepStrictEqual(
     decode(
       Uint8Array.from([
         // fixedHeader
@@ -40,8 +41,8 @@ Deno.test("decode Connack packet", () => {
   );
 });
 
-Deno.test("encode Connack with session present", () => {
-  assertEquals(
+test("encode Connack with session present", () => {
+  assert.deepStrictEqual(
     encode({
       type: PacketType.connack,
       sessionPresent: true,
@@ -58,28 +59,29 @@ Deno.test("encode Connack with session present", () => {
   );
 });
 
-Deno.test("decode Connack with session present", () => {
-  assertEquals(
-    decode(
-      Uint8Array.from([
-        // fixedHeader
-        0x20, // packetType + flags
-        2, // remainingLength
-        // variableHeader
-        1, // connack flags (sessionPresent)
-        0, // return code
-      ]),
-    ),
-    {
-      type: PacketType.connack,
-      sessionPresent: true,
-      returnCode: 0,
-    },
-  );
+test("decode Connack with session present", () => {
+  assert
+    .deepStrictEqual(
+      decode(
+        Uint8Array.from([
+          // fixedHeader
+          0x20, // packetType + flags
+          2, // remainingLength
+          // variableHeader
+          1, // connack flags (sessionPresent)
+          0, // return code
+        ]),
+      ),
+      {
+        type: PacketType.connack,
+        sessionPresent: true,
+        returnCode: 0,
+      },
+    );
 });
 
-Deno.test("decode Connack with non-zero returnCode", () => {
-  assertEquals(
+test("decode Connack with non-zero returnCode", () => {
+  assert.deepStrictEqual(
     decode(
       Uint8Array.from([
         // fixedHeader
@@ -98,8 +100,8 @@ Deno.test("decode Connack with non-zero returnCode", () => {
   );
 });
 
-Deno.test("decode Connack with invalid returnCode", () => {
-  assertThrows(
+test("decode Connack with invalid returnCode", () => {
+  assert.throws(
     () =>
       decode(
         Uint8Array.from([
@@ -116,8 +118,12 @@ Deno.test("decode Connack with invalid returnCode", () => {
   );
 });
 
-Deno.test("decode short Connack packets", () => {
-  assertThrows(() => decode(Uint8Array.from([0x20])), Error, "decoding failed");
-  assertThrows(() => decode(Uint8Array.from([0x20, 2])), Error, "too short");
-  assertThrows(() => decode(Uint8Array.from([0x20, 2, 0])), Error, "too long");
+test("decode short Connack packets", () => {
+  assert.throws(
+    () => decode(Uint8Array.from([0x20])),
+    Error,
+    "decoding failed",
+  );
+  assert.throws(() => decode(Uint8Array.from([0x20, 2])), Error, "too short");
+  assert.throws(() => decode(Uint8Array.from([0x20, 2, 0])), Error, "too long");
 });

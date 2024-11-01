@@ -1,9 +1,11 @@
 import { PacketType } from "./PacketType.ts";
-import { assertEquals, assertThrows } from "../dev_utils/mod.ts";
+import assert from "node:assert/strict";
+import { test } from "node:test";
+
 import { decode, encode } from "./mod.ts";
 
-Deno.test("encode Pubrec", () => {
-  assertEquals(
+test("encode Pubrec", () => {
+  assert.deepStrictEqual(
     encode({
       type: PacketType.pubrec,
       id: 1337,
@@ -19,8 +21,8 @@ Deno.test("encode Pubrec", () => {
   );
 });
 
-Deno.test("decode Pubrec ", () => {
-  assertEquals(
+test("decode Pubrec ", () => {
+  assert.deepStrictEqual(
     decode(
       Uint8Array.from([
         // fixedHeader
@@ -38,10 +40,14 @@ Deno.test("decode Pubrec ", () => {
   );
 });
 
-Deno.test("decodeShortPubrecPackets", () => {
-  assertThrows(() => decode(Uint8Array.from([0x50])), Error, "decoding failed");
-  assertThrows(() => decode(Uint8Array.from([0x50, 2])), Error, "too short");
-  assertThrows(
+test("decodeShortPubrecPackets", () => {
+  assert.throws(
+    () => decode(Uint8Array.from([0x50])),
+    Error,
+    "decoding failed",
+  );
+  assert.throws(() => decode(Uint8Array.from([0x50, 2])), Error, "too short");
+  assert.throws(
     () => decode(Uint8Array.from([0x50, 3, 0, 0, 0])),
     Error,
     "too long",

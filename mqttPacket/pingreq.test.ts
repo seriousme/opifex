@@ -1,9 +1,11 @@
 import { PacketType } from "./PacketType.ts";
-import { assertEquals, assertThrows } from "../dev_utils/mod.ts";
+import assert from "node:assert/strict";
+import { test } from "node:test";
+
 import { decode, encode } from "./mod.ts";
 
-Deno.test("encode Pingreq", () => {
-  assertEquals(
+test("encode Pingreq", () => {
+  assert.deepStrictEqual(
     encode({
       type: PacketType.pingreq,
     }),
@@ -15,8 +17,8 @@ Deno.test("encode Pingreq", () => {
   );
 });
 
-Deno.test("decode Pingreq", () => {
-  assertEquals(
+test("decode Pingreq", () => {
+  assert.deepStrictEqual(
     decode(
       Uint8Array.from([
         // fixedHeader
@@ -30,8 +32,8 @@ Deno.test("decode Pingreq", () => {
   );
 });
 
-Deno.test("decode invalid Pingreq", () => {
-  assertThrows(
+test("decode invalid Pingreq", () => {
+  assert.throws(
     () =>
       decode(
         Uint8Array.from([

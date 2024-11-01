@@ -8,6 +8,7 @@ import {
 
 import { assert } from "../utils/mod.ts";
 import type { SockConn } from "../socket/socket.ts";
+import { Conn } from "../socket/socket.ts";
 
 export const MqttConnError = {
   invalidPacket: "Invalid Packet",
@@ -16,7 +17,7 @@ export const MqttConnError = {
 } as const;
 
 export interface IMqttConn extends AsyncIterable<AnyPacket> {
-  readonly conn: SockConn;
+  readonly conn: Conn;
   readonly isClosed: boolean;
   readonly reason: string | undefined;
   [Symbol.asyncIterator](): AsyncIterableIterator<AnyPacket>;
@@ -24,7 +25,7 @@ export interface IMqttConn extends AsyncIterable<AnyPacket> {
   close(): void;
 }
 
-async function readByte(conn: SockConn): Promise<number> {
+async function readByte(conn: Conn): Promise<number> {
   const buf = new Uint8Array(1);
   const bytesRead = await conn.read(buf);
   assert(bytesRead !== null, MqttConnError.UnexpectedEof);
@@ -32,7 +33,7 @@ async function readByte(conn: SockConn): Promise<number> {
   return buf[0];
 }
 
-async function readFull(conn: SockConn, buf: Uint8Array): Promise<void> {
+async function readFull(conn: Conn, buf: Uint8Array): Promise<void> {
   let bytesRead = 0;
   while (bytesRead < buf.length) {
     const read = await conn.read(buf.subarray(bytesRead));
@@ -46,7 +47,7 @@ async function readFull(conn: SockConn, buf: Uint8Array): Promise<void> {
  * @throws `Error` if packet is invalid
  */
 export async function readPacket(
-  conn: SockConn,
+  conn: Conn,
   maxPacketSize: number,
 ): Promise<AnyPacket> {
   // fixed header is 1 byte of type + flags
@@ -70,7 +71,7 @@ export async function readPacket(
 }
 
 export class MqttConn implements IMqttConn {
-  readonly conn: SockConn;
+  readonly conn: Conn;
   private readonly maxPacketSize: number;
   private _reason: string | undefined = undefined;
   private _isClosed = false;
@@ -82,7 +83,7 @@ export class MqttConn implements IMqttConn {
     conn: SockConn;
     maxPacketSize?: number;
   }) {
-    this.conn = conn;
+    this.conn = new Conn(conn);
     this.maxPacketSize = maxPacketSize || 2 * 1024 * 1024;
   }
 

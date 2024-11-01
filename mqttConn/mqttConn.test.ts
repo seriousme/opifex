@@ -1,6 +1,8 @@
-import { MqttConn, MqttConnError } from "./mqttConn.ts";
-import { assertEquals, DummyConn } from "../dev_utils/mod.ts";
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { makeDummySockConn } from "../dev_utils/mod.ts";
 import { type AnyPacket, encode, PacketType } from "../mqttPacket/mod.ts";
+import { MqttConn, MqttConnError } from "./mqttConn.ts";
 
 const connectPacket: AnyPacket = {
   type: PacketType.connect,
@@ -28,12 +30,15 @@ const disconnectPacket: AnyPacket = {
   type: PacketType.disconnect,
 };
 
-Deno.test("MqttConn should act as asyncIterator", async () => {
+test("MqttConn should act as asyncIterator", async () => {
   const connect = encode(connectPacket);
   const publish = encode(publishPacket);
   const disconnect = encode(disconnectPacket);
 
-  const conn = new DummyConn([connect, publish, disconnect], new Uint8Array());
+  const conn = makeDummySockConn(
+    [connect, publish, disconnect],
+    new Uint8Array(),
+  );
   const mqttConn = new MqttConn({ conn });
 
   const packets = [];
@@ -41,14 +46,14 @@ Deno.test("MqttConn should act as asyncIterator", async () => {
     packets.push(packet);
   }
 
-  assertEquals(packets.length, 3);
-  assertEquals(packets[0], connectPacket);
-  assertEquals(packets[1], publishPacket);
-  assertEquals(packets[2], disconnectPacket);
+  assert.deepStrictEqual(packets.length, 3);
+  assert.deepStrictEqual(packets[0], connectPacket);
+  assert.deepStrictEqual(packets[1], publishPacket);
+  assert.deepStrictEqual(packets[2], disconnectPacket);
 });
 
-Deno.test("MqttConn should close on malformed length", async () => {
-  const conn = new DummyConn([new Uint8Array([1, 175])], new Uint8Array());
+test("MqttConn should close on malformed length", async () => {
+  const conn = makeDummySockConn([new Uint8Array([1, 175])], new Uint8Array());
   const mqttConn = new MqttConn({ conn });
 
   const packets = [];
@@ -56,17 +61,17 @@ Deno.test("MqttConn should close on malformed length", async () => {
     packets.push(packet);
   }
 
-  assertEquals(packets.length, 0);
-  assertEquals(mqttConn.isClosed, true);
-  assertEquals(mqttConn.reason, MqttConnError.UnexpectedEof);
+  assert.deepStrictEqual(packets.length, 0);
+  assert.deepStrictEqual(mqttConn.isClosed, true);
+  assert.deepStrictEqual(mqttConn.reason, MqttConnError.UnexpectedEof);
 });
 
-Deno.test("MqttConn should close on failed packets", async () => {
+test("MqttConn should close on failed packets", async () => {
   const connect = encode(connectPacket);
   const publish = encode(publishPacket);
   const brokenPublish = publish.slice(0, 7);
 
-  const conn = new DummyConn([connect, brokenPublish], new Uint8Array());
+  const conn = makeDummySockConn([connect, brokenPublish], new Uint8Array());
   const mqttConn = new MqttConn({ conn });
 
   const packets = [];
@@ -74,32 +79,32 @@ Deno.test("MqttConn should close on failed packets", async () => {
     packets.push(packet);
   }
 
-  assertEquals(packets.length, 1);
-  assertEquals(packets[0], connectPacket);
-  assertEquals(mqttConn.isClosed, true);
-  assertEquals(mqttConn.reason, MqttConnError.UnexpectedEof);
+  assert.deepStrictEqual(packets.length, 1);
+  assert.deepStrictEqual(packets[0], connectPacket);
+  assert.deepStrictEqual(mqttConn.isClosed, true);
+  assert.deepStrictEqual(mqttConn.reason, MqttConnError.UnexpectedEof);
 });
 
-Deno.test("MqttConn should close on packets too large", async () => {
+test("MqttConn should close on packets too large", async () => {
   const connect = encode(connectPacket);
 
-  const conn = new DummyConn([connect], new Uint8Array());
+  const conn = makeDummySockConn([connect], new Uint8Array());
   const mqttConn = new MqttConn({ conn, maxPacketSize: 20 });
   const packets = [];
   for await (const packet of mqttConn) {
     packets.push(packet);
   }
 
-  assertEquals(packets.length, 0);
-  assertEquals(mqttConn.isClosed, true);
-  assertEquals(mqttConn.reason, MqttConnError.packetTooLarge);
+  assert.deepStrictEqual(packets.length, 0);
+  assert.deepStrictEqual(mqttConn.isClosed, true);
+  assert.deepStrictEqual(mqttConn.reason, MqttConnError.packetTooLarge);
 });
 
-Deno.test("MqttConn should be writable", async () => {
+test("MqttConn should be writable", async () => {
   const connect = encode(connectPacket);
   const writer = new Uint8Array(24);
-  const conn = new DummyConn([connect], writer);
+  const conn = makeDummySockConn([connect], writer);
   const mqttConn = new MqttConn({ conn });
   await mqttConn.send(connectPacket);
-  assertEquals(writer, connect);
+  assert.deepStrictEqual(writer, connect);
 });

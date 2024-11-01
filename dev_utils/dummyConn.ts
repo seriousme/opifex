@@ -1,5 +1,4 @@
 import type { AsyncQueue } from "../utils/mod.ts";
-import type { SockConn } from "../socket/socket.ts";
 
 class Uint8Writer implements WritableStreamDefaultWriter {
   private buff: Uint8Array;
@@ -66,104 +65,31 @@ function ReadableStreamFrom(
   });
 }
 
-export class DummyConn implements SockConn {
-  private closed = false;
-  readable: ReadableStream;
-  reader: ReadableStreamBYOBReader;
-  writable: WritableStream<Uint8Array>;
-  writer: WritableStreamDefaultWriter<Uint8Array>;
-  remoteAddr: Deno.Addr;
-
-  constructor(
-    readerBuffs: Uint8Array[],
-    writerBuf: Uint8Array,
-    remoteAddr: Deno.Addr = { transport: "tcp", hostname: "0.0.0.0", port: 0 },
-  ) {
-    const readBlob = new Blob(readerBuffs);
-    this.readable = readBlob.stream();
-    this.reader = this.readable.getReader({ mode: "byob" });
-    this.writable = new WritableStream(new Uint8Writer(writerBuf));
-    this.writer = this.writable.getWriter();
-    this.remoteAddr = remoteAddr;
-  }
-
-  async read(buff: Uint8Array) {
-    const buff2 = new Uint8Array(buff.length);
-    const result = await this.reader.read(buff2);
-    if (!result.done) {
-      buff.set(result.value);
-    }
-    return result.value?.byteLength || null;
-  }
-
-  write(data: Uint8Array): Promise<number> {
-    if (this.closed) {
-      return Promise.reject();
-    }
-    this.writer.write(data);
-    return new Promise((resolve) => resolve(data.length));
-  }
-
-  close() {
-    if (!this.closed) {
-      this.closed = true;
-    }
-  }
-
-  closeWrite() {
-    return Promise.resolve();
-  }
+export function makeDummySockConn(
+  readerBuffs: Uint8Array[],
+  writerBuf: Uint8Array,
+  closer = () => {},
+) {
+  const readBlob = new Blob(readerBuffs);
+  const readable = readBlob.stream();
+  const writable = new WritableStream(new Uint8Writer(writerBuf));
+  return {
+    readable,
+    writable,
+    closer,
+  };
 }
 
-export class DummyQueueConn implements SockConn {
-  closed = false;
-  readable: ReadableStream;
-  reader: ReadableStreamBYOBReader;
-  writable: WritableStream<Uint8Array>;
-  writer: WritableStreamDefaultWriter<Uint8Array>;
-  remoteAddr: Deno.Addr;
-  closer: () => void;
-
-  constructor(
-    r: AsyncQueue<Uint8Array>,
-    w: AsyncQueue<Uint8Array>,
-    closer = () => {},
-    remoteAddr: Deno.Addr = { transport: "tcp", hostname: "0.0.0.0", port: 0 },
-  ) {
-    this.readable = ReadableStreamFrom(r);
-    this.reader = this.readable.getReader({ mode: "byob" });
-    this.writable = new WritableStream(new Uint8QueuedWriter(w));
-    this.writer = this.writable.getWriter();
-    this.remoteAddr = remoteAddr;
-    this.closer = closer;
-  }
-
-  async read(buff: Uint8Array) {
-    const buff2 = new Uint8Array(buff.length);
-    const result = await this.reader.read(buff2);
-    if (!result.done) {
-      buff.set(result.value);
-    }
-    return result.value?.byteLength || null;
-  }
-
-  write(data: Uint8Array): Promise<number> {
-    if (this.closed) {
-      return Promise.reject();
-    }
-    this.writer.write(data);
-    return new Promise((resolve) => resolve(data.length));
-  }
-
-  close() {
-    if (!this.closed) {
-      this.closeWrite();
-    }
-  }
-
-  closeWrite() {
-    this.closed = true;
-    this.closer();
-    return Promise.resolve();
-  }
+export function makeDummyQueueSockConn(
+  r: AsyncQueue<Uint8Array>,
+  w: AsyncQueue<Uint8Array>,
+  closer = () => {},
+) {
+  const readable = ReadableStreamFrom(r);
+  const writable = new WritableStream(new Uint8QueuedWriter(w));
+  return {
+    readable,
+    writable,
+    closer,
+  };
 }

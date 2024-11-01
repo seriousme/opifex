@@ -5,7 +5,7 @@ export type ArgsValue = string | number | boolean;
 type ArgOpts = {
   string?: string[];
   boolean?: string[];
-  alias?: Args;
+  alias?: Record<string, string>;
   default?: Args;
 };
 

@@ -1,3 +1,4 @@
+import { argv } from "node:process";
 export function getArgs() {
-  return Deno.args;
+  return argv.slice(2);
 }

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { TcpServer } from "./server.ts";
 
-test("Deno testServer", () => {
+test("testServer", () => {
   const server = new TcpServer({ port: 0 }, {});
   server.start();
   assert.deepStrictEqual(

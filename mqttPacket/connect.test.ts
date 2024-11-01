@@ -1,9 +1,11 @@
 import { PacketType } from "./PacketType.ts";
-import { assertEquals, assertThrows } from "../dev_utils/mod.ts";
+import assert from "node:assert/strict";
+import { test } from "node:test";
+
 import { type ConnectPacket, decode, encode } from "./mod.ts";
 
-Deno.test("encode Connect with ClientId", () => {
-  assertEquals(
+test("encode Connect with ClientId", () => {
+  assert.deepStrictEqual(
     encode({
       type: PacketType.connect,
       clientId: "id",
@@ -33,8 +35,8 @@ Deno.test("encode Connect with ClientId", () => {
   );
 });
 
-Deno.test("encode Connect with Clean false", () => {
-  assertEquals(
+test("encode Connect with Clean false", () => {
+  assert.deepStrictEqual(
     encode({
       type: PacketType.connect,
       clientId: "id",
@@ -65,8 +67,8 @@ Deno.test("encode Connect with Clean false", () => {
   );
 });
 
-Deno.test("encode Connect with KeepAlive", () => {
-  assertEquals(
+test("encode Connect with KeepAlive", () => {
+  assert.deepStrictEqual(
     encode({
       type: PacketType.connect,
       clientId: "id",
@@ -151,8 +153,8 @@ const decodedConnect: ConnectPacket = {
   keepAlive: 0,
 };
 
-Deno.test("encode Connect with username and password", () => {
-  assertEquals(
+test("encode Connect with username and password", () => {
+  assert.deepStrictEqual(
     encode({
       type: PacketType.connect,
       clientId: "id",
@@ -168,8 +170,11 @@ Deno.test("encode Connect with username and password", () => {
   );
 });
 
-Deno.test("decode Connect with username and password", () => {
-  assertEquals(decode(Uint8Array.from(encodedConnect)), decodedConnect);
+test("decode Connect with username and password", () => {
+  assert.deepStrictEqual(
+    decode(Uint8Array.from(encodedConnect)),
+    decodedConnect,
+  );
 });
 
 const decodedConnectWithWill = Object.assign({}, decodedConnect);
@@ -238,14 +243,14 @@ const encodedConnectWithWill = [
   115, // 's'
 ];
 
-Deno.test("encode Connect with username and password and will", () => {
-  assertEquals(
+test("encode Connect with username and password and will", () => {
+  assert.deepStrictEqual(
     encode(decodedConnectWithWill),
     Uint8Array.from(encodedConnectWithWill),
   );
 });
 
-Deno.test("decode invalid Connect", () => {
+test("decode invalid Connect", () => {
   const longConnect = [...encodedConnect, 0];
   longConnect[1]++;
   const reservedBitConnect = [...encodedConnect];
@@ -253,25 +258,25 @@ Deno.test("decode invalid Connect", () => {
   const invalidWillQosConnect = [...encodedConnectWithWill];
   invalidWillQosConnect[9] += 16; // set bit 4 of flags
 
-  assertThrows(
+  assert.throws(
     () => decode(Uint8Array.from([...longConnect])),
     Error,
     "too long",
   );
 
-  assertThrows(
+  assert.throws(
     () => decode(Uint8Array.from(reservedBitConnect)),
     Error,
     "Invalid reserved bit",
   );
 
-  assertThrows(
+  assert.throws(
     () => decode(Uint8Array.from(invalidWillQosConnect)),
     Error,
     "Invalid will qos",
   );
 
-  assertThrows(
+  assert.throws(
     () =>
       decode(
         Uint8Array.from([

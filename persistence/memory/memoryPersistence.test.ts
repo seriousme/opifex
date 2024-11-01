@@ -3,8 +3,9 @@ import {
   MemoryStore as Store,
 } from "./memoryPersistence.ts";
 
+import assert from "node:assert/strict";
+import { test } from "node:test";
 import { PacketType, type PublishPacket } from "../deps.ts";
-import { assertEquals } from "../../dev_utils/mod.ts";
 
 const payloadAny = new TextEncoder().encode("any");
 const qos = 1;
@@ -13,25 +14,25 @@ function delay(ms: number): Promise<unknown> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-Deno.test("new should create new Persistence object", () => {
+test("new should create new Persistence object", () => {
   const persistence = new Persistence();
-  assertEquals(typeof persistence, "object");
-  assertEquals(persistence instanceof Persistence, true);
+  assert.deepStrictEqual(typeof persistence, "object");
+  assert.deepStrictEqual(persistence instanceof Persistence, true);
 });
 
-Deno.test(
+test(
   "Registring a client should register the client and return a Store Object",
   () => {
     const persistence = new Persistence();
     const clientId = "myClient";
     const client = persistence.registerClient(clientId, () => {}, false);
-    assertEquals(persistence.clientList.has(clientId), true);
-    assertEquals(typeof client, "object");
-    assertEquals(client instanceof Store, true);
+    assert.deepStrictEqual(persistence.clientList.has(clientId), true);
+    assert.deepStrictEqual(typeof client, "object");
+    assert.deepStrictEqual(client instanceof Store, true);
   },
 );
 
-Deno.test("pub/sub should work", async () => {
+test("pub/sub should work", async () => {
   const persistence = new Persistence();
   const clientId = "myClient";
   const topic = "/myTopic";
@@ -55,7 +56,7 @@ Deno.test("pub/sub should work", async () => {
   const store = persistence.registerClient(clientId, handler, false);
 
   persistence.subscribe(store, topic, qos);
-  assertEquals(
+  assert.deepStrictEqual(
     store.subscriptions.has(topic),
     true,
     "topic is registered as subscription",
@@ -65,10 +66,10 @@ Deno.test("pub/sub should work", async () => {
   persistence.publish(topic, makePacket(undefined));
   persistence.publish("noTopic", makePacket(undefined));
   await delay(10);
-  assertEquals(seen.size, 3, `received ${seen.size} messages`);
+  assert.deepStrictEqual(seen.size, 3, `received ${seen.size} messages`);
 });
 
-Deno.test("many packets should work", async () => {
+test("many packets should work", async () => {
   const persistence = new Persistence();
   const clientId = "myClient";
   const topic = "/myTopic";
@@ -88,14 +89,18 @@ Deno.test("many packets should work", async () => {
   const seen = new Set();
 
   function handler(packet: PublishPacket): void {
-    assertEquals(seen.has(packet.id), false, `Not seen ${packet.id} before`);
+    assert.deepStrictEqual(
+      seen.has(packet.id),
+      false,
+      `Not seen ${packet.id} before`,
+    );
     seen.add(packet.id);
   }
 
   const store = persistence.registerClient(clientId, handler, false);
 
   persistence.subscribe(store, topic, qos);
-  assertEquals(
+  assert.deepStrictEqual(
     store.subscriptions.has(topic),
     true,
     "topic is registered as subscription",
@@ -104,10 +109,14 @@ Deno.test("many packets should work", async () => {
     persistence.publish(topic, makePacket(i));
   }
   await delay(10);
-  assertEquals(seen.size, numMessages, `received all ${numMessages} messages`);
+  assert.deepStrictEqual(
+    seen.size,
+    numMessages,
+    `received all ${numMessages} messages`,
+  );
 });
 
-Deno.test("unsubscribe should work", () => {
+test("unsubscribe should work", () => {
   const persistence = new Persistence();
   const clientId = "myClient";
   const topic = "/myTopic";
@@ -120,7 +129,11 @@ Deno.test("unsubscribe should work", () => {
 
   const seen = new Set();
   function handler(packet: PublishPacket): void {
-    assertEquals(seen.has(packet.id), false, `Not seen ${packet.id} before`);
+    assert.deepStrictEqual(
+      seen.has(packet.id),
+      false,
+      `Not seen ${packet.id} before`,
+    );
     seen.add(packet.id);
   }
 
@@ -128,11 +141,11 @@ Deno.test("unsubscribe should work", () => {
   persistence.subscribe(store, topic, qos);
   persistence.unsubscribe(store, topic);
 
-  assertEquals(
+  assert.deepStrictEqual(
     store.subscriptions.has(topic),
     false,
     "topic is still registered as subscription after unsubscription",
   );
   persistence.publish(topic, publishPacket);
-  assertEquals(seen.size, 0);
+  assert.deepStrictEqual(seen.size, 0);
 });
