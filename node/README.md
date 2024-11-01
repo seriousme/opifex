@@ -44,5 +44,3 @@ and then use:
 ```bash
 ./bin/mqtt.ts --help
 ```
-
-
