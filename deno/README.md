@@ -59,6 +59,7 @@ deno run -A bin/mqtt.ts
 
 Opifex is also available on [JSR.io](https://jsr.io/@seriousme/opifex).
 
-#Platform Native This folder also contains code to run the server using Deno
+# Platform Native 
+This folder also contains code to run the server using Deno
 sockets instead of NodeJS sockets. You can modify the import statements in the
-demo server/client to use these instead.
+demoServer/client to use these instead.
