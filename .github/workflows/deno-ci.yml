@@ -10,6 +10,7 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: vx.x.x # Run with latest stable Deno.
+      - run: deno install
       - run: deno fmt --check
       - run: deno lint
       - run: deno test -A
