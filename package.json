@@ -4,7 +4,6 @@
   "description": "MQTT client & server for Deno & NodeJS",
   "type": "module",
   "scripts": {
-    "pretest": "npm run build",
     "test": "node --experimental-strip-types --test --test-skip-pattern='/^Deno/'",
     "build": "npx pkgroll --clean-dist --src .",
     "postbuild": "deno fmt"
