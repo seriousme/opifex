@@ -9,12 +9,12 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 logger.level(LogLevel.info);
 
-const MQTTHelp = `MQTT.ts command line interface, available commands are:
+const MQTTHelp = `MQTT command line interface, available commands are:
 
     * publish     publish a message to the broker
     * subscribe   subscribe for updates from the broker
 
-Launch 'mqtt.ts [command] --help' to know more about the commands.`;
+Run 'mqtt [command] --help' to know more about the commands.`;
 
 const ConnectHelp = `
   -u/--url        the URL to connect to: default is ${DEFAULT_URL}
@@ -43,13 +43,13 @@ const connectOpts = {
   },
 };
 
-const SubscribeHelp = `Usage: MQTT.ts subscribe <options>
+const SubscribeHelp = `Usage: mqtt subscribe <options>
 
 Where options are:
   -t/--topic      the topic to use
   -q/--qos        the QoS (0/1/2) to use, default is 0
 ${ConnectHelp}
-Example: MQTT.ts subscribe -t hello`;
+Example: mqtt subscribe -t hello`;
 
 const subscribeOpts = {
   string: ["topic"],
@@ -125,7 +125,7 @@ async function subscribe() {
   }
 }
 
-const PublishHelp = `Usage: MQTT.ts publish <options>
+const PublishHelp = `Usage: mqtt publish <options>
 
 Where options are:
   -t/--topic      the topic to use
@@ -133,7 +133,7 @@ Where options are:
   -q/--qos        the QoS (0/1/2) to use, default is 0
   -r/--retain     if the message should be retained, default is false
 ${ConnectHelp}
-Example: MQTT.ts publish -t hello -m world`;
+Example: mqtt publish -t hello -m world`;
 
 const publishOpts = {
   string: ["topic", "message"],
