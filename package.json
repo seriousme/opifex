@@ -3,9 +3,10 @@
   "version": "1.1.0",
   "description": "MQTT client & server for Deno & NodeJS",
   "type": "module",
-  "main": "index.js",
   "scripts": {
-    "test": "node --experimental-strip-types --test --test-skip-pattern='/^Deno/'"
+    "test": "node --experimental-strip-types --test --test-skip-pattern='/^Deno/'",
+    "build": "npx pkgroll --clean-dist --src .",
+    "postbuild": "deno fmt"
   },
   "keywords": [
     "MQTT",
@@ -13,8 +14,12 @@
     "mqtt-broker"
   ],
   "bin": {
-    "mqtt": "bin/mqtt.ts",
-    "demoServer": "bin/demoServer.ts"
+    "mqtt": "dist/bin/mqtt.js",
+    "demoServer": "dist/bin/demoServer.js"
+  },
+  "exports": {
+    "./server": "./dist/server/mod.js",
+    "./client": "./dist/client/mod.js"
   },
   "author": "Hans Klunder",
   "license": "MIT",
@@ -26,9 +31,6 @@
     "url": "https://github.com/seriousme/opifex/issues"
   },
   "homepage": "https://github.com/seriousme/opifex#readme",
-  "engines": {
-    "node": ">=22.6.0"
-  },
   "devDependencies": {
     "@types/node": "^22.8.6"
   }

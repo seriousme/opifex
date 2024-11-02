@@ -1,21 +1,64 @@
-#!/usr/bin/env -S node --experimental-strip-types
-import { DEFAULT_URL } from "../client/mod.ts";
-import { logger, LogLevel } from "../utils/mod.ts";
-import { getArgs, parseArgs } from "../utils/mod.ts";
-import { getCaCerts, TcpClient } from "../node/client.ts";
+#!/usr/bin/env node
+import { C as Client, D as DEFAULT_URL } from "../client-DqLTBVC2.js";
+import { L as LogLevel, l as logger } from "../timer-DDWVNsyG.js";
+import {
+  g as getArgs,
+  p as parseArgs,
+  w as wrapNodeSocket,
+} from "../wrapNodeSocket-BAJm059T.js";
+import "node:process";
+import { readFile } from "node:fs/promises";
+import { connect } from "node:net";
+import * as tls from "node:tls";
+import "node:stream";
+
+async function getCaCerts(filename) {
+  if (!filename) {
+    return;
+  }
+  const caCerts = await readFile(filename, { encoding: "utf-8" });
+  if (caCerts === "") {
+    return;
+  }
+  return [caCerts];
+}
+class TcpClient extends Client {
+  async connectMQTT(hostname, port = 1883) {
+    logger.debug({ hostname, port });
+    return wrapNodeSocket(await connect({ host: hostname, port }));
+  }
+  async connectMQTTS(hostname, port = 8883, caCerts) {
+    const opts = {
+      host: hostname,
+      port,
+      secureContext: caCerts
+        ? tls.createSecureContext({ cert: caCerts })
+        : void 0,
+    };
+    logger.debug({ hostname, port, caCerts });
+    return wrapNodeSocket(await tls.connect(opts));
+  }
+  createConn(protocol, hostname, port, caCerts) {
+    if (protocol === "mqtts:") {
+      return this.connectMQTTS(hostname, port, caCerts);
+    }
+    if (protocol === "mqtt:") {
+      return this.connectMQTT(hostname, port);
+    }
+    throw `Unsupported protocol: ${protocol}`;
+  }
+}
 
 const client = new TcpClient();
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 logger.level(LogLevel.info);
-
 const MQTTHelp = `MQTT command line interface, available commands are:
 
     * publish     publish a message to the broker
     * subscribe   subscribe for updates from the broker
 
 Run 'mqtt [command] --help' to know more about the commands.`;
-
 const ConnectHelp = `
   -u/--url        the URL to connect to: default is ${DEFAULT_URL}
   -i/--clientId   the clientId to connect to the server
@@ -25,7 +68,6 @@ const ConnectHelp = `
   -n/--noClean    try to resume a previous session
   -h/--help       this text
   `;
-
 const connectOpts = {
   string: ["url", "username", "password", "certFile", "clientId"],
   alias: {
@@ -42,7 +84,6 @@ const connectOpts = {
     noClean: false,
   },
 };
-
 const SubscribeHelp = `Usage: mqtt subscribe <options>
 
 Where options are:
@@ -50,7 +91,6 @@ Where options are:
   -q/--qos        the QoS (0/1/2) to use, default is 0
 ${ConnectHelp}
 Example: mqtt subscribe -t hello`;
-
 const subscribeOpts = {
   string: ["topic"],
   alias: {
@@ -62,8 +102,7 @@ const subscribeOpts = {
     topic: "",
   },
 };
-
-function parseQos(qosArg: string | number) {
+function parseQos(qosArg) {
   const qos = Number(qosArg);
   switch (qos) {
     case 0:
@@ -72,13 +111,10 @@ function parseQos(qosArg: string | number) {
       return 1;
     case 2:
       return 2;
-    default:
-      break;
   }
   console.log("QoS must be between 0 and 2");
   return 0;
 }
-
 async function subscribe() {
   const connectArgs = parseArgs(getArgs(), connectOpts);
   const caCerts = await getCaCerts(connectArgs.certFile);
@@ -87,7 +123,7 @@ async function subscribe() {
     console.log(SubscribeHelp);
     return;
   }
-  if (subscribeArgs.topic === undefined) {
+  if (subscribeArgs.topic === void 0) {
     console.log("Missing `topic`");
     return;
   }
@@ -104,7 +140,6 @@ async function subscribe() {
       },
     });
     logger.debug("Connected !");
-
     client.subscribe({
       subscriptions: [
         {
@@ -114,7 +149,6 @@ async function subscribe() {
       ],
     });
     logger.debug("Subscribed!");
-
     for await (const message of client.messages()) {
       console.log(decoder.decode(message.payload));
     }
@@ -124,7 +158,6 @@ async function subscribe() {
     }
   }
 }
-
 const PublishHelp = `Usage: mqtt publish <options>
 
 Where options are:
@@ -134,7 +167,6 @@ Where options are:
   -r/--retain     if the message should be retained, default is false
 ${ConnectHelp}
 Example: mqtt publish -t hello -m world`;
-
 const publishOpts = {
   string: ["topic", "message"],
   boolean: ["retain"],
@@ -148,11 +180,10 @@ const publishOpts = {
     qos: 0,
     dup: false,
     retain: false,
-    topic: undefined,
+    topic: void 0,
     message: "",
   },
 };
-
 async function publish() {
   const connectArgs = parseArgs(getArgs(), connectOpts);
   const caCerts = await getCaCerts(connectArgs.certFile);
@@ -161,7 +192,7 @@ async function publish() {
     console.log(PublishHelp);
     return;
   }
-  if (publishArgs.topic === undefined) {
+  if (publishArgs.topic === void 0) {
     console.log("Missing `topic`");
     return;
   }
@@ -192,7 +223,6 @@ async function publish() {
     }
   }
 }
-
 function processArgs() {
   const { _: [cmd] } = parseArgs(getArgs());
   switch (cmd) {
@@ -207,5 +237,4 @@ function processArgs() {
       break;
   }
 }
-
 processArgs();
