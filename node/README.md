@@ -5,8 +5,9 @@ Opifex on Deno see the [instructions](../deno/README.md)
 
 ## Playing around
 
-Make sure you have NodeJS with a version > 22.6.0 installed if you want to run Typescript directly.
-Alternatively there is a version transpiled to Javascript in the `/dist` folder which should work on any supported version of NodeJS.
+Make sure you have NodeJS with a version > 22.6.0 installed if you want to run
+Typescript directly. Alternatively there is a version transpiled to Javascript
+in the `/dist` folder which should work on any supported version of NodeJS.
 
 ### Server
 
