@@ -24,10 +24,10 @@ export function wrapNodeSocket(socket: Socket): SockConn {
         });
         socket.on("error", (err: unknown) => controller.error(err));
         socket.on("end", () => {
-          // unlock the last BYOB read request
-          controller.byobRequest?.respond(1);
-          // and close the controller
+          // close the controller
           controller.close();
+          // and unlock the last BYOB read request
+          controller.byobRequest?.respond(0);
         });
       },
       pull: () => {
