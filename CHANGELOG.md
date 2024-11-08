@@ -4,6 +4,12 @@
 
 ### Changed
 
+## [v1.2.1] 01-11-2024
+
+### Changed
+
+- fix: unlock last BYOB request using respond(0)
+
 ## [v1.2.0] 01-11-2024
 
 ### Changed
