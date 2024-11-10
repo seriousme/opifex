@@ -86,8 +86,8 @@ function wrapNodeSocket(socket) {
         });
         socket.on("error", (err) => controller.error(err));
         socket.on("end", () => {
-          controller.byobRequest?.respond(1);
           controller.close();
+          controller.byobRequest?.respond(0);
         });
       },
       pull: () => {

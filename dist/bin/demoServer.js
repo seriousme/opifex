@@ -11,7 +11,7 @@ import {
   g as getArgs,
   p as parseArgs,
   w as wrapNodeSocket,
-} from "../wrapNodeSocket-BAJm059T.js";
+} from "../wrapNodeSocket-eEFqnEDD.js";
 import "node:stream";
 
 class TcpServer {

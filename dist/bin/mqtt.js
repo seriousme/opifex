@@ -5,7 +5,7 @@ import {
   g as getArgs,
   p as parseArgs,
   w as wrapNodeSocket,
-} from "../wrapNodeSocket-BAJm059T.js";
+} from "../wrapNodeSocket-eEFqnEDD.js";
 import "node:process";
 import { readFile } from "node:fs/promises";
 import { connect } from "node:net";
