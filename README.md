@@ -10,15 +10,6 @@ party dependencies, it only relies on built in modules.
 Its a work in progress, only does MQTT 3.1.1 and currently only has memory based
 persistence.
 
-There are separate usage instructions for:
-
-- [Deno](deno/README.md)
-- [NodeJS](node/README.md)
-
-The client and server libs should also work on Bun as they are engine
-independent, but the demo server and client currently do not work on Bun because
-of some socket incompatibilities between Bun and the rest.
-
 ## Architecture
 
 1. The basis of Opifex is the MQTT packet module
@@ -55,6 +46,31 @@ of some socket incompatibilities between Bun and the rest.
 
 7. The demo client opens a platform specific socket and passes the resulting
    platform independent streams to the client module.
+
+## Usage
+
+The most easy way to use this project is to just use the demo server
+(demoServer) and/or the demo client (mqtt). There are separate usage
+instructions for:
+
+- [Deno](deno/README.md)
+- [NodeJS](node/README.md)
+
+If you want to change the behaviour of the server and/or the client beyond what
+can be done with CLI options then the next step is to clone the demo server
+and/or the client scripts and modify them to your liking.
+
+If you want to port the platform independent client and server libs to other
+types of transport (e.g. Unix sockets or websocketstream) then its recommended
+to clone and modify the platform specific code in `/node` or `/deno` as well.
+
+If you want to port the platform independent client and server libs to another
+platform (e.g. Bun) then the platform specific code in `/node` or `/deno` might
+serve as inspiration.
+
+The platform independent client and server libs should also work on Bun as they
+are engine independent, but the demo server and client currently do not work on
+Bun because of some socket incompatibilities between Bun and the rest.
 
 ## Naming
 
