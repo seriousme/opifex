@@ -6,7 +6,10 @@
   "scripts": {
     "test": "node --experimental-strip-types --test --test-skip-pattern='/^Deno/'",
     "build": "npx pkgroll --clean-dist --src .",
-    "postbuild": "deno fmt"
+    "postbuild": "deno fmt",
+    "preversion": "npm run test",
+    "version": "npm run build",
+    "postversion": "jq '( { name:.name , version:.version} + .deno)' package.json > deno.json"
   },
   "keywords": [
     "MQTT",
@@ -20,6 +23,15 @@
   "exports": {
     "./server": "./dist/server/mod.js",
     "./client": "./dist/client/mod.js"
+  },
+  "deno": {
+    "exports": {
+      "./server": "./server/mod.ts",
+      "./client": "./client/mod.ts"
+    },
+    "exclude": [
+      "dist"
+    ]
   },
   "author": "Hans Klunder",
   "license": "MIT",
