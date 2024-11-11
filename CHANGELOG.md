@@ -4,6 +4,10 @@
 
 ### Changed
 
+- update: added architectural description of Opifex to documentation
+- update: added comments to platform specific code to explain boundary between
+  platform agnostic and platform specific.
+
 ## [v1.2.1] 01-11-2024
 
 ### Changed
