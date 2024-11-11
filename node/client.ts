@@ -1,3 +1,5 @@
+// this a NodeJS specific implementation of TCP client sockets
+// it extends the platform agnostic Client class
 import { Client } from "../client/client.ts";
 import { logger } from "../client/deps.ts";
 import { readFile } from "node:fs/promises";

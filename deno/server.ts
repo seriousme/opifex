@@ -1,3 +1,5 @@
+// This a Deno specific implementation of a TCP socket listener
+// it uses the platform agnostic MqttServer class
 import { MqttServer } from "../server/mod.ts";
 import type { MqttServerOptions } from "../server/mod.ts";
 import { wrapDenoConn } from "./wrapDenoConn.ts";

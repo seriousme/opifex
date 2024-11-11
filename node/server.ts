@@ -1,3 +1,5 @@
+// This a NodeJS specific implementation of a TCP socket listener
+// it uses the platform agnostic MqttServer class
 import type { Server } from "node:net";
 import { createServer } from "node:net";
 import type { MqttServerOptions } from "../server/mod.ts";

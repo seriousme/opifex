@@ -1,3 +1,5 @@
+// This a Deno specific implementation of TCP client sockets
+// it extends the platform agnostic Client class
 import { Client } from "../client/client.ts";
 import { logger } from "../client/deps.ts";
 import { wrapDenoConn } from "./wrapDenoConn.ts";
