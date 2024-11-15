@@ -13,7 +13,7 @@ export interface UnixAddr {
 export type SockConn = {
   readable: ReadableStream<Uint8Array>;
   writable: WritableStream<Uint8Array>;
-  closer: () => void;
+  close: () => void;
   localAddr?: SockAddr;
   remoteAddr?: SockAddr;
 };
@@ -29,7 +29,8 @@ export class Conn {
     this.closed = false;
     this.reader = sockConn.readable.getReader({ mode: "byob" });
     this.writer = sockConn.writable.getWriter();
-    this.closer = sockConn.closer;
+    // this.writer.closed.then(() => this.closed = true);
+    this.closer = sockConn.close.bind(sockConn);
     this.remoteAddr = sockConn.remoteAddr;
   }
 

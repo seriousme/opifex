@@ -2,7 +2,6 @@
 // it uses the platform agnostic MqttServer class
 import { MqttServer } from "../server/mod.ts";
 import type { MqttServerOptions } from "../server/mod.ts";
-import { wrapDenoConn } from "./wrapDenoConn.ts";
 
 export class TcpServer {
   private listener: Deno.Listener<Deno.Conn>;
@@ -17,7 +16,7 @@ export class TcpServer {
 
   async start() {
     for await (const conn of this.listener) {
-      this.mqttServer.serve(wrapDenoConn(conn));
+      this.mqttServer.serve(conn);
     }
   }
   stop() {

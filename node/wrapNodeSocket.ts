@@ -47,7 +47,7 @@ export function wrapNodeSocket(socket: Socket): SockConn {
   const conn: SockConn = {
     readable: readable as ReadableStream<Uint8Array>,
     writable: writable as WritableStream<Uint8Array>,
-    closer: () => closer(socket),
+    close: () => closer(socket),
     remoteAddr,
   };
   return conn;
