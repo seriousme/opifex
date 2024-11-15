@@ -68,7 +68,7 @@ function ReadableStreamFrom(
 export function makeDummySockConn(
   readerBuffs: Uint8Array[],
   writerBuf: Uint8Array,
-  closer = () => {},
+  close = () => {},
 ) {
   const readBlob = new Blob(readerBuffs);
   const readable = readBlob.stream();
@@ -76,20 +76,20 @@ export function makeDummySockConn(
   return {
     readable,
     writable,
-    closer,
+    close,
   };
 }
 
 export function makeDummyQueueSockConn(
   r: AsyncQueue<Uint8Array>,
   w: AsyncQueue<Uint8Array>,
-  closer = () => {},
+  close = () => {},
 ) {
   const readable = ReadableStreamFrom(r);
   const writable = new WritableStream(new Uint8QueuedWriter(w));
   return {
     readable,
     writable,
-    closer,
+    close,
   };
 }
