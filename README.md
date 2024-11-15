@@ -10,6 +10,21 @@ party dependencies, it only relies on built in modules.
 Its a work in progress, only does MQTT 3.1.1 and currently only has memory based
 persistence.
 
+## Example
+
+A simple server example using Deno, for more elaborate examples see the Usage
+section below.
+
+```typescript
+import { MqttServer } from "./server/mod.ts";
+
+const listener = Deno.listen();
+const mqttServer = new MqttServer(mqttOptions);
+for await (const conn of this.listener) {
+  mqttServer.serve(conn);
+}
+```
+
 ## Architecture
 
 1. The basis of Opifex is the MQTT packet module

@@ -91,8 +91,10 @@ export class Context {
     if (this.mqttConn === undefined) {
       return true;
     }
+    logger.debug("Send connect packet");
     await this.connect(connectPacket);
     try {
+      logger.debug("Accepting packets");
       for await (const packet of this.mqttConn) {
         handlePacket(this, packet);
       }

@@ -5,7 +5,7 @@ import { AuthenticationResult } from "../server/mod.ts";
 import type { Context, TAuthenticationResult, Topic } from "../server/mod.ts";
 import { logger, LogLevel } from "../utils/mod.ts";
 import { getArgs, parseArgs } from "../utils/mod.ts";
-import { TcpServer } from "../deno/server.ts";
+import { TcpServer } from "../node/server.ts";
 
 const utf8Decoder = new TextDecoder();
 const userTable = new Map();

@@ -1,3 +1,5 @@
-export { C as Client, D as DEFAULT_URL } from "../client-DqLTBVC2.js";
-import "../timer-DDWVNsyG.js";
-import "node:process";
+/**
+ *  This module provides an MQTT Client interface see the /bin folder for examples
+ *  @module
+ */
+export { Client, DEFAULT_URL } from "./client.js";

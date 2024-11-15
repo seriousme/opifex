@@ -2,7 +2,6 @@
 // it extends the platform agnostic Client class
 import { Client } from "../client/client.ts";
 import { logger } from "../client/deps.ts";
-import { wrapDenoConn } from "./wrapDenoConn.ts";
 import type { SockConn } from "../client/deps.ts";
 
 export async function getCaCerts(filename: string | undefined) {
@@ -19,7 +18,7 @@ export async function getCaCerts(filename: string | undefined) {
 export class TcpClient extends Client {
   protected async connectMQTT(hostname: string, port = 1883) {
     logger.debug({ hostname, port });
-    return wrapDenoConn(await Deno.connect({ hostname, port }));
+    return await Deno.connect({ hostname, port });
   }
 
   protected async connectMQTTS(
@@ -28,7 +27,7 @@ export class TcpClient extends Client {
     caCerts?: string[],
   ) {
     logger.debug({ hostname, port, caCerts });
-    return wrapDenoConn(await Deno.connectTls({ hostname, port, caCerts }));
+    return await Deno.connectTls({ hostname, port, caCerts });
   }
 
   protected override createConn(
