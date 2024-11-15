@@ -2,7 +2,7 @@ export class Timer {
   readonly delay: number; // delay in microseconds
   // deno-lint-ignore ban-types
   private action: Function; // function to perform when timer expires
-  private timer = 0;
+  private timer?: ReturnType<typeof setTimeout>;
   private end = 0;
   private running = false;
 

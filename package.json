@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "test": "node --experimental-strip-types --test --test-skip-pattern='/^Deno/'",
-    "build": "npx pkgroll --clean-dist --src .",
+    "prebuild": "rm -rf dist",
+    "build": "npx -p typescript@beta tsc --build",
     "postbuild": "deno fmt",
     "preversion": "npm run test",
     "version": "npm run build",
