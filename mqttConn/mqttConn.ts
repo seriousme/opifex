@@ -112,7 +112,10 @@ export class MqttConn implements IMqttConn {
   async send(data: AnyPacket): Promise<void> {
     try {
       await this.conn.write(encode(data));
-    } catch {
+    } catch (err) {
+      if (err instanceof Error) {
+        this._reason = err.message;
+      }
       this.close();
     }
   }
