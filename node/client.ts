@@ -3,7 +3,7 @@
 import { Client } from "../client/client.ts";
 import { logger } from "../client/deps.ts";
 import { readFile } from "node:fs/promises";
-import { connect } from "node:net";
+import { createConnection } from "node:net";
 import * as tls from "node:tls";
 import type { SockConn } from "../socket/socket.ts";
 import { wrapNodeSocket } from "./wrapNodeSocket.ts";
@@ -20,16 +20,29 @@ export async function getCaCerts(filename: string | undefined) {
 }
 
 export class TcpClient extends Client {
-  protected async connectMQTT(hostname: string, port = 1883) {
+  protected connectMQTT(hostname: string, port = 1883): Promise<SockConn> {
     logger.debug({ hostname, port });
-    return wrapNodeSocket(await connect({ host: hostname, port }));
+    return new Promise((resolve, reject) => {
+      const socket = createConnection(
+        { port, host: hostname },
+        () => {
+          logger.debug("Connected to server");
+          resolve(wrapNodeSocket(socket));
+        },
+      );
+      socket.once("error", (err) => {
+        // @ts-ignore the type spec of err is missing err.code
+        logger.debug("Connection failed: ", err);
+        reject(err);
+      });
+    });
   }
 
-  protected async connectMQTTS(
+  protected connectMQTTS(
     hostname: string,
     port = 8883,
     caCerts?: string[],
-  ) {
+  ): Promise<SockConn> {
     const opts = {
       host: hostname,
       port,
@@ -38,7 +51,16 @@ export class TcpClient extends Client {
         : undefined,
     };
     logger.debug({ hostname, port, caCerts });
-    return wrapNodeSocket(await tls.connect(opts));
+    return new Promise((resolve, reject) => {
+      const socket = tls.connect(opts, () => {
+        logger.debug("Connected to server");
+        resolve(wrapNodeSocket(socket));
+      });
+      socket.once("error", (err) => {
+        logger.debug("Connection failed", err);
+        reject(err);
+      });
+    });
   }
 
   protected override createConn(

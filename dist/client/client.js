@@ -52,7 +52,7 @@ export class Client {
         }
         let isReconnect = false;
         let attempt = 1;
-        let lastMessage = "";
+        let lastMessage = new Error();
         let tryConnect = true;
         while (tryConnect) {
             logger.debug(`${isReconnect ? "re" : ""}connecting`);
@@ -69,7 +69,7 @@ export class Client {
             }
             catch (err) {
                 if (err instanceof Error) {
-                    lastMessage = `Connection failed: ${err.message}`;
+                    lastMessage = err;
                 }
                 logger.debug(lastMessage);
                 if (!isReconnect && attempt > this.numberOfRetries) {
@@ -81,7 +81,7 @@ export class Client {
             }
         }
         if (isReconnect === false) {
-            this.ctx.unresolvedConnect?.reject(Error(lastMessage));
+            this.ctx.unresolvedConnect?.reject(lastMessage);
         }
     }
     connect(params = {}) {
