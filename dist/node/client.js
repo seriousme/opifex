@@ -3,7 +3,7 @@
 import { Client } from "../client/client.js";
 import { logger } from "../client/deps.js";
 import { readFile } from "node:fs/promises";
-import { connect } from "node:net";
+import { createConnection } from "node:net";
 import * as tls from "node:tls";
 import { wrapNodeSocket } from "./wrapNodeSocket.js";
 export async function getCaCerts(filename) {
@@ -17,11 +17,21 @@ export async function getCaCerts(filename) {
     return [caCerts];
 }
 export class TcpClient extends Client {
-    async connectMQTT(hostname, port = 1883) {
+    connectMQTT(hostname, port = 1883) {
         logger.debug({ hostname, port });
-        return wrapNodeSocket(await connect({ host: hostname, port }));
+        return new Promise((resolve, reject) => {
+            const socket = createConnection({ port, host: hostname }, () => {
+                logger.debug("Connected to server");
+                resolve(wrapNodeSocket(socket));
+            });
+            socket.once("error", (err) => {
+                // @ts-ignore the type spec of err is missing err.code
+                logger.debug("Connection failed: ", err);
+                reject(err);
+            });
+        });
     }
-    async connectMQTTS(hostname, port = 8883, caCerts) {
+    connectMQTTS(hostname, port = 8883, caCerts) {
         const opts = {
             host: hostname,
             port,
@@ -30,7 +40,16 @@ export class TcpClient extends Client {
                 : undefined,
         };
         logger.debug({ hostname, port, caCerts });
-        return wrapNodeSocket(await tls.connect(opts));
+        return new Promise((resolve, reject) => {
+            const socket = tls.connect(opts, () => {
+                logger.debug("Connected to server");
+                resolve(wrapNodeSocket(socket));
+            });
+            socket.once("error", (err) => {
+                logger.debug("Connection failed", err);
+                reject(err);
+            });
+        });
     }
     createConn(protocol, hostname, port, caCerts) {
         // if you need to support alternative connection types just

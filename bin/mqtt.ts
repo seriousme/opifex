@@ -120,7 +120,8 @@ async function subscribe() {
     }
   } catch (err) {
     if (err instanceof Error) {
-      logger.info(err.message);
+      // @ts-ignore the type spec of err is missing err.code
+      logger.info(`Error: ${err.message || err.code}`);
     }
   }
 }
@@ -188,7 +189,8 @@ async function publish() {
     logger.debug("Disconnected !");
   } catch (err) {
     if (err instanceof Error) {
-      logger.info(err.message);
+      // @ts-ignore the type spec of err is missing err.code
+      logger.info(`Error: ${err.message || err.code}`);
     }
   }
 }
