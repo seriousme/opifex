@@ -40,6 +40,7 @@ const connectOpts = {
   boolean: ["noClean", "help"],
   default: {
     noClean: false,
+    clientId: `Opifex-${crypto.randomUUID()}`,
   },
 };
 
