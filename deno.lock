@@ -2,7 +2,7 @@
   "version": "4",
   "specifiers": {
     "npm:@types/node@*": "22.5.4",
-    "npm:@types/node@^22.8.6": "22.8.6"
+    "npm:@types/node@^22.9.0": "22.9.0"
   },
   "npm": {
     "@types/node@22.5.4": {
@@ -11,8 +11,8 @@
         "undici-types"
       ]
     },
-    "@types/node@22.8.6": {
-      "integrity": "sha512-tosuJYKrIqjQIlVCM4PEGxOmyg3FCPa/fViuJChnGeEIhjA46oy8FMVoF9su1/v8PNs2a8Q0iFNyOx0uOF91nw==",
+    "@types/node@22.9.0": {
+      "integrity": "sha512-vuyHg81vvWA1Z1ELfvLko2c8f34gyA0zaic0+Rllc5lbCnbSyuvb2Oxpm6TAUAC/2xZN3QGqxBNggD1nNR2AfQ==",
       "dependencies": [
         "undici-types"
       ]
@@ -24,7 +24,7 @@
   "workspace": {
     "packageJson": {
       "dependencies": [
-        "npm:@types/node@^22.8.6"
+        "npm:@types/node@^22.9.0"
       ]
     }
   }
