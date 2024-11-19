@@ -31,7 +31,6 @@ export class TcpClient extends Client {
         },
       );
       socket.once("error", (err) => {
-        // @ts-ignore the type spec of err is missing err.code
         logger.debug("Connection failed: ", err);
         reject(err);
       });
