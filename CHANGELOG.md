@@ -4,9 +4,15 @@
 
 ### Changed
 
+## [v1.3.0] 19-11-2024
+
+### Changed
+
 - update: added architectural description of Opifex to documentation
 - update: added comments to platform specific code to explain boundary between
   platform agnostic and platform specific.
+- update: set default clientId in client
+- fix: improve handling of errors if client connect fails
 
 ## [v1.2.1] 01-11-2024
 
