@@ -25,9 +25,11 @@ export class TcpClient extends Client {
     hostname: string,
     port = 8883,
     caCerts?: string[],
+    cert?: string,
+    key?: string,
   ) {
-    logger.debug({ hostname, port, caCerts });
-    return await Deno.connectTls({ hostname, port, caCerts });
+    logger.debug({ hostname, port, caCerts, cert });
+    return await Deno.connectTls({ hostname, port, caCerts, cert, key });
   }
 
   protected override createConn(
@@ -35,11 +37,13 @@ export class TcpClient extends Client {
     hostname: string,
     port?: number,
     caCerts?: string[],
+    cert?: string,
+    key?: string,
   ): Promise<SockConn> {
     // if you need to support alternative connection types just
     // overload this method in your subclass
     if (protocol === "mqtts:") {
-      return this.connectMQTTS(hostname, port, caCerts);
+      return this.connectMQTTS(hostname, port, caCerts, cert, key);
     }
     if (protocol === "mqtt:") {
       return this.connectMQTT(hostname, port);

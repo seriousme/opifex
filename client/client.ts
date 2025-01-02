@@ -25,6 +25,8 @@ type ConnectOptions = Omit<
 export type ConnectParameters = {
   url?: URL;
   caCerts?: string[];
+  cert?: string;
+  key?: string;
   numberOfRetries?: number;
   options?: ConnectOptions;
 };
@@ -70,6 +72,8 @@ export class Client {
   protected keepAlive = DEFAULT_KEEPALIVE;
   protected autoReconnect = true;
   private caCerts?: string[];
+  private cert?: string;
+  private key?: string;
   private clientId: string;
   private ctx = new Context(new MemoryStore());
   private connectPacket?: ConnectPacket;
@@ -84,6 +88,8 @@ export class Client {
     _hostname: string,
     _port?: number,
     _caCerts?: string[],
+    _cert?: string,
+    _key?: string,
   ): Promise<SockConn> {
     // if you need to support alternative connection types just
     // overload this method in your subclass
@@ -106,6 +112,8 @@ export class Client {
           this.url.hostname,
           Number(this.url.port) ?? undefined,
           this.caCerts,
+          this.cert,
+          this.key,
         );
         // if we get this far we have a connection
         tryConnect =
@@ -137,6 +145,8 @@ export class Client {
     this.url = params?.url || this.url;
     this.numberOfRetries = params.numberOfRetries || this.numberOfRetries;
     this.caCerts = params?.caCerts;
+    this.cert = params?.cert;
+    this.key = params?.key;
     const options = Object.assign(
       {
         keepAlive: this.keepAlive,
