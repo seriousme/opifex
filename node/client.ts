@@ -40,16 +40,18 @@ export class TcpClient extends Client {
   protected connectMQTTS(
     hostname: string,
     port = 8883,
-    caCerts?: string[],
+    ca?: string[],
+    cert?: string,
+    key?: string,
   ): Promise<SockConn> {
     const opts = {
       host: hostname,
       port,
-      secureContext: caCerts
-        ? tls.createSecureContext({ cert: caCerts })
+      secureContext: (ca || key || cert)
+        ? tls.createSecureContext({ ca, cert, key })
         : undefined,
     };
-    logger.debug({ hostname, port, caCerts });
+    logger.debug({ hostname, port, ca, cert });
     return new Promise((resolve, reject) => {
       const socket = tls.connect(opts, () => {
         logger.debug("Connected to server");
