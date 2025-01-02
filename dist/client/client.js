@@ -34,6 +34,8 @@ export class Client {
     keepAlive = DEFAULT_KEEPALIVE;
     autoReconnect = true;
     caCerts;
+    cert;
+    key;
     clientId;
     ctx = new Context(new MemoryStore());
     connectPacket;
@@ -41,7 +43,7 @@ export class Client {
         this.clientId = generateClientId(this.clientIdPrefix);
         this.numberOfRetries = DEFAULT_RETRIES;
     }
-    createConn(protocol, _hostname, _port, _caCerts) {
+    createConn(protocol, _hostname, _port, _caCerts, _cert, _key) {
         // if you need to support alternative connection types just
         // overload this method in your subclass
         throw `Unsupported protocol: ${protocol}`;
@@ -57,7 +59,7 @@ export class Client {
         while (tryConnect) {
             logger.debug(`${isReconnect ? "re" : ""}connecting`);
             try {
-                const conn = await this.createConn(this.url.protocol, this.url.hostname, Number(this.url.port) ?? undefined, this.caCerts);
+                const conn = await this.createConn(this.url.protocol, this.url.hostname, Number(this.url.port) ?? undefined, this.caCerts, this.cert, this.key);
                 // if we get this far we have a connection
                 tryConnect =
                     (await this.ctx.handleConnection(conn, this.connectPacket)) &&
@@ -88,6 +90,8 @@ export class Client {
         this.url = params?.url || this.url;
         this.numberOfRetries = params.numberOfRetries || this.numberOfRetries;
         this.caCerts = params?.caCerts;
+        this.cert = params?.cert;
+        this.key = params?.key;
         const options = Object.assign({
             keepAlive: this.keepAlive,
             clientId: this.clientId,
