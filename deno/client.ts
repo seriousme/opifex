@@ -4,15 +4,15 @@ import { Client } from "../client/client.ts";
 import { logger } from "../client/deps.ts";
 import type { SockConn } from "../client/deps.ts";
 
-export async function getCaCerts(filename: string | undefined) {
+export async function getFileData(filename: string | undefined) {
   if (!filename) {
     return;
   }
-  const caCerts = await Deno.readTextFile(filename);
-  if (caCerts === "") {
+  const data = await Deno.readTextFile(filename);
+  if (data === "") {
     return;
   }
-  return [caCerts];
+  return data;
 }
 
 export class TcpClient extends Client {

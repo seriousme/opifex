@@ -2,7 +2,8 @@
 import { DEFAULT_URL } from "../client/mod.ts";
 import { logger, LogLevel } from "../utils/mod.ts";
 import { getArgs, parseArgs } from "../utils/mod.ts";
-import { getCaCerts, TcpClient } from "../node/client.ts";
+import { getFileData, TcpClient } from "../node/client.ts";
+import type { Args } from "../utils/args.ts";
 
 const client = new TcpClient();
 const encoder = new TextEncoder();
@@ -21,18 +22,30 @@ const ConnectHelp = `
   -i/--clientId   the clientId to connect to the server
   -U/--username   the username to connect to the server
   -P/--password   the password to connect to the server
-  -c/--certFile   the path to a certFile
+  -C/--caFile     the path to a CA certificate file
+  -c/--certFile   the path to a certificate file
+  -k/--keyFile    the path to a key file
   -n/--noClean    try to resume a previous session
   -h/--help       this text
   `;
 
 const connectOpts = {
-  string: ["url", "username", "password", "certFile", "clientId"],
+  string: [
+    "url",
+    "username",
+    "password",
+    "caFile",
+    "certFile",
+    "keyFile",
+    "clientId",
+  ],
   alias: {
     u: "url",
     U: "username",
     P: "password",
+    C: "caFile",
     c: "certFile",
+    k: "keyFile",
     i: "clientId",
     n: "noClean",
     h: "help",
@@ -80,9 +93,25 @@ function parseQos(qosArg: string | number) {
   return 0;
 }
 
+async function getTLSdata(connectArgs: Args) {
+  const caFileData = await getFileData(connectArgs.caFile);
+  const caCerts = caFileData ? [caFileData] : undefined;
+  const cert = await getFileData(connectArgs.certFile);
+  const key = await getFileData(connectArgs.keyFile);
+  return {
+    caCerts,
+    cert,
+    key,
+  };
+}
+
 async function subscribe() {
   const connectArgs = parseArgs(getArgs(), connectOpts);
-  const caCerts = await getCaCerts(connectArgs.certFile);
+  const {
+    caCerts,
+    cert,
+    key,
+  } = await getTLSdata(connectArgs);
   const subscribeArgs = parseArgs(getArgs(), subscribeOpts);
   if (connectArgs.help) {
     console.log(SubscribeHelp);
@@ -96,6 +125,8 @@ async function subscribe() {
     await client.connect({
       url: connectArgs.url,
       caCerts,
+      cert,
+      key,
       options: {
         username: connectArgs.username,
         password: encoder.encode(connectArgs.password),
@@ -157,7 +188,11 @@ const publishOpts = {
 
 async function publish() {
   const connectArgs = parseArgs(getArgs(), connectOpts);
-  const caCerts = await getCaCerts(connectArgs.certFile);
+  const {
+    caCerts,
+    cert,
+    key,
+  } = await getTLSdata(connectArgs);
   const publishArgs = parseArgs(getArgs(), publishOpts);
   if (connectArgs.help) {
     console.log(PublishHelp);
@@ -171,6 +206,8 @@ async function publish() {
     await client.connect({
       url: connectArgs.url,
       caCerts,
+      cert,
+      key,
       options: {
         username: connectArgs.username,
         password: encoder.encode(connectArgs.password),

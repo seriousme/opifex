@@ -6,15 +6,15 @@ import { readFile } from "node:fs/promises";
 import { createConnection } from "node:net";
 import * as tls from "node:tls";
 import { wrapNodeSocket } from "./wrapNodeSocket.js";
-export async function getCaCerts(filename) {
+export async function getFileData(filename) {
     if (!filename) {
         return;
     }
-    const caCerts = await readFile(filename, { encoding: "utf-8" });
-    if (caCerts === "") {
+    const data = await readFile(filename, { encoding: "utf-8" });
+    if (data === "") {
         return;
     }
-    return [caCerts];
+    return data;
 }
 export class TcpClient extends Client {
     connectMQTT(hostname, port = 1883) {
@@ -30,15 +30,15 @@ export class TcpClient extends Client {
             });
         });
     }
-    connectMQTTS(hostname, port = 8883, caCerts) {
+    connectMQTTS(hostname, port = 8883, ca, cert, key) {
         const opts = {
             host: hostname,
             port,
-            secureContext: caCerts
-                ? tls.createSecureContext({ cert: caCerts })
+            secureContext: (ca || key || cert)
+                ? tls.createSecureContext({ ca, cert, key })
                 : undefined,
         };
-        logger.debug({ hostname, port, caCerts });
+        logger.debug({ hostname, port, ca, cert });
         return new Promise((resolve, reject) => {
             const socket = tls.connect(opts, () => {
                 logger.debug("Connected to server");

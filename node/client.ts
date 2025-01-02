@@ -8,15 +8,15 @@ import * as tls from "node:tls";
 import type { SockConn } from "../socket/socket.ts";
 import { wrapNodeSocket } from "./wrapNodeSocket.ts";
 
-export async function getCaCerts(filename: string | undefined) {
+export async function getFileData(filename: string | undefined) {
   if (!filename) {
     return;
   }
-  const caCerts = await readFile(filename, { encoding: "utf-8" });
-  if (caCerts === "") {
+  const data = await readFile(filename, { encoding: "utf-8" });
+  if (data === "") {
     return;
   }
-  return [caCerts];
+  return data;
 }
 
 export class TcpClient extends Client {
@@ -40,16 +40,18 @@ export class TcpClient extends Client {
   protected connectMQTTS(
     hostname: string,
     port = 8883,
-    caCerts?: string[],
+    ca?: string[],
+    cert?: string,
+    key?: string,
   ): Promise<SockConn> {
     const opts = {
       host: hostname,
       port,
-      secureContext: caCerts
-        ? tls.createSecureContext({ cert: caCerts })
+      secureContext: (ca || key || cert)
+        ? tls.createSecureContext({ ca, cert, key })
         : undefined,
     };
-    logger.debug({ hostname, port, caCerts });
+    logger.debug({ hostname, port, ca, cert });
     return new Promise((resolve, reject) => {
       const socket = tls.connect(opts, () => {
         logger.debug("Connected to server");
