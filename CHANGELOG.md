@@ -4,6 +4,18 @@
 
 ### Changed
 
+## [v1.5.0] 02-01-2025
+
+### Changed
+
+- added client certificate support to mqtts.ts
+
+## [v1.4.0] 02-01-2025
+
+### Changed
+
+- added client certificate support (w0otness)
+
 ## [v1.3.0] 19-11-2024
 
 ### Changed

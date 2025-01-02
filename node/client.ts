@@ -8,15 +8,15 @@ import * as tls from "node:tls";
 import type { SockConn } from "../socket/socket.ts";
 import { wrapNodeSocket } from "./wrapNodeSocket.ts";
 
-export async function getCaCerts(filename: string | undefined) {
+export async function getFileData(filename: string | undefined) {
   if (!filename) {
     return;
   }
-  const caCerts = await readFile(filename, { encoding: "utf-8" });
-  if (caCerts === "") {
+  const data = await readFile(filename, { encoding: "utf-8" });
+  if (data === "") {
     return;
   }
-  return [caCerts];
+  return data;
 }
 
 export class TcpClient extends Client {
