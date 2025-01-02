@@ -28,7 +28,7 @@ export class TcpClient extends Client {
     cert?: string,
     key?: string,
   ) {
-    logger.debug({ hostname, port, caCerts, cert, key });
+    logger.debug({ hostname, port, caCerts, cert });
     return await Deno.connectTls({ hostname, port, caCerts, cert, key });
   }
 
