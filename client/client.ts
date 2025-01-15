@@ -173,16 +173,16 @@ export class Client {
       type: PacketType.publish,
       ...params,
     };
-    await this.ctx.send(packet);
+    await this.ctx.publish(packet);
   }
 
   async subscribe(params: SubscribeParameters): Promise<void> {
     const packet: SubscribePacket = {
       type: PacketType.subscribe,
-      id: this.ctx.store.nextId(),
+      id: 0, //placeholder
       ...params,
     };
-    await this.ctx.send(packet);
+    await this.ctx.subscribe(packet);
   }
 
   async *messages(): AsyncGenerator<PublishPacket, void, unknown> {
