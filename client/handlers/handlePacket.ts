@@ -25,7 +25,7 @@ export async function handlePacket(
   ctx: Context,
   packet: AnyPacket,
 ): Promise<void> {
-  logger.debug({ received: JSON.stringify(packet, null, 2) });
+  logger.debug({ received: PacketNameByType[packet.type], packet });
   if (ctx.connectionState !== ConnectionState.connected) {
     if (packet.type === PacketType.connack) {
       handleConnack(packet as ConnackPacket, ctx);
