@@ -28,10 +28,11 @@ export async function handlePublish(
   if (packet.id !== undefined) {
     // qos 1
     if (qos === 1) {
+      const id = packet.id; // retain the id
       ctx.persistence.publish(packet.topic, packet);
       await ctx.send({
         type: PacketType.puback,
-        id: packet.id,
+        id,
       });
       return;
     }
