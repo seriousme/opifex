@@ -4,6 +4,12 @@
 
 ### Changed
 
+## [v1.5.1] 16-01-2025
+
+### Changed
+
+- fixed issue with QoS=1
+
 ## [v1.5.0] 02-01-2025
 
 ### Changed
