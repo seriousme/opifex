@@ -31,6 +31,25 @@ export class TcpServer {
   }
 
   get port() {
-    return this.serverOptions.port;
+    const address = this.server?.address();
+    if (typeof address === "object") {
+      return address?.port;
+    }
+    return this.serverOptions?.port;
+  }
+
+  get address() {
+    const addressResult = this.server?.address();
+    if (typeof addressResult === "object") {
+      const address = addressResult?.address;
+      if (address === "::") {
+        return "localhost";
+      }
+      if (address?.includes(":")) {
+        return `[${address}]`;
+      }
+      return address;
+    }
+    return addressResult;
   }
 }

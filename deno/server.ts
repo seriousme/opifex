@@ -29,4 +29,11 @@ export class TcpServer {
     }
     return undefined;
   }
+
+  get address() {
+    if (this.listener.addr.transport === "tcp") {
+      return this.listener.addr.hostname;
+    }
+    return undefined;
+  }
 }
