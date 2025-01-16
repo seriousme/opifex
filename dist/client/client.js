@@ -113,17 +113,20 @@ export class Client {
             type: PacketType.publish,
             ...params,
         };
-        await this.ctx.send(packet);
+        await this.ctx.publish(packet);
     }
     async subscribe(params) {
         const packet = {
             type: PacketType.subscribe,
-            id: this.ctx.store.nextId(),
+            id: 0, //placeholder
             ...params,
         };
-        await this.ctx.send(packet);
+        await this.ctx.subscribe(packet);
     }
     async *messages() {
         yield* this.ctx.incoming;
+    }
+    closeMessages(reason) {
+        this.ctx.incoming.close(reason);
     }
 }

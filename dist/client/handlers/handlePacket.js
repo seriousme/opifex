@@ -9,7 +9,7 @@ import { handleSuback } from "./handleSuback.js";
 import { handleUnsuback } from "./handleUnsuback.js";
 import { logger, PacketNameByType, PacketType } from "../deps.js";
 export async function handlePacket(ctx, packet) {
-    logger.debug({ received: JSON.stringify(packet, null, 2) });
+    logger.debug({ received: PacketNameByType[packet.type], packet });
     if (ctx.connectionState !== ConnectionState.connected) {
         if (packet.type === PacketType.connack) {
             handleConnack(packet, ctx);
