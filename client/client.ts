@@ -188,4 +188,8 @@ export class Client {
   async *messages(): AsyncGenerator<PublishPacket, void, unknown> {
     yield* this.ctx.incoming;
   }
+
+  closeMessages(reason?: string) {
+    this.ctx.incoming.close(reason);
+  }
 }
