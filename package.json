@@ -23,12 +23,16 @@
   },
   "exports": {
     "./server": "./dist/server/mod.js",
-    "./client": "./dist/client/mod.js"
+    "./client": "./dist/client/mod.js",
+    "./tcpClient": "./dist/node/tcpClient.js",
+    "./tcpServer": "./dist/node/tcpServer.js"
   },
   "deno": {
     "exports": {
       "./server": "./server/mod.ts",
-      "./client": "./client/mod.ts"
+      "./client": "./client/mod.ts",
+      "./tcpClient": "./deno/tcpClient.ts",
+      "./tcpServer": "./deno/tcpServer.ts"
     },
     "exclude": [
       "dist"

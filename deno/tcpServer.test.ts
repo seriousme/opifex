@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { TcpServer } from "./server.ts";
+import { TcpServer } from "./tcpServer.ts";
 
 test("Deno testServer", () => {
   const server = new TcpServer({ port: 0 }, {});
