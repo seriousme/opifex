@@ -25,7 +25,7 @@
     "./server": "./dist/server/mod.js",
     "./client": "./dist/client/mod.js",
     "./mqttPacket": "./dist/mqttPacket/mod.js",
-    "./utils": "./dist/utils/mod.js,",
+    "./utils": "./dist/utils/mod.js",
     "./tcpClient": "./dist/node/tcpClient.js",
     "./tcpServer": "./dist/node/tcpServer.js"
   },
@@ -34,7 +34,7 @@
       "./server": "./server/mod.ts",
       "./client": "./client/mod.ts",
       "./mqttPacket": "./mqttPacket/mod.ts",
-      "./utils": "./utils/mod.ts,",
+      "./utils": "./utils/mod.ts",
       "./tcpClient": "./deno/tcpClient.ts",
       "./tcpServer": "./deno/tcpServer.ts"
     },
