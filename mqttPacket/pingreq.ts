@@ -6,8 +6,11 @@ export type PingreqPacket = {
   type: TPacketType;
 };
 
-export default {
-  encode(_packet: PingreqPacket) {
+export const pingreq: {
+  encode(_packet: PingreqPacket): { flags: number; bytes: number[] };
+  decode(buffer: Uint8Array, flags: number): PingreqPacket;
+} = {
+  encode(_packet: PingreqPacket): { flags: number; bytes: number[] } {
     const flags = 0;
     return { flags, bytes: [] };
   },

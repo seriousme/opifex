@@ -10,7 +10,10 @@ export type ConnackPacket = {
   returnCode: TAuthenticationResult;
 };
 
-export default {
+export const connack: {
+  encode(packet: ConnackPacket): { flags: number; bytes: number[] };
+  decode(buffer: Uint8Array, _flags: number): ConnackPacket | undefined;
+} = {
   encode(packet: ConnackPacket): { flags: number; bytes: number[] } {
     const flags = 0;
     return {

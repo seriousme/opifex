@@ -10,8 +10,11 @@ export type UnsubscribePacket = {
   topicFilters: TopicFilter[];
 };
 
-export default {
-  encode(packet: UnsubscribePacket) {
+export const unsubscribe: {
+  encode(packet: UnsubscribePacket): { flags: number; bytes: number[] };
+  decode(buffer: Uint8Array, flags: number): UnsubscribePacket;
+} = {
+  encode(packet: UnsubscribePacket): { flags: number; bytes: number[] } {
     // Bits 3,2,1 and 0 of the fixed header of the UNSUBSCRIBE Control Packet are reserved and
     // MUST be set to 0,0,1 and 0 respectively. The Server MUST treat any other value as
     // malformed and close the Network Connection [MQTT-3.10.1-1].

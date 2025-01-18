@@ -33,8 +33,11 @@ function invalidProtocolName(version: number, name: string): boolean {
   return false;
 }
 
-export default {
-  encode(packet: ConnectPacket) {
+export const connect: {
+  encode(packet: ConnectPacket): { flags: number; bytes: number[] };
+  decode(buffer: Uint8Array, flags: number): ConnectPacket;
+} = {
+  encode(packet: ConnectPacket): { flags: number; bytes: number[] } {
     const flags = 0;
 
     const protocolLevel = 4;

@@ -8,8 +8,11 @@ export type PubrecPacket = {
   id: PacketId;
 };
 
-export default {
-  encode(packet: PubrecPacket) {
+export const pubrec: {
+  encode(packet: PubrecPacket): { flags: number; bytes: number[] };
+  decode(buffer: Uint8Array): PubrecPacket;
+} = {
+  encode(packet: PubrecPacket): { flags: number; bytes: number[] } {
     const flags = 0;
     const encoder = new Encoder();
     encoder.setInt16(packet.id);

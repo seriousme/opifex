@@ -6,8 +6,11 @@ export type DisconnectPacket = {
   type: TPacketType;
 };
 
-export default {
-  encode(_packet: DisconnectPacket) {
+export const disconnect: {
+  encode(_packet: DisconnectPacket): { flags: number; bytes: number[] };
+  decode(buffer: Uint8Array, _flags: number): DisconnectPacket;
+} = {
+  encode(_packet: DisconnectPacket): { flags: number; bytes: number[] } {
     const flags = 0;
     return { flags, bytes: [] };
   },

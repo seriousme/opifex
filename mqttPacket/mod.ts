@@ -13,24 +13,24 @@ import type {
 import { PacketNameByType, PacketType } from "./PacketType.ts";
 import { invalidTopic, invalidTopicFilter, invalidUTF8 } from "./validators.ts";
 import { decodeLength, encodeLength } from "./length.ts";
-import connect, { type ConnectPacket } from "./connect.ts";
-import connack, { type ConnackPacket } from "./connack.ts";
+import { connect, type ConnectPacket } from "./connect.ts";
+import { connack, type ConnackPacket } from "./connack.ts";
 import {
   AuthenticationResult,
   AuthenticationResultByNumber,
 } from "./AuthenticationResult.ts";
-import publish, { type PublishPacket } from "./publish.ts";
-import puback, { type PubackPacket } from "./puback.ts";
-import pubrec, { type PubrecPacket } from "./pubrec.ts";
-import pubrel, { type PubrelPacket } from "./pubrel.ts";
-import pubcomp, { type PubcompPacket } from "./pubcomp.ts";
-import subscribe, { type SubscribePacket } from "./subscribe.ts";
-import suback, { type SubackPacket } from "./suback.ts";
-import unsubscribe, { type UnsubscribePacket } from "./unsubscribe.ts";
-import unsuback, { type UnsubackPacket } from "./unsuback.ts";
-import pingreq, { type PingreqPacket } from "./pingreq.ts";
-import pingres, { type PingresPacket } from "./pingres.ts";
-import disconnect, { type DisconnectPacket } from "./disconnect.ts";
+import { publish, type PublishPacket } from "./publish.ts";
+import { puback, type PubackPacket } from "./puback.ts";
+import { pubrec, type PubrecPacket } from "./pubrec.ts";
+import { pubrel, type PubrelPacket } from "./pubrel.ts";
+import { pubcomp, type PubcompPacket } from "./pubcomp.ts";
+import { subscribe, type SubscribePacket } from "./subscribe.ts";
+import { suback, type SubackPacket } from "./suback.ts";
+import { unsubscribe, type UnsubscribePacket } from "./unsubscribe.ts";
+import { unsuback, type UnsubackPacket } from "./unsuback.ts";
+import { pingreq, type PingreqPacket } from "./pingreq.ts";
+import { pingres, type PingresPacket } from "./pingres.ts";
+import { disconnect, type DisconnectPacket } from "./disconnect.ts";
 import { DecoderError } from "./decoder.ts";
 
 export type AnyPacket =
@@ -108,7 +108,7 @@ export const packetsByType = [
   disconnect, // 14
 ] as const;
 
-export function encode(packet: AnyPacket) {
+export function encode(packet: AnyPacket): Uint8Array {
   const packetType: number = packet.type;
   // deno-lint-ignore no-explicit-any
   const pkt: any = packet;

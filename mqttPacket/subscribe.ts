@@ -15,8 +15,11 @@ export type Subscription = {
   qos: QoS;
 };
 
-export default {
-  encode(packet: SubscribePacket) {
+export const subscribe: {
+  encode(packet: SubscribePacket): { flags: number; bytes: number[] };
+  decode(buffer: Uint8Array, flags: number): SubscribePacket;
+} = {
+  encode(packet: SubscribePacket): { flags: number; bytes: number[] } {
     // Bits 3,2,1 and 0 of the fixed header of the SUBSCRIBE Control Packet are reserved and
     // MUST be set to 0,0,1 and 0 respectively. The Server MUST treat any other value as
     // malformed and close the Network Connection [MQTT-3.8.1-1].

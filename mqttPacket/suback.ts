@@ -9,8 +9,11 @@ export type SubackPacket = {
   returnCodes: ReturnCodes;
 };
 
-export default {
-  encode(packet: SubackPacket) {
+export const suback: {
+  encode(packet: SubackPacket): { flags: number; bytes: number[] };
+  decode(buffer: Uint8Array): SubackPacket;
+} = {
+  encode(packet: SubackPacket): { flags: number; bytes: number[] } {
     const flags = 0;
     const encoder = new Encoder();
     encoder.setInt16(packet.id);

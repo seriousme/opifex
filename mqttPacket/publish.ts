@@ -14,8 +14,11 @@ export type PublishPacket = {
   id?: number;
 };
 
-export default {
-  encode(packet: PublishPacket) {
+export const publish: {
+  encode(packet: PublishPacket): { flags: number; bytes: number[] };
+  decode(buffer: Uint8Array, flags: number): PublishPacket;
+} = {
+  encode(packet: PublishPacket): { flags: number; bytes: number[] } {
     const qos = packet.qos || 0;
 
     const flags = (packet.dup ? BitMask.bit3 : 0) +
