@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { TcpClient } from "./client.ts";
-import { TcpServer } from "./server.ts";
+import { TcpClient } from "./tcpClient.ts";
+import { TcpServer } from "./tcpServer.ts";
 import { logger, LogLevel } from "../utils/mod.ts";
 import type { PublishPacket, QoS } from "../mqttPacket/mod.ts";
 

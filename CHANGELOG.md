@@ -4,6 +4,13 @@
 
 ### Changed
 
+## [v1.6.0] 18-01-2025
+
+### Changed
+
+- added: export TcpClient and TcpServer for both NodeJS and Deno
+- added: export mqttPacket and utils
+
 ## [v1.5.1] 16-01-2025
 
 ### Changed

@@ -1,5 +1,5 @@
 #!/usr/bin/env -S node --experimental-strip-types
-import { TcpServer } from "../node/server.ts";
+import { TcpServer } from "../node/tcpServer.ts";
 import type { Context, TAuthenticationResult, Topic } from "../server/mod.ts";
 import { AuthenticationResult } from "../server/mod.ts";
 import { getArgs, logger, LogLevel, parseArgs } from "../utils/mod.ts";

@@ -2,7 +2,7 @@
 import { DEFAULT_URL } from "../client/mod.ts";
 import { logger, LogLevel } from "../utils/mod.ts";
 import { getArgs, parseArgs } from "../utils/mod.ts";
-import { getFileData, TcpClient } from "../node/client.ts";
+import { getFileData, TcpClient } from "../node/tcpClient.ts";
 import type { Args } from "../utils/args.ts";
 
 const client = new TcpClient();
