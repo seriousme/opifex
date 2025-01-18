@@ -7,8 +7,8 @@
 ## [v1.6.1] 18-01-2025
 
 ### Changed
- 
- - fix: fixed Deno lint type errors
+
+- fix: fixed Deno lint type errors
 
 ## [v1.6.0] 18-01-2025
 
