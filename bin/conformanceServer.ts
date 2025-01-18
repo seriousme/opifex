@@ -3,8 +3,7 @@
 
 import { AuthenticationResult } from "../server/mod.ts";
 import type { Context, TAuthenticationResult, Topic } from "../server/mod.ts";
-import { logger, LogLevel } from "../utils/mod.ts";
-import { getArgs, parseArgs } from "../utils/mod.ts";
+import { getArgs, logger, LogLevel, parseArgs } from "../utils/mod.ts";
 import { TcpServer } from "../node/tcpServer.ts";
 
 const utf8Decoder = new TextDecoder();
