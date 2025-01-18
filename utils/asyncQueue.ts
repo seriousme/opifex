@@ -1,5 +1,16 @@
 import { nextTick } from "./nextTick.ts";
 
+/**
+ * An Async Queue is a queue that can be used to push items to it and then wait
+ * for them to be consumed.
+ *
+ * @example
+ * const queue = new AsyncQueue<string>();
+ * queue.push("hello");
+ * for await (const item of queue) {
+ *   console.log(item); // "hello"
+ * }
+ */
 export class AsyncQueue<T> {
   private queue: T[] = [];
   private maxQueueLength = Infinity;

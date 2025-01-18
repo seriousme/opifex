@@ -4,6 +4,10 @@ import { BitMask } from "./BitMask.ts";
 import { booleanFlag, Decoder, DecoderError } from "./decoder.ts";
 import { AuthenticationResultByNumber } from "./AuthenticationResult.ts";
 
+/**
+ * ConnackPacket is sent from the server to the client in response to a connect packet.
+ * It indicates that the connect is accepted.
+ */
 export type ConnackPacket = {
   type: TPacketType;
   sessionPresent: boolean;

@@ -1,3 +1,6 @@
+/**
+ * The available log levels
+ */
 export const LogLevel = {
     error: 0,
     warn: 1,
@@ -5,6 +8,19 @@ export const LogLevel = {
     verbose: 3,
     debug: 4,
 };
+/**
+ * Simple logger class
+ * @example
+ * ```ts
+ * const logger = new Logger();
+ * logger.level(LogLevel.debug);
+ * logger.debug("debug message");
+ * logger.verbose("verbose message");
+ * logger.info("info message");
+ * logger.warn("warn message");
+ * logger.error("error message");
+ * ```
+ */
 export class Logger {
     defaultError = console.error;
     defaultWarn = console.warn;
@@ -26,4 +42,17 @@ export class Logger {
         this.debug = logLevel > 3 ? this.defaultDebug : this.noop;
     }
 }
+/**
+ * logger provides a singleton logger instance
+ * @example
+ * ```ts
+ * import { logger } from "./utils/logger.ts";
+ * logger.level(LogLevel.debug);
+ * logger.debug("debug message");
+ * logger.verbose("verbose message");
+ * logger.info("info message");
+ * logger.warn("warn message");
+ * logger.error("error message");
+ * ```
+ */
 export const logger = new Logger();

@@ -3,6 +3,10 @@ import { PacketType } from "./PacketType.ts";
 import { Decoder } from "./decoder.ts";
 import { Encoder } from "./encoder.ts";
 
+/**
+ * Unsuback Packet is sent by the Server to the Client to confirm receipt
+ * of an Unsubscribe Packet.
+ */
 export type UnsubackPacket = {
   type: TPacketType;
   id: PacketId;

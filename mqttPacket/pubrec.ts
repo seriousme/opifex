@@ -3,6 +3,9 @@ import { PacketType } from "./PacketType.ts";
 import { Decoder } from "./decoder.ts";
 import { Encoder } from "./encoder.ts";
 
+/**
+ * PubrecPacket Publish received (QoS 2 delivery part 1)
+ */
 export type PubrecPacket = {
   type: TPacketType;
   id: PacketId;

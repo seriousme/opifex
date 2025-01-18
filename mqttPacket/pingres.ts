@@ -2,6 +2,10 @@ import { PacketType } from "./PacketType.ts";
 import { isEmptyBuf } from "./decoder.ts";
 import type { TPacketType } from "./types.ts";
 
+/**
+ * PingresPacket is  an empty packet that is sent by the server in response to a PingreqPacket.
+ * It is used to indicate that the client is still connected to the server.
+ */
 export type PingresPacket = {
   type: TPacketType;
 };

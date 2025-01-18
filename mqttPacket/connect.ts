@@ -9,6 +9,9 @@ import {
   hasEmptyFlags,
 } from "./decoder.ts";
 
+/**
+ * ConnectPacket is sent from the client to the server to initiate a connection.
+ */
 export type ConnectPacket = {
   type: TPacketType;
   protocolName?: string;

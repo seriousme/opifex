@@ -32,6 +32,20 @@ function parseKeyValue(arg, alias) {
     }
     return ["_", arg];
 }
+/**
+ *  a parser for command line arguments
+ * @param args the arguments to parse
+ * @param opts the options for the parser
+ * @returns the parsed arguments
+ *
+ * @example
+ * const args = parseArgs(args, {
+ *  alias: { h: "help" },
+ *  boolean: ["help"],
+ *  string: ["port"],
+ *  default: { port: 3000 },
+ * });
+ */
 export function parseArgs(args, opts = {}) {
     const { alias = {}, boolean = [], string = [], default: defaults = {} } = opts;
     const result = { ...defaults };

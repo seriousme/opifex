@@ -1,3 +1,9 @@
+/**
+ *  This module provides the encoding and decoding of MQTT packets
+ * it is used by the server and client modules
+ *  @module
+ */
+
 import type {
   ClientId,
   Dup,
@@ -33,6 +39,9 @@ import { pingres, type PingresPacket } from "./pingres.ts";
 import { disconnect, type DisconnectPacket } from "./disconnect.ts";
 import { DecoderError } from "./decoder.ts";
 
+/**
+ * this can be any possible MQTT packet
+ */
 export type AnyPacket =
   | ConnectPacket
   | ConnackPacket

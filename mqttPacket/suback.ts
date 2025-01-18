@@ -3,6 +3,10 @@ import { PacketType } from "./PacketType.ts";
 import { Encoder } from "./encoder.ts";
 import { Decoder } from "./decoder.ts";
 
+/**
+ * SubackPacket is sent by the Server to the Client to confirm receipt and
+ * processing of a Subscribe packet.
+ */
 export type SubackPacket = {
   type: TPacketType;
   id: PacketId;

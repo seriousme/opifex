@@ -2,6 +2,9 @@ import { PacketType } from "./PacketType.ts";
 import { hasEmptyFlags, isEmptyBuf } from "./decoder.ts";
 import type { TPacketType } from "./types.ts";
 
+/**
+ * PingreqPacket is a packet that is sent to the server to keep the connection alive
+ */
 export type PingreqPacket = {
   type: TPacketType;
 };

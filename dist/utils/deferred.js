@@ -1,3 +1,6 @@
+/**
+ * Create a promise that can be resolved/rejected later
+ */
 export class Deferred {
     promise;
     resolve;

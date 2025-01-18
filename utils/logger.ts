@@ -1,3 +1,6 @@
+/**
+ * The available log levels
+ */
 export const LogLevel = {
   error: 0,
   warn: 1,
@@ -8,6 +11,19 @@ export const LogLevel = {
 
 export type TLogLevel = typeof LogLevel[keyof typeof LogLevel];
 
+/**
+ * Simple logger class
+ * @example
+ * ```ts
+ * const logger = new Logger();
+ * logger.level(LogLevel.debug);
+ * logger.debug("debug message");
+ * logger.verbose("verbose message");
+ * logger.info("info message");
+ * logger.warn("warn message");
+ * logger.error("error message");
+ * ```
+ */
 export class Logger {
   private defaultError = console.error;
   private defaultWarn = console.warn;
@@ -32,4 +48,17 @@ export class Logger {
   }
 }
 
+/**
+ * logger provides a singleton logger instance
+ * @example
+ * ```ts
+ * import { logger } from "./utils/logger.ts";
+ * logger.level(LogLevel.debug);
+ * logger.debug("debug message");
+ * logger.verbose("verbose message");
+ * logger.info("info message");
+ * logger.warn("warn message");
+ * logger.error("error message");
+ * ```
+ */
 export const logger: Logger = new Logger();

@@ -1,8 +1,15 @@
-// This a Deno specific implementation of a TCP socket listener
-// it uses the platform agnostic MqttServer class
+/**
+ * This module provides a Deno specific implementation of a TCP socket listener
+ * it uses the platform agnostic MqttServer class
+ *  @module
+ */
+
 import { MqttServer } from "../server/mod.ts";
 import type { MqttServerOptions } from "../server/mod.ts";
 
+/*
+ * TCP server that wraps a MqttServer, see demoServer.ts in the /bin folder
+ */
 export class TcpServer {
   private listener: Deno.Listener<Deno.Conn>;
   private mqttServer: MqttServer;

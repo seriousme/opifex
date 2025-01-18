@@ -1,3 +1,6 @@
+/**
+ * Parsed arguments as key value
+ */
 // deno-lint-ignore no-explicit-any
 export type Args = Record<string, any>;
 export type ArgsValue = string | number | boolean;
@@ -54,6 +57,20 @@ function parseKeyValue(
   return ["_", arg];
 }
 
+/**
+ *  a parser for command line arguments
+ * @param args the arguments to parse
+ * @param opts the options for the parser
+ * @returns the parsed arguments
+ *
+ * @example
+ * const args = parseArgs(args, {
+ *  alias: { h: "help" },
+ *  boolean: ["help"],
+ *  string: ["port"],
+ *  default: { port: 3000 },
+ * });
+ */
 export function parseArgs(args: string[], opts: ArgOpts = {}): Args {
   const { alias = {}, boolean = [], string = [], default: defaults = {} } =
     opts;

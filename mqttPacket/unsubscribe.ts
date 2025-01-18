@@ -4,6 +4,9 @@ import { BitMask } from "./BitMask.ts";
 import { Encoder } from "./encoder.ts";
 import { booleanFlag, Decoder, DecoderError } from "./decoder.ts";
 
+/**
+ * UnsubscribePacket is sent from client to server to unsubscribe from topics
+ */
 export type UnsubscribePacket = {
   type: TPacketType;
   id: PacketId;

@@ -1,7 +1,6 @@
 /**
  *  Possible MQTT authentication results
  */
-
 export const AuthenticationResult = {
   ok: 0,
   unacceptableProtocol: 1,
@@ -11,6 +10,9 @@ export const AuthenticationResult = {
   notAuthorized: 5,
 } as const;
 
+/**
+ * Reverse lookup for AuthenticationResult
+ */
 export const AuthenticationResultByNumber: Record<number, string> = Object
   .fromEntries(
     Object.entries(AuthenticationResult).map(([k, v]) => [v, k]),

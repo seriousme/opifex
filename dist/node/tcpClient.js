@@ -1,11 +1,23 @@
-// this a NodeJS specific implementation of TCP client sockets
-// it extends the platform agnostic Client class
+/*
+ * this a NodeJS specific implementation of TCP client sockets
+ * it extends the platform agnostic Client class
+ *  @module
+ */
 import { Client } from "../client/client.js";
 import { logger } from "../client/deps.js";
 import { readFile } from "node:fs/promises";
 import { createConnection } from "node:net";
 import * as tls from "node:tls";
 import { wrapNodeSocket } from "./wrapNodeSocket.js";
+/**
+ * @function getFileData
+ * @param filename
+ * @returns Promise
+ *
+ * Fetches data from a file and returns it as a string
+ * @example
+ * const data = await getFileData("data.txt");
+ */
 export async function getFileData(filename) {
     if (!filename) {
         return;
@@ -16,6 +28,11 @@ export async function getFileData(filename) {
     }
     return data;
 }
+/*
+ * TCPclient extends the Client class to provide TCP based clients
+ * it is used by the MQTTclient to connect to the broker
+ * see mqtt.ts in the /bin folder as an example
+ */
 export class TcpClient extends Client {
     connectMQTT(hostname, port = 1883) {
         logger.debug({ hostname, port });

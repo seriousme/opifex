@@ -1,9 +1,21 @@
-// This a Deno specific implementation of TCP client sockets
-// it extends the platform agnostic Client class
+/**
+ * This a Deno specific implementation of TCP client sockets
+ * it extends the platform agnostic Client class
+ * @module
+ */
 import { Client } from "../client/client.ts";
 import { logger } from "../client/deps.ts";
 import type { SockConn } from "../client/deps.ts";
 
+/**
+ * @function getFileData
+ * @param filename
+ * @returns Promise
+ *
+ * Fetches data from a file and returns it as a string
+ * @example
+ * const data = await getFileData("data.txt");
+ */
 export async function getFileData(
   filename: string | undefined,
 ): Promise<string | undefined> {
@@ -17,6 +29,11 @@ export async function getFileData(
   return data;
 }
 
+/*
+ * TCPclient extends the Client class to provide TCP based clients
+ * it is used by the MQTTclient to connect to the broker
+ * see mqtt.ts in the /bin folder as an example
+ */
 export class TcpClient extends Client {
   protected async connectMQTT(
     hostname: string,

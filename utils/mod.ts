@@ -1,3 +1,7 @@
+/**
+ *  This module provides various utilities
+ *  @module
+ */
 export { assert } from "./assert.ts";
 export { Deferred } from "./deferred.ts";
 export { Logger, logger, LogLevel } from "./logger.ts";

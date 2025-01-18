@@ -1,3 +1,8 @@
+/**
+ *  This module provides the encoding and decoding of MQTT packets
+ * it is used by the server and client modules
+ *  @module
+ */
 import { PacketNameByType, PacketType } from "./PacketType.js";
 import { invalidTopic, invalidTopicFilter, invalidUTF8 } from "./validators.js";
 import { decodeLength, encodeLength } from "./length.js";

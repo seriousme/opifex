@@ -3,6 +3,9 @@ import { PacketType } from "./PacketType.ts";
 import { Decoder } from "./decoder.ts";
 import { Encoder } from "./encoder.ts";
 
+/**
+ * PubackPacket is sent to indicate publish complete (QoS 1)
+ */
 export type PubackPacket = {
   type: TPacketType;
   id: PacketId;

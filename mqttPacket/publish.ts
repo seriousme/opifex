@@ -4,6 +4,10 @@ import { BitMask } from "./BitMask.ts";
 import { Encoder, EncoderError } from "./encoder.ts";
 import { booleanFlag, Decoder, DecoderError } from "./decoder.ts";
 
+/**
+ * PublishPacket is used to send data from client to server and
+ * from server to subscribers
+ */
 export type PublishPacket = {
   type: TPacketType;
   topic: Topic;

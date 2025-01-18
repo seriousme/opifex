@@ -1,3 +1,7 @@
+/**
+ *  This module provides various utilities
+ *  @module
+ */
 export { assert } from "./assert.js";
 export { Deferred } from "./deferred.js";
 export { Logger, logger, LogLevel } from "./logger.js";

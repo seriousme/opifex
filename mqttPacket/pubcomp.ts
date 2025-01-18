@@ -3,6 +3,9 @@ import { PacketType } from "./PacketType.ts";
 import { Decoder } from "./decoder.ts";
 import { Encoder } from "./encoder.ts";
 
+/**
+ * PubcompPacket is sent to indicate Publish Complete (QoS 2)
+ */
 export type PubcompPacket = {
   type: TPacketType;
   id: PacketId;

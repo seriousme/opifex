@@ -1,6 +1,9 @@
 import { createServer } from "node:net";
 import { MqttServer } from "../server/mod.js";
 import { wrapNodeSocket } from "./wrapNodeSocket.js";
+/*
+ * TCP server that wraps a MqttServer, see demoServer.ts in the /bin folder
+ */
 export class TcpServer {
     mqttServer;
     server;

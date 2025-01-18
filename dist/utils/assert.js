@@ -5,6 +5,7 @@ export class AssertionError extends Error {
         this.name = "AssertionError";
     }
 }
+/** assert(expr, msg) throws AssertionError if expr is falsy. */
 export function assert(expr, msg = "") {
     if (!expr) {
         throw new AssertionError(msg);
