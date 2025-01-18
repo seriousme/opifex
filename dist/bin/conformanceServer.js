@@ -1,8 +1,7 @@
 #!/usr/bin/env -S node --experimental-strip-types
 // this server is intended to be used with https://github.com/eclipse/iottestware
 import { AuthenticationResult } from "../server/mod.js";
-import { logger, LogLevel } from "../utils/mod.js";
-import { getArgs, parseArgs } from "../utils/mod.js";
+import { getArgs, logger, LogLevel, parseArgs } from "../utils/mod.js";
 import { TcpServer } from "../node/tcpServer.js";
 const utf8Decoder = new TextDecoder();
 const userTable = new Map();

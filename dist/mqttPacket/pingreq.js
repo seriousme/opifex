@@ -1,6 +1,6 @@
 import { PacketType } from "./PacketType.js";
 import { hasEmptyFlags, isEmptyBuf } from "./decoder.js";
-export default {
+export const pingreq = {
     encode(_packet) {
         const flags = 0;
         return { flags, bytes: [] };

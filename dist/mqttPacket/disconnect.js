@@ -1,6 +1,6 @@
 import { PacketType } from "./PacketType.js";
 import { isEmptyBuf } from "./decoder.js";
-export default {
+export const disconnect = {
     encode(_packet) {
         const flags = 0;
         return { flags, bytes: [] };

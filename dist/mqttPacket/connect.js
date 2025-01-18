@@ -8,7 +8,7 @@ function invalidProtocolName(version, name) {
     }
     return false;
 }
-export default {
+export const connect = {
     encode(packet) {
         const flags = 0;
         const protocolLevel = 4;

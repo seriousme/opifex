@@ -2,7 +2,7 @@ import { PacketType } from "./PacketType.js";
 import { BitMask } from "./BitMask.js";
 import { booleanFlag, Decoder, DecoderError } from "./decoder.js";
 import { AuthenticationResultByNumber } from "./AuthenticationResult.js";
-export default {
+export const connack = {
     encode(packet) {
         const flags = 0;
         return {

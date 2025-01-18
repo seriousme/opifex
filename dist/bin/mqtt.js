@@ -1,8 +1,7 @@
 #!/usr/bin/env -S node --experimental-strip-types
 import { DEFAULT_URL } from "../client/mod.js";
-import { logger, LogLevel } from "../utils/mod.js";
-import { getArgs, parseArgs } from "../utils/mod.js";
 import { getFileData, TcpClient } from "../node/tcpClient.js";
+import { getArgs, logger, LogLevel, parseArgs } from "../utils/mod.js";
 const client = new TcpClient();
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();

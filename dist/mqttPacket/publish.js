@@ -2,7 +2,7 @@ import { PacketType } from "./PacketType.js";
 import { BitMask } from "./BitMask.js";
 import { Encoder, EncoderError } from "./encoder.js";
 import { booleanFlag, Decoder, DecoderError } from "./decoder.js";
-export default {
+export const publish = {
     encode(packet) {
         const qos = packet.qos || 0;
         const flags = (packet.dup ? BitMask.bit3 : 0) +

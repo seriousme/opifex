@@ -1,7 +1,7 @@
 import { PacketType } from "./PacketType.js";
 import { Encoder } from "./encoder.js";
 import { Decoder } from "./decoder.js";
-export default {
+export const suback = {
     encode(packet) {
         const flags = 0;
         const encoder = new Encoder();

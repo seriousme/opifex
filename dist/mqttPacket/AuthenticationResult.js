@@ -9,4 +9,5 @@ export const AuthenticationResult = {
     badUsernameOrPassword: 4,
     notAuthorized: 5,
 };
-export const AuthenticationResultByNumber = Object.fromEntries(Object.entries(AuthenticationResult).map(([k, v]) => [v, k]));
+export const AuthenticationResultByNumber = Object
+    .fromEntries(Object.entries(AuthenticationResult).map(([k, v]) => [v, k]));
