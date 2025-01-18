@@ -8,8 +8,11 @@ export type PubackPacket = {
   id: PacketId;
 };
 
-export default {
-  encode(packet: PubackPacket) {
+export const puback: {
+  encode(packet: PubackPacket): { flags: number; bytes: number[] };
+  decode(buffer: Uint8Array): PubackPacket;
+} = {
+  encode(packet: PubackPacket): { flags: number; bytes: number[] } {
     const flags = 0;
     const encoder = new Encoder();
     encoder.setInt16(packet.id);

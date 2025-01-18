@@ -5,7 +5,7 @@
     "./server": "./server/mod.ts",
     "./client": "./client/mod.ts",
     "./mqttPacket": "./mqttPacket/mod.ts",
-    "./utils": "./utils/mod.ts,",
+    "./utils": "./utils/mod.ts",
     "./tcpClient": "./deno/tcpClient.ts",
     "./tcpServer": "./deno/tcpServer.ts"
   },

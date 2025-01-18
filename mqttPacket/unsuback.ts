@@ -8,8 +8,11 @@ export type UnsubackPacket = {
   id: PacketId;
 };
 
-export default {
-  encode(packet: UnsubackPacket) {
+export const unsuback: {
+  encode(packet: UnsubackPacket): { flags: number; bytes: number[] };
+  decode(buffer: Uint8Array): UnsubackPacket;
+} = {
+  encode(packet: UnsubackPacket): { flags: number; bytes: number[] } {
     const flags = 0;
     const encoder = new Encoder();
     encoder.setInt16(packet.id);

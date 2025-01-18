@@ -23,14 +23,14 @@ export class TcpServer {
     this.listener.close();
   }
 
-  get port() {
+  get port(): number | undefined {
     if (this.listener.addr.transport === "tcp") {
       return this.listener.addr.port;
     }
     return undefined;
   }
 
-  get address() {
+  get address(): string | undefined {
     if (this.listener.addr.transport === "tcp") {
       return this.listener.addr.hostname;
     }

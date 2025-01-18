@@ -6,8 +6,11 @@ export type PingresPacket = {
   type: TPacketType;
 };
 
-export default {
-  encode(_packet: PingresPacket) {
+export const pingres: {
+  encode(_packet: PingresPacket): { flags: number; bytes: number[] };
+  decode(buffer: Uint8Array): PingresPacket;
+} = {
+  encode(_packet: PingresPacket): { flags: number; bytes: number[] } {
     const flags = 0;
     return { flags, bytes: [] };
   },

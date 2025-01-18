@@ -16,6 +16,6 @@ export const PacketType = {
   disconnect: 14,
 } as const;
 
-export const PacketNameByType = Object.fromEntries(
+export const PacketNameByType: Record<number, string> = Object.fromEntries(
   Object.entries(PacketType).map(([k, v]) => [v, k]),
 );

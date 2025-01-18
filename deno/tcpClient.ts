@@ -4,7 +4,9 @@ import { Client } from "../client/client.ts";
 import { logger } from "../client/deps.ts";
 import type { SockConn } from "../client/deps.ts";
 
-export async function getFileData(filename: string | undefined) {
+export async function getFileData(
+  filename: string | undefined,
+): Promise<string | undefined> {
   if (!filename) {
     return;
   }
@@ -16,7 +18,10 @@ export async function getFileData(filename: string | undefined) {
 }
 
 export class TcpClient extends Client {
-  protected async connectMQTT(hostname: string, port = 1883) {
+  protected async connectMQTT(
+    hostname: string,
+    port = 1883,
+  ): Promise<Deno.TcpConn> {
     logger.debug({ hostname, port });
     return await Deno.connect({ hostname, port });
   }
@@ -27,7 +32,7 @@ export class TcpClient extends Client {
     caCerts?: string[],
     cert?: string,
     key?: string,
-  ) {
+  ): Promise<Deno.TlsConn> {
     logger.debug({ hostname, port, caCerts, cert });
     return await Deno.connectTls({ hostname, port, caCerts, cert, key });
   }

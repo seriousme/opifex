@@ -8,8 +8,11 @@ export type PubcompPacket = {
   id: PacketId;
 };
 
-export default {
-  encode(packet: PubcompPacket) {
+export const pubcomp: {
+  encode(packet: PubcompPacket): { flags: number; bytes: number[] };
+  decode(buffer: Uint8Array): PubcompPacket;
+} = {
+  encode(packet: PubcompPacket): { flags: number; bytes: number[] } {
     const flags = 0;
     const encoder = new Encoder();
     encoder.setInt16(packet.id);
