@@ -3,7 +3,7 @@
 import { AuthenticationResult } from "../server/mod.js";
 import { logger, LogLevel } from "../utils/mod.js";
 import { getArgs, parseArgs } from "../utils/mod.js";
-import { TcpServer } from "../node/server.js";
+import { TcpServer } from "../node/tcpServer.js";
 const utf8Decoder = new TextDecoder();
 const userTable = new Map();
 userTable.set("IoTester_1", "strong_password");

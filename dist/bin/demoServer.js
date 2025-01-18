@@ -1,5 +1,5 @@
 #!/usr/bin/env -S node --experimental-strip-types
-import { TcpServer } from "../node/server.js";
+import { TcpServer } from "../node/tcpServer.js";
 import { AuthenticationResult } from "../server/mod.js";
 import { getArgs, logger, LogLevel, parseArgs } from "../utils/mod.js";
 const utf8Decoder = new TextDecoder();

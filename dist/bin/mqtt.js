@@ -2,7 +2,7 @@
 import { DEFAULT_URL } from "../client/mod.js";
 import { logger, LogLevel } from "../utils/mod.js";
 import { getArgs, parseArgs } from "../utils/mod.js";
-import { getFileData, TcpClient } from "../node/client.js";
+import { getFileData, TcpClient } from "../node/tcpClient.js";
 const client = new TcpClient();
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
