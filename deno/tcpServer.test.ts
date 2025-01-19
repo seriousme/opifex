@@ -87,7 +87,7 @@ export async function serverTest() {
   server.stop();
 }
 
-test("Test pubSub using client and server", async function () {
+test("Deno Test pubSub using client and server", async function () {
   await serverTest();
   logger.verbose("End of test");
 });
