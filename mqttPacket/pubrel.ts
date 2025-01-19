@@ -5,7 +5,7 @@ import { Encoder } from "./encoder.ts";
 
 /**
  * PubrelPacket is the packet sent by the Server to the Client in response to a
- * PUBREC Packet. It is the second packet of the QoS 2 protocol exchange.
+ * PubrecPacket. It is the third packet of the QoS 2 protocol exchange.
  */
 export type PubrelPacket = {
   type: TPacketType;

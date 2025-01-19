@@ -4,8 +4,8 @@ import { Encoder } from "./encoder.ts";
 import { Decoder } from "./decoder.ts";
 
 /**
- * SubackPacket is sent by the Server to the Client to confirm receipt and
- * processing of a Subscribe packet.
+ * SubackPacket is sent by the server to the client to confirm receipt and
+ * processing of a SubscribePacket.
  */
 export type SubackPacket = {
   type: TPacketType;

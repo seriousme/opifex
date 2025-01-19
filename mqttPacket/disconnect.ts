@@ -3,8 +3,8 @@ import { isEmptyBuf } from "./decoder.ts";
 import type { TPacketType } from "./types.ts";
 
 /**
- * Disconnect Packet is the final Control Packet sent from the Client to the Server.
- * It indicates that the Client is disconnecting cleanly.
+ * DisconnectPacket is the final control packet sent from the client to the server.
+ * It indicates that the client is disconnecting cleanly.
  */
 export type DisconnectPacket = {
   type: TPacketType;

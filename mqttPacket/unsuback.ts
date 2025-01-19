@@ -4,8 +4,8 @@ import { Decoder } from "./decoder.ts";
 import { Encoder } from "./encoder.ts";
 
 /**
- * Unsuback Packet is sent by the Server to the Client to confirm receipt
- * of an Unsubscribe Packet.
+ * UnsubackPacket is sent by the server to the client to confirm receipt
+ * of an UnsubscribePacket.
  */
 export type UnsubackPacket = {
   type: TPacketType;

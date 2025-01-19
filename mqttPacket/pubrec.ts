@@ -4,7 +4,8 @@ import { Decoder } from "./decoder.ts";
 import { Encoder } from "./encoder.ts";
 
 /**
- * PubrecPacket Publish received (QoS 2 delivery part 1)
+ * PubrecPacket indicates publish received
+ * It is the second packet of the QoS 2 protocol exchange.
  */
 export type PubrecPacket = {
   type: TPacketType;
