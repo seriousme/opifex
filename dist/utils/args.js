@@ -39,12 +39,14 @@ function parseKeyValue(arg, alias) {
  * @returns the parsed arguments
  *
  * @example
+ * ```ts
  * const args = parseArgs(args, {
  *  alias: { h: "help" },
  *  boolean: ["help"],
  *  string: ["port"],
  *  default: { port: 3000 },
  * });
+ * ```
  */
 export function parseArgs(args, opts = {}) {
     const { alias = {}, boolean = [], string = [], default: defaults = {} } = opts;

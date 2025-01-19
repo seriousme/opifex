@@ -4,11 +4,13 @@ import { nextTick } from "./nextTick.js";
  * for them to be consumed.
  *
  * @example
+ * ```ts
  * const queue = new AsyncQueue<string>();
  * queue.push("hello");
  * for await (const item of queue) {
  *   console.log(item); // "hello"
  * }
+ * ```
  */
 export class AsyncQueue {
     queue = [];
