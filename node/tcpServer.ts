@@ -26,11 +26,18 @@ export class TcpServer {
     this.serverOptions = serverOptions;
   }
 
-  start() {
+  async start() {
     this.server = createServer((sock) =>
       this.mqttServer.serve(wrapNodeSocket(sock))
     );
+    const isListening = new Promise((resolve) => {
+      this.server?.on("listening", () => {
+        resolve(true);
+      });
+    });
     this.server.listen(this.serverOptions.port, this.serverOptions.hostname);
+    await isListening;
+    return;
   }
   stop() {
     this.server?.close();
@@ -38,7 +45,7 @@ export class TcpServer {
 
   get port() {
     const address = this.server?.address();
-    if (typeof address === "object") {
+    if (typeof address === "object" && address !== null) {
       return address?.port;
     }
     return this.serverOptions?.port;

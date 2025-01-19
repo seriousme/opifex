@@ -1,13 +1,24 @@
+/**
+ * Utility functions for wrapping Node.js sockets into standard web streams.
+ */
 import type { Socket } from "node:net";
 import { Writable } from "node:stream";
 import type { SockConn } from "../socket/socket.ts";
-
-function closer(sock: Socket) {
+/**
+ * Closes a Node.js socket if it is not already closed
+ * @param sock - The Node.js socket to close
+ */
+function closer(sock: Socket): void {
   if (!sock.closed) {
     sock.end();
   }
 }
 
+/**
+ * Wraps a Node.js socket into a standard web streams-based socket connection
+ * @param socket - The Node.js socket to wrap
+ * @returns A socket connection object with readable/writable streams and close method
+ */
 export function wrapNodeSocket(socket: Socket): SockConn {
   const readable = new ReadableStream(
     {

@@ -1,5 +1,11 @@
 import { ConnectionState } from "../ConnectionState.js";
 import { AuthenticationResultByNumber } from "../deps.js";
+/**
+ * Handles the CONNACK packet received from the MQTT broker
+ * @param packet - The CONNACK packet containing the connection acknowledgment
+ * @param ctx - The connection context
+ * @returns Promise that resolves when handling is complete
+ */
 export async function handleConnack(packet, ctx) {
     if (packet.returnCode === 0) {
         ctx.connectionState = ConnectionState.connected;

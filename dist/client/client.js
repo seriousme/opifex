@@ -1,10 +1,20 @@
 import { Deferred, logger, MemoryStore, PacketType, } from "./deps.js";
 import { Context } from "./context.js";
+/**
+ * Generates a random client ID with the given prefix
+ * @param prefix - The prefix to use for the client ID
+ * @returns A string containing the prefix followed by a random number
+ */
 function generateClientId(prefix) {
     return `${prefix}-${Math.random().toString().slice(-10)}`;
 }
+/**
+ * Implements exponential backoff sleep with optional randomization
+ * @param random - Whether to add randomization to the delay
+ * @param attempt - The attempt number (used to calculate delay)
+ * @returns Promise that resolves after the calculated delay
+ */
 function backOffSleep(random, attempt) {
-    // based on https://dthain.blogspot.com/2009/02/exponential-backoff-in-distributed.html
     const factor = 1.5;
     const min = 1000;
     const max = 5000;
@@ -39,15 +49,30 @@ export class Client {
     clientId;
     ctx = new Context(new MemoryStore());
     connectPacket;
+    /**
+     * Creates a new MQTT client instance
+     */
     constructor() {
         this.clientId = generateClientId(this.clientIdPrefix);
         this.numberOfRetries = DEFAULT_RETRIES;
     }
+    /**
+     * Creates a new connection to the MQTT broker
+     * @param protocol - The protocol to use (mqtt, mqtts, etc)
+     * @param _hostname - The hostname to connect to
+     * @param _port - The port to connect to
+     * @param _caCerts - Optional CA certificates
+     * @param _cert - Optional client certificate
+     * @param _key - Optional client key
+     * @returns Promise resolving to a SockConn connection
+     */
     createConn(protocol, _hostname, _port, _caCerts, _cert, _key) {
-        // if you need to support alternative connection types just
-        // overload this method in your subclass
         throw `Unsupported protocol: ${protocol}`;
     }
+    /**
+     * Handles the connection process including retries and reconnection
+     * @returns Promise that resolves when connection is established or fails
+     */
     async doConnect() {
         if (!this.connectPacket) {
             return;
@@ -60,7 +85,6 @@ export class Client {
             logger.debug(`${isReconnect ? "re" : ""}connecting`);
             try {
                 const conn = await this.createConn(this.url.protocol, this.url.hostname, Number(this.url.port) ?? undefined, this.caCerts, this.cert, this.key);
-                // if we get this far we have a connection
                 tryConnect =
                     (await this.ctx.handleConnection(conn, this.connectPacket)) &&
                         this.autoReconnect;
@@ -86,6 +110,11 @@ export class Client {
             this.ctx.unresolvedConnect?.reject(lastMessage);
         }
     }
+    /**
+     * Connects to the MQTT broker
+     * @param params - Connection parameters
+     * @returns Promise resolving to authentication result
+     */
     connect(params = {}) {
         this.url = params?.url || this.url;
         this.numberOfRetries = params.numberOfRetries || this.numberOfRetries;
@@ -105,9 +134,18 @@ export class Client {
         this.doConnect();
         return deferred.promise;
     }
+    /**
+     * Disconnects from the MQTT broker
+     * @returns Promise that resolves when disconnected
+     */
     async disconnect() {
         await this.ctx.disconnect();
     }
+    /**
+     * Publishes a message to the MQTT broker
+     * @param params - Publish parameters including topic and payload
+     * @returns Promise that resolves when published
+     */
     async publish(params) {
         const packet = {
             type: PacketType.publish,
@@ -115,6 +153,11 @@ export class Client {
         };
         await this.ctx.publish(packet);
     }
+    /**
+     * Subscribes to topics on the MQTT broker
+     * @param params - Subscribe parameters including topics
+     * @returns Promise that resolves when subscribed
+     */
     async subscribe(params) {
         const packet = {
             type: PacketType.subscribe,
@@ -123,9 +166,17 @@ export class Client {
         };
         await this.ctx.subscribe(packet);
     }
+    /**
+     * Gets an async iterator for received messages
+     * @returns AsyncGenerator yielding received publish packets
+     */
     async *messages() {
         yield* this.ctx.incoming;
     }
+    /**
+     * Closes the message stream
+     * @param reason - Optional reason for closing
+     */
     closeMessages(reason) {
         this.ctx.incoming.close(reason);
     }
