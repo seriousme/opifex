@@ -125,6 +125,10 @@ export class Context {
         }
         return false;
     }
+    // just an alias to clarify protocol flow
+    receivePubcomp(id) {
+        return this.receivePuback(id);
+    }
     receiveSuback(id, returnCodes) {
         const unresolvedMap = this.unresolvedSubscribe;
         if (unresolvedMap.has(id)) {

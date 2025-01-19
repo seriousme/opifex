@@ -1,3 +1,7 @@
+/**
+ * @module memoryStore
+ */
+
 import { assert, type PacketId } from "./deps.ts";
 
 import {
@@ -10,13 +14,25 @@ import {
   type PendingOutgoingPackets,
 } from "./store.ts";
 
+/**
+ * In-memory implementation of the IStore interface for managing MQTT packet storage
+ */
 export class MemoryStore implements IStore {
+  /** Current packet ID counter */
   private packetId: PacketId;
 
+  /** Map of pending incoming packets */
   pendingIncoming: PacketStore<pendingIncoming>;
+
+  /** Map of pending outgoing packets */
   pendingOutgoing: PacketStore<PendingOutgoing>;
+
+  /** Map of pending acknowledgment outgoing packets */
   pendingAckOutgoing: PacketStore<PendingAckOutgoing>;
 
+  /**
+   * Creates a new MemoryStore instance
+   */
   constructor() {
     this.packetId = 0;
     this.pendingIncoming = new Map();
@@ -24,6 +40,11 @@ export class MemoryStore implements IStore {
     this.pendingAckOutgoing = new Map();
   }
 
+  /**
+   * Generates the next available packet ID
+   * @returns {PacketId} The next available packet ID
+   * @throws {Error} If no unused packet ID is available
+   */
   nextId(): PacketId {
     const currentId = this.packetId;
     do {
@@ -41,6 +62,10 @@ export class MemoryStore implements IStore {
     return this.packetId;
   }
 
+  /**
+   * Asynchronously yields all pending outgoing packets
+   * @yields {PendingOutgoingPackets} Pending outgoing packets
+   */
   async *pendingOutgoingPackets(): AsyncGenerator<
     PendingOutgoingPackets,
     void,

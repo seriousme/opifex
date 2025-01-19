@@ -1,9 +1,18 @@
 import { Writable } from "node:stream";
+/**
+ * Closes a Node.js socket if it is not already closed
+ * @param sock - The Node.js socket to close
+ */
 function closer(sock) {
     if (!sock.closed) {
         sock.end();
     }
 }
+/**
+ * Wraps a Node.js socket into a standard web streams-based socket connection
+ * @param socket - The Node.js socket to wrap
+ * @returns A socket connection object with readable/writable streams and close method
+ */
 export function wrapNodeSocket(socket) {
     const readable = new ReadableStream({
         type: "bytes",

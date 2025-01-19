@@ -1,4 +1,34 @@
 #!/usr/bin/env -S node --experimental-strip-types
+
+/**
+ * @fileoverview MQTT command line interface that provides publish and subscribe functionality
+ * @module mqtt-cli
+ *
+ * @description
+ * This module implements a command line interface for MQTT operations:
+ * - Publish messages to an MQTT broker
+ * - Subscribe to topics on an MQTT broker
+ *
+ * Features:
+ * - TLS support with custom certificates
+ * - Authentication with username/password
+ * - Configurable QoS levels (0-2)
+ * - Message retention
+ * - Session persistence
+ * - Custom client IDs
+ *
+ * @example
+ * # Publish a message
+ * mqtt publish -t topic -m message
+ *
+ * # Subscribe to a topic
+ * mqtt subscribe -t topic
+ *
+ * @requires node
+ * @requires ../client/mod.ts
+ * @requires ../node/tcpClient.ts
+ * @requires ../utils/mod.ts
+ */
 import { DEFAULT_URL } from "../client/mod.ts";
 import { getFileData, TcpClient } from "../node/tcpClient.ts";
 import { getArgs, logger, LogLevel, parseArgs } from "../utils/mod.ts";

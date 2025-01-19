@@ -5,14 +5,13 @@ import { TcpServer } from "./tcpServer.ts";
 import { logger, LogLevel } from "../utils/mod.ts";
 import type { PublishPacket, QoS } from "../mqttPacket/mod.ts";
 
-logger.level(LogLevel.info);
+logger.level(LogLevel.verbose);
 export function sleep(ms: number): Promise<unknown> {
   return new Promise((r) => setTimeout(r, ms));
 }
 export async function serverTest() {
   const server = new TcpServer({ port: 0 }, {});
   server.start();
-  await sleep(1000);
 
   assert.deepStrictEqual(
     server.port !== undefined,

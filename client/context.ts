@@ -166,6 +166,11 @@ export class Context {
     return false;
   }
 
+  // just an alias to clarify protocol flow
+  receivePubcomp(id: PacketId): boolean {
+    return this.receivePuback(id);
+  }
+
   receiveSuback(id: PacketId, returnCodes: ReturnCodes): boolean {
     const unresolvedMap = this.unresolvedSubscribe;
     if (unresolvedMap.has(id)) {

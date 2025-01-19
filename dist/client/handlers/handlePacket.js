@@ -8,6 +8,13 @@ import { handlePubcomp } from "./handlePubcomp.js";
 import { handleSuback } from "./handleSuback.js";
 import { handleUnsuback } from "./handleUnsuback.js";
 import { logger, PacketNameByType, PacketType } from "../deps.js";
+/**
+ * Handles incoming MQTT packets based on the connection state and packet type
+ * @param ctx - The MQTT client context containing connection state and other information
+ * @param packet - The MQTT packet to handle
+ * @throws Error if an unexpected packet is received before connection is established
+ * @throws Error if an unexpected packet type is received after connection
+ */
 export async function handlePacket(ctx, packet) {
     logger.debug({ received: PacketNameByType[packet.type], packet });
     if (ctx.connectionState !== ConnectionState.connected) {

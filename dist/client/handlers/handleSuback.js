@@ -1,7 +1,12 @@
-// A SUBACK Packet is sent by the Server to the Client to confirm receipt
-// and processing of a SUBSCRIBE Packet.
-// A SUBACK Packet contains a list of return codes, that specify the maximum QoS level
-// that was granted in each Subscription that was requested by the SUBSCRIBE.
+/**
+ * Handles SUBACK packets received from the server
+ * @param ctx - The MQTT client context
+ * @param packet - The SUBACK packet containing subscription confirmations
+ * @description
+ * - Processes SUBACK packets sent by server to confirm SUBSCRIBE requests
+ * - Removes the packet ID from pending outgoing messages
+ * - Notifies the client about granted QoS levels for each subscription
+ */
 export function handleSuback(ctx, packet) {
     const id = packet.id;
     ctx.store.pendingOutgoing.delete(id);

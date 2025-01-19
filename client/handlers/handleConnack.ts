@@ -2,6 +2,12 @@ import type { Context } from "../context.ts";
 import { ConnectionState } from "../ConnectionState.ts";
 import { AuthenticationResultByNumber, type ConnackPacket } from "../deps.ts";
 
+/**
+ * Handles the CONNACK packet received from the MQTT broker
+ * @param packet - The CONNACK packet containing the connection acknowledgment
+ * @param ctx - The connection context
+ * @returns Promise that resolves when handling is complete
+ */
 export async function handleConnack(packet: ConnackPacket, ctx: Context) {
   if (packet.returnCode === 0) {
     ctx.connectionState = ConnectionState.connected;
