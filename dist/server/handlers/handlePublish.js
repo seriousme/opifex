@@ -1,5 +1,11 @@
 import { SysPrefix } from "../context.js";
 import { PacketType } from "../deps.js";
+/**
+ * Checks if a client is authorized to publish to a given topic
+ * @param ctx - The connection context
+ * @param topic - The topic to check authorization for
+ * @returns boolean indicating if client is authorized to publish
+ */
 function authorizedToPublish(ctx, topic) {
     if (topic.startsWith(SysPrefix)) {
         return false;
@@ -9,6 +15,13 @@ function authorizedToPublish(ctx, topic) {
     }
     return true;
 }
+/**
+ * Handles MQTT PUBLISH packets
+ * @param ctx - The connection context
+ * @param packet - The PUBLISH packet to process
+ * @returns Promise that resolves when packet is processed
+ * @throws Error if packet processing fails
+ */
 export async function handlePublish(ctx, packet) {
     if (!authorizedToPublish(ctx, packet.topic)) {
         return;

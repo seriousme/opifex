@@ -1,7 +1,16 @@
 import { PacketType } from "../deps.js";
-// qos 2 only
-// Method A, Initiate onward delivery of the Application Message1  then discard message
-// Send PUBCOMP <Packet Identifier>
+/**
+ * Handles PUBREL (QoS 2 publish release) packets
+ *
+ * @param ctx - The connection context
+ * @param packet - The PUBREL packet received from the client
+ * @returns Promise that resolves when handling is complete
+ * @description
+ * For QoS 2 message delivery:
+ * 1. Initiates onward delivery of the Application Message
+ * 2. Discards the stored message
+ * 3. Sends PUBCOMP packet with the Packet Identifier
+ */
 export async function handlePubrel(ctx, packet) {
     const id = packet.id;
     if (ctx.store?.pendingIncoming.has(id)) {

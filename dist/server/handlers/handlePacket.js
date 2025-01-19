@@ -10,6 +10,13 @@ import { handleSubscribe } from "./handleSubscribe.js";
 import { handleUnsubscribe } from "./handleUnsubscribe.js";
 import { handleDisconnect } from "./handleDisconnect.js";
 import { logger } from "../deps.js";
+/**
+ * Handles incoming MQTT packets based on their type and connection state
+ * @param ctx - The connection context containing client state and configuration
+ * @param packet - The MQTT packet to handle
+ * @throws Error if receiving unexpected packet types or packets before connect
+ * @returns Promise that resolves when packet handling is complete
+ */
 export async function handlePacket(ctx, packet) {
     logger.debug("handling", PacketNameByType[packet.type]);
     logger.debug(JSON.stringify(packet, null, 2));

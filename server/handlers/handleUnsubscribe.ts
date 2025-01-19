@@ -1,6 +1,12 @@
 import type { Context } from "../context.ts";
 import { PacketType, type UnsubscribePacket } from "../deps.ts";
 
+/**
+ * Handles MQTT unsubscribe packets by removing subscriptions and sending acknowledgement
+ * @param ctx - The connection context containing client information and methods
+ * @param packet - The MQTT unsubscribe packet containing topics to unsubscribe from
+ * @returns Promise that resolves when unsubscribe is complete and acknowledged
+ */
 export async function handleUnsubscribe(
   ctx: Context,
   packet: UnsubscribePacket,

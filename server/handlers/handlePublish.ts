@@ -1,6 +1,12 @@
 import { type Context, SysPrefix } from "../context.ts";
 import { PacketType, type PublishPacket, type Topic } from "../deps.ts";
 
+/**
+ * Checks if a client is authorized to publish to a given topic
+ * @param ctx - The connection context
+ * @param topic - The topic to check authorization for
+ * @returns boolean indicating if client is authorized to publish
+ */
 function authorizedToPublish(ctx: Context, topic: Topic) {
   if (topic.startsWith(SysPrefix)) {
     return false;
@@ -11,6 +17,13 @@ function authorizedToPublish(ctx: Context, topic: Topic) {
   return true;
 }
 
+/**
+ * Handles MQTT PUBLISH packets
+ * @param ctx - The connection context
+ * @param packet - The PUBLISH packet to process
+ * @returns Promise that resolves when packet is processed
+ * @throws Error if packet processing fails
+ */
 export async function handlePublish(
   ctx: Context,
   packet: PublishPacket,

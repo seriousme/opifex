@@ -10,6 +10,7 @@ function generateClientId(prefix) {
 }
 /**
  * Implements exponential backoff sleep with optional randomization
+ * based on https://dthain.blogspot.com/2009/02/exponential-backoff-in-distributed.html
  * @param random - Whether to add randomization to the delay
  * @param attempt - The attempt number (used to calculate delay)
  * @returns Promise that resolves after the calculated delay
@@ -67,6 +68,8 @@ export class Client {
      * @returns Promise resolving to a SockConn connection
      */
     createConn(protocol, _hostname, _port, _caCerts, _cert, _key) {
+        // if you need to support alternative connection types just
+        // overload this method in your subclass
         throw `Unsupported protocol: ${protocol}`;
     }
     /**
@@ -85,6 +88,7 @@ export class Client {
             logger.debug(`${isReconnect ? "re" : ""}connecting`);
             try {
                 const conn = await this.createConn(this.url.protocol, this.url.hostname, Number(this.url.port) ?? undefined, this.caCerts, this.cert, this.key);
+                // if we get this far we have a connection
                 tryConnect =
                     (await this.ctx.handleConnection(conn, this.connectPacket)) &&
                         this.autoReconnect;

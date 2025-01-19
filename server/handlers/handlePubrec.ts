@@ -1,9 +1,17 @@
 import type { Context } from "../context.ts";
 import { PacketType, type PubrecPacket } from "../deps.ts";
 
-// qos 2
-// Discard message, Store PUBREC received <Packet Identifier>
-// send PUBREL <Packet Identifier>
+/**
+ * Handles PUBREC (QoS 2 Publish Received) packets
+ * @param ctx - The connection context
+ * @param packet - The PUBREC packet received from the client
+ * @returns Promise that resolves when handling is complete
+ * @description
+ * For QoS 2 message flow:
+ * 1. Discards the original publish message
+ * 2. Stores that PUBREC was received for the packet ID
+ * 3. Sends PUBREL packet in response
+ */
 export async function handlePubrec(
   ctx: Context,
   packet: PubrecPacket,

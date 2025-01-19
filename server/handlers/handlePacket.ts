@@ -23,6 +23,13 @@ import { handleUnsubscribe } from "./handleUnsubscribe.ts";
 import { handleDisconnect } from "./handleDisconnect.ts";
 import { logger } from "../deps.ts";
 
+/**
+ * Handles incoming MQTT packets based on their type and connection state
+ * @param ctx - The connection context containing client state and configuration
+ * @param packet - The MQTT packet to handle
+ * @throws Error if receiving unexpected packet types or packets before connect
+ * @returns Promise that resolves when packet handling is complete
+ */
 export async function handlePacket(
   ctx: Context,
   packet: AnyPacket,
