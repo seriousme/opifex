@@ -4,8 +4,7 @@
 # Opifex
 
 Opifex aims to provide a MQTT server and MQTT client in Typescript to be used
-with [Deno](https://deno.land) or [NodeJS](https://nodejs.org) It has _no_ third
-party dependencies, it only relies on built in modules.
+with [Deno](https://deno.land), [NodeJS](https://nodejs.org) or [Bun](https://bun.sh) It has _no_ third party dependencies, it only relies on built in modules.
 
 Its a work in progress, only does MQTT 3.1.1 and currently only has memory based
 persistence.
@@ -80,12 +79,10 @@ types of transport (e.g. Unix sockets or websocketstream) then its recommended
 to clone and modify the platform specific code in `/node` or `/deno` as well.
 
 If you want to port the platform independent client and server libs to another
-platform (e.g. Bun) then the platform specific code in `/node` or `/deno` might
+platform then the platform specific code in `/node` or `/deno` might
 serve as inspiration.
 
-The platform independent client and server libs should also work on Bun as they
-are engine independent, but the demo server and client currently do not work on
-Bun because of some socket incompatibilities between Bun and the rest.
+Bun (as of version 1.2) is capable of running the NodeJS version.
 
 ## Naming
 
