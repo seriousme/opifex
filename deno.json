@@ -1,6 +1,7 @@
 {
   "name": "@seriousme/opifex",
   "version": "1.6.2",
+  "license": "MIT",
   "exports": {
     "./server": "./server/mod.ts",
     "./client": "./client/mod.ts",
