@@ -52,29 +52,42 @@ function validateConnect(
  * @param clientId - The client ID
  */
 function processValidatedConnect(
+  returnCode: TAuthenticationResult,
   packet: ConnectPacket,
   ctx: Context,
   clientId: string,
-) {
-  if (packet.will) {
-    ctx.will = {
-      type: PacketType.publish,
-      qos: packet.will.qos,
-      retain: packet.will.retain,
-      topic: packet.will.topic,
-      payload: packet.will.payload,
-    };
-  }
+): boolean {
+  if (returnCode === AuthenticationResult.ok) {
+    if (packet.will) {
+      ctx.will = {
+        type: PacketType.publish,
+        qos: packet.will.qos,
+        retain: packet.will.retain,
+        topic: packet.will.topic,
+        payload: packet.will.payload,
+      };
+    }
 
-  ctx.connect(clientId, packet.clean || false);
+    ctx.connect(clientId, packet.clean || false);
 
-  const keepAlive = packet.keepAlive || 0;
-  if (keepAlive > 0) {
-    logger.debug(`Setting keepalive to ${keepAlive * 1500} ms`);
-    ctx.timer = new Timer(() => {
-      ctx.close();
-    }, Math.floor(keepAlive * 1500));
+    const keepAlive = packet.keepAlive || 0;
+    if (keepAlive > 0) {
+      logger.debug(`Setting keepalive to ${keepAlive * 1500} ms`);
+      ctx.timer = new Timer(() => {
+        ctx.close();
+      }, Math.floor(keepAlive * 1500));
+    }
+    // is this a new session?
+    // either because its the first time for the client
+    // or it specifically asked for a clean one
+    const previousSession = ctx.store?.existingSession;
+    // client now has a history
+    if (!previousSession && ctx.store) {
+      ctx.store.existingSession = true;
+    }
+    return previousSession || false;
   }
+  return false;
 }
 
 /**
@@ -85,10 +98,12 @@ function processValidatedConnect(
 export function handleConnect(ctx: Context, packet: ConnectPacket): void {
   const clientId = packet.clientId || `Opifex-${crypto.randomUUID()}`;
   const returnCode = validateConnect(ctx, packet);
-  if (returnCode === AuthenticationResult.ok) {
-    processValidatedConnect(packet, ctx, clientId);
-  }
-  const sessionPresent = false;
+  const sessionPresent = processValidatedConnect(
+    returnCode,
+    packet,
+    ctx,
+    clientId,
+  );
   ctx.send({
     type: PacketType.connack,
     sessionPresent,

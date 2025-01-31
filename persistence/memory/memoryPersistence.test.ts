@@ -21,7 +21,7 @@ test("new should create new Persistence object", () => {
 });
 
 test(
-  "Registring a client should register the client and return a Store Object",
+  "Registering a client should register the client and return a Store Object",
   () => {
     const persistence = new Persistence();
     const clientId = "myClient";
@@ -29,6 +29,7 @@ test(
     assert.deepStrictEqual(persistence.clientList.has(clientId), true);
     assert.deepStrictEqual(typeof client, "object");
     assert.deepStrictEqual(client instanceof Store, true);
+    assert.deepStrictEqual(client.existingSession, false);
   },
 );
 

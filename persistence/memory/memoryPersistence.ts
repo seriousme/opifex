@@ -26,6 +26,7 @@ type ClientSubscription = {
 };
 
 export class MemoryStore implements IStore {
+  existingSession: boolean = false;
   clientId: ClientId;
   private packetId: PacketId;
   pendingIncoming: PacketStore;
