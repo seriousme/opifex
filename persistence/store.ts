@@ -5,6 +5,7 @@ export type PacketStore = Map<PacketId, PublishPacket>;
 export type SubscriptionStore = Map<Topic, QoS>;
 
 export interface IStore {
+  existingSession: boolean;
   clientId: ClientId;
   pendingIncoming: PacketStore;
   pendingOutgoing: PacketStore;

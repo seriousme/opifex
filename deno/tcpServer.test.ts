@@ -5,11 +5,12 @@ import { TcpServer } from "./tcpServer.ts";
 import { logger, LogLevel } from "../utils/mod.ts";
 import type { PublishPacket, QoS } from "../mqttPacket/mod.ts";
 
-logger.level(LogLevel.verbose);
+logger.level(LogLevel.info);
 export function sleep(ms: number): Promise<unknown> {
   return new Promise((r) => setTimeout(r, ms));
 }
-export async function serverTest() {
+
+test("Deno Test pubSub using client and server", async function () {
   const server = new TcpServer({ port: 0 }, {});
   server.start();
 
@@ -85,9 +86,64 @@ export async function serverTest() {
 
   logger.verbose(`Stop server`);
   server.stop();
-}
+});
 
-test("Deno Test pubSub using client and server", async function () {
-  await serverTest();
-  logger.verbose("End of test");
+test("Deno Test subscription persistence after reconnect", async function () {
+  // Start server
+  const server = new TcpServer({ port: 0 }, {});
+  server.start();
+
+  const params = {
+    url: new URL(`mqtt://${server.address}:${server.port}`),
+    numberOfRetries: 0,
+  };
+
+  const client = new TcpClient();
+  const testTopic = "test/topic";
+  const received: PublishPacket[] = [];
+
+  // First connection and subscription
+  await client.connect(params);
+  await client.subscribe({
+    subscriptions: [{
+      topicFilter: testTopic,
+      qos: 0,
+    }],
+  });
+
+  // Start receiving messages
+  (async function () {
+    for await (const item of client.messages()) {
+      received.push(item);
+    }
+  })();
+
+  // Disconnect client
+  await client.disconnect();
+  await sleep(100);
+
+  // Reconnect client
+  await client.connect(params);
+  await sleep(100);
+
+  // Publish test message
+  await client.publish({
+    topic: testTopic,
+    qos: 0,
+    payload: new Uint8Array([0x01]),
+  });
+
+  await sleep(100);
+  logger.verbose(`Disconnect client`);
+  await client.disconnect();
+
+  // Verify message was received
+  assert.equal(received.length, 1, "Should receive one message");
+  assert.equal(
+    received[0].topic,
+    testTopic,
+    "Should receive message on subscribed topic",
+  );
+
+  server.stop();
 });
