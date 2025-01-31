@@ -2,6 +2,7 @@ import { Trie, } from "../deps.js";
 import { assert } from "../../utils/mod.js";
 const maxPacketId = 0xffff;
 export class MemoryStore {
+    existingSession = false;
     clientId;
     packetId;
     pendingIncoming;
