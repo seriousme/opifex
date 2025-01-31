@@ -4,6 +4,12 @@
 
 ### Changed
 
+## [v1.6.3] 31-01-2025
+
+### Changed
+
+- fix: improve memory persistence backend on reconnects
+
 ## [v1.6.2] 19-01-2025
 
 ### Changed
