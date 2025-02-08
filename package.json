@@ -9,7 +9,6 @@
     "build": "npx -p typescript tsc --build",
     "format": "deno fmt",
     "preversion": "npm run test",
-    "version": "npm run build",
     "postversion": "jq '( { name:.name , version:.version, license:.license } + .deno)' package.json > deno.json"
   },
   "keywords": [
