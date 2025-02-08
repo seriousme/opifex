@@ -21,6 +21,16 @@
     "mqtt": "dist/bin/mqtt.js",
     "demoServer": "dist/bin/demoServer.js"
   },
+  "files": [
+    "package.json",
+    "README.md",
+    "LICENSE.txt",
+    "**/*.ts",
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map"
+  ],
   "exports": {
     "./server": "./dist/server/mod.js",
     "./client": "./dist/client/mod.js",
@@ -53,6 +63,6 @@
   },
   "homepage": "https://github.com/seriousme/opifex#readme",
   "devDependencies": {
-    "@types/node": "^22.10.0"
+    "@types/node": "^22.13.1"
   }
 }
