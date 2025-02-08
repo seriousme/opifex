@@ -13,8 +13,7 @@ persistence.
 
 ## Example
 
-A simple server example using Deno, for more elaborate examples see the Usage
-section below.
+A simple server example using Deno.
 
 ```typescript
 import { MqttServer } from "./server/mod.ts";
@@ -25,6 +24,9 @@ for await (const conn of this.listener) {
   mqttServer.serve(conn);
 }
 ```
+
+A more elaborate example including client and server can be found in the
+[examples](/examples/) folder.
 
 ## Architecture
 
@@ -76,8 +78,6 @@ If you want to change the behaviour of the server and/or the client beyond what
 can be done with CLI options then the next step is to clone the demo server
 and/or the client scripts and modify them to your liking.
 
-An example can be found in the [examples](/examples/) folder.
-
 If you want to port the platform independent client and server libs to other
 types of transport (e.g. Unix sockets or websocketstream) then its recommended
 to clone and modify the platform specific code in `/node` or `/deno` as well.
@@ -87,6 +87,19 @@ platform then the platform specific code in `/node` or `/deno` might serve as
 inspiration.
 
 Bun (as of version 1.2) is capable of running the NodeJS version.
+
+## Exports
+
+| Export                       | Description                                             |
+| ---------------------------- | ------------------------------------------------------- |
+| @seriousme/opifex/tcpClient  | Exports a MQTT over TCP client                          |
+| @seriousme/opifex/tcpServer  | Exports a MQTT over TCP server                          |
+| @seriousme/opifex/server     | Exports a transport agnostic MQTT server                |
+| @seriousme/opifex/client     | Exports a transport agnostic MQTT client                |
+| @seriousme/opifex/client     | Exports an Typescript interface for storage persistence |
+| @seriousme/opifex/mqttConn   | Exports MQTT connection handling                        |
+| @seriousme/opifex/mqttPacket | Exports MQTT packet handling                            |
+| @seriousme/opifex/utils      | Exports various utilities                               |
 
 ## Naming
 

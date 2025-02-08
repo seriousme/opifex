@@ -32,21 +32,25 @@
     "dist/**/*.d.ts.map"
   ],
   "exports": {
+    "./tcpClient": "./dist/node/tcpClient.js",
+    "./tcpServer": "./dist/node/tcpServer.js",
     "./server": "./dist/server/mod.js",
     "./client": "./dist/client/mod.js",
+    "./persistence": "./dist/persistence/persistence.js",
+    "./mqttConn": "./dist/mqttConn/mod.js",
     "./mqttPacket": "./dist/mqttPacket/mod.js",
-    "./utils": "./dist/utils/mod.js",
-    "./tcpClient": "./dist/node/tcpClient.js",
-    "./tcpServer": "./dist/node/tcpServer.js"
+    "./utils": "./dist/utils/mod.js"
   },
   "deno": {
     "exports": {
+      "./tcpClient": "./deno/tcpClient.ts",
+      "./tcpServer": "./deno/tcpServer.ts",
       "./server": "./server/mod.ts",
       "./client": "./client/mod.ts",
+      "./persistence": "./persistence/persistence.ts",
+      "./mqttConn": "./mqttConn/mod.ts",
       "./mqttPacket": "./mqttPacket/mod.ts",
-      "./utils": "./utils/mod.ts",
-      "./tcpClient": "./deno/tcpClient.ts",
-      "./tcpServer": "./deno/tcpServer.ts"
+      "./utils": "./utils/mod.ts"
     },
     "exclude": [
       "dist"
