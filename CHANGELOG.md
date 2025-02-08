@@ -4,6 +4,13 @@
 
 ### Changed
 
+## [v1.8.0] 08-02-2025
+
+### Changed
+
+- feature: added "exports" section to README.md and added /examples
+- feature: export mqttCon and Persistence
+
 ## [v1.7.1] 08-02-2025
 
 ### Changed
