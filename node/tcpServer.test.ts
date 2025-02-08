@@ -1,9 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { TcpClient } from "./tcpClient.ts";
-import { TcpServer } from "./tcpServer.ts";
-import { logger, LogLevel } from "../utils/mod.ts";
-import type { PublishPacket, QoS } from "../mqttPacket/mod.ts";
+import { TcpClient } from "@seriousme/opifex/tcpClient";
+import { TcpServer } from "@seriousme/opifex/tcpServer";
+import { logger, LogLevel } from "@seriousme/opifex/utils";
+import type { PublishPacket, QoS } from "@seriousme/opifex/mqttPacket";
 
 logger.level(LogLevel.info);
 export function sleep(ms: number): Promise<unknown> {

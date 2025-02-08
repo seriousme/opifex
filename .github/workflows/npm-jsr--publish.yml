@@ -15,6 +15,7 @@ jobs:
           node-version: "lts/*"
           registry-url: "https://registry.npmjs.org"
       - run: npm ci
+      - run: npm run test
       - run: npx jsr publish
       - run: npm publish --provenance --access public
         env:

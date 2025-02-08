@@ -4,6 +4,7 @@
   "description": "MQTT client & server for Deno & NodeJS",
   "type": "module",
   "scripts": {
+    "pretest": "npm run build",
     "test": "node --experimental-strip-types --test --test-skip-pattern='/^Deno/'",
     "prebuild": "rm -rf dist",
     "build": "npx -p typescript tsc --build",
@@ -21,6 +22,16 @@
     "mqtt": "dist/bin/mqtt.js",
     "demoServer": "dist/bin/demoServer.js"
   },
+  "files": [
+    "package.json",
+    "README.md",
+    "LICENSE.txt",
+    "**/*.ts",
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map"
+  ],
   "exports": {
     "./server": "./dist/server/mod.js",
     "./client": "./dist/client/mod.js",
