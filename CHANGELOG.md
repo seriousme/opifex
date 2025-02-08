@@ -4,6 +4,12 @@
 
 ### Changed
 
+## [v1.7.1] 08-02-2025
+
+### Changed
+
+- fix: fixed npm publication flow
+
 ## [v1.7.0] 08-02-2025
 
 ### Changed
