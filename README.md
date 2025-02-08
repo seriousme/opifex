@@ -76,6 +76,8 @@ If you want to change the behaviour of the server and/or the client beyond what
 can be done with CLI options then the next step is to clone the demo server
 and/or the client scripts and modify them to your liking.
 
+An example can be found in the [examples](/examples/) folder.
+
 If you want to port the platform independent client and server libs to other
 types of transport (e.g. Unix sockets or websocketstream) then its recommended
 to clone and modify the platform specific code in `/node` or `/deno` as well.
