@@ -2,7 +2,6 @@ name: Publish Package to jsr and npmjs
 on:
   release:
     types: [created]
-  workflow_dispatch:
 jobs:
   build:
     runs-on: ubuntu-latest
