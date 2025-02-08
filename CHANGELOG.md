@@ -4,6 +4,12 @@
 
 ### Changed
 
+## [v1.7.0] 08-02-2025
+
+### Changed
+
+- feature: added Typescript definitions (*.d.ts) and sourcemaps to /dist
+
 ## [v1.6.3] 31-01-2025
 
 ### Changed
