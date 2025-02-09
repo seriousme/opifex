@@ -90,16 +90,16 @@ Bun (as of version 1.2) is capable of running the NodeJS version.
 
 ## Exports
 
-| Export                       | Description                                             |
-| ---------------------------- | ------------------------------------------------------- |
-| @seriousme/opifex/tcpClient  | Exports a MQTT over TCP client                          |
-| @seriousme/opifex/tcpServer  | Exports a MQTT over TCP server                          |
-| @seriousme/opifex/server     | Exports a transport agnostic MQTT server                |
-| @seriousme/opifex/client     | Exports a transport agnostic MQTT client                |
-| @seriousme/opifex/client     | Exports an Typescript interface for storage persistence |
-| @seriousme/opifex/mqttConn   | Exports MQTT connection handling                        |
-| @seriousme/opifex/mqttPacket | Exports MQTT packet handling                            |
-| @seriousme/opifex/utils      | Exports various utilities                               |
+| Export                        | Description                                             |
+| ----------------------------- | ------------------------------------------------------- |
+| @seriousme/opifex/tcpClient   | Exports a MQTT over TCP client                          |
+| @seriousme/opifex/tcpServer   | Exports a MQTT over TCP server                          |
+| @seriousme/opifex/server      | Exports a transport agnostic MQTT server                |
+| @seriousme/opifex/client      | Exports a transport agnostic MQTT client                |
+| @seriousme/opifex/persistence | Exports an Typescript interface for storage persistence |
+| @seriousme/opifex/mqttConn    | Exports MQTT connection handling                        |
+| @seriousme/opifex/mqttPacket  | Exports MQTT packet handling                            |
+| @seriousme/opifex/utils       | Exports various utilities                               |
 
 ## Naming
 
