@@ -1,7 +1,8 @@
 /**
- *  This module provides the encoding and decoding of MQTT packets
- * it is used by the server and client modules
- *  @module
+ * @module MQTT Packet Encoding/Decoding
+ * @description This module provides comprehensive encoding and decoding functionality for MQTT packets
+ * used in both server and client implementations. It handles all MQTT packet types and their
+ * transformations between binary and object representations.
  */
 
 import type {
@@ -99,6 +100,10 @@ export {
   PacketType,
 };
 
+/**
+ * Array mapping MQTT packet types to their corresponding encode/decode handlers
+ * Index corresponds to packet type number.
+ */
 export const packetsByType = [
   null,
   connect, // 1
@@ -117,6 +122,13 @@ export const packetsByType = [
   disconnect, // 14
 ] as const;
 
+/**
+ * @function encode
+ * @description Encodes an MQTT packet object into a binary Uint8Array format
+ * @param {AnyPacket} packet - The MQTT packet object to encode
+ * @returns {Uint8Array} The encoded packet as a binary buffer
+ * @throws {Error} If packet encoding fails
+ */
 export function encode(packet: AnyPacket): Uint8Array {
   const packetType: number = packet.type;
   // deno-lint-ignore no-explicit-any
@@ -133,6 +145,15 @@ export function encode(packet: AnyPacket): Uint8Array {
   ]);
 }
 
+/**
+ * @function decodePayload
+ * @description Decodes a packet payload from binary format into an MQTT packet object
+ * @param {number} firstByte - The first byte of the MQTT packet containing type and flags
+ * @param {Uint8Array} buffer - The binary buffer containing the packet payload
+ * @returns {AnyPacket} The decoded MQTT packet object
+ * @throws {Error} If packet decoding fails
+ */
+
 export function decodePayload(
   firstByte: number,
   buffer: Uint8Array,
@@ -146,6 +167,13 @@ export function decodePayload(
   throw new Error("packet decoding failed");
 }
 
+/**
+ * @function decode
+ * @description Decodes a complete MQTT packet from binary format into a packet object
+ * @param {Uint8Array} buffer - The binary buffer containing the complete MQTT packet
+ * @returns {AnyPacket} The decoded MQTT packet object
+ * @throws {DecoderError} If packet decoding fails due to invalid format or insufficient data
+ */
 export function decode(buffer: Uint8Array): AnyPacket {
   if (buffer.length < 2) {
     throw new DecoderError("Packet decoding failed");

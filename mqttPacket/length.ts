@@ -1,3 +1,9 @@
+/**
+ * Encodes a number into a variable-length byte array using a modified base-128 encoding
+ * @param n The number to encode
+ * @returns Array of bytes representing the encoded number
+ * @throws Error if the encoded length is greater than 4 bytes
+ */
 export function encodeLength(n: number): number[] {
   const output = [];
   let x = n;
@@ -15,6 +21,13 @@ export function encodeLength(n: number): number[] {
   return output;
 }
 
+/**
+ * Decodes a variable-length encoded number from a byte array
+ * @param buf The byte array containing the encoded number
+ * @param start The starting position in the buffer to begin decoding
+ * @returns Object containing the decoded length and number of bytes used for encoding
+ * @throws Error if decoding fails
+ */
 export function decodeLength(
   buf: Uint8Array,
   start: number,
@@ -30,12 +43,20 @@ export function decodeLength(
   throw Error("length decoding failed");
 }
 
+/**
+ * Interface for the result returned by the length decoder
+ */
 export type LengthDecoderResult = {
   done: boolean;
   length: number;
   numLengthBytes: number;
 };
 
+/**
+ * Creates a stateful decoder function for processing variable-length encoded numbers
+ * @returns Function that processes one byte at a time and returns decoding status
+ * @throws Error if the encoded length is greater than 4 bytes
+ */
 export function getLengthDecoder(): (
   encodedByte: number,
 ) => LengthDecoderResult {

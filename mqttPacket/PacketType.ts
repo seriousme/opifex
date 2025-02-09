@@ -1,3 +1,6 @@
+/**
+ *  Possible MQTT packet types
+ */
 export const PacketType = {
   reserved: 0,
   connect: 1,
@@ -16,6 +19,9 @@ export const PacketType = {
   disconnect: 14,
 } as const;
 
+/**
+ * Reverse lookup for packet types
+ */
 export const PacketNameByType: Record<number, string> = Object.fromEntries(
   Object.entries(PacketType).map(([k, v]) => [v, k]),
 );
