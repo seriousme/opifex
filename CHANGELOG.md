@@ -4,6 +4,12 @@
 
 ### Changed
 
+## [v1.8.2] 09-02-2025
+
+### Changed
+
+- fix: added more JSdoc comments
+
 ## [v1.8.1] 09-02-2025
 
 ### Changed
