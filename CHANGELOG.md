@@ -6,9 +6,9 @@
 
 ## [v1.8.1] 09-02-2025
 
-- fix: fix export of mqttConn
-
 ### Changed
+
+- fix: fix export of mqttConn
 
 ## [v1.8.0] 08-02-2025
 
