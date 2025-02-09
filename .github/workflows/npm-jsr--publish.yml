@@ -18,6 +18,7 @@ jobs:
         with:
           deno-version: vx.x.x # Run with latest stable Deno.
       - run: npm ci
+      - run: deno install
       - run: npm run build
       - run: deno fmt
       - run: npx jsr publish
