@@ -1,24 +1,25 @@
-import {
-  type ClientId,
-  type PacketId,
-  type PublishPacket,
-  type QoS,
-  type Topic,
-  type TopicFilter,
-  Trie,
-} from "../deps.ts";
-
 import type {
   Client,
+  ClientId,
   Handler,
   IPersistence,
+  IStore,
+  PacketId,
+  PacketStore,
+  PublishPacket,
+  QoS,
   RetainStore,
-} from "../persistence.ts";
-import type { IStore, PacketStore, SubscriptionStore } from "../store.ts";
+  SubscriptionStore,
+  Topic,
+  TopicFilter,
+} from "../mod.ts";
+
+import { maxPacketId } from "../mod.ts";
+
+import { Trie } from "../deps.ts";
 import { assert } from "../../utils/mod.ts";
 
-const maxPacketId = 0xffff;
-// const maxQueueLength = 0xffff;
+
 
 type ClientSubscription = {
   clientId: ClientId;
@@ -99,7 +100,7 @@ export class MemoryPersistence implements IPersistence {
   unsubscribe(store: IStore, topicFilter: TopicFilter): void {
     const clientId = store.clientId;
     const qos = store.subscriptions.get(topicFilter);
-    if (qos) {
+    if (qos !== undefined) {
       store.subscriptions.delete(topicFilter);
       this.trie.remove(topicFilter, { clientId, qos });
     }
