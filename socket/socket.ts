@@ -1,6 +1,6 @@
-export type SockAddr = NetAddr | UnixAddr | undefined;
+export type SockAddr = NetAddr | UnixAddr | VsockAddr;
 export interface NetAddr {
-  transport?: "tcp" | "udp";
+  transport: "tcp" | "udp";
   hostname: string;
   port: number;
 }
@@ -8,6 +8,12 @@ export interface NetAddr {
 export interface UnixAddr {
   transport: "unix" | "unixpacket";
   path: string;
+}
+
+export interface VsockAddr {
+  transport: "vsock";
+  cid: number;
+  port: number;
 }
 
 export type SockConn = {

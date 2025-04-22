@@ -3,7 +3,7 @@
  */
 import type { Socket } from "node:net";
 import { Writable } from "node:stream";
-import type { SockConn } from "../socket/socket.ts";
+import type { NetAddr, SockConn } from "../socket/socket.ts";
 /**
  * Closes a Node.js socket if it is not already closed
  * @param sock - The Node.js socket to close
@@ -50,9 +50,10 @@ export function wrapNodeSocket(socket: Socket): SockConn {
     },
   );
   const writable = Writable.toWeb(socket);
-  const remoteAddr = {
+  const remoteAddr: NetAddr = {
     hostname: socket.remoteAddress || "",
     port: socket.remotePort || 0,
+    transport: "tcp",
   };
 
   const conn: SockConn = {
