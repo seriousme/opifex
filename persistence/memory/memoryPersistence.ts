@@ -19,8 +19,6 @@ import { maxPacketId } from "../mod.ts";
 import { Trie } from "../deps.ts";
 import { assert } from "../../utils/mod.ts";
 
-
-
 type ClientSubscription = {
   clientId: ClientId;
   qos: QoS;
