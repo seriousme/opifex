@@ -13,7 +13,7 @@ export class Trie<T> {
   #children: Map<string, Trie<T>>;
   private separator = "/";
   private wildcardOne = "+";
-  private wildcardSubtree = "#"; 
+  private wildcardSubtree = "#";
   private reservedPrefix = "$";
   private looseCompare: boolean;
 
