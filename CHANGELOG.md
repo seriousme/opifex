@@ -4,6 +4,12 @@
 
 ### Changed
 
+## [v1.9.1] 22-04-2025
+
+### Changed
+
+- fix: update deno.json
+
 ## [v1.9.0] 22-04-2025
 
 ### Changed
