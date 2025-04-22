@@ -1,13 +1,14 @@
 {
   "name": "@seriousme/opifex",
-  "version": "1.8.2",
+  "version": "1.9.0",
   "license": "MIT",
   "exports": {
     "./tcpClient": "./deno/tcpClient.ts",
     "./tcpServer": "./deno/tcpServer.ts",
     "./server": "./server/mod.ts",
     "./client": "./client/mod.ts",
-    "./persistence": "./persistence/persistence.ts",
+    "./trie": "./trie/trie.ts",
+    "./persistence": "./persistence/mod.ts",
     "./mqttConn": "./mqttConn/mqttConn.ts",
     "./mqttPacket": "./mqttPacket/mod.ts",
     "./utils": "./utils/mod.ts"
