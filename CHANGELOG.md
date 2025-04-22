@@ -4,6 +4,12 @@
 
 ### Changed
 
+## [v1.9.2] 22-04-2025
+
+### Changed
+
+- fix: fix Deno lint warnings on trie.ts
+
 ## [v1.9.1] 22-04-2025
 
 ### Changed
