@@ -36,7 +36,8 @@
     "./tcpServer": "./dist/node/tcpServer.js",
     "./server": "./dist/server/mod.js",
     "./client": "./dist/client/mod.js",
-    "./persistence": "./dist/persistence/persistence.js",
+    "./trie": "./dist/trie/trie.js",
+    "./persistence": "./dist/persistence/mod.js",
     "./mqttConn": "./dist/mqttConn/mqttConn.js",
     "./mqttPacket": "./dist/mqttPacket/mod.js",
     "./utils": "./dist/utils/mod.js"
@@ -47,7 +48,8 @@
       "./tcpServer": "./deno/tcpServer.ts",
       "./server": "./server/mod.ts",
       "./client": "./client/mod.ts",
-      "./persistence": "./persistence/persistence.ts",
+      "./trie": "./trie/trie.ts",
+      "./persistence": "./persistence/mod.ts",
       "./mqttConn": "./mqttConn/mqttConn.ts",
       "./mqttPacket": "./mqttPacket/mod.ts",
       "./utils": "./utils/mod.ts"

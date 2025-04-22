@@ -6,6 +6,11 @@ import type { ClientId, PublishPacket, QoS, Topic } from "./deps.ts";
 import type { IStore } from "./store.ts";
 
 /**
+ * Maximum packet ID value for MQTT messages (0xffff/65535)
+ * @constant {number}
+ */
+export const maxPacketId = 0xffff;
+/**
  * Handler function type for processing publish packets
  * @callback Handler
  * @param {PublishPacket} packet - The MQTT publish packet to handle

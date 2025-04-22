@@ -4,6 +4,13 @@
 
 ### Changed
 
+## [v1.9.0] 22-04-2025
+
+### Changed
+
+- feature: exported more types in /persistence
+- fix: updated compatibility with Deno 2.2
+
 ## [v1.8.2] 09-02-2025
 
 ### Changed
