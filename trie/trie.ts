@@ -1,5 +1,6 @@
 /**
- * A Trie data structure implementation that supports wildcard matching
+ * @module trie
+ * @description A Trie data structure implementation that supports wildcard matching
  * @template T The type of values stored in the trie
  */
 type Parts = string[];

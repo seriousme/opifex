@@ -9,8 +9,7 @@
     "build": "npx -p typescript tsc --build",
     "format": "deno fmt",
     "preversion": "npm run test",
-    "postversion": "jq '( { name:.name , version:.version, license:.license } + .deno)' package.json > deno.json",
-    "postpostversion": "deno install"
+    "version": "jq '( { name:.name , version:.version, license:.license } + .deno)' package.json > deno.json && deno install"
   },
   "keywords": [
     "MQTT",
