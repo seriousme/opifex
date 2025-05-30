@@ -4,6 +4,12 @@
 
 ### Changed
 
+## [v1.9.4] 30-05-2025
+
+### Changed
+
+- fix: improved encoder buffer packing performance
+
 ## [v1.9.3] 23-04-2025
 
 ### Changed
