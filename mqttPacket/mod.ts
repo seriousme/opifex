@@ -138,11 +138,18 @@ export function encode(packet: AnyPacket): Uint8Array {
     throw Error("Packet encoding failed");
   }
   const { flags, bytes } = encoded;
-  return Uint8Array.from([
-    (packetType << 4) | flags,
-    ...encodeLength(bytes.length),
-    ...bytes,
-  ]);
+  const encodedLength = encodeLength(bytes.length);
+  const buflenght = 1 + encodedLength.length + bytes.length;
+  const buffer = new Uint8Array(buflenght);
+  let offset = 0;
+  buffer[offset++] = (packetType << 4) | flags;
+  for (let i = 0; i < encodedLength.length; i++) {
+    buffer[offset++] = encodedLength[i];
+  }
+  for (let i = 0; i < bytes.length; i++) {
+    buffer[offset++] = bytes[i];
+  }
+  return buffer;
 }
 
 /**
