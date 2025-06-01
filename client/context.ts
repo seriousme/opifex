@@ -1,20 +1,24 @@
 import {
-  type AnyPacket,
   AsyncQueue,
-  type ConnectPacket,
   Deferred,
   logger,
-  type MemoryStore,
   MqttConn,
-  type PacketId,
+  MQTTLevel,
   PacketType,
-  type PublishPacket,
-  type ReturnCodes,
-  type SockConn,
-  type SubscribePacket,
-  type TAuthenticationResult,
   Timer,
-  type UnsubscribePacket,
+} from "./deps.ts";
+import type {
+  AnyPacket,
+  ConnectPacket,
+  MemoryStore,
+  PacketId,
+  ProtocolLevel,
+  PublishPacket,
+  ReturnCodes,
+  SockConn,
+  SubscribePacket,
+  TAuthenticationResult,
+  UnsubscribePacket,
 } from "./deps.ts";
 
 import { handlePacket } from "./handlers/handlePacket.ts";
@@ -24,6 +28,7 @@ import { ConnectionState } from "./ConnectionState.ts";
 export class Context {
   mqttConn?: MqttConn;
   connectionState: TConnectionState;
+  protocolLevel: ProtocolLevel;
   pingTimer?: Timer;
   unresolvedConnect?: Deferred<TAuthenticationResult>;
   unresolvedPublish: Map<PacketId, Deferred<void>>;
@@ -35,6 +40,7 @@ export class Context {
   constructor(store: MemoryStore) {
     this.store = store;
     this.connectionState = ConnectionState.offline;
+    this.protocolLevel = MQTTLevel.unknown;
     this.incoming = new AsyncQueue();
     this.unresolvedPublish = new Map();
     this.unresolvedSubscribe = new Map();
@@ -43,6 +49,10 @@ export class Context {
 
   async connect(packet: ConnectPacket) {
     this.connectionState = ConnectionState.connecting;
+    if (packet.protocolLevel === MQTTLevel.unknown) {
+      packet.protocolLevel = MQTTLevel.v4;
+    }
+    this.protocolLevel = packet.protocolLevel;
     await this.mqttConn?.send(packet);
     const keepAlive = packet.keepAlive || 0;
     if (keepAlive > 0) {
@@ -62,6 +72,7 @@ export class Context {
       this.connectionState = ConnectionState.disconnecting;
       await this.mqttConn.send({ type: PacketType.disconnect });
       this.mqttConn.close();
+      this.protocolLevel = MQTTLevel.unknown;
     }
   }
 

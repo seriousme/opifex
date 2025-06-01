@@ -11,6 +11,9 @@ import { AuthenticationResultByNumber, type ConnackPacket } from "../deps.ts";
 export async function handleConnack(packet: ConnackPacket, ctx: Context) {
   if (packet.returnCode === 0) {
     ctx.connectionState = ConnectionState.connected;
+    if (ctx.mqttConn) {
+      ctx.mqttConn.protocolLevel = ctx.protocolLevel;
+    }
     ctx.pingTimer?.reset();
     ctx.unresolvedConnect?.resolve(packet.returnCode);
     // start transmitting packets that were queued before
