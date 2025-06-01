@@ -6,6 +6,7 @@ export type {
   Dup,
   PacketId,
   Payload,
+  ProtocolLevel,
   PubackPacket,
   PubcompPacket,
   PublishPacket,
@@ -25,6 +26,7 @@ export {
   AuthenticationResultByNumber,
   decodePayload,
   encode,
+  MQTTLevel,
   PacketNameByType,
   PacketType,
 } from "../mqttPacket/mod.ts";

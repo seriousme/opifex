@@ -1,8 +1,15 @@
-import { logger, MqttConn, PacketNameByType, PacketType } from "./deps.ts";
+import {
+  logger,
+  MqttConn,
+  MQTTLevel,
+  PacketNameByType,
+  PacketType,
+} from "./deps.ts";
 import type {
   AnyPacket,
   IPersistence,
   IStore,
+  ProtocolLevel,
   PublishPacket,
   SockConn,
   TAuthenticationResult,
@@ -46,6 +53,7 @@ export type Handlers = {
 
 export class Context {
   connected: boolean;
+  protocolLevel: ProtocolLevel;
   conn: SockConn;
   mqttConn: MqttConn;
   persistence: IPersistence;
@@ -61,6 +69,7 @@ export class Context {
     this.conn = conn;
     this.mqttConn = new MqttConn({ conn });
     this.handlers = handlers;
+    this.protocolLevel = MQTTLevel.unknown;
   }
 
   async send(packet: AnyPacket): Promise<void> {
