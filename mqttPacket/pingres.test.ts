@@ -2,7 +2,7 @@ import { PacketType } from "./PacketType.ts";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { decode, encode } from "./mod.ts";
+import { decode, encode, MQTTLevel } from "./mod.ts";
 
 test("encode Pingres", () => {
   assert.deepStrictEqual(
@@ -25,6 +25,7 @@ test("decode Pingres", () => {
         208, // packetType + flags
         0, // remainingLength
       ]),
+      MQTTLevel.v4,
     ),
     {
       type: PacketType.pingres,
@@ -43,6 +44,7 @@ test("decode invalid Pingres", () => {
           0,
           0,
         ]),
+        MQTTLevel.v4,
       ),
     Error,
     "too long",

@@ -1,4 +1,10 @@
-import type { Payload, QoS, Topic, TPacketType } from "./types.ts";
+import type {
+  Payload,
+  ProtocolLevel,
+  QoS,
+  Topic,
+  TPacketType,
+} from "./types.ts";
 import { PacketType } from "./PacketType.ts";
 import { BitMask } from "./BitMask.ts";
 import { Encoder, EncoderError } from "./encoder.ts";
@@ -20,7 +26,11 @@ export type PublishPacket = {
 
 export const publish: {
   encode(packet: PublishPacket): { flags: number; bytes: number[] };
-  decode(buffer: Uint8Array, flags: number): PublishPacket;
+  decode(
+    buffer: Uint8Array,
+    flags: number,
+    protocolLevel: ProtocolLevel,
+  ): PublishPacket;
 } = {
   encode(packet: PublishPacket): { flags: number; bytes: number[] } {
     const qos = packet.qos || 0;
@@ -43,7 +53,14 @@ export const publish: {
     return { flags, bytes: encoder.done() };
   },
 
-  decode(buffer: Uint8Array, flags: number): PublishPacket {
+  decode(
+    buffer: Uint8Array,
+    flags: number,
+    protocolLevel: ProtocolLevel,
+  ): PublishPacket {
+    if (protocolLevel === 5) {
+      throw new DecoderError("Invalid protocol version");
+    }
     const dup = booleanFlag(flags, BitMask.bit3);
     const qos = (flags & 6) >> 1;
     const retain = booleanFlag(flags, BitMask.bit0);

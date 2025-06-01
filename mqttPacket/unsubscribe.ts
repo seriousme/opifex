@@ -1,4 +1,10 @@
-import type { PacketId, Topic, TopicFilter, TPacketType } from "./types.ts";
+import type {
+  PacketId,
+  ProtocolLevel,
+  Topic,
+  TopicFilter,
+  TPacketType,
+} from "./types.ts";
 import { PacketType } from "./PacketType.ts";
 import { BitMask } from "./BitMask.ts";
 import { Encoder } from "./encoder.ts";
@@ -15,7 +21,11 @@ export type UnsubscribePacket = {
 
 export const unsubscribe: {
   encode(packet: UnsubscribePacket): { flags: number; bytes: number[] };
-  decode(buffer: Uint8Array, flags: number): UnsubscribePacket;
+  decode(
+    buffer: Uint8Array,
+    flags: number,
+    protocolLevel: ProtocolLevel,
+  ): UnsubscribePacket;
 } = {
   encode(packet: UnsubscribePacket): { flags: number; bytes: number[] } {
     // Bits 3,2,1 and 0 of the fixed header of the UNSUBSCRIBE Control Packet are reserved and
@@ -31,7 +41,14 @@ export const unsubscribe: {
     return { flags, bytes: encoder.done() };
   },
 
-  decode(buffer: Uint8Array, flags: number): UnsubscribePacket {
+  decode(
+    buffer: Uint8Array,
+    flags: number,
+    protocolLevel: ProtocolLevel,
+  ): UnsubscribePacket {
+    if (protocolLevel === 5) {
+      throw new DecoderError("Invalid protocol version");
+    }
     if (!booleanFlag(flags, BitMask.bit1)) {
       throw new DecoderError("Invalid header");
     }

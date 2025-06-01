@@ -2,7 +2,7 @@ import { PacketType } from "./PacketType.ts";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { decode, encode } from "./mod.ts";
+import { decode, encode, MQTTLevel } from "./mod.ts";
 
 test("encode Puback", () => {
   assert.deepStrictEqual(
@@ -32,6 +32,7 @@ test("decode Puback ", () => {
         5, // id MSB
         57, // id LSB
       ]),
+      MQTTLevel.v4,
     ),
     {
       type: PacketType.puback,
@@ -42,14 +43,23 @@ test("decode Puback ", () => {
 
 test("decodeShortPubackPackets", () => {
   assert.throws(
-    () => decode(Uint8Array.from([0x40])),
+    () => decode(Uint8Array.from([0x40]), MQTTLevel.v4),
     Error,
     "decoding failed",
   );
-  assert.throws(() => decode(Uint8Array.from([0x40, 2])), Error, "too short");
   assert.throws(
-    () => decode(Uint8Array.from([0x40, 3, 0, 0, 0])),
+    () => decode(Uint8Array.from([0x40, 2]), MQTTLevel.v4),
+    Error,
+    "too short",
+  );
+  assert.throws(
+    () => decode(Uint8Array.from([0x40, 3, 0, 0, 0]), MQTTLevel.v4),
     Error,
     "too long",
+  );
+  assert.throws(
+    () => decode(Uint8Array.from([0x40, 2, 5, 57]), MQTTLevel.v5),
+    Error,
+    "decoding failed",
   );
 });
