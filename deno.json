@@ -15,5 +15,8 @@
   },
   "exclude": [
     "dist"
-  ]
+  ],
+  "compilerOptions": {
+    "strict": true
+  }
 }
