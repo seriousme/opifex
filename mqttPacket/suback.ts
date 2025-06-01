@@ -1,7 +1,12 @@
-import type { PacketId, ReturnCodes, TPacketType } from "./types.ts";
+import type {
+  PacketId,
+  ProtocolLevel,
+  ReturnCodes,
+  TPacketType,
+} from "./types.ts";
 import { PacketType } from "./PacketType.ts";
 import { Encoder } from "./encoder.ts";
-import { Decoder } from "./decoder.ts";
+import { Decoder, DecoderError } from "./decoder.ts";
 
 /**
  * SubackPacket is sent by the server to the client to confirm receipt and
@@ -15,7 +20,11 @@ export type SubackPacket = {
 
 export const suback: {
   encode(packet: SubackPacket): { flags: number; bytes: number[] };
-  decode(buffer: Uint8Array): SubackPacket;
+  decode(
+    buffer: Uint8Array,
+    flags: number,
+    protocolLevel: ProtocolLevel,
+  ): SubackPacket;
 } = {
   encode(packet: SubackPacket): { flags: number; bytes: number[] } {
     const flags = 0;
@@ -29,7 +38,14 @@ export const suback: {
     };
   },
 
-  decode(buffer: Uint8Array): SubackPacket {
+  decode(
+    buffer: Uint8Array,
+    _flags: number,
+    protocolLevel: ProtocolLevel,
+  ): SubackPacket {
+    if (protocolLevel === 5) {
+      throw new DecoderError("Invalid protocol version");
+    }
     const decoder = new Decoder(buffer);
     const id = decoder.getInt16();
     const payload = decoder.getRemainder();

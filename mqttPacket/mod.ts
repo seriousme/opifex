@@ -10,6 +10,7 @@ import type {
   Dup,
   PacketId,
   Payload,
+  ProtocolLevel,
   QoS,
   ReturnCodes,
   TAuthenticationResult,
@@ -17,6 +18,8 @@ import type {
   TopicFilter,
   TPacketType,
 } from "./types.ts";
+
+export { MQTTLevel } from "./protocolLevels.ts";
 import { PacketNameByType, PacketType } from "./PacketType.ts";
 import { invalidTopic, invalidTopicFilter, invalidUTF8 } from "./validators.ts";
 import { decodeLength, encodeLength } from "./length.ts";
@@ -84,6 +87,7 @@ export type {
   Payload,
   PingreqPacket,
   PingresPacket,
+  ProtocolLevel,
   PubackPacket,
   PubcompPacket,
   PublishPacket,
@@ -179,10 +183,15 @@ export function encode(packet: AnyPacket): Uint8Array {
 export function decodePayload(
   firstByte: number,
   buffer: Uint8Array,
+  protocolLevel: ProtocolLevel,
 ): AnyPacket {
   const packetType = firstByte >> 4;
   const flags = firstByte & 0x0f;
-  const packet = packetsByType[packetType]?.decode(buffer, flags);
+  const packet = packetsByType[packetType]?.decode(
+    buffer,
+    flags,
+    protocolLevel,
+  );
   if (packet !== undefined) {
     return packet;
   }
@@ -196,14 +205,17 @@ export function decodePayload(
  * @returns {AnyPacket} The decoded MQTT packet object
  * @throws {DecoderError} If packet decoding fails due to invalid format or insufficient data
  */
-export function decode(buffer: Uint8Array): AnyPacket {
+export function decode(
+  buffer: Uint8Array,
+  protocolLevel: ProtocolLevel,
+): AnyPacket {
   if (buffer.length < 2) {
     throw new DecoderError("Packet decoding failed");
   }
   const { length, numLengthBytes } = decodeLength(buffer, 1);
   const start = numLengthBytes + 1;
   const end = start + length;
-  return decodePayload(buffer[0], buffer.subarray(start, end));
+  return decodePayload(buffer[0], buffer.subarray(start, end), protocolLevel);
 }
 
 export { getLengthDecoder } from "../mqttPacket/length.ts";

@@ -1,4 +1,11 @@
-import type { ClientId, Payload, QoS, Topic, TPacketType } from "./types.ts";
+import type {
+  ClientId,
+  Payload,
+  ProtocolLevel,
+  QoS,
+  Topic,
+  TPacketType,
+} from "./types.ts";
 import { PacketType } from "./PacketType.ts";
 import { BitMask } from "./BitMask.ts";
 import { Encoder } from "./encoder.ts";
@@ -15,7 +22,7 @@ import {
 export type ConnectPacket = {
   type: TPacketType;
   protocolName?: string;
-  protocolLevel?: number;
+  protocolLevel?: ProtocolLevel;
   clientId?: ClientId;
   username?: string;
   password?: Uint8Array;
@@ -33,18 +40,27 @@ function invalidProtocolName(version: number, name: string): boolean {
   if (version === 4 && name !== "MQTT") {
     return true;
   }
+  if (version === 5 && name !== "MQTT") {
+    return true;
+  }
   return false;
 }
 
 export const connect: {
   encode(packet: ConnectPacket): { flags: number; bytes: number[] };
-  decode(buffer: Uint8Array, flags: number): ConnectPacket;
+  decode(
+    buffer: Uint8Array,
+    flags: number,
+    protocolLevel: ProtocolLevel,
+  ): ConnectPacket;
 } = {
   encode(packet: ConnectPacket): { flags: number; bytes: number[] } {
     const flags = 0;
-
-    const protocolLevel = 4;
-    const protocolName = protocolLevel === 4 ? "MQTT" : "MQIsdp";
+    const protocolLevel = packet.protocolLevel || 4;
+    if (protocolLevel > 4) {
+      throw new Error("Unsupported protocol level");
+    }
+    const protocolName = protocolLevel > 3 ? "MQTT" : "MQIsdp";
     const clientId = packet.clientId || "";
     const usernameFlag = !!packet.username;
     const passwordFlag = !!packet.password;
@@ -83,7 +99,11 @@ export const connect: {
     return { flags, bytes: encoder.done() };
   },
 
-  decode(buffer: Uint8Array, flags: number): ConnectPacket {
+  decode(
+    buffer: Uint8Array,
+    flags: number,
+    _protocolLevel: ProtocolLevel,
+  ): ConnectPacket {
     const decoder = new Decoder(buffer);
     const protocolName = decoder.getUtf8String();
     const protocolLevel = decoder.getByte();
@@ -146,7 +166,7 @@ export const connect: {
     return {
       type: PacketType.connect,
       protocolName: protocolName,
-      protocolLevel,
+      protocolLevel: protocolLevel as ProtocolLevel,
       clientId: clientId,
       username: username ? username : undefined,
       password: password ? password : undefined,

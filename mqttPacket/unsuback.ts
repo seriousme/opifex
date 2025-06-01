@@ -1,6 +1,6 @@
-import type { PacketId, TPacketType } from "./types.ts";
+import type { PacketId, ProtocolLevel, TPacketType } from "./types.ts";
 import { PacketType } from "./PacketType.ts";
-import { Decoder } from "./decoder.ts";
+import { Decoder, DecoderError } from "./decoder.ts";
 import { Encoder } from "./encoder.ts";
 
 /**
@@ -14,7 +14,11 @@ export type UnsubackPacket = {
 
 export const unsuback: {
   encode(packet: UnsubackPacket): { flags: number; bytes: number[] };
-  decode(buffer: Uint8Array): UnsubackPacket;
+  decode(
+    buffer: Uint8Array,
+    flags: number,
+    protocolLevel: ProtocolLevel,
+  ): UnsubackPacket;
 } = {
   encode(packet: UnsubackPacket): { flags: number; bytes: number[] } {
     const flags = 0;
@@ -23,7 +27,14 @@ export const unsuback: {
     return { flags, bytes: encoder.done() };
   },
 
-  decode(buffer: Uint8Array): UnsubackPacket {
+  decode(
+    buffer: Uint8Array,
+    _flags: number,
+    protocolLevel: ProtocolLevel,
+  ): UnsubackPacket {
+    if (protocolLevel === 5) {
+      throw new DecoderError("Invalid protocol version");
+    }
     const decoder = new Decoder(buffer);
     const id = decoder.getInt16();
     decoder.done();

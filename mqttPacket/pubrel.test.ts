@@ -2,7 +2,7 @@ import { PacketType } from "./PacketType.ts";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { decode, encode } from "./mod.ts";
+import { decode, encode, MQTTLevel } from "./mod.ts";
 
 test("encode Pubrel", () => {
   assert.deepStrictEqual(
@@ -32,6 +32,7 @@ test("decode Pubrel ", () => {
         5, // id MSB
         57, // id LSB
       ]),
+      MQTTLevel.v4,
     ),
     {
       type: PacketType.pubrel,
@@ -42,13 +43,17 @@ test("decode Pubrel ", () => {
 
 test("decodeShortPubrelPackets", () => {
   assert.throws(
-    () => decode(Uint8Array.from([0x60])),
+    () => decode(Uint8Array.from([0x60]), MQTTLevel.v4),
     Error,
     "decoding failed",
   );
-  assert.throws(() => decode(Uint8Array.from([0x60, 2])), Error, "too short");
   assert.throws(
-    () => decode(Uint8Array.from([0x60, 3, 0, 0, 0])),
+    () => decode(Uint8Array.from([0x60, 2]), MQTTLevel.v4),
+    Error,
+    "too short",
+  );
+  assert.throws(
+    () => decode(Uint8Array.from([0x60, 3, 0, 0, 0]), MQTTLevel.v4),
     Error,
     "too long",
   );

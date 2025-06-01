@@ -2,7 +2,7 @@ import { PacketType } from "./PacketType.ts";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { decode, encode } from "./mod.ts";
+import { decode, encode, MQTTLevel } from "./mod.ts";
 import type { ConnectPacket } from "./mod.ts";
 
 test("encode Connect with ClientId", () => {
@@ -173,7 +173,7 @@ test("encode Connect with username and password", () => {
 
 test("decode Connect with username and password", () => {
   assert.deepStrictEqual(
-    decode(Uint8Array.from(encodedConnect)),
+    decode(Uint8Array.from(encodedConnect), MQTTLevel.unknown),
     decodedConnect,
   );
 });
@@ -252,27 +252,69 @@ test("encode Connect with username and password and will", () => {
 });
 
 test("decode invalid Connect", () => {
+  // Test packet with extra byte
   const longConnect = [...encodedConnect, 0];
   longConnect[1]++;
-  const reservedBitConnect = [...encodedConnect];
-  reservedBitConnect[9] += 1; // set bit 0 of flags
-  const invalidWillQosConnect = [...encodedConnectWithWill];
-  invalidWillQosConnect[9] += 16; // set bit 4 of flags
 
   assert.throws(
-    () => decode(Uint8Array.from([...longConnect])),
+    () => decode(Uint8Array.from([...longConnect]), MQTTLevel.unknown),
     Error,
     "too long",
   );
 
+  // Test packet with invalid reserved bit
+  const reservedBitConnect = [...encodedConnect];
+  reservedBitConnect[9] += 1; // set bit 0 of flags
+
   assert.throws(
-    () => decode(Uint8Array.from(reservedBitConnect)),
+    () => decode(Uint8Array.from(reservedBitConnect), MQTTLevel.unknown),
     Error,
     "Invalid reserved bit",
   );
 
+  // Test packet with invalid will
+  const invalidWillQosConnect = [...encodedConnectWithWill];
+  invalidWillQosConnect[9] += 16; // set bit 4 of flags
+  // Test packet with wrong protocol name 'MQTA'
+  const invalidProtocolName = [...encodedConnect];
+  invalidProtocolName[7] = 65; // 'A' instead of 'T'
+
   assert.throws(
-    () => decode(Uint8Array.from(invalidWillQosConnect)),
+    () => decode(Uint8Array.from(invalidProtocolName), MQTTLevel.unknown),
+    Error,
+    "Invalid protocol name",
+  );
+
+  // Test packet with wrong protocol name length
+  const invalidProtocolLength = [...encodedConnect];
+  invalidProtocolLength[3] = 5; // Length 5 instead of
+
+  assert.throws(
+    () => decode(Uint8Array.from(invalidProtocolLength), MQTTLevel.unknown),
+    Error,
+    "Invalid protocol name length",
+  );
+
+  // Test packet with protocol level 5 and protocol name MQIsdp
+  const invalidProtocolNameLevel5 = [...invalidProtocolName];
+  invalidProtocolNameLevel5[9] = 5;
+
+  assert.throws(
+    () =>
+      decode(
+        Uint8Array.from(invalidProtocolNameLevel5),
+        MQTTLevel.unknown,
+      ),
+    Error,
+    "Invalid protocol name at MQTT level 5",
+  );
+
+  assert.throws(
+    () =>
+      decode(
+        Uint8Array.from(invalidWillQosConnect),
+        MQTTLevel.unknown,
+      ),
     Error,
     "Invalid will qos",
   );
@@ -291,6 +333,7 @@ test("decode invalid Connect", () => {
           81, // 'Q'
           84, // 'T'
         ]),
+        MQTTLevel.unknown,
       ),
     Error,
     "too short",

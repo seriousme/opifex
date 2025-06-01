@@ -2,7 +2,7 @@ import { PacketType } from "./PacketType.ts";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { decode, encode } from "./mod.ts";
+import { decode, encode, MQTTLevel } from "./mod.ts";
 
 test("encode Unsubscribe", () => {
   assert.deepStrictEqual(
@@ -55,6 +55,7 @@ test("decode Unsubscribe", () => {
         47, // '/'
         100, // 'd'
       ]),
+      MQTTLevel.v4,
     ),
     {
       type: PacketType.unsubscribe,
@@ -87,6 +88,7 @@ test("decode Unsubscribe missing bit 1 flag", () => {
           47, // '/'
           100, // 'd'
         ]),
+        MQTTLevel.v4,
       ),
     Error,
     "Invalid header",
@@ -114,6 +116,7 @@ test("decode unsubscribe packet too short", () => {
           3, // topic filter length LSB
           99, // 'c'
         ]),
+        MQTTLevel.v4,
       ),
     Error,
     "too short",
@@ -129,6 +132,7 @@ test("decode unsubscribe packet too short", () => {
           0, // id MSB
           1, // id LSB
         ]),
+        MQTTLevel.v4,
       ),
     Error,
     "too short",
