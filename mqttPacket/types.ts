@@ -18,6 +18,14 @@ export type TAuthenticationResult =
   typeof AuthenticationResult[keyof typeof AuthenticationResult];
 
 /**
+ * Protocol version
+ * 3.1 = 3
+ * 3.1.1 = 4
+ * 5.0 = 5
+ */
+export type ProtocolLevel = 3 | 4 | 5 | undefined;
+
+/**
  * Quality of Service level
  */
 export type QoS = 0 | 1 | 2;

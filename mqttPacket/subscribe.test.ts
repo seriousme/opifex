@@ -2,7 +2,7 @@ import { PacketType } from "./PacketType.ts";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { decode, encode } from "./mod.ts";
+import { decode, encode, MQTTLevel } from "./mod.ts";
 
 test("encode Subscribe", () => {
   assert.deepStrictEqual(
@@ -62,6 +62,7 @@ test("decode Subscribe", () => {
         100, // 'd'
         1, // qos
       ]),
+      MQTTLevel.v4,
     ),
     {
       type: PacketType.subscribe,
@@ -99,6 +100,7 @@ test("decode Subscribe missing bit 1 flag", () => {
           100, // 'd'
           1, // qos
         ]),
+        MQTTLevel.v4,
       ),
     Error,
     "Invalid header",
@@ -129,6 +131,7 @@ test("decode Subscribe packet too short", () => {
           47, // '/'
           1, // qos
         ]),
+        MQTTLevel.v4,
       ),
     Error,
     "Invalid qos",
@@ -154,6 +157,7 @@ test("decode Subscribe packet too short", () => {
           3, // topic filter length LSB
           99, // 'c'
         ]),
+        MQTTLevel.v4,
       ),
     Error,
     "too short",
@@ -169,6 +173,7 @@ test("decode Subscribe packet too short", () => {
           0, // id MSB
           1, // id LSB
         ]),
+        MQTTLevel.v4,
       ),
     Error,
     "too short",
@@ -199,6 +204,7 @@ test("decode Subscribe packet invalid packet id with QoS > 0", () => {
           47, // '/'
           1, // qos
         ]),
+        MQTTLevel.v4,
       ),
     Error,
     "Invalid packet identifier",
@@ -226,6 +232,7 @@ test("decode Subscribe packet invalid packet id with QoS > 0", () => {
           47, // '/'
           2, // qos
         ]),
+        MQTTLevel.v4,
       ),
     Error,
     "Invalid packet identifier",

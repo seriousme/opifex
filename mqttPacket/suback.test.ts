@@ -2,7 +2,7 @@ import { PacketType } from "./PacketType.ts";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { decode, encode } from "./mod.ts";
+import { decode, encode, MQTTLevel } from "./mod.ts";
 
 test("encode Suback", () => {
   assert.deepStrictEqual(
@@ -39,6 +39,7 @@ test("decode Suback", () => {
         0,
         1,
       ]),
+      MQTTLevel.v4,
     ),
     {
       type: PacketType.suback,

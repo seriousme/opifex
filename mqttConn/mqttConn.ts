@@ -2,13 +2,13 @@
  * @module mqttConn
  */
 
-import {
-  type AnyPacket,
-  decodePayload,
-  encode,
-  getLengthDecoder,
-  type LengthDecoderResult,
+import type {
+  AnyPacket,
+  LengthDecoderResult,
+  ProtocolLevel,
 } from "../mqttPacket/mod.ts";
+
+import { decodePayload, encode, getLengthDecoder } from "../mqttPacket/mod.ts";
 
 import { assert } from "../utils/mod.ts";
 import type { SockConn } from "../socket/socket.ts";
@@ -22,6 +22,8 @@ export const MqttConnError = {
   packetTooLarge: "Packet too large",
   UnexpectedEof: "Unexpected EOF",
 } as const;
+
+const DEFAULT_MAX_PACKETSIZE = 2 * 1024 * 1024; // 2MB
 
 /**
  * Interface for MQTT connection handling
@@ -81,6 +83,7 @@ async function readFull(conn: Conn, buf: Uint8Array): Promise<void> {
 export async function readPacket(
   conn: Conn,
   maxPacketSize: number,
+  protocolLevel: ProtocolLevel,
 ): Promise<AnyPacket> {
   // fixed header is 1 byte of type + flags
   // + a maximum of 4 bytes to encode the remaining length
@@ -97,7 +100,7 @@ export async function readPacket(
   const packetBuf = new Uint8Array(remainingLength);
   // read the rest of the packet
   await readFull(conn, packetBuf);
-  const packet = decodePayload(firstByte, packetBuf);
+  const packet = decodePayload(firstByte, packetBuf, protocolLevel);
   assert(packet !== null, MqttConnError.UnexpectedEof);
   return packet;
 }
@@ -108,6 +111,8 @@ export async function readPacket(
 export class MqttConn implements IMqttConn {
   /** Underlying connection */
   readonly conn: Conn;
+  /** Protocol version */
+  protocolLevel: ProtocolLevel;
   /** Maximum allowed packet size */
   private readonly maxPacketSize: number;
   /** Reason for connection closure if any */
@@ -124,12 +129,15 @@ export class MqttConn implements IMqttConn {
   constructor({
     conn,
     maxPacketSize,
+    protocolLevel,
   }: {
     conn: SockConn;
     maxPacketSize?: number;
+    protocolLevel?: ProtocolLevel;
   }) {
     this.conn = new Conn(conn);
-    this.maxPacketSize = maxPacketSize || 2 * 1024 * 1024;
+    this.maxPacketSize = maxPacketSize || DEFAULT_MAX_PACKETSIZE;
+    this.protocolLevel = protocolLevel;
   }
 
   /** Get reason for connection closure */
@@ -144,7 +152,11 @@ export class MqttConn implements IMqttConn {
   async *[Symbol.asyncIterator](): AsyncIterableIterator<AnyPacket> {
     while (!this._isClosed) {
       try {
-        yield await readPacket(this.conn, this.maxPacketSize);
+        yield await readPacket(
+          this.conn,
+          this.maxPacketSize,
+          this.protocolLevel,
+        );
       } catch (err) {
         if (err instanceof Error) {
           if (err.name === "PartialReadError") {

@@ -1,4 +1,10 @@
-import type { PacketId, QoS, TopicFilter, TPacketType } from "./types.ts";
+import type {
+  PacketId,
+  ProtocolLevel,
+  QoS,
+  TopicFilter,
+  TPacketType,
+} from "./types.ts";
 import { PacketType } from "./PacketType.ts";
 import { BitMask } from "./BitMask.ts";
 import { Encoder } from "./encoder.ts";
@@ -23,7 +29,11 @@ export type Subscription = {
 
 export const subscribe: {
   encode(packet: SubscribePacket): { flags: number; bytes: number[] };
-  decode(buffer: Uint8Array, flags: number): SubscribePacket;
+  decode(
+    buffer: Uint8Array,
+    flags: number,
+    protocolLevel: ProtocolLevel,
+  ): SubscribePacket;
 } = {
   encode(packet: SubscribePacket): { flags: number; bytes: number[] } {
     // Bits 3,2,1 and 0 of the fixed header of the SUBSCRIBE Control Packet are reserved and
@@ -40,7 +50,14 @@ export const subscribe: {
     return { flags, bytes: encoder.done() };
   },
 
-  decode(buffer: Uint8Array, flags: number): SubscribePacket {
+  decode(
+    buffer: Uint8Array,
+    flags: number,
+    protocolLevel: ProtocolLevel,
+  ): SubscribePacket {
+    if (protocolLevel === 5) {
+      throw new DecoderError("Invalid protocol version");
+    }
     // Bits 3,2,1 and 0 of the fixed header of the SUBSCRIBE Control Packet are reserved and
     // MUST be set to 0,0,1 and 0 respectively. The Server MUST treat any other value as
     // malformed and close the Network Connection [MQTT-3.8.1-1].
