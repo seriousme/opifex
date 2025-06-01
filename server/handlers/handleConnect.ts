@@ -64,6 +64,10 @@ function processValidatedConnect(
     }
 
     ctx.connect(clientId, packet.clean || false);
+    ctx.protocolLevel = packet.protocolLevel;
+    if (ctx.mqttConn) {
+      ctx.mqttConn.protocolLevel = ctx.protocolLevel;
+    }
 
     const keepAlive = packet.keepAlive || 0;
     if (keepAlive > 0) {
