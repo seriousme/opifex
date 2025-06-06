@@ -17,6 +17,7 @@ import type {
   Topic,
   TopicFilter,
   TPacketType,
+  UTF8StringPair,
 } from "./types.ts";
 
 export { MQTTLevel } from "./protocolLevels.ts";
@@ -88,6 +89,7 @@ export type {
   TPacketType,
   UnsubackPacket,
   UnsubscribePacket,
+  UTF8StringPair,
 };
 
 export type { Subscription } from "./subscribe.ts";

@@ -37,6 +37,9 @@ export type ConnectPacket = {
 };
 
 function invalidProtocolName(version: number, name: string): boolean {
+  if (version === 3 && name !== "MQIsdp") {
+    return true;
+  }
   if (version === 4 && name !== "MQTT") {
     return true;
   }
@@ -62,12 +65,18 @@ export const connect: {
     }
     const protocolName = protocolLevel > 3 ? "MQTT" : "MQIsdp";
     const clientId = packet.clientId || "";
-    const usernameFlag = !!packet.username;
-    const passwordFlag = !!packet.password;
+    const usernameFlag = packet.username !== undefined;
+    if (protocolLevel === 3 && clientId === "") {
+      throw new Error("Client id required for protocol level 3");
+    }
+    const passwordFlag = packet.password !== undefined;
     const willRetain = !!packet.will?.retain;
     const willQoS = packet.will?.qos || 0;
-    const willFlag = !!packet.will;
+    const willFlag = packet.will !== undefined;
     const cleanSession = packet.clean !== false;
+    if (!cleanSession && (clientId === "")) {
+      throw new Error("Client id required for clean session");
+    }
     const connectFlags = (usernameFlag ? BitMask.bit7 : 0) +
       (passwordFlag ? BitMask.bit6 : 0) +
       (willRetain ? BitMask.bit5 : 0) +
@@ -85,15 +94,17 @@ export const connect: {
       .setInt16(keepAlive)
       .setUtf8String(clientId);
 
-    if (packet.will) {
+    if (
+      packet.will?.topic !== undefined && packet.will?.payload !== undefined
+    ) {
       encoder.setTopic(packet.will.topic).setByteArray(packet.will.payload);
     }
 
-    if (packet.username) {
+    if (packet.username !== undefined) {
       encoder.setUtf8String(packet.username);
     }
 
-    if (packet.password) {
+    if (packet.password !== undefined) {
       encoder.setByteArray(packet.password);
     }
     return { flags, bytes: encoder.done() };
