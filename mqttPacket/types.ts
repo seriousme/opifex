@@ -64,3 +64,8 @@ export type ReturnCodes = number[];
  * Client identifier that uniquely identifies a client
  */
 export type ClientId = string;
+
+/**
+ * UTF8 string pair (for v5)
+ */
+export type UTF8StringPair = [string, string];
