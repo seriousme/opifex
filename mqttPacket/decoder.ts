@@ -1,4 +1,4 @@
-import type { TBitMask, Topic, TopicFilter } from "./types.ts";
+import type { TBitMask, Topic, TopicFilter, UTF8StringPair } from "./types.ts";
 import { invalidTopic, invalidTopicFilter } from "./validators.ts";
 
 const utf8Decoder = new TextDecoder("utf-8");
@@ -94,6 +94,37 @@ export class Decoder {
   }
 
   /**
+   * Gets a 4 byte integer from the buffer (for v5)
+   * @returns The 32 bit integer value
+   */
+  get4ByteInteger(): number {
+    const msb = this.getInt16();
+    const lsb = this.getInt16();
+    return (msb << 16) | lsb;
+  }
+
+  /**
+   * Gets a variable byte integer from the buffer (for v5)
+   * its like the length decoder in length.ts but this one works directly on the buffer
+   * @returns The decoded variable byte integer
+   * @throws {DecoderError} If malformed variable byte integer
+   */
+  getVariableByteInteger(): number {
+    let num = 0;
+    let multiplier = 1;
+    let byte;
+    do {
+      byte = this.getByte();
+      num += (byte & 127) * multiplier;
+      if (multiplier > 128 * 128 * 128) {
+        throw new DecoderError("Malformed Variable Byte Integer");
+      }
+      multiplier *= 128;
+    } while ((byte & 128) !== 0);
+    return num;
+  }
+
+  /**
    * Gets a byte array from the buffer
    * @returns A subarray of the buffer
    */
@@ -113,6 +144,16 @@ export class Decoder {
   getUtf8String(): string {
     const str = utf8Decoder.decode(this.getByteArray());
     return str;
+  }
+
+  /**
+   * Gets a UTF-8 string pair from the buffer (for v5)
+   * @returns The decoded UTF-8 pair as [key,value]
+   */
+  getUtf8StringPair(): UTF8StringPair {
+    const key = utf8Decoder.decode(this.getByteArray());
+    const value = utf8Decoder.decode(this.getByteArray());
+    return [key, value];
   }
 
   /**
