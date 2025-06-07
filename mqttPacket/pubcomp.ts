@@ -13,18 +13,18 @@ export type PubcompPacket = {
 };
 
 export const pubcomp: {
-  encode(packet: PubcompPacket): { flags: number; bytes: number[] };
+  encode(packet: PubcompPacket): Uint8Array;
   decode(
     buffer: Uint8Array,
     flags: number,
     protocolLevel: ProtocolLevel,
   ): PubcompPacket;
 } = {
-  encode(packet: PubcompPacket): { flags: number; bytes: number[] } {
+  encode(packet: PubcompPacket): Uint8Array {
     const flags = 0;
-    const encoder = new Encoder();
+    const encoder = new Encoder(packet.type);
     encoder.setInt16(packet.id);
-    return { flags, bytes: encoder.done() };
+    return encoder.done(flags);
   },
 
   decode(

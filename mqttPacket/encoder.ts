@@ -1,7 +1,9 @@
-const utf8Encoder = new TextEncoder();
-import type { Topic, TopicFilter } from "./types.ts";
+import type { Topic, TopicFilter, TPacketType } from "./types.ts";
 import { invalidTopic, invalidTopicFilter } from "./validators.ts";
+import { encodeLength } from "./length.ts";
 
+const utf8Encoder = new TextEncoder();
+const TEST = utf8Encoder.encode("test");
 /**
  * Custom error class for encoding operations
  */
@@ -15,15 +17,33 @@ export class EncoderError extends Error {
 /**
  * Encoder class for MQTT packet encoding
  */
+type bufValue = number[] | Uint8Array;
 export class Encoder {
   /** Internal buffer to store encoded bytes */
-  private buffer: number[];
+  private buffers: bufValue[];
+
+  /** Number of bytes in the buffer */
+  private numBytes: number;
+
+  /** Packet type */
+  private packetType: TPacketType;
 
   /**
    * Creates a new Encoder instance
    */
-  constructor() {
-    this.buffer = [];
+  constructor(packetType: TPacketType) {
+    this.buffers = [];
+    this.numBytes = 0;
+    this.packetType = packetType;
+  }
+
+  /**
+   * @param value
+   */
+  addArray(value: number[] | Uint8Array): this {
+    this.buffers.push(value);
+    this.numBytes += value.length;
+    return this;
   }
 
   /**
@@ -32,7 +52,8 @@ export class Encoder {
    * @returns The encoder instance for chaining
    */
   setByte(value: number): this {
-    this.buffer.push(value);
+    this.buffers.push([value]);
+    this.numBytes++;
     return this;
   }
 
@@ -58,7 +79,7 @@ export class Encoder {
       throw new EncoderError("More than 0xffff bytes of data");
     }
     this.setInt16(value.length);
-    this.buffer.push(...value);
+    this.addArray(value);
     return this;
   }
 
@@ -110,7 +131,7 @@ export class Encoder {
    * @returns The encoder instance for chaining
    */
   setRemainder(value: Uint8Array | number[]): this {
-    this.buffer.push(...value);
+    this.addArray(value);
     return this;
   }
 
@@ -118,7 +139,19 @@ export class Encoder {
    * Returns the final encoded buffer
    * @returns Array containing all encoded bytes
    */
-  done(): number[] {
-    return this.buffer;
+  done(flags: number): Uint8Array {
+    const packetType = this.packetType;
+    const encodedLength = encodeLength(this.numBytes);
+    const totalLength = 1 + encodedLength.length + this.numBytes;
+    const result = new Uint8Array(totalLength);
+    let pos = 0;
+    result.set([packetType << 4 | flags], pos++);
+    result.set(encodedLength, pos);
+    pos += encodedLength.length;
+    for (const buffer of this.buffers) {
+      result.set(buffer, pos);
+      pos += buffer.length;
+    }
+    return result;
   }
 }

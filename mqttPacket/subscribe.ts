@@ -28,26 +28,26 @@ export type Subscription = {
 };
 
 export const subscribe: {
-  encode(packet: SubscribePacket): { flags: number; bytes: number[] };
+  encode(packet: SubscribePacket): Uint8Array;
   decode(
     buffer: Uint8Array,
     flags: number,
     protocolLevel: ProtocolLevel,
   ): SubscribePacket;
 } = {
-  encode(packet: SubscribePacket): { flags: number; bytes: number[] } {
+  encode(packet: SubscribePacket): Uint8Array {
     // Bits 3,2,1 and 0 of the fixed header of the SUBSCRIBE Control Packet are reserved and
     // MUST be set to 0,0,1 and 0 respectively. The Server MUST treat any other value as
     // malformed and close the Network Connection [MQTT-3.8.1-1].
     const flags = 0b0010;
 
-    const encoder = new Encoder();
+    const encoder = new Encoder(packet.type);
     encoder.setInt16(packet.id);
     for (const sub of packet.subscriptions) {
       encoder.setTopic(sub.topicFilter);
       encoder.setByte(sub.qos);
     }
-    return { flags, bytes: encoder.done() };
+    return encoder.done(flags);
   },
 
   decode(

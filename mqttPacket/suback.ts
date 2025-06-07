@@ -19,23 +19,20 @@ export type SubackPacket = {
 };
 
 export const suback: {
-  encode(packet: SubackPacket): { flags: number; bytes: number[] };
+  encode(packet: SubackPacket): Uint8Array;
   decode(
     buffer: Uint8Array,
     flags: number,
     protocolLevel: ProtocolLevel,
   ): SubackPacket;
 } = {
-  encode(packet: SubackPacket): { flags: number; bytes: number[] } {
+  encode(packet: SubackPacket): Uint8Array {
     const flags = 0;
-    const encoder = new Encoder();
+    const encoder = new Encoder(packet.type);
     encoder.setInt16(packet.id);
     encoder.setRemainder(packet.returnCodes);
 
-    return {
-      flags,
-      bytes: encoder.done(),
-    };
+    return encoder.done(flags);
   },
 
   decode(
