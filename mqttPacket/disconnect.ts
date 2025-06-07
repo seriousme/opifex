@@ -10,17 +10,18 @@ export type DisconnectPacket = {
   type: TPacketType;
 };
 
+const DISCONNECT_PACKET = new Uint8Array([PacketType.disconnect << 4,0]);
+
 export const disconnect: {
-  encode(_packet: DisconnectPacket): { flags: number; bytes: number[] };
+  encode(_packet: DisconnectPacket): Uint8Array;
   decode(
     buffer: Uint8Array,
     _flags: number,
     protocolLevel: ProtocolLevel,
   ): DisconnectPacket;
 } = {
-  encode(_packet: DisconnectPacket): { flags: number; bytes: number[] } {
-    const flags = 0;
-    return { flags, bytes: [] };
+  encode(_packet: DisconnectPacket): Uint8Array {
+    return DISCONNECT_PACKET;
   },
 
   decode(buffer: Uint8Array, _flags: number, protocolLevel): DisconnectPacket {

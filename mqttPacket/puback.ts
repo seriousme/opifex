@@ -12,18 +12,18 @@ export type PubackPacket = {
 };
 
 export const puback: {
-  encode(packet: PubackPacket): { flags: number; bytes: number[] };
+  encode(packet: PubackPacket): Uint8Array;
   decode(
     buffer: Uint8Array,
     _flags: number,
     protocolLevel: ProtocolLevel,
   ): PubackPacket;
 } = {
-  encode(packet: PubackPacket): { flags: number; bytes: number[] } {
+  encode(packet: PubackPacket): Uint8Array {
     const flags = 0;
-    const encoder = new Encoder();
+    const encoder = new Encoder(packet.type);
     encoder.setInt16(packet.id);
-    return { flags, bytes: encoder.done() };
+    return encoder.done(flags);
   },
 
   decode(
