@@ -19,19 +19,20 @@ export type ConnackPacket = {
 };
 
 export const connack: {
-  encode(packet: ConnackPacket): { flags: number; bytes: number[] };
+  encode(packet: ConnackPacket): Uint8Array;
   decode(
     buffer: Uint8Array,
     _flags: number,
     protocolLevel: ProtocolLevel,
   ): ConnackPacket | undefined;
 } = {
-  encode(packet: ConnackPacket): { flags: number; bytes: number[] } {
-    const flags = 0;
-    return {
-      flags,
-      bytes: [packet.sessionPresent ? 1 : 0, packet.returnCode || 0],
-    };
+  encode(packet: ConnackPacket): Uint8Array {
+    return new Uint8Array([
+      packet.type << 4,
+      2,
+      packet.sessionPresent ? 1 : 0,
+      packet.returnCode || 0,
+    ]);
   },
 
   decode(

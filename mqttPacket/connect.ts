@@ -50,14 +50,14 @@ function invalidProtocolName(version: number, name: string): boolean {
 }
 
 export const connect: {
-  encode(packet: ConnectPacket): { flags: number; bytes: number[] };
+  encode(packet: ConnectPacket): Uint8Array;
   decode(
     buffer: Uint8Array,
     flags: number,
     protocolLevel: ProtocolLevel,
   ): ConnectPacket;
 } = {
-  encode(packet: ConnectPacket): { flags: number; bytes: number[] } {
+  encode(packet: ConnectPacket): Uint8Array {
     const flags = 0;
     const protocolLevel = packet.protocolLevel || 4;
     if (protocolLevel > 4) {
@@ -86,7 +86,7 @@ export const connect: {
       (cleanSession ? BitMask.bit1 : 0);
     const keepAlive = packet.keepAlive || 0;
 
-    const encoder = new Encoder();
+    const encoder = new Encoder(packet.type);
     encoder
       .setUtf8String(protocolName)
       .setByte(protocolLevel)
@@ -107,7 +107,7 @@ export const connect: {
     if (packet.password !== undefined) {
       encoder.setByteArray(packet.password);
     }
-    return { flags, bytes: encoder.done() };
+    return encoder.done(flags);
   },
 
   decode(

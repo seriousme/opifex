@@ -9,17 +9,18 @@ export type PingreqPacket = {
   type: TPacketType;
 };
 
+const PINGRES_PACKET = new Uint8Array([PacketType.pingreq << 4,0]);
+
 export const pingreq: {
-  encode(_packet: PingreqPacket): { flags: number; bytes: number[] };
+  encode(_packet: PingreqPacket): Uint8Array;
   decode(
     buffer: Uint8Array,
     flags: number,
     protocolLevel: ProtocolLevel,
   ): PingreqPacket;
 } = {
-  encode(_packet: PingreqPacket): { flags: number; bytes: number[] } {
-    const flags = 0;
-    return { flags, bytes: [] };
+  encode(_packet: PingreqPacket): Uint8Array {
+    return PINGRES_PACKET;
   },
 
   decode(

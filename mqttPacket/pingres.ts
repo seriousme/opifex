@@ -10,17 +10,18 @@ export type PingresPacket = {
   type: TPacketType;
 };
 
+const PINGRES_PACKET = new Uint8Array([PacketType.pingres << 4,0]);
+
 export const pingres: {
-  encode(_packet: PingresPacket): { flags: number; bytes: number[] };
+  encode(packet: PingresPacket): Uint8Array;
   decode(
     buffer: Uint8Array,
     _flags: number,
     protocolLevel: ProtocolLevel,
   ): PingresPacket;
 } = {
-  encode(_packet: PingresPacket): { flags: number; bytes: number[] } {
-    const flags = 0;
-    return { flags, bytes: [] };
+  encode(_packet: PingresPacket): Uint8Array {
+    return PINGRES_PACKET;
   },
 
   decode(

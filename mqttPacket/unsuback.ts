@@ -13,18 +13,18 @@ export type UnsubackPacket = {
 };
 
 export const unsuback: {
-  encode(packet: UnsubackPacket): { flags: number; bytes: number[] };
+  encode(packet: UnsubackPacket): Uint8Array;
   decode(
     buffer: Uint8Array,
     flags: number,
     protocolLevel: ProtocolLevel,
   ): UnsubackPacket;
 } = {
-  encode(packet: UnsubackPacket): { flags: number; bytes: number[] } {
+  encode(packet: UnsubackPacket): Uint8Array {
     const flags = 0;
-    const encoder = new Encoder();
+    const encoder = new Encoder(packet.type);
     encoder.setInt16(packet.id);
-    return { flags, bytes: encoder.done() };
+    return encoder.done(flags);
   },
 
   decode(

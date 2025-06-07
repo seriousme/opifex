@@ -1,4 +1,5 @@
 import type {
+  Dup,
   Payload,
   ProtocolLevel,
   QoS,
@@ -18,21 +19,21 @@ export type PublishPacket = {
   type: TPacketType;
   topic: Topic;
   payload: Payload;
-  dup?: boolean;
+  dup?: Dup;
   retain?: boolean;
   qos?: QoS;
   id?: number;
 };
 
 export const publish: {
-  encode(packet: PublishPacket): { flags: number; bytes: number[] };
+  encode(packet: PublishPacket): Uint8Array;
   decode(
     buffer: Uint8Array,
     flags: number,
     protocolLevel: ProtocolLevel,
   ): PublishPacket;
 } = {
-  encode(packet: PublishPacket): { flags: number; bytes: number[] } {
+  encode(packet: PublishPacket): Uint8Array {
     const qos = packet.qos || 0;
 
     const flags = (packet.dup ? BitMask.bit3 : 0) +
@@ -40,7 +41,7 @@ export const publish: {
       (qos & 1 ? BitMask.bit1 : 0) +
       (packet.retain ? BitMask.bit0 : 0);
 
-    const encoder = new Encoder();
+    const encoder = new Encoder(packet.type);
     encoder.setTopic(packet.topic);
 
     if (qos === 1 || qos === 2) {
@@ -50,7 +51,7 @@ export const publish: {
       encoder.setInt16(packet.id);
     }
     encoder.setRemainder(packet.payload);
-    return { flags, bytes: encoder.done() };
+    return encoder.done(flags);
   },
 
   decode(
