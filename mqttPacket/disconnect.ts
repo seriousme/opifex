@@ -10,7 +10,7 @@ export type DisconnectPacket = {
   type: TPacketType;
 };
 
-const DISCONNECT_PACKET = new Uint8Array([PacketType.disconnect << 4,0]);
+const DISCONNECT_PACKET = new Uint8Array([PacketType.disconnect << 4, 0]);
 
 export const disconnect: {
   encode(_packet: DisconnectPacket): Uint8Array;
