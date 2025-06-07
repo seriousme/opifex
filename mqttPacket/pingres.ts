@@ -10,7 +10,7 @@ export type PingresPacket = {
   type: TPacketType;
 };
 
-const PINGRES_PACKET = new Uint8Array([PacketType.pingres << 4,0]);
+const PINGRES_PACKET = new Uint8Array([PacketType.pingres << 4, 0]);
 
 export const pingres: {
   encode(packet: PingresPacket): Uint8Array;
