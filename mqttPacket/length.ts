@@ -33,8 +33,9 @@ export function decodeLength(
   start: number,
 ): { length: number; numLengthBytes: number } {
   const decode = getLengthDecoder();
-  const lenBuf = buf.subarray(start);
-  for (const byte of lenBuf) {
+  const size = buf.length;
+  for (let i = start; i < size; i++) {
+    const byte = buf[i];
     const { done, length, numLengthBytes } = decode(byte);
     if (done) {
       return { length, numLengthBytes };
