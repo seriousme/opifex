@@ -1,9 +1,13 @@
-import type { Topic, TopicFilter, TPacketType } from "./types.ts";
+import type {
+  Topic,
+  TopicFilter,
+  TPacketType,
+  UTF8StringPair,
+} from "./types.ts";
 import { invalidTopic, invalidTopicFilter } from "./validators.ts";
 import { encodeLength } from "./length.ts";
 
 const utf8Encoder = new TextEncoder();
-const TEST = utf8Encoder.encode("test");
 /**
  * Custom error class for encoding operations
  */
@@ -19,7 +23,7 @@ export class EncoderError extends Error {
  */
 type bufValue = number[] | Uint8Array;
 export class Encoder {
-  /** Internal buffer to store encoded bytes */
+  /** Internal bufferlist to store items */
   private buffers: bufValue[];
 
   /** Number of bytes in the buffer */
@@ -69,6 +73,27 @@ export class Encoder {
   }
 
   /**
+   * adds a 4 byte integer from the buffer (for v5)
+   * @param value - 32-bit integer to encode and add
+   * @returns The encoder instance for chaining
+   */
+  set4ByteInteger(value: number): this {
+    this.setInt16(value >> 16);
+    this.setInt16(value & 0xffff);
+    return this;
+  }
+
+  /**
+   * adds a variable byte integer to the buffer (for v5)
+   * @param value - integer to encode and add
+   * @returns The encoder instance for chaining
+   */
+  setVariableByteInteger(value: number): this {
+    this.addArray(encodeLength(value));
+    return this;
+  }
+
+  /**
    * Adds a byte array to the buffer with length prefix
    * @param value - Byte array to add
    * @throws {EncoderError} If array length exceeds 0xffff bytes
@@ -90,6 +115,17 @@ export class Encoder {
    */
   setUtf8String(value: string): this {
     this.setByteArray(utf8Encoder.encode(value));
+    return this;
+  }
+
+  /**
+   * Adds a UTF-8 string pair from the buffer (for v5)
+   * @param stringPair - UTF8StringPair
+   * @returns The encoder instance for chaining
+   */
+  setUtf8StringPair([name, value]: UTF8StringPair): this {
+    this.setUtf8String(name);
+    this.setUtf8String(value);
     return this;
   }
 

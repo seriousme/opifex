@@ -148,12 +148,12 @@ export class Decoder {
 
   /**
    * Gets a UTF-8 string pair from the buffer (for v5)
-   * @returns The decoded UTF-8 pair as [key,value]
+   * @returns The decoded UTF-8 pair as [name,value]
    */
   getUtf8StringPair(): UTF8StringPair {
-    const key = utf8Decoder.decode(this.getByteArray());
+    const name = utf8Decoder.decode(this.getByteArray());
     const value = utf8Decoder.decode(this.getByteArray());
-    return [key, value];
+    return [name, value];
   }
 
   /**
