@@ -1,6 +1,7 @@
 import type { BitMask } from "./BitMask.ts";
 import type { PacketType } from "./PacketType.ts";
 import type { AuthenticationResult } from "./AuthenticationResult.ts";
+import type { ReasonCode } from "./ReasonCode.ts";
 
 /**
  * Type to limit bit mask to valid values
@@ -16,6 +17,11 @@ export type TPacketType = typeof PacketType[keyof typeof PacketType];
  */
 export type TAuthenticationResult =
   typeof AuthenticationResult[keyof typeof AuthenticationResult];
+
+/**
+ * Type to limit reason code to valid values
+ */
+export type TReasonCode = typeof ReasonCode[keyof typeof ReasonCode];
 
 /**
  * Protocol version
