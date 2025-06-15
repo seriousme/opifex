@@ -1,15 +1,15 @@
 import { PacketType } from "./PacketType.ts";
 import assert from "node:assert/strict";
 import { test } from "node:test";
-
 import { type ConnectPacket, decode, encode, MQTTLevel } from "./mod.ts";
+const MaxPacketSize = 0xffff;
 
 test("encode Connect with ClientId", () => {
   assert.deepStrictEqual(
     encode({
       type: PacketType.connect,
       clientId: "id",
-    }),
+    }, MaxPacketSize),
     Uint8Array.from([
       // fixedHeader
       16, // packetType + flags
@@ -41,7 +41,7 @@ test("encode Connect with Clean false", () => {
       type: PacketType.connect,
       clientId: "id",
       clean: false,
-    }),
+    }, MaxPacketSize),
     Uint8Array.from([
       // fixedHeader
       16, // packetType + flags
@@ -73,7 +73,7 @@ test("encode Connect with KeepAlive", () => {
       type: PacketType.connect,
       clientId: "id",
       keepAlive: 300,
-    }),
+    }, MaxPacketSize),
     Uint8Array.from([
       // fixedHeader
       16, // packetType + flags
@@ -165,7 +165,7 @@ test("encode Connect with username and password", () => {
         115, // 's'
         115, // 's'
       ]),
-    }),
+    },MaxPacketSize),
     Uint8Array.from(encodedConnect),
   );
 });
@@ -245,7 +245,7 @@ const encodedConnectWithWill = [
 
 test("encode Connect with username and password and will", () => {
   assert.deepStrictEqual(
-    encode(decodedConnectWithWill),
+    encode(decodedConnectWithWill, MaxPacketSize),
     Uint8Array.from(encodedConnectWithWill),
   );
 });

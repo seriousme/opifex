@@ -50,14 +50,14 @@ function invalidProtocolName(version: number, name: string): boolean {
 }
 
 export const connect: {
-  encode(packet: ConnectPacket): Uint8Array;
+  encode(packet: ConnectPacket, _maximumPacketSize: number): Uint8Array;
   decode(
     buffer: Uint8Array,
     flags: number,
     protocolLevel: ProtocolLevel,
   ): ConnectPacket;
 } = {
-  encode(packet: ConnectPacket): Uint8Array {
+  encode(packet: ConnectPacket, _maximumPacketSize: number): Uint8Array {
     const flags = 0;
     const protocolLevel = packet.protocolLevel || 4;
     if (protocolLevel > 4) {

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { decode, encode, MQTTLevel } from "./mod.ts";
+const MaxPacketSize = 0xffff;
 
 // const utf8Decoder = new TextDecoder();
 const utf8Encoder = new TextEncoder();
@@ -14,7 +15,7 @@ test("encode Publish", () => {
       type: PacketType.publish,
       topic: "a/b",
       payload,
-    }),
+    }, MaxPacketSize),
     Uint8Array.from([
       // fixedHeader
       48, // packetType + flags

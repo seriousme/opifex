@@ -3,13 +3,14 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { decode, encode, MQTTLevel } from "./mod.ts";
+const MaxPacketSize = 0xffff;
 
 test("encode Pubrel", () => {
   assert.deepStrictEqual(
     encode({
       type: PacketType.pubrel,
       id: 1337,
-    }),
+    }, MaxPacketSize),
     Uint8Array.from([
       // fixedHeader
       0x60, // packetType + flags
