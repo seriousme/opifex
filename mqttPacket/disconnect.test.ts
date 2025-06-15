@@ -3,12 +3,13 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { decode, encode, MQTTLevel } from "./mod.ts";
+const MaxPacketSize = 0xffff;
 
 test("encode Disconnect", () => {
   assert.deepStrictEqual(
     encode({
       type: PacketType.disconnect,
-    }),
+    }, MaxPacketSize),
     Uint8Array.from([
       // fixedHeader
       224, // packetType + flags

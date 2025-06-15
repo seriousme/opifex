@@ -13,14 +13,14 @@ export type PubrelPacket = {
 };
 
 export const pubrel: {
-  encode(packet: PubrelPacket): Uint8Array;
+  encode(packet: PubrelPacket, _maximumPacketSize: number): Uint8Array;
   decode(
     buffer: Uint8Array,
     flags: number,
     protocolLevel: ProtocolLevel,
   ): PubrelPacket;
 } = {
-  encode(packet: PubrelPacket): Uint8Array {
+  encode(packet: PubrelPacket, _maximumPacketSize: number): Uint8Array {
     const flags = 0;
     const encoder = new Encoder(packet.type);
     encoder.setInt16(packet.id);

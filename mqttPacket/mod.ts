@@ -150,11 +150,14 @@ export const packetsByType = [
  * @returns {Uint8Array} The encoded packet as a binary buffer
  * @throws {Error} If packet encoding fails
  */
-export function encode(packet: AnyPacket): Uint8Array {
+export function encode(
+  packet: AnyPacket,
+  maximumPacketSize: number,
+): Uint8Array {
   const packetType: number = packet.type;
   // deno-lint-ignore no-explicit-any
   const pkt: any = packet;
-  const encoded = packetsByType[packetType]?.encode(pkt);
+  const encoded = packetsByType[packetType]?.encode(pkt, maximumPacketSize);
   if (!encoded) {
     throw Error("Packet encoding failed");
   }

@@ -97,7 +97,7 @@ export class Decoder {
    * Gets a 4 byte integer from the buffer (for v5)
    * @returns The 32 bit integer value
    */
-  get4ByteInteger(): number {
+  getInt32(): number {
     const msb = this.getInt16();
     const lsb = this.getInt16();
     return (msb << 16) | lsb;
