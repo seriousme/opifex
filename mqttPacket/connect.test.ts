@@ -166,7 +166,7 @@ test("encode Connect with username and password", () => {
         115, // 's'
         115, // 's'
       ]),
-    },MaxPacketSize),
+    }, MaxPacketSize),
     Uint8Array.from(encodedConnect),
   );
 });
