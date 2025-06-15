@@ -77,7 +77,7 @@ export class Encoder {
    * @param value - 32-bit integer to encode and add
    * @returns The encoder instance for chaining
    */
-  set4ByteInteger(value: number): this {
+  setInt32(value: number): this {
     this.setInt16(value >> 16);
     this.setInt16(value & 0xffff);
     return this;

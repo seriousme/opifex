@@ -13,14 +13,14 @@ export type PingresPacket = {
 const PINGRES_PACKET = new Uint8Array([PacketType.pingres << 4, 0]);
 
 export const pingres: {
-  encode(packet: PingresPacket): Uint8Array;
+  encode(packet: PingresPacket, _maximumPacketSize: number): Uint8Array;
   decode(
     buffer: Uint8Array,
     _flags: number,
     protocolLevel: ProtocolLevel,
   ): PingresPacket;
 } = {
-  encode(_packet: PingresPacket): Uint8Array {
+  encode(_packet: PingresPacket, _maximumPacketSize: number): Uint8Array {
     return PINGRES_PACKET;
   },
 

@@ -19,14 +19,14 @@ export type ConnackPacket = {
 };
 
 export const connack: {
-  encode(packet: ConnackPacket): Uint8Array;
+  encode(packet: ConnackPacket, _maximumPacketSize: number): Uint8Array;
   decode(
     buffer: Uint8Array,
     _flags: number,
     protocolLevel: ProtocolLevel,
   ): ConnackPacket | undefined;
 } = {
-  encode(packet: ConnackPacket): Uint8Array {
+  encode(packet: ConnackPacket, _maximumPacketSize: number): Uint8Array {
     return new Uint8Array([
       packet.type << 4,
       2,

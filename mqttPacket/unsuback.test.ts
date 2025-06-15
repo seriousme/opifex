@@ -3,13 +3,14 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { decode, encode, MQTTLevel } from "./mod.ts";
+const MaxPacketSize = 0xffff;
 
 test("encode Puback", () => {
   assert.deepStrictEqual(
     encode({
       type: PacketType.unsuback,
       id: 1337,
-    }),
+    }, MaxPacketSize),
     Uint8Array.from([
       // fixedHeader
       0xb0, // packetType + flags

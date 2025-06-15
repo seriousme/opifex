@@ -19,14 +19,14 @@ export type SubackPacket = {
 };
 
 export const suback: {
-  encode(packet: SubackPacket): Uint8Array;
+  encode(packet: SubackPacket, _maximumPacketSize: number): Uint8Array;
   decode(
     buffer: Uint8Array,
     flags: number,
     protocolLevel: ProtocolLevel,
   ): SubackPacket;
 } = {
-  encode(packet: SubackPacket): Uint8Array {
+  encode(packet: SubackPacket, _maximumPacketSize: number): Uint8Array {
     const flags = 0;
     const encoder = new Encoder(packet.type);
     encoder.setInt16(packet.id);

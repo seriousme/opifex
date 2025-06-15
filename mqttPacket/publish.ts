@@ -26,14 +26,14 @@ export type PublishPacket = {
 };
 
 export const publish: {
-  encode(packet: PublishPacket): Uint8Array;
+  encode(packet: PublishPacket, _maximumPacketSize: number): Uint8Array;
   decode(
     buffer: Uint8Array,
     flags: number,
     protocolLevel: ProtocolLevel,
   ): PublishPacket;
 } = {
-  encode(packet: PublishPacket): Uint8Array {
+  encode(packet: PublishPacket, _maximumPacketSize: number): Uint8Array {
     const qos = packet.qos || 0;
 
     const flags = (packet.dup ? BitMask.bit3 : 0) +

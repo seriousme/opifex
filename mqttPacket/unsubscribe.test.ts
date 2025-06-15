@@ -1,8 +1,8 @@
 import { PacketType } from "./PacketType.ts";
 import assert from "node:assert/strict";
 import { test } from "node:test";
-
 import { decode, encode, MQTTLevel } from "./mod.ts";
+const MaxPacketSize = 0xffff;
 
 test("encode Unsubscribe", () => {
   assert.deepStrictEqual(
@@ -10,7 +10,7 @@ test("encode Unsubscribe", () => {
       type: PacketType.unsubscribe,
       id: 1,
       topicFilters: ["a/b", "c/d"],
-    }),
+    }, MaxPacketSize),
     Uint8Array.from([
       // fixedHeader
       0xa2, // packetType + flags

@@ -12,14 +12,14 @@ export type PubackPacket = {
 };
 
 export const puback: {
-  encode(packet: PubackPacket): Uint8Array;
+  encode(packet: PubackPacket, _maximumPacketSize: number): Uint8Array;
   decode(
     buffer: Uint8Array,
     _flags: number,
     protocolLevel: ProtocolLevel,
   ): PubackPacket;
 } = {
-  encode(packet: PubackPacket): Uint8Array {
+  encode(packet: PubackPacket, _maximumPacketSize: number): Uint8Array {
     const flags = 0;
     const encoder = new Encoder(packet.type);
     encoder.setInt16(packet.id);

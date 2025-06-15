@@ -20,14 +20,14 @@ export type UnsubscribePacket = {
 };
 
 export const unsubscribe: {
-  encode(packet: UnsubscribePacket): Uint8Array;
+  encode(packet: UnsubscribePacket, _maximumPacketSize: number): Uint8Array;
   decode(
     buffer: Uint8Array,
     flags: number,
     protocolLevel: ProtocolLevel,
   ): UnsubscribePacket;
 } = {
-  encode(packet: UnsubscribePacket): Uint8Array {
+  encode(packet: UnsubscribePacket, _maximumPacketSize: number): Uint8Array {
     // Bits 3,2,1 and 0 of the fixed header of the UNSUBSCRIBE Control Packet are reserved and
     // MUST be set to 0,0,1 and 0 respectively. The Server MUST treat any other value as
     // malformed and close the Network Connection [MQTT-3.10.1-1].

@@ -13,14 +13,14 @@ export type DisconnectPacket = {
 const DISCONNECT_PACKET = new Uint8Array([PacketType.disconnect << 4, 0]);
 
 export const disconnect: {
-  encode(_packet: DisconnectPacket): Uint8Array;
+  encode(_packet: DisconnectPacket, _maximumPacketSize: number): Uint8Array;
   decode(
     buffer: Uint8Array,
     _flags: number,
     protocolLevel: ProtocolLevel,
   ): DisconnectPacket;
 } = {
-  encode(_packet: DisconnectPacket): Uint8Array {
+  encode(_packet: DisconnectPacket, _maximumPacketSize: number): Uint8Array {
     return DISCONNECT_PACKET;
   },
 
