@@ -34,9 +34,9 @@ const disconnectPacket: AnyPacket = {
 };
 
 test("MqttConn should act as asyncIterator", async () => {
-  const connect = encode(connectPacket,MaxPacketSize);
-  const publish = encode(publishPacket,MaxPacketSize);
-  const disconnect = encode(disconnectPacket,MaxPacketSize);
+  const connect = encode(connectPacket, MaxPacketSize);
+  const publish = encode(publishPacket, MaxPacketSize);
+  const disconnect = encode(disconnectPacket, MaxPacketSize);
 
   const conn = makeDummySockConn(
     [connect, publish, disconnect],
@@ -70,8 +70,8 @@ test("MqttConn should close on malformed length", async () => {
 });
 
 test("MqttConn should close on failed packets", async () => {
-  const connect = encode(connectPacket,MaxPacketSize);
-  const publish = encode(publishPacket,MaxPacketSize);
+  const connect = encode(connectPacket, MaxPacketSize);
+  const publish = encode(publishPacket, MaxPacketSize);
   const brokenPublish = publish.slice(0, 7);
 
   const conn = makeDummySockConn([connect, brokenPublish], new Uint8Array());
@@ -89,7 +89,7 @@ test("MqttConn should close on failed packets", async () => {
 });
 
 test("MqttConn should close on packets too large", async () => {
-  const connect = encode(connectPacket,MaxPacketSize);
+  const connect = encode(connectPacket, MaxPacketSize);
 
   const conn = makeDummySockConn([connect], new Uint8Array());
   const mqttConn = new MqttConn({ conn, maxPacketSize: 20 });
@@ -104,7 +104,7 @@ test("MqttConn should close on packets too large", async () => {
 });
 
 test("MqttConn should be writable", async () => {
-  const connect = encode(connectPacket,MaxPacketSize);
+  const connect = encode(connectPacket, MaxPacketSize);
   const writer = new Uint8Array(24);
   const conn = makeDummySockConn([connect], writer);
   const mqttConn = new MqttConn({ conn });
