@@ -1,6 +1,7 @@
-import { AuthenticationResult, type Context, type Topic } from "../mod.ts";
+import { AuthenticationResult } from "../mod.ts";
 import { logger } from "../../utils/mod.ts";
 import type { TAuthenticationResult } from "../deps.ts";
+import type { Context, Topic } from "../mod.ts";
 
 const utf8Decoder = new TextDecoder();
 const userTable = new Map();

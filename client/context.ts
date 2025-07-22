@@ -1,20 +1,23 @@
 import {
-  type AnyPacket,
   AsyncQueue,
-  type ConnectPacket,
   Deferred,
   logger,
-  type MemoryStore,
   MqttConn,
-  type PacketId,
+  nextTick,
   PacketType,
-  type PublishPacket,
-  type ReturnCodes,
-  type SockConn,
-  type SubscribePacket,
-  type TAuthenticationResult,
   Timer,
-  type UnsubscribePacket,
+} from "./deps.ts";
+import type {
+  AnyPacket,
+  ConnectPacket,
+  MemoryStore,
+  PacketId,
+  PublishPacket,
+  ReturnCodes,
+  SockConn,
+  SubscribePacket,
+  TAuthenticationResult,
+  UnsubscribePacket,
 } from "./deps.ts";
 
 import { handlePacket } from "./handlers/handlePacket.ts";
@@ -73,6 +76,7 @@ export class Context {
     ) {
       await this.mqttConn?.send(packet);
       this.pingTimer?.reset();
+      await nextTick(); // Yield to allow other tasks to run
       return;
     }
     logger.debug("not connected");
@@ -121,11 +125,11 @@ export class Context {
     this.incoming.push(packet);
   }
 
-  publish(packet: PublishPacket): Promise<void> {
+  async publish(packet: PublishPacket): Promise<void> {
     const qos = packet.qos || 0;
     if (qos === 0) {
       packet.id = 0;
-      this.send(packet);
+      await this.send(packet);
       // return empty promise
       return Promise.resolve();
     }
@@ -133,25 +137,25 @@ export class Context {
     this.store.pendingOutgoing.set(packet.id, packet);
     const deferred = new Deferred<void>();
     this.unresolvedPublish.set(packet.id, deferred);
-    this.send(packet);
+    await this.send(packet);
     return deferred.promise;
   }
 
-  subscribe(packet: SubscribePacket): Promise<ReturnCodes> {
+  async subscribe(packet: SubscribePacket): Promise<ReturnCodes> {
     packet.id = this.store.nextId();
     this.store.pendingOutgoing.set(packet.id, packet);
     const deferred = new Deferred<ReturnCodes>();
     this.unresolvedSubscribe.set(packet.id, deferred);
-    this.send(packet);
+    await this.send(packet);
     return deferred.promise;
   }
 
-  unsubscribe(packet: UnsubscribePacket): Promise<void> {
+  async unsubscribe(packet: UnsubscribePacket): Promise<void> {
     packet.id = this.store.nextId();
     this.store.pendingOutgoing.set(packet.id, packet);
     const deferred = new Deferred<void>();
     this.unresolvedUnSubscribe.set(packet.id, deferred);
-    this.send(packet);
+    await this.send(packet);
     return deferred.promise;
   }
 

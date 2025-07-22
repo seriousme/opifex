@@ -5,7 +5,8 @@ import {
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { PacketType, type PublishPacket } from "../deps.ts";
+import { PacketType } from "../deps.ts";
+import type { PublishPacket } from "../deps.ts";
 
 const payloadAny = new TextEncoder().encode("any");
 const qos = 1;

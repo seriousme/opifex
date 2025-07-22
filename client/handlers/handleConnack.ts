@@ -1,6 +1,7 @@
 import type { Context } from "../context.ts";
 import { ConnectionState } from "../ConnectionState.ts";
-import { AuthenticationResultByNumber, type ConnackPacket } from "../deps.ts";
+import { AuthenticationResultByNumber } from "../deps.ts";
+import type { ConnackPacket } from "../deps.ts";
 
 /**
  * Handles the CONNACK packet received from the MQTT broker
@@ -15,7 +16,7 @@ export async function handleConnack(packet: ConnackPacket, ctx: Context) {
     ctx.unresolvedConnect?.resolve(packet.returnCode);
     // start transmitting packets that were queued before
     for await (const packet of ctx.store.pendingOutgoingPackets()) {
-      ctx.send(packet);
+      await ctx.send(packet);
     }
     return;
   }

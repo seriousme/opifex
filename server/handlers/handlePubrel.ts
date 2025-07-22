@@ -1,5 +1,6 @@
+import { PacketType } from "../deps.ts";
 import type { Context } from "../context.ts";
-import { PacketType, type PubrelPacket } from "../deps.ts";
+import type { PubrelPacket } from "../deps.ts";
 
 /**
  * Handles PUBREL (QoS 2 publish release) packets

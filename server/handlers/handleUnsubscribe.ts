@@ -1,5 +1,6 @@
+import { PacketType } from "../deps.ts";
+import type { UnsubscribePacket } from "../deps.ts";
 import type { Context } from "../context.ts";
-import { PacketType, type UnsubscribePacket } from "../deps.ts";
 
 /**
  * Handles MQTT unsubscribe packets by removing subscriptions and sending acknowledgement

@@ -1,5 +1,7 @@
-import { type Context, SysPrefix } from "../context.ts";
-import { PacketType, type PublishPacket, type Topic } from "../deps.ts";
+import { SysPrefix } from "../context.ts";
+import { PacketType } from "../deps.ts";
+import type { Context } from "../context.ts";
+import type { PublishPacket, Topic } from "../deps.ts";
 
 /**
  * Checks if a client is authorized to publish to a given topic

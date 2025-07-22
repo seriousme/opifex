@@ -1,16 +1,13 @@
-import {
-  type AnyPacket,
-  type IPersistence,
-  type IStore,
-  logger,
-  MqttConn,
-  PacketNameByType,
-  PacketType,
-  type PublishPacket,
-  type SockConn,
-  type TAuthenticationResult,
-  type Timer,
-  type Topic,
+import { logger, MqttConn, PacketNameByType, PacketType } from "./deps.ts";
+import type {
+  AnyPacket,
+  IPersistence,
+  IStore,
+  PublishPacket,
+  SockConn,
+  TAuthenticationResult,
+  Timer,
+  Topic,
 } from "./deps.ts";
 
 export type ClientId = string;

@@ -1,13 +1,7 @@
-import { Context, type Handlers } from "./context.ts";
-import {
-  AuthenticationResult,
-  type IPersistence,
-  logger,
-  MemoryPersistence,
-  type SockConn,
-  type Topic,
-} from "./deps.ts";
-
+import { AuthenticationResult, logger, MemoryPersistence } from "./deps.ts";
+import { Context } from "./context.ts";
+import type { Handlers } from "./context.ts";
+import type { IPersistence, SockConn, Topic } from "./deps.ts";
 import { handlePacket } from "./handlers/handlePacket.ts";
 
 const defaultIsAuthenticated = (
@@ -63,7 +57,7 @@ export class MqttServer {
     }
     try {
       for await (const packet of ctx.mqttConn) {
-        handlePacket(ctx, packet);
+        await handlePacket(ctx, packet);
       }
     } catch (err) {
       logger.debug(`Error while serving:${err}`);

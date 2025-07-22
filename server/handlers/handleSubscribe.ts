@@ -1,10 +1,6 @@
 import type { Context } from "../context.ts";
-import {
-  PacketType,
-  type SubscribePacket,
-  type Subscription,
-  type Topic,
-} from "../deps.ts";
+import { PacketType } from "../deps.ts";
+import type { SubscribePacket, Subscription, Topic } from "../deps.ts";
 
 /**
  * @constant {number} SubscriptionFailure

@@ -1,12 +1,7 @@
 import type { Context } from "../context.ts";
-import {
-  AuthenticationResult,
-  type ConnectPacket,
-  logger,
-  PacketType,
-  type TAuthenticationResult,
-  Timer,
-} from "../deps.ts";
+import { AuthenticationResult, logger, PacketType, Timer } from "../deps.ts";
+
+import type { ConnectPacket, TAuthenticationResult } from "../deps.ts";
 
 /**
  * Checks if the client is authenticated based on the provided credentials

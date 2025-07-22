@@ -2,7 +2,8 @@ import { PacketType } from "./PacketType.ts";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { type ConnectPacket, decode, encode } from "./mod.ts";
+import { decode, encode } from "./mod.ts";
+import type { ConnectPacket } from "./mod.ts";
 
 test("encode Connect with ClientId", () => {
   assert.deepStrictEqual(

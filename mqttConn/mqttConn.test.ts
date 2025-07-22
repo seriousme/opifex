@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { makeDummySockConn } from "../dev_utils/mod.ts";
-import { type AnyPacket, encode, PacketType } from "../mqttPacket/mod.ts";
+import { encode, PacketType } from "../mqttPacket/mod.ts";
 import { MqttConn, MqttConnError } from "./mqttConn.ts";
+import type { AnyPacket } from "../mqttPacket/mod.ts";
 
 const connectPacket: AnyPacket = {
   type: PacketType.connect,
