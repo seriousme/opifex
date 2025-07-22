@@ -62,10 +62,9 @@ export class Conn {
       this.closed = true;
       try {
         this.closer();
-      } 
-      catch (_err) { 
-        // swallow any errors on close 
-        }
+      } catch (_err) {
+        // swallow any errors on close
+      }
     }
   }
 }
