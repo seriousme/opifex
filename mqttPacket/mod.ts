@@ -20,25 +20,40 @@ import type {
 import { PacketNameByType, PacketType } from "./PacketType.ts";
 import { invalidTopic, invalidTopicFilter, invalidUTF8 } from "./validators.ts";
 import { decodeLength, encodeLength } from "./length.ts";
-import { connect, type ConnectPacket } from "./connect.ts";
-import { connack, type ConnackPacket } from "./connack.ts";
+import { connect } from "./connect.ts";
+import { connack } from "./connack.ts";
 import {
   AuthenticationResult,
   AuthenticationResultByNumber,
 } from "./AuthenticationResult.ts";
-import { publish, type PublishPacket } from "./publish.ts";
-import { puback, type PubackPacket } from "./puback.ts";
-import { pubrec, type PubrecPacket } from "./pubrec.ts";
-import { pubrel, type PubrelPacket } from "./pubrel.ts";
-import { pubcomp, type PubcompPacket } from "./pubcomp.ts";
-import { subscribe, type SubscribePacket } from "./subscribe.ts";
-import { suback, type SubackPacket } from "./suback.ts";
-import { unsubscribe, type UnsubscribePacket } from "./unsubscribe.ts";
-import { unsuback, type UnsubackPacket } from "./unsuback.ts";
-import { pingreq, type PingreqPacket } from "./pingreq.ts";
-import { pingres, type PingresPacket } from "./pingres.ts";
-import { disconnect, type DisconnectPacket } from "./disconnect.ts";
+import { publish } from "./publish.ts";
+import { puback } from "./puback.ts";
+import { pubrec } from "./pubrec.ts";
+import { pubrel } from "./pubrel.ts";
+import { pubcomp } from "./pubcomp.ts";
+import { subscribe } from "./subscribe.ts";
+import { suback } from "./suback.ts";
+import { unsubscribe } from "./unsubscribe.ts";
+import { unsuback } from "./unsuback.ts";
+import { pingreq } from "./pingreq.ts";
+import { pingres } from "./pingres.ts";
+import { disconnect } from "./disconnect.ts";
 import { DecoderError } from "./decoder.ts";
+
+import type { ConnectPacket } from "./connect.ts";
+import type { ConnackPacket } from "./connack.ts";
+import type { PublishPacket } from "./publish.ts";
+import type { PubackPacket } from "./puback.ts";
+import type { PubrecPacket } from "./pubrec.ts";
+import type { PubrelPacket } from "./pubrel.ts";
+import type { PubcompPacket } from "./pubcomp.ts";
+import type { SubscribePacket } from "./subscribe.ts";
+import type { SubackPacket } from "./suback.ts";
+import type { UnsubscribePacket } from "./unsubscribe.ts";
+import type { UnsubackPacket } from "./unsuback.ts";
+import type { PingreqPacket } from "./pingreq.ts";
+import type { PingresPacket } from "./pingres.ts";
+import type { DisconnectPacket } from "./disconnect.ts";
 
 /**
  * this can be any possible MQTT packet

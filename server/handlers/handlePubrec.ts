@@ -1,5 +1,6 @@
+import { PacketType } from "../deps.ts";
+import type { PubrecPacket } from "../deps.ts";
 import type { Context } from "../context.ts";
-import { PacketType, type PubrecPacket } from "../deps.ts";
 
 /**
  * Handles PUBREC (QoS 2 Publish Received) packets

@@ -1,5 +1,6 @@
 import type { Context } from "../context.ts";
-import { PacketType, type PublishPacket } from "../deps.ts";
+import { PacketType } from "../deps.ts";
+import type { PublishPacket } from "../deps.ts";
 
 /**
  * Handles incoming MQTT publish packets based on their QoS level

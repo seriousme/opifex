@@ -1,15 +1,14 @@
 import type { Context } from "../context.ts";
-import {
-  type AnyPacket,
-  PacketNameByType,
-  PacketType,
-  type PubackPacket,
-  type PubcompPacket,
-  type PublishPacket,
-  type PubrecPacket,
-  type PubrelPacket,
-  type SubscribePacket,
-  type UnsubscribePacket,
+import { PacketNameByType, PacketType } from "../deps.ts";
+import type {
+  AnyPacket,
+  PubackPacket,
+  PubcompPacket,
+  PublishPacket,
+  PubrecPacket,
+  PubrelPacket,
+  SubscribePacket,
+  UnsubscribePacket,
 } from "../deps.ts";
 import { handleConnect } from "./handleConnect.ts";
 import { handlePingreq } from "./handlePingreq.ts";

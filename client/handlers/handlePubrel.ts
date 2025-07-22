@@ -1,5 +1,6 @@
 import type { Context } from "../context.ts";
-import { PacketType, type PubrelPacket } from "../deps.ts";
+import { PacketType } from "../deps.ts";
+import type { PubrelPacket } from "../deps.ts";
 
 /**
  * Handles a PUBREL packet in the MQTT QoS 2 flow

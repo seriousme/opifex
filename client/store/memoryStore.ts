@@ -2,7 +2,8 @@
  * @module memoryStore
  */
 
-import { assert, type PacketId } from "./deps.ts";
+import { assert } from "./deps.ts";
+import type { PacketId } from "./deps.ts";
 
 import {
   type IStore,
