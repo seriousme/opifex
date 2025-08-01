@@ -5,7 +5,7 @@
 ### Changed
 
 - chore: update dependencies
-  -  @types/node  ^22.13.1  →  ^24.1.0
+  - @types/node ^22.13.1 → ^24.1.0
 
 ## [v1.9.4] 30-05-2025
 
