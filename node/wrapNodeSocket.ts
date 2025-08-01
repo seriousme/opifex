@@ -4,6 +4,7 @@
 import type { Socket } from "node:net";
 import { Writable } from "node:stream";
 import type { NetAddr, SockConn } from "../socket/socket.ts";
+
 /**
  * Closes a Node.js socket if it is not already closed
  * @param sock - The Node.js socket to close
@@ -24,7 +25,7 @@ export function wrapNodeSocket(socket: Socket): SockConn {
     {
       type: "bytes",
       start(controller) {
-        socket.on("data", (data: ArrayBufferView) => {
+        socket.on("data", (data: Uint8Array<ArrayBuffer>) => {
           controller.enqueue(data);
           const desiredSize = controller.desiredSize ?? 0;
           if (desiredSize <= 0) {
