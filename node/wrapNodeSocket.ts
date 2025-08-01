@@ -2,8 +2,11 @@
  * Utility functions for wrapping Node.js sockets into standard web streams.
  */
 import type { Socket } from "node:net";
+import type { Buffer } from "node:buffer";
 import { Writable } from "node:stream";
 import type { NetAddr, SockConn } from "../socket/socket.ts";
+
+
 /**
  * Closes a Node.js socket if it is not already closed
  * @param sock - The Node.js socket to close
@@ -25,7 +28,7 @@ export function wrapNodeSocket(socket: Socket): SockConn {
       type: "bytes",
       start(controller) {
         socket.on("data", (data) => {
-          controller.enqueue(data);
+          controller.enqueue(new Uint8Array(data));
           const desiredSize = controller.desiredSize ?? 0;
           if (desiredSize <= 0) {
             // The internal queue is full, so propagate
