@@ -26,8 +26,8 @@ export function wrapNodeSocket(socket: Socket): SockConn {
     {
       type: "bytes",
       start(controller) {
-        socket.on("data", (data) => {
-          controller.enqueue(new Uint8Array(data));
+        socket.on("data", (data: Uint8Array<ArrayBuffer>) => {
+          controller.enqueue(data);
           const desiredSize = controller.desiredSize ?? 0;
           if (desiredSize <= 0) {
             // The internal queue is full, so propagate
