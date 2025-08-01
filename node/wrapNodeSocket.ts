@@ -2,7 +2,6 @@
  * Utility functions for wrapping Node.js sockets into standard web streams.
  */
 import type { Socket } from "node:net";
-import type { Buffer } from "node:buffer";
 import { Writable } from "node:stream";
 import type { NetAddr, SockConn } from "../socket/socket.ts";
 
