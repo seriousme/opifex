@@ -24,7 +24,7 @@ export function wrapNodeSocket(socket: Socket): SockConn {
     {
       type: "bytes",
       start(controller) {
-        socket.on("data", (data: ArrayBufferView) => {
+        socket.on("data", (data) => {
           controller.enqueue(data);
           const desiredSize = controller.desiredSize ?? 0;
           if (desiredSize <= 0) {
