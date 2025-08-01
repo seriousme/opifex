@@ -68,6 +68,6 @@
   },
   "homepage": "https://github.com/seriousme/opifex#readme",
   "devDependencies": {
-    "@types/node": "^22.13.1"
+    "@types/node": "^24.1.0"
   }
 }
