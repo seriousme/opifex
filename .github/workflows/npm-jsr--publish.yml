@@ -17,11 +17,11 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: vx.x.x # Run with latest stable Deno.
+      - name: Update npm@latest   # Ensure npm 11.5.1 or later is installed
+        run: npm install -g npm@latest
       - run: npm ci
       - run: deno install
       - run: npm run build
       - run: deno fmt
       - run: npx jsr publish
-      - run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - run: npm publish 
