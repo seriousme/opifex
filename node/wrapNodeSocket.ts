@@ -6,7 +6,6 @@ import type { Buffer } from "node:buffer";
 import { Writable } from "node:stream";
 import type { NetAddr, SockConn } from "../socket/socket.ts";
 
-
 /**
  * Closes a Node.js socket if it is not already closed
  * @param sock - The Node.js socket to close
