@@ -3,13 +3,18 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { decode, encode, MQTTLevel } from "./mod.ts";
-const MaxPacketSize = 0xffff;
+import type { CodecOpts } from "./mod.ts";
+
+const codecOpts: CodecOpts = {
+  protocolLevel: MQTTLevel.v4,
+  maximumPacketSize: 0xffff,
+};
 
 test("encode Pingreq", () => {
   assert.deepStrictEqual(
     encode({
       type: PacketType.pingreq,
-    }, MaxPacketSize),
+    }, codecOpts),
     Uint8Array.from([
       // fixedHeader
       192, // packetType + flags
@@ -26,7 +31,7 @@ test("decode Pingreq", () => {
         192, // packetType + flags
         0, // remainingLength
       ]),
-      MQTTLevel.v4,
+      codecOpts,
     ),
     {
       type: PacketType.pingreq,
@@ -45,7 +50,7 @@ test("decode invalid Pingreq", () => {
           0,
           0,
         ]),
-        MQTTLevel.v4,
+        codecOpts,
       ),
     Error,
     "too long",

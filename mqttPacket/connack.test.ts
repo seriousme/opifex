@@ -1,8 +1,18 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { decode, encode, MQTTLevel } from "./mod.ts";
-const MaxPacketSize = 0xffff;
 import { PacketType } from "./PacketType.ts";
+import { decode, encode, MQTTLevel } from "./mod.ts";
+import type { CodecOpts } from "./mod.ts";
+
+const codecOptsV4: CodecOpts = {
+  protocolLevel: MQTTLevel.v4,
+  maximumPacketSize: 0xffff,
+};
+
+const codecOptsV5: CodecOpts = {
+  protocolLevel: MQTTLevel.v5,
+  maximumPacketSize: 0xffff,
+};
 
 test("encode Connack packet", () => {
   assert.deepStrictEqual(
@@ -10,7 +20,7 @@ test("encode Connack packet", () => {
       type: PacketType.connack,
       sessionPresent: false,
       returnCode: 0,
-    }, MaxPacketSize),
+    }, codecOptsV4),
     Uint8Array.from([
       // fixedHeader
       0x20, // packetType + flags
@@ -33,7 +43,7 @@ test("decode Connack packet", () => {
         0, // connack flags
         0, // return code
       ]),
-      MQTTLevel.v4,
+      codecOptsV4,
     ),
     {
       type: PacketType.connack,
@@ -49,7 +59,7 @@ test("encode Connack with session present", () => {
       type: PacketType.connack,
       sessionPresent: true,
       returnCode: 0,
-    }, MaxPacketSize),
+    }, codecOptsV4),
     Uint8Array.from([
       // fixedHeader
       0x20, // packetType + flags
@@ -73,7 +83,7 @@ test("decode Connack with session present", () => {
           1, // connack flags (sessionPresent)
           0, // return code
         ]),
-        MQTTLevel.v4,
+        codecOptsV4,
       ),
       {
         type: PacketType.connack,
@@ -94,7 +104,7 @@ test("decode Connack with non-zero returnCode", () => {
         0, // connack flags
         4, // return code (bad username or password)
       ]),
-      MQTTLevel.v4,
+      codecOptsV4,
     ),
     {
       type: PacketType.connack,
@@ -116,7 +126,7 @@ test("decode Connack with invalid returnCode", () => {
           0, // connack flags
           64, // return code (reserved)
         ]),
-        MQTTLevel.v4,
+        codecOptsV4,
       ),
     Error,
     "Invalid return code",
@@ -125,17 +135,17 @@ test("decode Connack with invalid returnCode", () => {
 
 test("decode short Connack packets", () => {
   assert.throws(
-    () => decode(Uint8Array.from([0x20]), MQTTLevel.v4),
+    () => decode(Uint8Array.from([0x20]), codecOptsV4),
     Error,
     "decoding failed",
   );
   assert.throws(
-    () => decode(Uint8Array.from([0x20, 2]), MQTTLevel.v4),
+    () => decode(Uint8Array.from([0x20, 2]), codecOptsV4),
     Error,
     "too short",
   );
   assert.throws(
-    () => decode(Uint8Array.from([0x20, 2, 0]), MQTTLevel.v4),
+    () => decode(Uint8Array.from([0x20, 2, 0]), codecOptsV4),
     Error,
     "too long",
   );
@@ -153,7 +163,7 @@ test("decode invalid protocol version", () => {
           0, // connack flags
           4, // return code (bad username or password)
         ]),
-        MQTTLevel.v5,
+        codecOptsV5,
       ),
     Error,
     "decoding failed",

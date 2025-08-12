@@ -1,5 +1,6 @@
 import type {
   ClientId,
+  CodecOpts,
   Payload,
   ProtocolLevel,
   QoS,
@@ -50,14 +51,14 @@ function invalidProtocolName(version: number, name: string): boolean {
 }
 
 export const connect: {
-  encode(packet: ConnectPacket, _maximumPacketSize: number): Uint8Array;
+  encode(packet: ConnectPacket, _codecOpts: CodecOpts): Uint8Array;
   decode(
     buffer: Uint8Array,
     flags: number,
-    protocolLevel: ProtocolLevel,
+    codecOpts: CodecOpts,
   ): ConnectPacket;
 } = {
-  encode(packet: ConnectPacket, _maximumPacketSize: number): Uint8Array {
+  encode(packet: ConnectPacket, _codecOpts: CodecOpts): Uint8Array {
     const flags = 0;
     const protocolLevel = packet.protocolLevel || 4;
     if (protocolLevel > 4) {
@@ -113,7 +114,7 @@ export const connect: {
   decode(
     buffer: Uint8Array,
     flags: number,
-    _protocolLevel: ProtocolLevel,
+    _codecOpts: CodecOpts,
   ): ConnectPacket {
     const decoder = new Decoder(buffer);
     const protocolName = decoder.getUtf8String();

@@ -1,8 +1,4 @@
-import type {
-  ProtocolLevel,
-  TAuthenticationResult,
-  TPacketType,
-} from "./types.ts";
+import type { CodecOpts, TAuthenticationResult, TPacketType } from "./types.ts";
 import { PacketType } from "./PacketType.ts";
 import { BitMask } from "./BitMask.ts";
 import { booleanFlag, Decoder, DecoderError } from "./decoder.ts";
@@ -19,14 +15,14 @@ export type ConnackPacket = {
 };
 
 export const connack: {
-  encode(packet: ConnackPacket, _maximumPacketSize: number): Uint8Array;
+  encode(packet: ConnackPacket, _codecOpts: CodecOpts): Uint8Array;
   decode(
     buffer: Uint8Array,
     _flags: number,
-    protocolLevel: ProtocolLevel,
+    codecOpts: CodecOpts,
   ): ConnackPacket | undefined;
 } = {
-  encode(packet: ConnackPacket, _maximumPacketSize: number): Uint8Array {
+  encode(packet: ConnackPacket, _codecOpts: CodecOpts): Uint8Array {
     return new Uint8Array([
       packet.type << 4,
       2,
@@ -38,11 +34,11 @@ export const connack: {
   decode(
     buffer: Uint8Array,
     _flags: number,
-    protocolLevel: ProtocolLevel,
+    codecOpts: CodecOpts,
   ): ConnackPacket | undefined {
     const decoder = new Decoder(buffer);
 
-    if (protocolLevel === 5) {
+    if (codecOpts.protocolLevel === 5) {
       throw new DecoderError("Invalid protocol version");
     }
 

@@ -2,7 +2,12 @@ import { PacketType } from "./PacketType.ts";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { decode, encode, MQTTLevel } from "./mod.ts";
-const MaxPacketSize = 0xffff;
+import type { CodecOpts } from "./mod.ts";
+
+const codecOpts: CodecOpts = {
+  protocolLevel: MQTTLevel.v4,
+  maximumPacketSize: 0xffff,
+};
 
 test("encode Unsubscribe", () => {
   assert.deepStrictEqual(
@@ -10,7 +15,7 @@ test("encode Unsubscribe", () => {
       type: PacketType.unsubscribe,
       id: 1,
       topicFilters: ["a/b", "c/d"],
-    }, MaxPacketSize),
+    }, codecOpts),
     Uint8Array.from([
       // fixedHeader
       0xa2, // packetType + flags
@@ -55,7 +60,7 @@ test("decode Unsubscribe", () => {
         47, // '/'
         100, // 'd'
       ]),
-      MQTTLevel.v4,
+      codecOpts,
     ),
     {
       type: PacketType.unsubscribe,
@@ -88,7 +93,7 @@ test("decode Unsubscribe missing bit 1 flag", () => {
           47, // '/'
           100, // 'd'
         ]),
-        MQTTLevel.v4,
+        codecOpts,
       ),
     Error,
     "Invalid header",
@@ -116,7 +121,7 @@ test("decode unsubscribe packet too short", () => {
           3, // topic filter length LSB
           99, // 'c'
         ]),
-        MQTTLevel.v4,
+        codecOpts,
       ),
     Error,
     "too short",
@@ -132,7 +137,7 @@ test("decode unsubscribe packet too short", () => {
           0, // id MSB
           1, // id LSB
         ]),
-        MQTTLevel.v4,
+        codecOpts,
       ),
     Error,
     "too short",

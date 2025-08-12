@@ -2,7 +2,12 @@ import { PacketType } from "./PacketType.ts";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { decode, encode, MQTTLevel } from "./mod.ts";
-const MaxPacketSize = 0xffff;
+import type { CodecOpts } from "./mod.ts";
+
+const codecOpts: CodecOpts = {
+  protocolLevel: MQTTLevel.v4,
+  maximumPacketSize: 0xffff,
+};
 
 test("encode Suback", () => {
   assert.deepStrictEqual(
@@ -10,7 +15,7 @@ test("encode Suback", () => {
       type: PacketType.suback,
       id: 1,
       returnCodes: [0, 1],
-    }, MaxPacketSize),
+    }, codecOpts),
     Uint8Array.from([
       // fixedHeader
       0x90, // packetType + flags
@@ -39,7 +44,7 @@ test("decode Suback", () => {
         0,
         1,
       ]),
-      MQTTLevel.v4,
+      codecOpts,
     ),
     {
       type: PacketType.suback,

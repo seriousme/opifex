@@ -3,7 +3,12 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { decode, encode, MQTTLevel } from "./mod.ts";
-const MaxPacketSize = 0xffff;
+import type { CodecOpts } from "./mod.ts";
+
+const codecOpts: CodecOpts = {
+  protocolLevel: MQTTLevel.v4,
+  maximumPacketSize: 0xffff,
+};
 
 test("encode Subscribe", () => {
   assert.deepStrictEqual(
@@ -14,7 +19,7 @@ test("encode Subscribe", () => {
         { topicFilter: "a/b", qos: 0 },
         { topicFilter: "c/d", qos: 1 },
       ],
-    }, MaxPacketSize),
+    }, codecOpts),
     Uint8Array.from([
       // fixedHeader
       0x82, // packetType + flags
@@ -63,7 +68,7 @@ test("decode Subscribe", () => {
         100, // 'd'
         1, // qos
       ]),
-      MQTTLevel.v4,
+      codecOpts,
     ),
     {
       type: PacketType.subscribe,
@@ -101,7 +106,7 @@ test("decode Subscribe missing bit 1 flag", () => {
           100, // 'd'
           1, // qos
         ]),
-        MQTTLevel.v4,
+        codecOpts,
       ),
     Error,
     "Invalid header",
@@ -132,7 +137,7 @@ test("decode Subscribe packet too short", () => {
           47, // '/'
           1, // qos
         ]),
-        MQTTLevel.v4,
+        codecOpts,
       ),
     Error,
     "Invalid qos",
@@ -158,7 +163,7 @@ test("decode Subscribe packet too short", () => {
           3, // topic filter length LSB
           99, // 'c'
         ]),
-        MQTTLevel.v4,
+        codecOpts,
       ),
     Error,
     "too short",
@@ -174,7 +179,7 @@ test("decode Subscribe packet too short", () => {
           0, // id MSB
           1, // id LSB
         ]),
-        MQTTLevel.v4,
+        codecOpts,
       ),
     Error,
     "too short",
@@ -205,7 +210,7 @@ test("decode Subscribe packet invalid packet id with QoS > 0", () => {
           47, // '/'
           1, // qos
         ]),
-        MQTTLevel.v4,
+        codecOpts,
       ),
     Error,
     "Invalid packet identifier",
@@ -233,7 +238,7 @@ test("decode Subscribe packet invalid packet id with QoS > 0", () => {
           47, // '/'
           2, // qos
         ]),
-        MQTTLevel.v4,
+        codecOpts,
       ),
     Error,
     "Invalid packet identifier",

@@ -2,7 +2,18 @@ import { PacketType } from "./PacketType.ts";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { decode, encode, MQTTLevel } from "./mod.ts";
-const MaxPacketSize = 0xffff;
+import type { CodecOpts } from "./mod.ts";
+
+const codecOptsV4: CodecOpts = {
+  protocolLevel: MQTTLevel.v4,
+  maximumPacketSize: 0xffff,
+};
+
+const codecOptsUnknown: CodecOpts = {
+  protocolLevel: MQTTLevel.unknown,
+  maximumPacketSize: 0xffff,
+};
+
 import type { ConnectPacket } from "./mod.ts";
 
 test("encode Connect with ClientId", () => {
@@ -10,7 +21,7 @@ test("encode Connect with ClientId", () => {
     encode({
       type: PacketType.connect,
       clientId: "id",
-    }, MaxPacketSize),
+    }, codecOptsV4),
     Uint8Array.from([
       // fixedHeader
       16, // packetType + flags
@@ -42,7 +53,7 @@ test("encode Connect with Clean false", () => {
       type: PacketType.connect,
       clientId: "id",
       clean: false,
-    }, MaxPacketSize),
+    }, codecOptsV4),
     Uint8Array.from([
       // fixedHeader
       16, // packetType + flags
@@ -74,7 +85,7 @@ test("encode Connect with KeepAlive", () => {
       type: PacketType.connect,
       clientId: "id",
       keepAlive: 300,
-    }, MaxPacketSize),
+    }, codecOptsV4),
     Uint8Array.from([
       // fixedHeader
       16, // packetType + flags
@@ -166,14 +177,14 @@ test("encode Connect with username and password", () => {
         115, // 's'
         115, // 's'
       ]),
-    }, MaxPacketSize),
+    }, codecOptsV4),
     Uint8Array.from(encodedConnect),
   );
 });
 
 test("decode Connect with username and password", () => {
   assert.deepStrictEqual(
-    decode(Uint8Array.from(encodedConnect), MQTTLevel.unknown),
+    decode(Uint8Array.from(encodedConnect), codecOptsUnknown),
     decodedConnect,
   );
 });
@@ -246,7 +257,7 @@ const encodedConnectWithWill = [
 
 test("encode Connect with username and password and will", () => {
   assert.deepStrictEqual(
-    encode(decodedConnectWithWill, MaxPacketSize),
+    encode(decodedConnectWithWill, codecOptsUnknown),
     Uint8Array.from(encodedConnectWithWill),
   );
 });
@@ -257,7 +268,7 @@ test("decode invalid Connect", () => {
   longConnect[1]++;
 
   assert.throws(
-    () => decode(Uint8Array.from([...longConnect]), MQTTLevel.unknown),
+    () => decode(Uint8Array.from([...longConnect]), codecOptsUnknown),
     Error,
     "too long",
   );
@@ -267,7 +278,7 @@ test("decode invalid Connect", () => {
   reservedBitConnect[9] += 1; // set bit 0 of flags
 
   assert.throws(
-    () => decode(Uint8Array.from(reservedBitConnect), MQTTLevel.unknown),
+    () => decode(Uint8Array.from(reservedBitConnect), codecOptsUnknown),
     Error,
     "Invalid reserved bit",
   );
@@ -280,7 +291,7 @@ test("decode invalid Connect", () => {
   invalidProtocolName[7] = 65; // 'A' instead of 'T'
 
   assert.throws(
-    () => decode(Uint8Array.from(invalidProtocolName), MQTTLevel.unknown),
+    () => decode(Uint8Array.from(invalidProtocolName), codecOptsUnknown),
     Error,
     "Invalid protocol name",
   );
@@ -290,7 +301,7 @@ test("decode invalid Connect", () => {
   invalidProtocolLength[3] = 5; // Length 5 instead of
 
   assert.throws(
-    () => decode(Uint8Array.from(invalidProtocolLength), MQTTLevel.unknown),
+    () => decode(Uint8Array.from(invalidProtocolLength), codecOptsUnknown),
     Error,
     "Invalid protocol name length",
   );
@@ -303,7 +314,7 @@ test("decode invalid Connect", () => {
     () =>
       decode(
         Uint8Array.from(invalidProtocolNameLevel5),
-        MQTTLevel.unknown,
+        codecOptsUnknown,
       ),
     Error,
     "Invalid protocol name at MQTT level 5",
@@ -313,7 +324,7 @@ test("decode invalid Connect", () => {
     () =>
       decode(
         Uint8Array.from(invalidWillQosConnect),
-        MQTTLevel.unknown,
+        codecOptsUnknown,
       ),
     Error,
     "Invalid will qos",
@@ -333,7 +344,7 @@ test("decode invalid Connect", () => {
           81, // 'Q'
           84, // 'T'
         ]),
-        MQTTLevel.unknown,
+        codecOptsUnknown,
       ),
     Error,
     "too short",

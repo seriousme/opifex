@@ -1,6 +1,6 @@
 import type {
+  CodecOpts,
   PacketId,
-  ProtocolLevel,
   QoS,
   TopicFilter,
   TPacketType,
@@ -28,14 +28,14 @@ export type Subscription = {
 };
 
 export const subscribe: {
-  encode(packet: SubscribePacket, _maximumPacketSize: number): Uint8Array;
+  encode(packet: SubscribePacket, _codecOpts: CodecOpts): Uint8Array;
   decode(
     buffer: Uint8Array,
     flags: number,
-    protocolLevel: ProtocolLevel,
+    codecOpts: CodecOpts,
   ): SubscribePacket;
 } = {
-  encode(packet: SubscribePacket, _maximumPacketSize: number): Uint8Array {
+  encode(packet: SubscribePacket, _codecOpts: CodecOpts): Uint8Array {
     // Bits 3,2,1 and 0 of the fixed header of the SUBSCRIBE Control Packet are reserved and
     // MUST be set to 0,0,1 and 0 respectively. The Server MUST treat any other value as
     // malformed and close the Network Connection [MQTT-3.8.1-1].
@@ -53,9 +53,9 @@ export const subscribe: {
   decode(
     buffer: Uint8Array,
     flags: number,
-    protocolLevel: ProtocolLevel,
+    codecOpts: CodecOpts,
   ): SubscribePacket {
-    if (protocolLevel === 5) {
+    if (codecOpts.protocolLevel === 5) {
       throw new DecoderError("Invalid protocol version");
     }
     // Bits 3,2,1 and 0 of the fixed header of the SUBSCRIBE Control Packet are reserved and

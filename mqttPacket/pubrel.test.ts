@@ -3,14 +3,19 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { decode, encode, MQTTLevel } from "./mod.ts";
-const MaxPacketSize = 0xffff;
+import type { CodecOpts } from "./mod.ts";
+
+const codecOpts: CodecOpts = {
+  protocolLevel: MQTTLevel.v4,
+  maximumPacketSize: 0xffff,
+};
 
 test("encode Pubrel", () => {
   assert.deepStrictEqual(
     encode({
       type: PacketType.pubrel,
       id: 1337,
-    }, MaxPacketSize),
+    }, codecOpts),
     Uint8Array.from([
       // fixedHeader
       0x60, // packetType + flags
@@ -33,7 +38,7 @@ test("decode Pubrel ", () => {
         5, // id MSB
         57, // id LSB
       ]),
-      MQTTLevel.v4,
+      codecOpts,
     ),
     {
       type: PacketType.pubrel,
@@ -44,17 +49,17 @@ test("decode Pubrel ", () => {
 
 test("decodeShortPubrelPackets", () => {
   assert.throws(
-    () => decode(Uint8Array.from([0x60]), MQTTLevel.v4),
+    () => decode(Uint8Array.from([0x60]), codecOpts),
     Error,
     "decoding failed",
   );
   assert.throws(
-    () => decode(Uint8Array.from([0x60, 2]), MQTTLevel.v4),
+    () => decode(Uint8Array.from([0x60, 2]), codecOpts),
     Error,
     "too short",
   );
   assert.throws(
-    () => decode(Uint8Array.from([0x60, 3, 0, 0, 0]), MQTTLevel.v4),
+    () => decode(Uint8Array.from([0x60, 3, 0, 0, 0]), codecOpts),
     Error,
     "too long",
   );

@@ -3,7 +3,12 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { decode, encode, MQTTLevel } from "./mod.ts";
-const MaxPacketSize = 0xffff;
+import type { CodecOpts } from "./mod.ts";
+
+const codecOpts: CodecOpts = {
+  protocolLevel: MQTTLevel.v4,
+  maximumPacketSize: 0xffff,
+};
 
 // const utf8Decoder = new TextDecoder();
 const utf8Encoder = new TextEncoder();
@@ -15,7 +20,7 @@ test("encode Publish", () => {
       type: PacketType.publish,
       topic: "a/b",
       payload,
-    }, MaxPacketSize),
+    }, codecOpts),
     Uint8Array.from([
       // fixedHeader
       48, // packetType + flags
@@ -60,7 +65,7 @@ test("decode Publish", () => {
         97, // 'a'
         100, // 'd'
       ]),
-      MQTTLevel.v4,
+      codecOpts,
     ),
     {
       type: PacketType.publish,
@@ -107,7 +112,7 @@ test("decode Publish with extra bytes", () => {
         116, // 't'
         99, // 'c'
       ]),
-      MQTTLevel.v4,
+      codecOpts,
     ),
     {
       type: PacketType.publish,
@@ -144,7 +149,7 @@ test("decode Publish no payload", () => {
         98, // 'b'
         // payload
       ]),
-      MQTTLevel.v4,
+      codecOpts,
     ),
     {
       type: PacketType.publish,
@@ -174,7 +179,7 @@ test("Invalid qos", () => {
           98, // 'b'
           // payload
         ]),
-        MQTTLevel.v4,
+        codecOpts,
       ),
     Error,
     "Invalid qos",
@@ -196,7 +201,7 @@ test("Invalid qos for duplicate", () => {
           98, // 'b'
           // payload
         ]),
-        MQTTLevel.v4,
+        codecOpts,
       ),
     Error,
     "Invalid qos for possible duplicate",

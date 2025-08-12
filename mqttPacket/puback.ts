@@ -1,4 +1,4 @@
-import type { PacketId, ProtocolLevel, TPacketType } from "./types.ts";
+import type { CodecOpts, PacketId, TPacketType } from "./types.ts";
 import { PacketType } from "./PacketType.ts";
 import { Decoder, DecoderError } from "./decoder.ts";
 import { Encoder } from "./encoder.ts";
@@ -12,14 +12,14 @@ export type PubackPacket = {
 };
 
 export const puback: {
-  encode(packet: PubackPacket, _maximumPacketSize: number): Uint8Array;
+  encode(packet: PubackPacket, _codecOpts: CodecOpts): Uint8Array;
   decode(
     buffer: Uint8Array,
     _flags: number,
-    protocolLevel: ProtocolLevel,
+    codecOpts: CodecOpts,
   ): PubackPacket;
 } = {
-  encode(packet: PubackPacket, _maximumPacketSize: number): Uint8Array {
+  encode(packet: PubackPacket, _codecOpts: CodecOpts): Uint8Array {
     const flags = 0;
     const encoder = new Encoder(packet.type);
     encoder.setInt16(packet.id);
@@ -29,9 +29,9 @@ export const puback: {
   decode(
     buffer: Uint8Array,
     _flags: number,
-    protocolLevel: ProtocolLevel,
+    codecOpts: CodecOpts,
   ): PubackPacket {
-    if (protocolLevel === 5) {
+    if (codecOpts.protocolLevel === 5) {
       throw new DecoderError("Invalid protocol version");
     }
     const decoder = new Decoder(buffer);

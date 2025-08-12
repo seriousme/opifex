@@ -7,6 +7,7 @@
 
 import type {
   ClientId,
+  CodecOpts,
   Dup,
   PacketId,
   Payload,
@@ -80,6 +81,7 @@ export type AnyPacket =
 
 export type {
   ClientId,
+  CodecOpts,
   ConnackPacket,
   ConnectPacket,
   DisconnectPacket,
@@ -147,17 +149,18 @@ export const packetsByType = [
  * @function encode
  * @description Encodes an MQTT packet object into a binary Uint8Array format
  * @param {AnyPacket} packet - The MQTT packet object to encode
+ * @param {CodecOpts} codecOpts - options to use during encoding
  * @returns {Uint8Array} The encoded packet as a binary buffer
  * @throws {Error} If packet encoding fails
  */
 export function encode(
   packet: AnyPacket,
-  maximumPacketSize: number,
+  codecOpts: CodecOpts,
 ): Uint8Array {
   const packetType: number = packet.type;
   // deno-lint-ignore no-explicit-any
   const pkt: any = packet;
-  const encoded = packetsByType[packetType]?.encode(pkt, maximumPacketSize);
+  const encoded = packetsByType[packetType]?.encode(pkt, codecOpts);
   if (!encoded) {
     throw Error("Packet encoding failed");
   }
@@ -169,6 +172,7 @@ export function encode(
  * @description Decodes a packet payload from binary format into an MQTT packet object
  * @param {number} firstByte - The first byte of the MQTT packet containing type and flags
  * @param {Uint8Array} buffer - The binary buffer containing the packet payload
+ * @param {CodecOpts} codecOpts - options to use during encoding
  * @returns {AnyPacket} The decoded MQTT packet object
  * @throws {Error} If packet decoding fails
  */
@@ -176,14 +180,14 @@ export function encode(
 export function decodePayload(
   firstByte: number,
   buffer: Uint8Array,
-  protocolLevel: ProtocolLevel,
+  codecOpts: CodecOpts,
 ): AnyPacket {
   const packetType = firstByte >> 4;
   const flags = firstByte & 0x0f;
   const packet = packetsByType[packetType]?.decode(
     buffer,
     flags,
-    protocolLevel,
+    codecOpts,
   );
   if (packet !== undefined) {
     return packet;
@@ -195,12 +199,13 @@ export function decodePayload(
  * @function decode
  * @description Decodes a complete MQTT packet from binary format into a packet object
  * @param {Uint8Array} buffer - The binary buffer containing the complete MQTT packet
+ * @param {CodecOpts} codecOpts - the options for the decoder
  * @returns {AnyPacket} The decoded MQTT packet object
  * @throws {DecoderError} If packet decoding fails due to invalid format or insufficient data
  */
 export function decode(
   buffer: Uint8Array,
-  protocolLevel: ProtocolLevel,
+  codecOpts: CodecOpts,
 ): AnyPacket {
   if (buffer.length < 2) {
     throw new DecoderError("Packet decoding failed");
@@ -208,7 +213,7 @@ export function decode(
   const { length, numLengthBytes } = decodeLength(buffer, 1);
   const start = numLengthBytes + 1;
   const end = start + length;
-  return decodePayload(buffer[0], buffer.subarray(start, end), protocolLevel);
+  return decodePayload(buffer[0], buffer.subarray(start, end), codecOpts);
 }
 
 export { getLengthDecoder } from "../mqttPacket/length.ts";

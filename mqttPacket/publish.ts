@@ -1,7 +1,7 @@
 import type {
+  CodecOpts,
   Dup,
   Payload,
-  ProtocolLevel,
   QoS,
   Topic,
   TPacketType,
@@ -26,14 +26,14 @@ export type PublishPacket = {
 };
 
 export const publish: {
-  encode(packet: PublishPacket, _maximumPacketSize: number): Uint8Array;
+  encode(packet: PublishPacket, _codecOpts: CodecOpts): Uint8Array;
   decode(
     buffer: Uint8Array,
     flags: number,
-    protocolLevel: ProtocolLevel,
+    codecOpts: CodecOpts,
   ): PublishPacket;
 } = {
-  encode(packet: PublishPacket, _maximumPacketSize: number): Uint8Array {
+  encode(packet: PublishPacket, _codecOpts: CodecOpts): Uint8Array {
     const qos = packet.qos || 0;
 
     const flags = (packet.dup ? BitMask.bit3 : 0) +
@@ -57,9 +57,9 @@ export const publish: {
   decode(
     buffer: Uint8Array,
     flags: number,
-    protocolLevel: ProtocolLevel,
+    codecOpts: CodecOpts,
   ): PublishPacket {
-    if (protocolLevel === 5) {
+    if (codecOpts.protocolLevel === 5) {
       throw new DecoderError("Invalid protocol version");
     }
     const dup = booleanFlag(flags, BitMask.bit3);

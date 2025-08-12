@@ -75,3 +75,8 @@ export type ClientId = string;
  * UTF8 string pair (for v5)
  */
 export type UTF8StringPair = [string, string];
+
+export type CodecOpts = {
+  protocolLevel: ProtocolLevel;
+  maximumPacketSize: number;
+};

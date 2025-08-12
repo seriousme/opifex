@@ -1,4 +1,4 @@
-import type { PacketId, ProtocolLevel, TPacketType } from "./types.ts";
+import type { CodecOpts, PacketId, TPacketType } from "./types.ts";
 import { PacketType } from "./PacketType.ts";
 import { Decoder, DecoderError } from "./decoder.ts";
 import { Encoder } from "./encoder.ts";
@@ -13,14 +13,14 @@ export type PubrecPacket = {
 };
 
 export const pubrec: {
-  encode(packet: PubrecPacket, _maximumPacketSize: number): Uint8Array;
+  encode(packet: PubrecPacket, _codecOpts: CodecOpts): Uint8Array;
   decode(
     buffer: Uint8Array,
     flags: number,
-    protocolLevel: ProtocolLevel,
+    codecOpts: CodecOpts,
   ): PubrecPacket;
 } = {
-  encode(packet: PubrecPacket, _maximumPacketSize: number): Uint8Array {
+  encode(packet: PubrecPacket, _codecOpts: CodecOpts): Uint8Array {
     const flags = 0;
     const encoder = new Encoder(packet.type);
     encoder.setInt16(packet.id);
@@ -30,9 +30,9 @@ export const pubrec: {
   decode(
     buffer: Uint8Array,
     _flags: number,
-    protocolLevel: ProtocolLevel,
+    codecOpts: CodecOpts,
   ): PubrecPacket {
-    if (protocolLevel === 5) {
+    if (codecOpts.protocolLevel === 5) {
       throw new DecoderError("Invalid protocol version");
     }
     const decoder = new Decoder(buffer);
