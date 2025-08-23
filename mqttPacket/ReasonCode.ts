@@ -3,6 +3,7 @@
  */
 
 import { PacketType } from "./PacketType.ts";
+import type { InvertRecord } from "./types.ts";
 
 export const ReasonCode = {
   success: 0x00,
@@ -53,15 +54,17 @@ export const ReasonCode = {
 } as const;
 
 /**
- * Reverse lookup for AuthenticationResult
+ * Reverse lookup for ReasonCode
  */
-export const ReasonCodeByNumber: Record<number, string> = Object
+
+export type ReasonCodeByNumberType = InvertRecord<typeof ReasonCode>;
+export const ReasonCodeByNumber = Object
   .fromEntries(
     Object.entries(ReasonCode).map(([k, v]) => [v, k]),
-  );
+  ) as ReasonCodeByNumberType;
 
-export const ReasonCodebyPacket: number[][] = [] as const;
-ReasonCodebyPacket[PacketType.connack] = [
+export const ReasonCodebyPacket ={
+[PacketType.connack]:[
   ReasonCode.success,
   ReasonCode.unspecifiedError,
   ReasonCode.malformedPacket,
@@ -84,8 +87,8 @@ ReasonCodebyPacket[PacketType.connack] = [
   ReasonCode.useAnotherServer,
   ReasonCode.serverMoved,
   ReasonCode.connectionRateExceeded,
-];
-ReasonCodebyPacket[PacketType.puback] = [
+],
+[PacketType.puback]:[
   ReasonCode.success,
   ReasonCode.noMatchingSubscribers,
   ReasonCode.unspecifiedError,
@@ -95,8 +98,8 @@ ReasonCodebyPacket[PacketType.puback] = [
   ReasonCode.packetIdentifierInUse,
   ReasonCode.quotaExceeded,
   ReasonCode.payloadFormatInvalid,
-];
-ReasonCodebyPacket[PacketType.pubrec] = [
+],
+[PacketType.pubrec]:[
   ReasonCode.success,
   ReasonCode.noMatchingSubscribers,
   ReasonCode.unspecifiedError,
@@ -106,16 +109,16 @@ ReasonCodebyPacket[PacketType.pubrec] = [
   ReasonCode.packetIdentifierInUse,
   ReasonCode.quotaExceeded,
   ReasonCode.payloadFormatInvalid,
-];
-ReasonCodebyPacket[PacketType.pubrel] = [
+],
+[PacketType.pubrel]:[
   ReasonCode.success,
   ReasonCode.packetIdentifierNotFound,
-];
-ReasonCodebyPacket[PacketType.pubcomp] = [
+],
+[PacketType.pubcomp]:[
   ReasonCode.success,
   ReasonCode.packetIdentifierNotFound,
-];
-ReasonCodebyPacket[PacketType.unsuback] = [
+],
+[PacketType.unsuback]:[
   ReasonCode.success,
   ReasonCode.noSubscriptionExisted,
   ReasonCode.unspecifiedError,
@@ -123,13 +126,13 @@ ReasonCodebyPacket[PacketType.unsuback] = [
   ReasonCode.notAuthorized,
   ReasonCode.topicFilterInvalid,
   ReasonCode.packetIdentifierInUse,
-];
-ReasonCodebyPacket[PacketType.auth] = [
+],
+[PacketType.auth]:[
   ReasonCode.success,
   ReasonCode.continueAuthentication,
   ReasonCode.reAuthenticate,
-];
-ReasonCodebyPacket[PacketType.disconnect] = [
+],
+[PacketType.disconnect]:[
   ReasonCode.normalDisconnection,
   ReasonCode.disconnectWithWillMessage,
   ReasonCode.unspecifiedError,
@@ -160,8 +163,8 @@ ReasonCodebyPacket[PacketType.disconnect] = [
   ReasonCode.maximumConnectTime,
   ReasonCode.subscriptionIdentifiersNotSupported,
   ReasonCode.wildcardSubscriptionsNotSupported,
-];
-ReasonCodebyPacket[PacketType.suback] = [
+],
+[PacketType.suback]:[
   ReasonCode.grantedQos0,
   ReasonCode.grantedQos1,
   ReasonCode.grantedQos2,
@@ -174,52 +177,54 @@ ReasonCodebyPacket[PacketType.suback] = [
   ReasonCode.sharedSubscriptionsNotSupported,
   ReasonCode.subscriptionIdentifiersNotSupported,
   ReasonCode.wildcardSubscriptionsNotSupported,
-];
+]
+} as const;
 
-const reasonCodesToString: string[] = [];
-reasonCodesToString[0x00] = "Success";
-reasonCodesToString[0x01] = "Granted QoS 1";
-reasonCodesToString[0x02] = "Granted QoS 2";
-reasonCodesToString[0x04] = "Disconnect with Will Message";
-reasonCodesToString[0x10] = "No matching subscribers";
-reasonCodesToString[0x11] = "No subscription existed";
-reasonCodesToString[0x18] = "Continue authentication";
-reasonCodesToString[0x19] = "Re-authenticate";
-reasonCodesToString[0x80] = "Unspecified error";
-reasonCodesToString[0x81] = "Malformed Packet";
-reasonCodesToString[0x82] = "Protocol Error";
-reasonCodesToString[0x83] = "Implementation specific error";
-reasonCodesToString[0x84] = "Unsupported Protocol Version";
-reasonCodesToString[0x85] = "Client Identifier not valid";
-reasonCodesToString[0x86] = "Bad User Name or Password";
-reasonCodesToString[0x87] = "Not authorized";
-reasonCodesToString[0x88] = "Server unavailable";
-reasonCodesToString[0x89] = "Server busy";
-reasonCodesToString[0x8a] = "Banned";
-reasonCodesToString[0x8b] = "Server shutting down";
-reasonCodesToString[0x8c] = "Bad authentication method";
-reasonCodesToString[0x8d] = "Keep Alive timeout";
-reasonCodesToString[0x8e] = "Session taken over";
-reasonCodesToString[0x8f] = "Topic Filter invalid";
-reasonCodesToString[0x90] = "Topic Name invalid";
-reasonCodesToString[0x91] = "Packet Identifier in use";
-reasonCodesToString[0x92] = "Packet Identifier not found";
-reasonCodesToString[0x93] = "Receive Maximum exceeded";
-reasonCodesToString[0x94] = "Topic Alias invalid";
-reasonCodesToString[0x95] = "Packet too large";
-reasonCodesToString[0x96] = "Message rate too high";
-reasonCodesToString[0x97] = "Quota exceeded";
-reasonCodesToString[0x98] = "Administrative action";
-reasonCodesToString[0x99] = "Payload format invalid";
-reasonCodesToString[0x9a] = "Retain not supported";
-reasonCodesToString[0x9b] = "QoS not supported";
-reasonCodesToString[0x9c] = "Use another server";
-reasonCodesToString[0x9d] = "Server moved";
-reasonCodesToString[0x9e] = "Shared Subscriptions not supported";
-reasonCodesToString[0x9f] = "Connection rate exceeded";
-reasonCodesToString[0xa0] = "Maximum connect time";
-reasonCodesToString[0xa1] = "Subscription Identifiers not supported";
-reasonCodesToString[0xa2] = "Wildcard Subscriptions not supported";
+const reasonCodesToString={
+[0x00] : "Success",
+[0x01] : "Granted QoS 1",
+[0x02] : "Granted QoS 2",
+[0x04] : "Disconnect with Will Message",
+[0x10] : "No matching subscribers",
+[0x11] : "No subscription existed",
+[0x18] : "Continue authentication",
+[0x19] : "Re-authenticate",
+[0x80] : "Unspecified error",
+[0x81] : "Malformed Packet",
+[0x82] : "Protocol Error",
+[0x83] : "Implementation specific error",
+[0x84] : "Unsupported Protocol Version",
+[0x85] : "Client Identifier not valid",
+[0x86] : "Bad User Name or Password",
+[0x87] : "Not authorized",
+[0x88] : "Server unavailable",
+[0x89] : "Server busy",
+[0x8a] : "Banned",
+[0x8b] : "Server shutting down",
+[0x8c] : "Bad authentication method",
+[0x8d] : "Keep Alive timeout",
+[0x8e] : "Session taken over",
+[0x8f] : "Topic Filter invalid",
+[0x90] : "Topic Name invalid",
+[0x91] : "Packet Identifier in use",
+[0x92] : "Packet Identifier not found",
+[0x93] : "Receive Maximum exceeded",
+[0x94] : "Topic Alias invalid",
+[0x95] : "Packet too large",
+[0x96] : "Message rate too high",
+[0x97] : "Quota exceeded",
+[0x98] : "Administrative action",
+[0x99] : "Payload format invalid",
+[0x9a] : "Retain not supported",
+[0x9b] : "QoS not supported",
+[0x9c] : "Use another server",
+[0x9d] : "Server moved",
+[0x9e] : "Shared Subscriptions not supported",
+[0x9f] : "Connection rate exceeded",
+[0xa0] : "Maximum connect time",
+[0xa1] : "Subscription Identifiers not supported",
+[0xa2] : "Wildcard Subscriptions not supported",
+} as const;
 
 // Can't import this from types as this would create an import loop
 type TPacketType = typeof PacketType[keyof typeof PacketType];

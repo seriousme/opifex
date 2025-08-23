@@ -55,7 +55,7 @@ test("decode byte array as empty remainder", () => {
   const byteArray = utf8encoder.encode(str);
   const len = byteArray.length;
   const decoder = new Decoder(Uint8Array.from([0x00, len, ...byteArray]));
-  assert.deepStrictEqual(decoder.getUtf8String(), str);
+  assert.deepStrictEqual(decoder.getUTF8String(), str);
   assert.deepStrictEqual(decoder.getRemainder(), emptyArray);
   assert.deepStrictEqual(decoder.done(), true);
 });
@@ -65,7 +65,7 @@ test("decode string", () => {
   const byteArray = utf8encoder.encode(str);
   const len = byteArray.length;
   const decoder = new Decoder(Uint8Array.from([0x00, len, ...byteArray]));
-  assert.deepStrictEqual(decoder.getUtf8String(), str);
+  assert.deepStrictEqual(decoder.getUTF8String(), str);
   assert.deepStrictEqual(decoder.done(), true);
 });
 
@@ -110,7 +110,7 @@ test("Buffer too short", () => {
   const byteArray = utf8encoder.encode(str);
   const len = byteArray.length;
   const decoder = new Decoder(Uint8Array.from([0x00, len + 1, ...byteArray]));
-  assert.throws(() => decoder.getUtf8String(), Error, "too short");
+  assert.throws(() => decoder.getUTF8String(), Error, "too short");
 });
 
 test("Buffer too long", () => {
@@ -118,6 +118,6 @@ test("Buffer too long", () => {
   const byteArray = utf8encoder.encode(str);
   const len = byteArray.length;
   const decoder = new Decoder(Uint8Array.from([0x00, len, ...byteArray, 0]));
-  assert.deepStrictEqual(decoder.getUtf8String(), str);
+  assert.deepStrictEqual(decoder.getUTF8String(), str);
   assert.throws(() => decoder.done(), Error, "too long");
 });

@@ -7,7 +7,7 @@ import type { AnyPacket, CodecOpts } from "../mqttPacket/mod.ts";
 
 const codecOpts: CodecOpts = {
   protocolLevel: MQTTLevel.v4,
-  maximumPacketSize: 0xffff,
+  maxIncomingPacketSize: 0xffff,
 };
 
 const connectPacket: AnyPacket = {
@@ -95,7 +95,7 @@ test("MqttConn should close on packets too large", async () => {
   const connect = encode(connectPacket, codecOpts);
 
   const conn = makeDummySockConn([connect], new Uint8Array());
-  const mqttConn = new MqttConn({ conn, maxPacketSize: 20 });
+  const mqttConn = new MqttConn({ conn, maxIncomingPacketSize: 20 });
   const packets = [];
   for await (const packet of mqttConn) {
     packets.push(packet);

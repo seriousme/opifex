@@ -76,7 +76,18 @@ export type ClientId = string;
  */
 export type UTF8StringPair = [string, string];
 
+/**
+ * Options for the codec
+ */
 export type CodecOpts = {
   protocolLevel: ProtocolLevel;
-  maximumPacketSize: number;
+  maxIncomingPacketSize: number;
 };
+
+/**
+ * Typescript helper to create an inverted record type
+ */
+export type InvertRecord<R extends Record<string, number>> = {
+  [K in keyof R as R[K]]: K
+};
+

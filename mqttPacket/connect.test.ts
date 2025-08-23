@@ -6,12 +6,12 @@ import type { CodecOpts } from "./mod.ts";
 
 const codecOptsV4: CodecOpts = {
   protocolLevel: MQTTLevel.v4,
-  maximumPacketSize: 0xffff,
+  maxIncomingPacketSize: 0xffff,
 };
 
 const codecOptsUnknown: CodecOpts = {
   protocolLevel: MQTTLevel.unknown,
-  maximumPacketSize: 0xffff,
+  maxIncomingPacketSize: 0xffff,
 };
 
 import type { ConnectPacket } from "./mod.ts";

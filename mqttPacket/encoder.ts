@@ -32,6 +32,9 @@ export class Encoder {
   /** Packet type */
   private packetType: TPacketType;
 
+  /** marker to rewind to */
+  private marker: number;
+
   /**
    * Creates a new Encoder instance
    */
@@ -39,8 +42,23 @@ export class Encoder {
     this.buffers = [];
     this.numBytes = 0;
     this.packetType = packetType;
+    this.marker = 0;
   }
 
+  encodedSize() {
+    return this.numBytes;
+  }
+
+  setMarker() {
+    this.marker = this.buffers.length;
+  }
+
+  rewindToMarker() {
+    while (this.buffers.length > this.marker) {
+      const buf = this.buffers.pop();
+      this.numBytes -= buf?.length || 0;
+    }
+  }
   /**
    * @param value
    */

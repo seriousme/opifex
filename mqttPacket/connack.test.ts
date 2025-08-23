@@ -6,12 +6,12 @@ import type { CodecOpts } from "./mod.ts";
 
 const codecOptsV4: CodecOpts = {
   protocolLevel: MQTTLevel.v4,
-  maximumPacketSize: 0xffff,
+  maxIncomingPacketSize: 0xffff,
 };
 
 const codecOptsV5: CodecOpts = {
   protocolLevel: MQTTLevel.v5,
-  maximumPacketSize: 0xffff,
+  maxIncomingPacketSize: 0xffff,
 };
 
 test("encode Connack packet", () => {

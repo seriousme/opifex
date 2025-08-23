@@ -49,7 +49,7 @@ export class DecoderError extends Error {
  */
 export class Decoder {
   private buf: Uint8Array;
-  private pos: number;
+  pos: number;
   private len: number;
 
   /**
@@ -141,7 +141,7 @@ export class Decoder {
    * Gets a UTF-8 string from the buffer
    * @returns The decoded UTF-8 string
    */
-  getUtf8String(): string {
+  getUTF8String(): string {
     const str = utf8Decoder.decode(this.getByteArray());
     return str;
   }
@@ -150,10 +150,10 @@ export class Decoder {
    * Gets a UTF-8 string pair from the buffer (for v5)
    * @returns The decoded UTF-8 pair as [name,value]
    */
-  getUtf8StringPair(): UTF8StringPair {
+  getUTF8StringPair(): UTF8StringPair {
     const name = utf8Decoder.decode(this.getByteArray());
     const value = utf8Decoder.decode(this.getByteArray());
-    return [name, value];
+    return [name, value]
   }
 
   /**
@@ -162,7 +162,7 @@ export class Decoder {
    * @throws {DecoderError} If topic is invalid
    */
   getTopic(): Topic {
-    const topic = this.getUtf8String();
+    const topic = this.getUTF8String();
     if (invalidTopic(topic)) {
       throw new DecoderError(
         "Topic must contain valid UTF-8 and contain more than 1 byte and no wildcards",
@@ -177,7 +177,7 @@ export class Decoder {
    * @throws {DecoderError} If topic filter is invalid
    */
   getTopicFilter(): TopicFilter {
-    const topicFilter = this.getUtf8String();
+    const topicFilter = this.getUTF8String();
     if (invalidTopicFilter(topicFilter)) {
       throw new DecoderError(
         "Topicfilter must contain valid UTF-8 and contain more than 1 byte and valid wildcards",

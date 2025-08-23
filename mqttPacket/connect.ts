@@ -117,7 +117,7 @@ export const connect: {
     _codecOpts: CodecOpts,
   ): ConnectPacket {
     const decoder = new Decoder(buffer);
-    const protocolName = decoder.getUtf8String();
+    const protocolName = decoder.getUTF8String();
     const protocolLevel = decoder.getByte();
     if (invalidProtocolName(protocolLevel, protocolName)) {
       throw new DecoderError("Invalid protocol name");
@@ -145,7 +145,7 @@ export const connect: {
     }
 
     const keepAlive = decoder.getInt16();
-    const clientId = decoder.getUtf8String();
+    const clientId = decoder.getUTF8String();
 
     let willTopic;
     let willPayload;
@@ -157,7 +157,7 @@ export const connect: {
     let username;
     let password;
     if (usernameFlag) {
-      username = decoder.getUtf8String();
+      username = decoder.getUTF8String();
     }
 
     if (passwordFlag) {
