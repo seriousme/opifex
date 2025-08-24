@@ -153,7 +153,7 @@ export class Decoder {
   getUTF8StringPair(): UTF8StringPair {
     const name = utf8Decoder.decode(this.getByteArray());
     const value = utf8Decoder.decode(this.getByteArray());
-    return [name, value]
+    return [name, value];
   }
 
   /**

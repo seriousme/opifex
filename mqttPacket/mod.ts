@@ -174,7 +174,7 @@ export function encode(
  * @param {Uint8Array} buffer - The binary buffer containing the packet payload
  * @param {CodecOpts} codecOpts - options to use during encoding
  * @returns {AnyPacket} The decoded MQTT packet object
- * @throws {Error} If packet decoding fails
+ * @throws {DecoderError} If packet decoding fails
  */
 
 export function decodePayload(
@@ -192,7 +192,7 @@ export function decodePayload(
   if (packet !== undefined) {
     return packet;
   }
-  throw new Error("packet decoding failed");
+  throw new DecoderError("packet decoding failed");
 }
 
 /**

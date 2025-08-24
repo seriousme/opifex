@@ -5,10 +5,16 @@ import { test } from "node:test";
 import { decode, encode, MQTTLevel } from "./mod.ts";
 import type { CodecOpts } from "./mod.ts";
 
-const codecOpts: CodecOpts = {
+const codecOptsV4: CodecOpts = {
   protocolLevel: MQTTLevel.v4,
   maxIncomingPacketSize: 0xffff,
 };
+
+const codecOptsV5: CodecOpts = {
+  protocolLevel: MQTTLevel.v5,
+  maxIncomingPacketSize: 0xffff,
+};
+
 
 // const utf8Decoder = new TextDecoder();
 const utf8Encoder = new TextEncoder();
@@ -20,7 +26,7 @@ test("encode Publish", () => {
       type: PacketType.publish,
       topic: "a/b",
       payload,
-    }, codecOpts),
+    }, codecOptsV4),
     Uint8Array.from([
       // fixedHeader
       48, // packetType + flags
@@ -41,6 +47,28 @@ test("encode Publish", () => {
       100, // 'd'
     ]),
   );
+});
+
+test("encode Publish", () => {
+  const buf = encode({
+    type: PacketType.publish,
+    dup: true,
+    qos: 1,
+    id: 1,
+    retain: true,
+    topic: "a/b",
+    payload,
+  }, codecOptsV4);
+  const decoded = decode(buf, codecOptsV4);
+  assert.deepStrictEqual(decoded, {
+    type: PacketType.publish,
+    dup: true,
+    qos: 1,
+    id: 1,
+    retain: true,
+    topic: "a/b",
+    payload,
+  });
 });
 
 test("decode Publish", () => {
@@ -65,7 +93,7 @@ test("decode Publish", () => {
         97, // 'a'
         100, // 'd'
       ]),
-      codecOpts,
+      codecOptsV4,
     ),
     {
       type: PacketType.publish,
@@ -112,7 +140,7 @@ test("decode Publish with extra bytes", () => {
         116, // 't'
         99, // 'c'
       ]),
-      codecOpts,
+      codecOptsV4,
     ),
     {
       type: PacketType.publish,
@@ -149,7 +177,7 @@ test("decode Publish no payload", () => {
         98, // 'b'
         // payload
       ]),
-      codecOpts,
+      codecOptsV4,
     ),
     {
       type: PacketType.publish,
@@ -179,12 +207,13 @@ test("Invalid qos", () => {
           98, // 'b'
           // payload
         ]),
-        codecOpts,
+        codecOptsV4,
       ),
     Error,
     "Invalid qos",
   );
 });
+
 test("Invalid qos for duplicate", () => {
   assert.throws(
     () =>
@@ -201,9 +230,49 @@ test("Invalid qos for duplicate", () => {
           98, // 'b'
           // payload
         ]),
-        codecOpts,
+        codecOptsV4,
       ),
     Error,
     "Invalid qos for possible duplicate",
+  );
+});
+
+test("QoS 2, but no packetId", () => {
+  assert.throws(
+    () =>
+      encode({
+        type: PacketType.publish,
+        topic: "a/b",
+        payload,
+        qos: 2,
+      }, codecOptsV4),
+    /when qos is 1 or 2, packet must have id/,
+  );
+});
+
+test("encode MQTTv5", () => {
+  assert.throws(
+    () =>
+      encode({
+        type: PacketType.publish,
+        topic: "a/b",
+        payload,
+        qos: 0,
+      }, codecOptsV5),
+    /Invalid protocol version/,
+  );
+});
+
+test("decode MQTTv5", () => {
+  const buf =  encode({
+        type: PacketType.publish,
+        topic: "a/b",
+        payload,
+        qos: 0,
+      }, codecOptsV4);
+  assert.throws(
+    () =>
+      decode(buf, codecOptsV5),
+    /Invalid protocol version/,
   );
 });

@@ -33,7 +33,10 @@ export const publish: {
     codecOpts: CodecOpts,
   ): PublishPacket;
 } = {
-  encode(packet: PublishPacket, _codecOpts: CodecOpts): Uint8Array {
+  encode(packet: PublishPacket, codecOpts: CodecOpts): Uint8Array {
+    if (codecOpts.protocolLevel === 5) {
+      throw new EncoderError("Invalid protocol version");
+    }
     const qos = packet.qos || 0;
 
     const flags = (packet.dup ? BitMask.bit3 : 0) +

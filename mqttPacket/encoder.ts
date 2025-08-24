@@ -189,6 +189,13 @@ export class Encoder {
     return this;
   }
 
+  addToEncoder(encoder: Encoder) {
+    encoder.setVariableByteInteger(this.numBytes);
+    for (const buffer of this.buffers) {
+      encoder.addArray(buffer);
+    }
+  }
+
   /**
    * Returns the final encoded buffer
    * @returns Array containing all encoded bytes

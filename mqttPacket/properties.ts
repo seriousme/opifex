@@ -1,17 +1,17 @@
 import { PacketType } from "./PacketType.ts";
-import type { InvertRecord, TPacketType, UTF8StringPair } from "./types.ts";
+import type { InvertRecord, UTF8StringPair } from "./types.ts";
 import type { Encoder } from "./encoder.ts";
 import { EncoderError } from "./encoder.ts";
 import type { Decoder } from "./decoder.ts";
 import { DecoderError } from "./decoder.ts";
 
-
 export const PropertySetType = {
   ...PacketType,
-  will: 100
+  will: 100,
 } as const;
 
-export type TPropertySetType = typeof PropertySetType[keyof typeof PropertySetType]
+export type TPropertySetType =
+  typeof PropertySetType[keyof typeof PropertySetType];
 
 export const propertyKind = {
   boolean: 0, // its a byte in the MQTT standard, but for convenience we convert to boolean
@@ -241,19 +241,28 @@ type PropsByPacketSetType = {
 };
 
 // props per PacketType
-export type ConnectProperties = PropsByPacketSetType[typeof PropertySetType.connect];
-export type ConnackProperties = PropsByPacketSetType[typeof PropertySetType.connack];
-export type PublishProperties = PropsByPacketSetType[typeof PropertySetType.publish];
-export type PubackProperties = PropsByPacketSetType[typeof PropertySetType.puback];
-export type PubrecProperties = PropsByPacketSetType[typeof PropertySetType.pubrec];
-export type PubrelProperties = PropsByPacketSetType[typeof PropertySetType.pubrel];
-export type PubcompProperties = PropsByPacketSetType[typeof PropertySetType.pubcomp];
+export type ConnectProperties =
+  PropsByPacketSetType[typeof PropertySetType.connect];
+export type ConnackProperties =
+  PropsByPacketSetType[typeof PropertySetType.connack];
+export type PublishProperties =
+  PropsByPacketSetType[typeof PropertySetType.publish];
+export type PubackProperties =
+  PropsByPacketSetType[typeof PropertySetType.puback];
+export type PubrecProperties =
+  PropsByPacketSetType[typeof PropertySetType.pubrec];
+export type PubrelProperties =
+  PropsByPacketSetType[typeof PropertySetType.pubrel];
+export type PubcompProperties =
+  PropsByPacketSetType[typeof PropertySetType.pubcomp];
 export type SubscribeProperties =
   PropsByPacketSetType[typeof PropertySetType.subscribe];
-export type SubackProperties = PropsByPacketSetType[typeof PropertySetType.suback];
+export type SubackProperties =
+  PropsByPacketSetType[typeof PropertySetType.suback];
 export type UnsubscribeProperties =
   PropsByPacketSetType[typeof PropertySetType.unsubscribe];
-export type UnsubackProperties = PropsByPacketSetType[typeof PropertySetType.unsuback];
+export type UnsubackProperties =
+  PropsByPacketSetType[typeof PropertySetType.unsuback];
 export type DisconnectProperties =
   PropsByPacketSetType[typeof PropertySetType.disconnect];
 export type AuthProperties = PropsByPacketSetType[typeof PropertySetType.auth];
@@ -264,10 +273,9 @@ function encodeProperty(
   value: Mqttv5PropertyTypes,
 ) {
   const kind = propertyToKind[id];
-
   if (kind === propertyKind.utf8StringPairs) {
     if (typeof value !== "object") {
-      throw new EncoderError("UserProperty must be an object");
+      throw new EncoderError("userProperty must be an object");
     }
     for (const item of Object.entries(value) as UserPropertyType) {
       encoder.setVariableByteInteger(id);
@@ -276,6 +284,7 @@ function encodeProperty(
     return;
   }
 
+  encoder.setVariableByteInteger(id);
   switch (kind) {
     case propertyKind.boolean:
       encoder.setByte(!!value === true ? 1 : 0);
@@ -299,11 +308,11 @@ function encodeProperty(
 }
 export function encodeProperties<T extends TPropertySetType>(
   props: PropsByPacketSetType[T],
-  packetType: TPacketType,
+  propertySetType: TPropertySetType,
   encoder: Encoder,
   maximumPacketSize: number,
 ) {
-  const allowedProps = PropertyByPropertySetType[packetType];
+  const allowedProps = PropertyByPropertySetType[propertySetType];
 
   for (const id of allowedProps) {
     const label = propertyByNumber[id] as keyof PropsByPacketSetType[T];
@@ -342,6 +351,7 @@ function decodeProperty(
     case propertyKind.utf8string:
       return decoder.getUTF8String();
   }
+  // deno-coverage-ignore
   throw new DecoderError("Invalid property kind");
 }
 
@@ -354,31 +364,33 @@ export function decodeProperties<T extends keyof PropsByPacketSetType>(
   const properties = {} as PropsByPacketSetType[T];
   const propLength = decoder.getVariableByteInteger();
   const endPos = decoder.pos + propLength;
-  const userProps = [];
+  const userProps: Record<string, string> = {};
+  let hasUserProps = false;
 
   while (decoder.pos < endPos) {
     const id = decoder.getVariableByteInteger() as ValidPropertyNumber;
-    if (!(allowedProps as readonly number[]).includes(id)) {
-      throw new DecoderError("Property type not allowed");
-    }
     const label = propertyByNumber[id];
+    if (!(allowedProps as readonly number[]).includes(id)) {
+      throw new DecoderError(`Property type ${label ? label : id} not allowed`);
+    }
     if (label !== "userProperty") {
       const value = decodeProperty(decoder, id);
       // deno-lint-ignore no-explicit-any
       if ((properties as any)[label] !== undefined) {
-        throw new DecoderError("Property only allowed once");
+        throw new DecoderError(`Property ${label} only allowed once`);
       } else {
         // deno-lint-ignore no-explicit-any
         (properties as any)[label] = value;
       }
     } else {
-      const value = decoder.getUTF8StringPair();
-      userProps.push(value);
+      const [key, value] = decoder.getUTF8StringPair();
+      userProps[key] = value;
+      hasUserProps = true;
     }
   }
-  if (userProps.length > 0) {
+  if (hasUserProps) {
     // deno-lint-ignore no-explicit-any
-    (properties as any)["userProperty"] = userProps;
+    (properties as any).userProperty = userProps;
   }
   return properties;
 }

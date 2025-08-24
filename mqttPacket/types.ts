@@ -88,6 +88,5 @@ export type CodecOpts = {
  * Typescript helper to create an inverted record type
  */
 export type InvertRecord<R extends Record<string, number>> = {
-  [K in keyof R as R[K]]: K
+  [K in keyof R as R[K]]: K;
 };
-

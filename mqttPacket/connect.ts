@@ -9,7 +9,7 @@ import type {
 } from "./types.ts";
 import { PacketType } from "./PacketType.ts";
 import { BitMask } from "./BitMask.ts";
-import { Encoder } from "./encoder.ts";
+import { Encoder,EncoderError } from "./encoder.ts";
 import {
   booleanFlag,
   Decoder,
@@ -62,13 +62,13 @@ export const connect: {
     const flags = 0;
     const protocolLevel = packet.protocolLevel || 4;
     if (protocolLevel > 4) {
-      throw new Error("Unsupported protocol level");
+      throw new EncoderError("Unsupported protocol level");
     }
     const protocolName = protocolLevel > 3 ? "MQTT" : "MQIsdp";
     const clientId = packet.clientId || "";
     const usernameFlag = packet.username !== undefined;
     if (protocolLevel === 3 && clientId === "") {
-      throw new Error("Client id required for protocol level 3");
+      throw new EncoderError("Client id required for protocol level 3");
     }
     const passwordFlag = packet.password !== undefined;
     const willRetain = !!packet.will?.retain;
@@ -76,7 +76,7 @@ export const connect: {
     const willFlag = packet.will !== undefined;
     const cleanSession = packet.clean !== false;
     if (!cleanSession && (clientId === "")) {
-      throw new Error("Client id required for clean session");
+      throw new EncoderError("Client id required for clean session");
     }
     const connectFlags = (usernameFlag ? BitMask.bit7 : 0) +
       (passwordFlag ? BitMask.bit6 : 0) +
