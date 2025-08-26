@@ -8,13 +8,14 @@ import type { CodecOpts } from "./mod.ts";
 const codecOptsV4: CodecOpts = {
   protocolLevel: MQTTLevel.v4,
   maxIncomingPacketSize: 0xffff,
+  maxOutgoingPacketSize: 0xffff,
 };
 
 const codecOptsV5: CodecOpts = {
   protocolLevel: MQTTLevel.v5,
   maxIncomingPacketSize: 0xffff,
+  maxOutgoingPacketSize: 0xffff,
 };
-
 
 // const utf8Decoder = new TextDecoder();
 const utf8Encoder = new TextEncoder();
@@ -264,15 +265,14 @@ test("encode MQTTv5", () => {
 });
 
 test("decode MQTTv5", () => {
-  const buf =  encode({
-        type: PacketType.publish,
-        topic: "a/b",
-        payload,
-        qos: 0,
-      }, codecOptsV4);
+  const buf = encode({
+    type: PacketType.publish,
+    topic: "a/b",
+    payload,
+    qos: 0,
+  }, codecOptsV4);
   assert.throws(
-    () =>
-      decode(buf, codecOptsV5),
+    () => decode(buf, codecOptsV5),
     /Invalid protocol version/,
   );
 });

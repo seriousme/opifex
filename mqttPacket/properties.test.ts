@@ -3,10 +3,9 @@ import { test } from "node:test";
 
 import { Encoder } from "./encoder.ts";
 import { Decoder } from "./decoder.ts";
-import { decodeProperties, encodeProperties } from "./properties.ts";
 import { PacketType } from "./PacketType.ts";
 
-test("encodeProperties encodes allowed properties for connect", () => {
+test("encoder.setProperties encodes allowed properties for connect", () => {
   const encoder = new Encoder(PacketType.connect);
   const props = {
     sessionExpiryInterval: 60,
@@ -19,11 +18,11 @@ test("encodeProperties encodes allowed properties for connect", () => {
     userProperty: [["key", "value"]],
     maximumPacketSize: 1024,
   };
-  encodeProperties(props, PacketType.connect, encoder, 2048);
-  assert.equal(encoder.encodedSize(), 53);
+  encoder.setProperties(props, PacketType.connect, 2048);
+  assert.equal(encoder.encodedSize(), 48);
 });
 
-test("decodeProperties decodes allowed properties for connect", () => {
+test("decoder.getProperties decodes allowed properties for connect", () => {
   const encoder = new Encoder(PacketType.connect);
   const props = {
     sessionExpiryInterval: 60,
@@ -33,14 +32,15 @@ test("decodeProperties decodes allowed properties for connect", () => {
     requestResponseInformation: false,
     receiveMaximum: 100,
     topicAliasMaximum: 10,
-    userProperty: { key1: "value1", key2: "value2" },
+    userProperty: [["key1", "value1"], ["key2", "value2"]],
     maximumPacketSize: 1024,
   };
-  encodeProperties(props, PacketType.connect, encoder, 2048);
+  encoder.setProperties(props, PacketType.connect, 2048);
   const buf = encoder.done(0);
   // skip the first byte which contains the packet identifier
-  const decoder = new Decoder(buf, 1);
-  const decoded = decodeProperties(PacketType.connect, decoder);
+  // and the second byte that holds the packet length
+  const decoder = new Decoder(buf, 2);
+  const decoded = decoder.getProperties(PacketType.connect);
   assert.equal(decoded.sessionExpiryInterval, 60);
   assert.equal(decoded.authenticationMethod, "basic");
   assert.deepEqual(decoded.authenticationData, new Uint8Array([1, 2, 3]));
@@ -48,25 +48,29 @@ test("decodeProperties decodes allowed properties for connect", () => {
   assert.equal(decoded.requestResponseInformation, false);
   assert.equal(decoded.receiveMaximum, 100);
   assert.equal(decoded.topicAliasMaximum, 10);
-  assert.deepEqual(decoded.userProperty, { key1: "value1", key2: "value2" });
+  assert.deepEqual(decoded.userProperty, [["key1", "value1"], [
+    "key2",
+    "value2",
+  ]]);
   assert.equal(decoded.maximumPacketSize, 1024);
 });
 
-test("decodeProperties decodes allowed properties for connack", () => {
+test("decoder.getProperties decodes allowed properties for connack", () => {
   const encoder = new Encoder(PacketType.connack);
   const props = {
     maximumQos: 2,
     reasonString: "very good reason",
   };
-  encodeProperties(props, PacketType.connack, encoder, 2048);
+  encoder.setProperties(props, PacketType.connack, 2048);
   const buf = encoder.done(0);
   // skip the first byte which contains the packet identifier
-  const decoder = new Decoder(buf, 1);
-  const decoded = decodeProperties(PacketType.connack, decoder);
+  // and the second byte that holds the packet length
+  const decoder = new Decoder(buf, 2);
+  const decoded = decoder.getProperties(PacketType.connack);
   assert.equal(decoded.maximumQos, 2);
 });
 
-test("encodeProperties does not encode properties not allowed for packet type", () => {
+test("encoder.setProperties does not encode properties not allowed for packet type", () => {
   const encoder = new Encoder(PacketType.publish);
   const props = {
     subscriptionIdentifier: 1,
@@ -81,85 +85,99 @@ test("encodeProperties does not encode properties not allowed for packet type", 
     topicAliasMaximum: 10,
     maximumPacketSize: 1024,
   };
-  encodeProperties(props, PacketType.publish, encoder, 2048);
+  encoder.setProperties(props, PacketType.publish, 2048);
   const buf = encoder.done(0);
-  const decoder = new Decoder(buf, 1);
-  const decoded = decodeProperties(PacketType.publish, decoder);
+  const decoder = new Decoder(buf, 2);
+  const decoded = decoder.getProperties(PacketType.publish);
   assert.deepStrictEqual(Object.keys(decoded), [
     "subscriptionIdentifier",
     "userProperty",
   ]);
 });
 
-test("decodeProperties throws on duplicate property", () => {
+test("decoder.getProperties throws on duplicate property", () => {
   const encoder = new Encoder(PacketType.publish);
-  // Manually encode duplicate propertys
+  // Manually encode duplicate properties
+  encoder.setVariableByteInteger(0x04); // propertyLength
   encoder.setVariableByteInteger(0x01); // payloadFormatIndicator
   encoder.setByte(1);
   encoder.setVariableByteInteger(0x01); // payloadFormatIndicator again
   encoder.setByte(1);
   const buf = encoder.done(0);
-  const decoder = new Decoder(buf, 1);
+  const decoder = new Decoder(buf, 2);
   assert.throws(
-    () => decodeProperties(PacketType.publish, decoder),
+    () => decoder.getProperties(PacketType.publish),
     /Property payloadFormatIndicator only allowed once/,
   );
 });
 
-test("decodeProperties throws on property not allowed for packet type", () => {
+test("decoder.getProperties throws on property not allowed for packet type", () => {
   const encoder = new Encoder(PacketType.publish);
+  encoder.setVariableByteInteger(0x05); // propertyLength
   encoder.setVariableByteInteger(0x13); // serverKeepAlive (not allowed for publish)
   encoder.setInt32(30);
   const buf = encoder.done(0);
-  const decoder = new Decoder(buf, 1);
+  const decoder = new Decoder(buf, 2);
   assert.throws(
-    () => decodeProperties(PacketType.publish, decoder),
+    () => decoder.getProperties(PacketType.publish),
     /Property type serverKeepAlive not allowed/,
   );
 });
 
-test("encodeProperties rewinds marker if encodedSize exceeds maximumPacketSize", () => {
+test("encoder.setProperties rewinds marker if encodedSize exceeds maximumPacketSize", () => {
   const encoder = new Encoder(PacketType.puback);
   const props = {
-    reasonString: "reason",
+    reasonString: "small",
     userProperty: [["key", "value"]],
   };
-  encodeProperties(props, PacketType.puback, encoder, 10); // very small max size
+  encoder.setProperties(props, PacketType.puback, 10); // very small max size
   assert.equal(encoder.encodedSize(), 9);
 });
 
-test("encodeProperties removes all properties if encodedSize exceeds maximumPacketSize", () => {
+test("encoder.setProperties removes all properties if encodedSize exceeds maximumPacketSize", () => {
   const encoder = new Encoder(PacketType.puback);
   const props = {
     reasonString: "a very long reason",
     userProperty: [["key", "value"]],
   };
-  encodeProperties(props, PacketType.puback, encoder, 10); // very small max size
-  assert.equal(encoder.encodedSize(), 0);
+  encoder.setProperties(props, PacketType.puback, 10); // very small max size
+  assert.equal(encoder.encodedSize(), 1); // only propertyLength 0 remains
 });
 
 test("decodeProperty throws on invalid property kind", () => {
   const encoder = new Encoder(PacketType.publish);
   // Manually encode an invalid property kind
+  encoder.setVariableByteInteger(0x02); // propertyLength
   encoder.setVariableByteInteger(0xFF); // Invalid property ID
   encoder.setByte(1);
 
   const buf = encoder.done(0);
-  const decoder = new Decoder(buf, 1);
+  const decoder = new Decoder(buf, 2);
 
   assert.throws(
-    () => decodeProperties(PacketType.publish, decoder),
+    () => decoder.getProperties(PacketType.publish),
     /Property type 255 not allowed/,
   );
 });
 
-test("userProperty must be an object", () => {
+test("userProperty must be an array", () => {
   const encoder = new Encoder(PacketType.puback);
   const props = {
-    userProperty: "I am not an object",
+    userProperty: "I am not an array",
   };
   assert.throws(
-    () => encodeProperties(props, PacketType.puback, encoder, 10),
-    / userProperty must be an object/,
+    () => encoder.setProperties(props, PacketType.puback, 10),
+    / userProperty must be an array/,
+  );
+});
+
+test("userProperty item must be an array", () => {
+  const encoder = new Encoder(PacketType.puback);
+  const props = {
+    userProperty: ["a", "b"],
+  };
+  assert.throws(
+    () => encoder.setProperties(props, PacketType.puback, 10),
+    / userProperty item must be an array/,
   );
 });

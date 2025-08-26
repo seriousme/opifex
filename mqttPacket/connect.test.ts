@@ -7,11 +7,13 @@ import type { CodecOpts } from "./mod.ts";
 const codecOptsV4: CodecOpts = {
   protocolLevel: MQTTLevel.v4,
   maxIncomingPacketSize: 0xffff,
+  maxOutgoingPacketSize: 0xffff,
 };
 
 const codecOptsUnknown: CodecOpts = {
   protocolLevel: MQTTLevel.unknown,
   maxIncomingPacketSize: 0xffff,
+  maxOutgoingPacketSize: 0xffff,
 };
 
 import type { ConnectPacket } from "./mod.ts";
@@ -278,7 +280,7 @@ test("decode invalid Connect", () => {
 
   assert.throws(
     () => decode(Uint8Array.from(reservedBitConnect), codecOptsUnknown),
-   /Invalid reserved bit/
+    /Invalid reserved bit/,
   );
 
   // Test packet with invalid will
@@ -290,7 +292,7 @@ test("decode invalid Connect", () => {
 
   assert.throws(
     () => decode(Uint8Array.from(invalidProtocolName), codecOptsUnknown),
-    /Invalid protocol name/
+    /Invalid protocol name/,
   );
 
   // Test packet with wrong protocol name length
@@ -299,7 +301,7 @@ test("decode invalid Connect", () => {
 
   assert.throws(
     () => decode(Uint8Array.from(invalidProtocolLength), codecOptsUnknown),
-    /Packet too short/
+    /Packet too short/,
   );
 
   // Test packet with protocol level 5 and protocol name MQIsdp
@@ -321,7 +323,7 @@ test("decode invalid Connect", () => {
         Uint8Array.from(invalidWillQosConnect),
         codecOptsUnknown,
       ),
-    /Invalid will qos/
+    /Invalid will qos/,
   );
 
   assert.throws(
@@ -340,7 +342,7 @@ test("decode invalid Connect", () => {
         ]),
         codecOptsUnknown,
       ),
-    /Packet too short/
+    /Packet too short/,
   );
 });
 
@@ -349,8 +351,8 @@ test("encode MQTTv4, clean=false,  no clientId", () => {
     () =>
       encode({
         type: PacketType.connect,
-        protocolLevel:4,
-        clean:false
+        protocolLevel: 4,
+        clean: false,
       }, codecOptsUnknown),
     /Client id required for clean session/,
   );
@@ -361,7 +363,7 @@ test("encode MQTTv3, no clientId", () => {
     () =>
       encode({
         type: PacketType.connect,
-        protocolLevel:3
+        protocolLevel: 3,
       }, codecOptsUnknown),
     /Client id required for protocol level 3/,
   );
@@ -370,69 +372,203 @@ test("encode MQTTv3, no clientId", () => {
 test("decode MQTTv3, protocolname MQTT", () => {
   assert.throws(
     () =>
-      decode(Uint8Array.from([
-        // fixedHeader
-        16, // packetType + flags
-        26, // remainingLength
-        // variableHeader
-        0, // protocolNameLength MSB
-        4, // protocolNameLength LSB
-        77, // 'M'
-        81, // 'Q'
-        84, // 'T'
-        84, // 'T'
-        3, // protocolLevel
-        2, // connectFlags (cleanSession)
-        0, // keepAlive MSB
-        0, // keepAlive LSB
-        // payload
-        // clientId
-        0, // length MSB
-        2, // length LSB
-        105, // 'i'
-        100, // 'd'
-      ]), codecOptsUnknown),
+      decode(
+        Uint8Array.from([
+          // fixedHeader
+          16, // packetType + flags
+          26, // remainingLength
+          // variableHeader
+          0, // protocolNameLength MSB
+          4, // protocolNameLength LSB
+          77, // 'M'
+          81, // 'Q'
+          84, // 'T'
+          84, // 'T'
+          3, // protocolLevel
+          2, // connectFlags (cleanSession)
+          0, // keepAlive MSB
+          0, // keepAlive LSB
+          // payload
+          // clientId
+          0, // length MSB
+          2, // length LSB
+          105, // 'i'
+          100, // 'd'
+        ]),
+        codecOptsUnknown,
+      ),
     /Invalid protocol name/,
   );
 });
 
-test("decode MQTTv5, protocolname MQT", () => {
-  assert.throws(
-    () =>
-      decode(Uint8Array.from([
-        // fixedHeader
-        16, // packetType + flags
-        26, // remainingLength
-        // variableHeader
-        0, // protocolNameLength MSB
-        3, // protocolNameLength LSB
-        77, // 'M'
-        81, // 'Q'
-        84, // 'T'
-        5, // protocolLevel
-        2, // connectFlags (cleanSession)
-        0, // keepAlive MSB
-        0, // keepAlive LSB
-        // payload
-        // clientId
-        0, // length MSB
-        2, // length LSB
-        105, // 'i'
-        100, // 'd'
-      ]), codecOptsUnknown),
-    /Invalid protocol name/,
-  );
+test("encode/decode MQTTv5", () => {
+  const packet: ConnectPacket = {
+    type: PacketType.connect,
+    protocolName: "MQTT",
+    protocolLevel: 5,
+    username: undefined,
+    password: undefined,
+    will: {
+      retain: true,
+      qos: 2,
+      properties: {
+        willDelayInterval: 1234,
+        payloadFormatIndicator: false,
+        messageExpiryInterval: 4321,
+        contentType: "test",
+        responseTopic: "topic",
+        correlationData: Uint8Array.from([1, 2, 3, 4]),
+        userProperty: [["test", "test"]],
+      },
+      topic: "topic",
+      payload: Uint8Array.from([4, 3, 2, 1]),
+    },
+    clean: true,
+    keepAlive: 30,
+    properties: {
+      sessionExpiryInterval: 1234,
+      receiveMaximum: 432,
+      maximumPacketSize: 100,
+      topicAliasMaximum: 456,
+      requestResponseInformation: true,
+      requestProblemInformation: true,
+      userProperty: [["test", "test"]],
+      authenticationMethod: "test",
+      authenticationData: Uint8Array.from([1, 2, 3, 4]),
+    },
+    clientId: "test",
+  };
+
+  const buf = Uint8Array.from([
+    16,
+    125, // Header
+    0,
+    4, // Protocol ID length
+    77,
+    81,
+    84,
+    84, // Protocol ID
+    5, // Protocol version
+    54, // Connect flags
+    0,
+    30, // Keepalive
+    47, // properties length
+    17,
+    0,
+    0,
+    4,
+    210, // sessionExpiryInterval
+    33,
+    1,
+    176, // receiveMaximum
+    39,
+    0,
+    0,
+    0,
+    100, // maximumPacketSize
+    34,
+    1,
+    200, // topicAliasMaximum
+    25,
+    1, // requestResponseInformation
+    23,
+    1, // requestProblemInformation,
+    38,
+    0,
+    4,
+    116,
+    101,
+    115,
+    116,
+    0,
+    4,
+    116,
+    101,
+    115,
+    116, // userProperties,
+    21,
+    0,
+    4,
+    116,
+    101,
+    115,
+    116, // authenticationMethod
+    22,
+    0,
+    4,
+    1,
+    2,
+    3,
+    4, // authenticationData
+    0,
+    4, // Client ID length
+    116,
+    101,
+    115,
+    116, // Client ID
+    47, // will properties
+    24,
+    0,
+    0,
+    4,
+    210, // will delay interval
+    1,
+    0, // payload format indicator
+    2,
+    0,
+    0,
+    16,
+    225, // message expiry interval
+    3,
+    0,
+    4,
+    116,
+    101,
+    115,
+    116, // content type
+    8,
+    0,
+    5,
+    116,
+    111,
+    112,
+    105,
+    99, // response topic
+    9,
+    0,
+    4,
+    1,
+    2,
+    3,
+    4, // corelation data
+    38,
+    0,
+    4,
+    116,
+    101,
+    115,
+    116,
+    0,
+    4,
+    116,
+    101,
+    115,
+    116, // user properties
+    0,
+    5, // Will topic length
+    116,
+    111,
+    112,
+    105,
+    99, // Will topic
+    0,
+    4, // Will payload length
+    4,
+    3,
+    2,
+    1, // Will payload
+  ]);
+  const encoded = encode(packet, codecOptsUnknown);
+  assert.deepStrictEqual(decode(encoded, codecOptsUnknown), packet);
+  assert.deepStrictEqual(decode(buf, codecOptsUnknown), packet);
 });
-
-test("encode MQTTv5", () => {
-  assert.throws(
-    () =>
-      encode({
-        type: PacketType.connect,
-        protocolLevel:5
-      }, codecOptsUnknown),
-    /Unsupported protocol level/,
-  );
-});
-
-

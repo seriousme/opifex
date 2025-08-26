@@ -1,5 +1,16 @@
 import type { TBitMask, Topic, TopicFilter, UTF8StringPair } from "./types.ts";
 import { invalidTopic, invalidTopicFilter } from "./validators.ts";
+import type {
+  Mqttv5PropertyTypesNoUser,
+  PropsByPacketSetType,
+  ValidPropertyNumber,
+} from "./Properties.ts";
+import {
+  propertyByNumber,
+  PropertyByPropertySetType,
+  propertyKind,
+  propertyToKind,
+} from "./Properties.ts";
 
 const utf8Decoder = new TextDecoder("utf-8");
 /**
@@ -49,7 +60,7 @@ export class DecoderError extends Error {
  */
 export class Decoder {
   private buf: Uint8Array;
-  pos: number;
+  private pos: number;
   private len: number;
 
   /**
@@ -197,6 +208,66 @@ export class Decoder {
     return this.buf.subarray(start, end);
   }
 
+  private getProperty(
+    id: ValidPropertyNumber,
+  ): Mqttv5PropertyTypesNoUser {
+    switch (propertyToKind[id]) {
+      case propertyKind.boolean:
+        return !!this.getByte();
+      case propertyKind.byte:
+        return this.getByte();
+      case propertyKind.int16:
+        return this.getInt16();
+      case propertyKind.int32:
+        return this.getInt32();
+      case propertyKind.varInt:
+        return this.getVariableByteInteger();
+      case propertyKind.byteArray:
+        return this.getByteArray();
+      case propertyKind.utf8string:
+        return this.getUTF8String();
+    }
+    // deno-coverage-ignore
+    throw new DecoderError("Invalid property kind");
+  }
+
+  getProperties<T extends keyof PropsByPacketSetType>(
+    propertySetType: T,
+  ): PropsByPacketSetType[T] {
+    const allowedProps = PropertyByPropertySetType[propertySetType];
+    const properties = {} as PropsByPacketSetType[T];
+    const propLength = this.getVariableByteInteger();
+    const endPos = this.pos + propLength;
+    const userProps: Array<UTF8StringPair> = [];
+
+    while (this.pos < endPos) {
+      const id = this.getVariableByteInteger() as ValidPropertyNumber;
+      const label = propertyByNumber[id];
+      if (!(allowedProps as readonly number[]).includes(id)) {
+        throw new DecoderError(
+          `Property type ${label ? label : id} not allowed`,
+        );
+      }
+      if (label !== "userProperty") {
+        const value = this.getProperty(id);
+        // deno-lint-ignore no-explicit-any
+        if ((properties as any)[label] !== undefined) {
+          throw new DecoderError(`Property ${label} only allowed once`);
+        } else {
+          // deno-lint-ignore no-explicit-any
+          (properties as any)[label] = value;
+        }
+      } else {
+        const stringPair = this.getUTF8StringPair();
+        userProps.push(stringPair);
+      }
+    }
+    if (userProps.length > 0) {
+      // deno-lint-ignore no-explicit-any
+      (properties as any).userProperty = userProps;
+    }
+    return properties;
+  }
   /**
    * Checks if decoder has reached the end of the buffer
    * @returns True if at end, false otherwise

@@ -228,7 +228,7 @@ const reasonCodesToString = {
 
 // Can't import this from types as this would create an import loop
 type TPacketType = typeof PacketType[keyof typeof PacketType];
-type TReasonCode = typeof ReasonCode[keyof typeof ReasonCode];
+export type TReasonCode = typeof ReasonCode[keyof typeof ReasonCode];
 
 export function reasonCodeToString(
   packetType: TPacketType,

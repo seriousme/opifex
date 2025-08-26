@@ -7,7 +7,8 @@ import type { AnyPacket, CodecOpts } from "../mqttPacket/mod.ts";
 
 const codecOpts: CodecOpts = {
   protocolLevel: MQTTLevel.v4,
-  maxIncomingPacketSize: 0xffff,
+   maxIncomingPacketSize: 0xffff,
+   maxOutgoingPacketSize: 0xffff
 };
 
 const connectPacket: AnyPacket = {

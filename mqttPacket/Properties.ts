@@ -1,9 +1,5 @@
 import { PacketType } from "./PacketType.ts";
 import type { InvertRecord, UTF8StringPair } from "./types.ts";
-import type { Encoder } from "./encoder.ts";
-import { EncoderError } from "./encoder.ts";
-import type { Decoder } from "./decoder.ts";
-import { DecoderError } from "./decoder.ts";
 
 export const PropertySetType = {
   ...PacketType,
@@ -58,7 +54,7 @@ type PropertyNames = keyof typeof propertyToId;
 // A helper type to convert a tuple of numbers to a union of strings
 
 export const propertyToKind = {
-  [propertyToId.payloadFormatIndicator]: propertyKind.byte,
+  [propertyToId.payloadFormatIndicator]: propertyKind.boolean,
   [propertyToId.messageExpiryInterval]: propertyKind.int32,
   [propertyToId.contentType]: propertyKind.utf8string,
   [propertyToId.responseTopic]: propertyKind.utf8string,
@@ -66,7 +62,7 @@ export const propertyToKind = {
   [propertyToId.subscriptionIdentifier]: propertyKind.varInt,
   [propertyToId.sessionExpiryInterval]: propertyKind.int32,
   [propertyToId.assignedClientIdentifier]: propertyKind.utf8string,
-  [propertyToId.serverKeepAlive]: propertyKind.int32,
+  [propertyToId.serverKeepAlive]: propertyKind.int16,
   [propertyToId.authenticationMethod]: propertyKind.utf8string,
   [propertyToId.authenticationData]: propertyKind.byteArray,
   [propertyToId.requestProblemInformation]: propertyKind.boolean,
@@ -75,9 +71,9 @@ export const propertyToKind = {
   [propertyToId.responseInformation]: propertyKind.utf8string,
   [propertyToId.serverReference]: propertyKind.utf8string,
   [propertyToId.reasonString]: propertyKind.utf8string,
-  [propertyToId.receiveMaximum]: propertyKind.int32,
-  [propertyToId.topicAliasMaximum]: propertyKind.int32,
-  [propertyToId.topicAlias]: propertyKind.int32,
+  [propertyToId.receiveMaximum]: propertyKind.int16,
+  [propertyToId.topicAliasMaximum]: propertyKind.int16,
+  [propertyToId.topicAlias]: propertyKind.int16,
   [propertyToId.maximumQos]: propertyKind.byte,
   [propertyToId.retainAvailable]: propertyKind.boolean,
   [propertyToId.userProperty]: propertyKind.utf8StringPairs,
@@ -104,11 +100,15 @@ type Mqttv5PropertyType<K extends number> = K extends keyof PropertyKindMap
   ? PropertyKindMap[K]
   : never;
 
-type Mqttv5PropertyTypes = PropertyKindMap[keyof PropertyKindMap];
-type Mqttv5PropertyTypesNoUser = Exclude<Mqttv5PropertyTypes, UserPropertyType>;
+export type Mqttv5PropertyTypes = PropertyKindMap[keyof PropertyKindMap];
+export type Mqttv5PropertyTypesNoUser = Exclude<
+  Mqttv5PropertyTypes,
+  UserPropertyType
+>;
 
 // First, create a type for all valid property numbers
-type ValidPropertyNumber = (typeof propertyToId)[keyof typeof propertyToId];
+export type ValidPropertyNumber =
+  (typeof propertyToId)[keyof typeof propertyToId];
 // Then, create a mapped type that iterates over the property names
 // and uses propertyToKind to look up the correct TypeScript type.
 
@@ -234,7 +234,7 @@ type PropertyIdsToKeys<T extends readonly ValidPropertyNumber[]> = {
 type GeneratePacketTypeProperties<T extends readonly ValidPropertyNumber[]> =
   Pick<AllMqttv5Properties, PropertyIdsToKeys<T>>;
 
-type PropsByPacketSetType = {
+export type PropsByPacketSetType = {
   [K in TPropertySetType]: GeneratePacketTypeProperties<
     typeof PropertyByPropertySetType[K]
   >;
@@ -266,131 +266,4 @@ export type UnsubackProperties =
 export type DisconnectProperties =
   PropsByPacketSetType[typeof PropertySetType.disconnect];
 export type AuthProperties = PropsByPacketSetType[typeof PropertySetType.auth];
-
-function encodeProperty(
-  encoder: Encoder,
-  id: ValidPropertyNumber,
-  value: Mqttv5PropertyTypes,
-) {
-  const kind = propertyToKind[id];
-  if (kind === propertyKind.utf8StringPairs) {
-    if (typeof value !== "object") {
-      throw new EncoderError("userProperty must be an object");
-    }
-    for (const item of Object.entries(value) as UserPropertyType) {
-      encoder.setVariableByteInteger(id);
-      encoder.setUtf8StringPair(item);
-    }
-    return;
-  }
-
-  encoder.setVariableByteInteger(id);
-  switch (kind) {
-    case propertyKind.boolean:
-      encoder.setByte(!!value === true ? 1 : 0);
-      break;
-    case propertyKind.byte:
-      encoder.setByte(value as number);
-      break;
-    case propertyKind.int32:
-      encoder.setInt32(value as number);
-      break;
-    case propertyKind.varInt:
-      encoder.setVariableByteInteger(value as number);
-      break;
-    case propertyKind.byteArray:
-      encoder.setByteArray(value as Uint8Array);
-      break;
-    case propertyKind.utf8string:
-      encoder.setUtf8String(value as string);
-      break;
-  }
-}
-export function encodeProperties<T extends TPropertySetType>(
-  props: PropsByPacketSetType[T],
-  propertySetType: TPropertySetType,
-  encoder: Encoder,
-  maximumPacketSize: number,
-) {
-  const allowedProps = PropertyByPropertySetType[propertySetType];
-
-  for (const id of allowedProps) {
-    const label = propertyByNumber[id] as keyof PropsByPacketSetType[T];
-    const value = props[label];
-    if (value !== undefined && value !== null) {
-      if (
-        id === propertyToId.reasonString || id === propertyToId.userProperty
-      ) {
-        encoder.setMarker();
-        encodeProperty(encoder, id, value as Mqttv5PropertyTypes);
-        if (encoder.encodedSize() > maximumPacketSize) {
-          encoder.rewindToMarker();
-        }
-      } else {
-        encodeProperty(encoder, id, value as Mqttv5PropertyTypes);
-      }
-    }
-  }
-}
-
-function decodeProperty(
-  decoder: Decoder,
-  id: ValidPropertyNumber,
-): Mqttv5PropertyTypesNoUser {
-  switch (propertyToKind[id]) {
-    case propertyKind.boolean:
-      return !!decoder.getByte();
-    case propertyKind.byte:
-      return decoder.getByte();
-    case propertyKind.int32:
-      return decoder.getInt32();
-    case propertyKind.varInt:
-      return decoder.getVariableByteInteger();
-    case propertyKind.byteArray:
-      return decoder.getByteArray();
-    case propertyKind.utf8string:
-      return decoder.getUTF8String();
-  }
-  // deno-coverage-ignore
-  throw new DecoderError("Invalid property kind");
-}
-
-export function decodeProperties<T extends keyof PropsByPacketSetType>(
-  propertySetType: T,
-  decoder: Decoder,
-): PropsByPacketSetType[T] {
-  const allowedProps = PropertyByPropertySetType[propertySetType];
-
-  const properties = {} as PropsByPacketSetType[T];
-  const propLength = decoder.getVariableByteInteger();
-  const endPos = decoder.pos + propLength;
-  const userProps: Record<string, string> = {};
-  let hasUserProps = false;
-
-  while (decoder.pos < endPos) {
-    const id = decoder.getVariableByteInteger() as ValidPropertyNumber;
-    const label = propertyByNumber[id];
-    if (!(allowedProps as readonly number[]).includes(id)) {
-      throw new DecoderError(`Property type ${label ? label : id} not allowed`);
-    }
-    if (label !== "userProperty") {
-      const value = decodeProperty(decoder, id);
-      // deno-lint-ignore no-explicit-any
-      if ((properties as any)[label] !== undefined) {
-        throw new DecoderError(`Property ${label} only allowed once`);
-      } else {
-        // deno-lint-ignore no-explicit-any
-        (properties as any)[label] = value;
-      }
-    } else {
-      const [key, value] = decoder.getUTF8StringPair();
-      userProps[key] = value;
-      hasUserProps = true;
-    }
-  }
-  if (hasUserProps) {
-    // deno-lint-ignore no-explicit-any
-    (properties as any).userProperty = userProps;
-  }
-  return properties;
-}
+export type WillProperties = PropsByPacketSetType[typeof PropertySetType.will];

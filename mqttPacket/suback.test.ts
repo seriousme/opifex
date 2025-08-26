@@ -7,6 +7,7 @@ import type { CodecOpts } from "./mod.ts";
 const codecOpts: CodecOpts = {
   protocolLevel: MQTTLevel.v4,
   maxIncomingPacketSize: 0xffff,
+  maxOutgoingPacketSize: 0xffff,
 };
 
 test("encode Suback", () => {

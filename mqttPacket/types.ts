@@ -82,6 +82,7 @@ export type UTF8StringPair = [string, string];
 export type CodecOpts = {
   protocolLevel: ProtocolLevel;
   maxIncomingPacketSize: number;
+  maxOutgoingPacketSize: number;
 };
 
 /**

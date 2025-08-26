@@ -4,8 +4,25 @@ import type {
   TPacketType,
   UTF8StringPair,
 } from "./types.ts";
-import { invalidTopic, invalidTopicFilter } from "./validators.ts";
+
+import type {
+  Mqttv5PropertyTypes,
+  PropsByPacketSetType,
+  TPropertySetType,
+  UserPropertyType,
+  ValidPropertyNumber,
+} from "./Properties.ts";
+
+import {
+  propertyByNumber,
+  PropertyByPropertySetType,
+  propertyKind,
+  propertyToId,
+  propertyToKind,
+} from "./Properties.ts";
+
 import { encodeLength } from "./length.ts";
+import { invalidTopic, invalidTopicFilter } from "./validators.ts";
 
 const utf8Encoder = new TextEncoder();
 /**
@@ -189,11 +206,101 @@ export class Encoder {
     return this;
   }
 
+  /**
+   * add lenght and buffers from this
+   * @param encoder - the encoder to add it to
+   */
   addToEncoder(encoder: Encoder) {
     encoder.setVariableByteInteger(this.numBytes);
     for (const buffer of this.buffers) {
       encoder.addArray(buffer);
     }
+  }
+
+  /**
+   * Encode a single property
+   * @param id - the id of the property
+   * @param value  the value of the property
+   * @returns
+   */
+  private setProperty(
+    id: ValidPropertyNumber,
+    value: Mqttv5PropertyTypes,
+  ) {
+    const kind = propertyToKind[id];
+    if (kind === propertyKind.utf8StringPairs) {
+      if (!Array.isArray(value)) {
+        throw new EncoderError("userProperty must be an array");
+      }
+      for (const item of value as UserPropertyType) {
+        if (!Array.isArray(item)) {
+          throw new EncoderError("userProperty item must be an array");
+        }
+        this.setVariableByteInteger(id);
+        this.setUtf8StringPair(item);
+      }
+      return;
+    }
+
+    this.setVariableByteInteger(id);
+    switch (kind) {
+      case propertyKind.boolean:
+        this.setByte(!!value === true ? 1 : 0);
+        break;
+      case propertyKind.byte:
+        this.setByte(value as number);
+        break;
+      case propertyKind.int16:
+        this.setInt16(value as number);
+        break;
+      case propertyKind.int32:
+        this.setInt32(value as number);
+        break;
+      case propertyKind.varInt:
+        this.setVariableByteInteger(value as number);
+        break;
+      case propertyKind.byteArray:
+        this.setByteArray(value as Uint8Array);
+        break;
+      case propertyKind.utf8string:
+        this.setUtf8String(value as string);
+        break;
+    }
+  }
+
+  /**
+   * Encode a set of properties respecting potential size limits
+   * @param props - the properties to encode
+   * @param propertySetType - the type of packet to encode for
+   * @param maximumPacketSize - the maximum packet size to be consumed by properties
+   */
+  setProperties<T extends TPropertySetType>(
+    props: PropsByPacketSetType[T],
+    propertySetType: TPropertySetType,
+    maximumPacketSize: number,
+  ) {
+    const propsEncoder = new Encoder(0);
+    const allowedProps = PropertyByPropertySetType[propertySetType];
+    const maxSize = maximumPacketSize - 1; // propertyLength takes at least a byte
+
+    for (const id of allowedProps) {
+      const label = propertyByNumber[id] as keyof PropsByPacketSetType[T];
+      const value = props[label];
+      if (value !== undefined && value !== null) {
+        if (
+          id === propertyToId.reasonString || id === propertyToId.userProperty
+        ) {
+          propsEncoder.setMarker();
+          propsEncoder.setProperty(id, value as Mqttv5PropertyTypes);
+          if (propsEncoder.encodedSize() > maxSize) {
+            propsEncoder.rewindToMarker();
+          }
+        } else {
+          propsEncoder.setProperty(id, value as Mqttv5PropertyTypes);
+        }
+      }
+    }
+    propsEncoder.addToEncoder(this);
   }
 
   /**

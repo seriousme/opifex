@@ -194,12 +194,12 @@ export const connect: {
     const isV5 = protocolLevel === 5;
     let properties;
     if (isV5) {
-      properties = decoder.getProperties(PropertySetType.connect);
+      properties = decoder.getProperties(PacketType.connect);
     }
     const clientId = decoder.getUTF8String();
     let willProperties;
     if (isV5) {
-      willProperties = decoder.getProperties(PropertySetType.will);
+      willProperties = decoder.getProperties(PacketType.connect);
     }
 
     let willTopic;
@@ -230,20 +230,14 @@ export const connect: {
       throw new DecoderError("Clean session must be true if clientID is empty");
     }
 
-    const commonProps = {
-      type: PacketType.connect,
-      protocolName: protocolName,
-      protocolLevel: protocolLevel as ProtocolLevel,
-      clientId: clientId,
-      username: username ? username : undefined,
-      password: password ? password : undefined,
-      clean: cleanSession,
-      keepAlive,
-    };
     if (isV5) {
       return {
-        ...commonProps,
+        type: PacketType.connect,
+        protocolName: protocolName,
         protocolLevel: 5,
+        clientId: clientId,
+        username: username ? username : undefined,
+        password: password ? password : undefined,
         will: willFlag
           ? {
             topic: willTopic || "",
@@ -253,11 +247,18 @@ export const connect: {
             properties: willProperties,
           }
           : undefined,
+        clean: cleanSession,
+        keepAlive,
         properties,
       };
     }
     return {
-      ...commonProps,
+      type: PacketType.connect,
+      protocolName: protocolName,
+      protocolLevel: protocolLevel as ProtocolLevel,
+      clientId: clientId,
+      username: username ? username : undefined,
+      password: password ? password : undefined,
       will: willFlag
         ? {
           topic: willTopic || "",
@@ -266,6 +267,8 @@ export const connect: {
           qos: willQoS,
         }
         : undefined,
+      clean: cleanSession,
+      keepAlive,
     };
   },
 };

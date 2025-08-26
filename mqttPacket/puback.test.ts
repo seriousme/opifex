@@ -8,11 +8,13 @@ import type { CodecOpts } from "./mod.ts";
 const codecOpts: CodecOpts = {
   protocolLevel: MQTTLevel.v4,
   maxIncomingPacketSize: 0xffff,
+  maxOutgoingPacketSize: 0xffff,
 };
 
 const codecOptsV5: CodecOpts = {
   protocolLevel: MQTTLevel.v5,
   maxIncomingPacketSize: 0xffff,
+  maxOutgoingPacketSize: 0xffff,
 };
 
 test("encode Puback", () => {
