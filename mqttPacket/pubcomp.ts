@@ -1,4 +1,10 @@
-import type { CodecOpts, PacketId, TPacketType } from "./types.ts";
+import type {
+  CodecOpts,
+  PacketId,
+  ProtocolLevelNoV5,
+  TPacketType,
+} from "./types.ts";
+import type { PubcompProperties } from "./Properties.ts";
 import { PacketType } from "./PacketType.ts";
 import { Decoder, DecoderError } from "./decoder.ts";
 import { Encoder } from "./encoder.ts";

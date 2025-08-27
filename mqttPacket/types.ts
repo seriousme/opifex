@@ -30,6 +30,7 @@ export type TReasonCode = typeof ReasonCode[keyof typeof ReasonCode];
  * 5.0 = 5
  */
 export type ProtocolLevel = 3 | 4 | 5 | undefined;
+export type ProtocolLevelNoV5 = Exclude<ProtocolLevel, 5>;
 
 /**
  * Quality of Service level

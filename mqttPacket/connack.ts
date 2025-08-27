@@ -1,4 +1,9 @@
-import type { CodecOpts, TAuthenticationResult, TPacketType } from "./types.ts";
+import type {
+  CodecOpts,
+  ProtocolLevelNoV5,
+  TAuthenticationResult,
+  TPacketType,
+} from "./types.ts";
 import { PacketType } from "./PacketType.ts";
 import { BitMask } from "./BitMask.ts";
 import { Encoder } from "./encoder.ts";
@@ -13,7 +18,7 @@ import type { ConnackProperties } from "./Properties.ts";
  */
 export type ConnackPacketV4 = {
   type: TPacketType;
-  protocolLevel: 4;
+  protocolLevel: ProtocolLevelNoV5;
   sessionPresent: boolean;
   returnCode: TAuthenticationResult;
 };
@@ -66,7 +71,7 @@ export const connack: {
   ): ConnackPacket | undefined {
     const decoder = new Decoder(buffer);
 
-    if (codecOpts.protocolLevel === 4) {
+    if (codecOpts.protocolLevel !== 5) {
       const sessionPresent = booleanFlag(decoder.getByte(), BitMask.bit0);
       const returnCode = decoder.getByte() as TAuthenticationResult;
       decoder.done();
@@ -75,7 +80,7 @@ export const connack: {
       }
       return {
         type: PacketType.connack,
-        protocolLevel: 4,
+        protocolLevel: codecOpts.protocolLevel,
         sessionPresent,
         returnCode,
       };

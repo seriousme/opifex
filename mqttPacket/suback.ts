@@ -1,4 +1,11 @@
-import type { CodecOpts, PacketId, ReturnCodes, TPacketType } from "./types.ts";
+import type {
+  CodecOpts,
+  PacketId,
+  ProtocolLevelNoV5,
+  ReturnCodes,
+  TPacketType,
+} from "./types.ts";
+import type { SubackProperties } from "./Properties.ts";
 import { PacketType } from "./PacketType.ts";
 import { Encoder } from "./encoder.ts";
 import { Decoder, DecoderError } from "./decoder.ts";

@@ -3,6 +3,7 @@ import type {
   CodecOpts,
   Payload,
   ProtocolLevel,
+  ProtocolLevelNoV5,
   QoS,
   Topic,
   TPacketType,
@@ -25,7 +26,7 @@ import {
 export type ConnectPacketV4 = {
   type: TPacketType;
   protocolName?: string;
-  protocolLevel: Exclude<ProtocolLevel, 5>;
+  protocolLevel: ProtocolLevelNoV5;
   clientId?: ClientId;
   username?: string;
   password?: Uint8Array;
