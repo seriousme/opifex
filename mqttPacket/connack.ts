@@ -53,14 +53,12 @@ export const connack: {
     const encoder = new Encoder(packet.type);
     encoder
       .setByte(packet.sessionPresent ? 1 : 0)
-      .setByte(packet.reasonCode || 0);
-    if (packet.properties) {
-      encoder.setProperties(
-        packet.properties,
+      .setByte(packet.reasonCode || 0)
+      .setProperties(
+        packet.properties || {},
         packet.type,
         codecOpts.maxOutgoingPacketSize,
       );
-    }
     return encoder.done(0);
   },
 

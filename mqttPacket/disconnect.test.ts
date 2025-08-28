@@ -32,16 +32,16 @@ test("encode Disconnect V4", () => {
 
 test("encode/decode short Disconnect V5", () => {
   const packet = {
-      type: PacketType.disconnect,
-      protocolLevel: MQTTLevel.v5,
-      reasonCode: 0,
-    }
+    type: PacketType.disconnect,
+    protocolLevel: MQTTLevel.v5,
+    reasonCode: 0,
+  };
 
   const buf = Uint8Array.from([
-      // fixedHeader
-      224, // packetType + flags
-      0, // remainingLength
-    ])
+    // fixedHeader
+    224, // packetType + flags
+    0, // remainingLength
+  ]);
   assert.deepStrictEqual(
     encode(packet, codecOptsV5),
     buf,

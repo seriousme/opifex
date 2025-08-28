@@ -22,6 +22,7 @@ test("encode Connect with ClientId", () => {
   assert.deepStrictEqual(
     encode({
       type: PacketType.connect,
+      protocolLevel: MQTTLevel.v4,
       clientId: "id",
     }, codecOptsV4),
     Uint8Array.from([
@@ -53,6 +54,7 @@ test("encode Connect with Clean false", () => {
   assert.deepStrictEqual(
     encode({
       type: PacketType.connect,
+      protocolLevel: MQTTLevel.v4,
       clientId: "id",
       clean: false,
     }, codecOptsV4),
@@ -85,6 +87,7 @@ test("encode Connect with KeepAlive", () => {
   assert.deepStrictEqual(
     encode({
       type: PacketType.connect,
+      protocolLevel: MQTTLevel.v4,
       clientId: "id",
       keepAlive: 300,
     }, codecOptsV4),
@@ -154,7 +157,7 @@ const decodedConnect: ConnectPacket = {
   type: PacketType.connect,
   clientId: "id",
   protocolName: "MQTT",
-  protocolLevel: 4,
+  protocolLevel: MQTTLevel.v4,
   username: "user",
   password: Uint8Array.from([
     112, // 'p'
@@ -171,6 +174,7 @@ test("encode Connect with username and password", () => {
   assert.deepStrictEqual(
     encode({
       type: PacketType.connect,
+      protocolLevel: MQTTLevel.v4,
       clientId: "id",
       username: "user",
       password: Uint8Array.from([
@@ -351,7 +355,7 @@ test("encode MQTTv4, clean=false,  no clientId", () => {
     () =>
       encode({
         type: PacketType.connect,
-        protocolLevel: 4,
+        protocolLevel: MQTTLevel.v4,
         clean: false,
       }, codecOptsUnknown),
     /Client id required for clean session/,

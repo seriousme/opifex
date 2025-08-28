@@ -4,6 +4,7 @@ import type {
   ProtocolLevelNoV5,
   TPacketType,
 } from "./types.ts";
+import type { TReasonCode } from "./ReasonCode.ts";
 import type { PubackProperties } from "./Properties.ts";
 import { PacketType } from "./PacketType.ts";
 import { Decoder } from "./decoder.ts";
@@ -12,34 +13,51 @@ import { Encoder } from "./encoder.ts";
 /**
  * PubackPacket is sent to indicate publish complete (QoS 1)
  */
-export type PubackPacketV4 = {
+export type AckPacketV4<T> = {
   type: TPacketType;
   protocolLevel: ProtocolLevelNoV5;
   id: PacketId;
 };
 
-export type PubackPacketV5 = {
+export type AckPacketV5<T> = {
   type: TPacketType;
   protocolLevel: 5;
   id: PacketId;
+  reasonCode?: TReasonCode;
   properties?: PubackProperties;
 };
 
-export type PubackPacket = PubackPacketV4 | PubackPacketV5;
+export type AckPacket<T> = AckPacketV4<T> | AckPacketV5<T>;
+export type PubackPacket = AckPacket<typeof PacketType.puback>;
+export type PubrecPacket = AckPacket<typeof PacketType.pubrec>;
+export type PubrelPacket = AckPacket<typeof PacketType.pubrel>;
+export type PubcompPacket = AckPacket<typeof PacketType.pubcomp>;
 
-export const puback: {
-  encode(packet: PubackPacket, _codecOpts: CodecOpts): Uint8Array;
+export type AnyAckPacket =
+  | PubackPacket
+  | PubrecPacket
+  | PubrelPacket
+  | PubcompPacket;
+
+export const anyAck: {
+  encode(packet: AnyAckPacket, codecOpts: CodecOpts): Uint8Array;
   decode(
     buffer: Uint8Array,
     _flags: number,
     codecOpts: CodecOpts,
-  ): PubackPacket;
+    packetType: TPacketType,
+  ): AnyAckPacket;
 } = {
-  encode(packet: PubackPacket, codecOpts: CodecOpts): Uint8Array {
+  encode(packet: AnyAckPacket, codecOpts: CodecOpts): Uint8Array {
     const flags = 0;
     const encoder = new Encoder(packet.type);
     encoder.setInt16(packet.id);
     if (packet.protocolLevel === 5) {
+      const reasonCode = packet.reasonCode || 0;
+      if (reasonCode === 0 && !packet.properties) {
+        return encoder.done(flags);
+      }
+      encoder.setByte(reasonCode);
       encoder.setProperties(
         packet.properties || {},
         packet.type,
@@ -53,22 +71,33 @@ export const puback: {
     buffer: Uint8Array,
     _flags: number,
     codecOpts: CodecOpts,
-  ): PubackPacket {
+    packetType: TPacketType,
+  ): AnyAckPacket {
     const decoder = new Decoder(buffer);
     const id = decoder.getInt16();
     if (codecOpts.protocolLevel !== 5) {
       decoder.done();
       return {
-        type: PacketType.puback,
+        type: packetType,
         protocolLevel: codecOpts.protocolLevel,
         id,
       };
     }
+    if (decoder.atEnd()) {
+      return {
+        type: packetType,
+        protocolLevel: 5,
+        id,
+        reasonCode: 0,
+      };
+    }
+    const reasonCode = decoder.getByte() as TReasonCode;
     const properties = decoder.getProperties(PacketType.puback);
     return {
-      type: PacketType.puback,
+      type: packetType,
       protocolLevel: 5,
       id,
+      reasonCode,
       properties,
     };
   },

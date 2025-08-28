@@ -32,10 +32,7 @@ import {
   AuthenticationResultByNumber,
 } from "./AuthenticationResult.ts";
 import { publish } from "./publish.ts";
-import { puback } from "./puback.ts";
-import { pubrec } from "./pubrec.ts";
-import { pubrel } from "./pubrel.ts";
-import { pubcomp } from "./pubcomp.ts";
+import { anyAck } from "./acks.ts";
 import { subscribe } from "./subscribe.ts";
 import { suback } from "./suback.ts";
 import { unsubscribe } from "./unsubscribe.ts";
@@ -48,10 +45,12 @@ import { DecoderError } from "./decoder.ts";
 import type { ConnectPacket } from "./connect.ts";
 import type { ConnackPacket } from "./connack.ts";
 import type { PublishPacket } from "./publish.ts";
-import type { PubackPacket } from "./puback.ts";
-import type { PubrecPacket } from "./pubrec.ts";
-import type { PubrelPacket } from "./pubrel.ts";
-import type { PubcompPacket } from "./pubcomp.ts";
+import type {
+  PubackPacket,
+  PubcompPacket,
+  PubrecPacket,
+  PubrelPacket,
+} from "./acks.ts";
 import type { SubscribePacket } from "./subscribe.ts";
 import type { SubackPacket } from "./suback.ts";
 import type { UnsubscribePacket } from "./unsubscribe.ts";
@@ -132,10 +131,10 @@ export const packetsByType = [
   connect, // 1
   connack, // 2
   publish, // 3
-  puback, // 4
-  pubrec, // 5
-  pubrel, // 6
-  pubcomp, // 7
+  anyAck, // 4 puback
+  anyAck, // 5 pubrec
+  anyAck, // 6 pubrel
+  anyAck, // 7 pubcomp
   subscribe, // 8
   suback, // 9
   unsubscribe, // 10
@@ -188,6 +187,7 @@ export function decodePayload(
     buffer,
     flags,
     codecOpts,
+    packetType as TPacketType,
   );
   if (packet !== undefined) {
     return packet;

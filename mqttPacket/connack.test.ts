@@ -21,6 +21,7 @@ test("encode Connack packet", () => {
   assert.deepStrictEqual(
     encode({
       type: PacketType.connack,
+      protocolLevel: MQTTLevel.v4,
       sessionPresent: false,
       returnCode: 0,
     }, codecOptsV4),
