@@ -264,11 +264,11 @@ test("encode/decode Publish v5", () => {
       121, // y
       112, // p
       97, // a
-      121,// y
-      108,// l
-      111,// o
+      121, // y
+      108, // l
+      111, // o
       97, // a
-      100,// d
+      100, // d
     ]),
   );
   const decoded = decode(encoded, codecOptsV5);
