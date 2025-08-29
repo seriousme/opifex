@@ -12,6 +12,11 @@ import { Encoder } from "./encoder.ts";
 
 /**
  * PubackPacket is sent to indicate publish complete (QoS 1)
+ * Pubrec is sent to indicate publish received (QoS 2)
+ * Pubrel is sent to indicate publish release (QoS 2)
+ * Pubcomp is sent to indicate publish complete (QoS 2)
+ * 
+ * all 4 packets are identical except for packet type
  */
 export type AckPacketV4<T> = {
   type: TPacketType;
