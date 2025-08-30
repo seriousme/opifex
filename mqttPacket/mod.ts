@@ -18,10 +18,12 @@ import type {
   Topic,
   TopicFilter,
   TPacketType,
+  TRetainHandling,
   UTF8StringPair,
 } from "./types.ts";
 
 export { MQTTLevel } from "./protocolLevels.ts";
+export { RetainHandling } from "./RetainHandling.ts";
 import { PacketNameByType, PacketType } from "./PacketType.ts";
 import { invalidTopic, invalidTopicFilter, invalidUTF8 } from "./validators.ts";
 import { decodeLength, encodeLength } from "./length.ts";
@@ -103,6 +105,7 @@ export type {
   Topic,
   TopicFilter,
   TPacketType,
+  TRetainHandling,
   UnsubackPacket,
   UnsubscribePacket,
   UTF8StringPair,

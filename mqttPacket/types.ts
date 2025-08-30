@@ -1,5 +1,6 @@
 import type { BitMask } from "./BitMask.ts";
 import type { PacketType } from "./PacketType.ts";
+import type { RetainHandling } from "./RetainHandling.ts";
 import type { AuthenticationResult } from "./AuthenticationResult.ts";
 import type { ReasonCode } from "./ReasonCode.ts";
 
@@ -71,6 +72,9 @@ export type ReturnCodes = number[];
  * Client identifier that uniquely identifies a client
  */
 export type ClientId = string;
+
+export type TRetainHandling =
+  typeof RetainHandling[keyof typeof RetainHandling];
 
 /**
  * UTF8 string pair (for v5)
