@@ -30,6 +30,7 @@ export async function handlePubrel(
       ctx.store.pendingIncoming.delete(id);
       await ctx.send({
         type: PacketType.pubcomp,
+        protocolLevel: ctx.protocolLevel,
         id,
       });
     }

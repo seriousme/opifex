@@ -10,7 +10,10 @@ import type { ConnackPacket } from "../deps.ts";
  * @returns Promise that resolves when handling is complete
  */
 export async function handleConnack(packet: ConnackPacket, ctx: Context) {
-  if (packet.returnCode === 0) {
+  if ( packet.protocolLevel === 5){
+    throw new Error("MQTT 5.0 is not supported yet");
+  }
+  if ( packet.returnCode === 0) {
     ctx.connectionState = ConnectionState.connected;
     if (ctx.mqttConn) {
       ctx.mqttConn.codecOpts.protocolLevel = ctx.protocolLevel;
@@ -23,6 +26,7 @@ export async function handleConnack(packet: ConnackPacket, ctx: Context) {
     }
     return;
   }
+  
   const err = new Error(
     `Connect failed: ${AuthenticationResultByNumber[packet.returnCode]}`,
   );

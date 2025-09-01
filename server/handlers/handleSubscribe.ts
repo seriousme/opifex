@@ -53,6 +53,7 @@ export async function handleSubscribe(
 
   await ctx.send({
     type: PacketType.suback,
+    protocolLevel: ctx.protocolLevel,
     id: packet.id,
     returnCodes: returnCodes,
   });

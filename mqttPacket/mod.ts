@@ -36,7 +36,7 @@ import {
   AuthenticationResultByNumber,
 } from "./AuthenticationResult.ts";
 import { publish } from "./publish.ts";
-import { anyAck } from "./acks.ts";
+import { anyAck } from "./pubblishAcks.ts";
 import { subscribe } from "./subscribe.ts";
 import { suback } from "./suback.ts";
 import { unsubscribe } from "./unsubscribe.ts";
@@ -44,6 +44,7 @@ import { unsuback } from "./unsuback.ts";
 import { pingreq } from "./pingreq.ts";
 import { pingres } from "./pingres.ts";
 import { disconnect } from "./disconnect.ts";
+import { auth } from "./auth.ts";
 import { DecoderError } from "./decoder.ts";
 
 import type { ConnectPacket } from "./connect.ts";
@@ -54,7 +55,7 @@ import type {
   PubcompPacket,
   PubrecPacket,
   PubrelPacket,
-} from "./acks.ts";
+} from "./pubblishAcks.ts";
 import type { SubscribePacket } from "./subscribe.ts";
 import type { SubackPacket } from "./suback.ts";
 import type { UnsubscribePacket } from "./unsubscribe.ts";
@@ -62,6 +63,7 @@ import type { UnsubackPacket } from "./unsuback.ts";
 import type { PingreqPacket } from "./pingreq.ts";
 import type { PingresPacket } from "./pingres.ts";
 import type { DisconnectPacket } from "./disconnect.ts";
+import type { AuthPacket } from "./auth.ts";
 
 /**
  * this can be any possible MQTT packet
@@ -80,9 +82,11 @@ export type AnyPacket =
   | UnsubackPacket
   | PingreqPacket
   | PingresPacket
-  | DisconnectPacket;
+  | DisconnectPacket
+  | AuthPacket;
 
 export type {
+  AuthPacket,
   ClientId,
   CodecOpts,
   ConnackPacket,
@@ -148,6 +152,7 @@ export const packetsByType = [
   pingreq, // 12
   pingres, // 13
   disconnect, // 14
+  auth, // 15
 ] as const;
 
 /**

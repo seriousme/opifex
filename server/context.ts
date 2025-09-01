@@ -151,6 +151,7 @@ export class Context {
   broadcast(topic: Topic, payload: string, retain = false): void {
     const packet: PublishPacket = {
       type: PacketType.publish,
+      protocolLevel: this.protocolLevel,
       topic,
       retain,
       payload: utf8Encoder.encode(payload),

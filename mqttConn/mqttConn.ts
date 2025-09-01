@@ -131,7 +131,8 @@ export class MqttConn implements IMqttConn {
    * Create new MQTT connection
    * @param options Connection options
    * @param options.conn Underlying socket connection
-   * @param options.maxIncomingPacketSize Maximum allowed packet size (default 2MB)
+   * @param options.maxIncomingPacketSize Maximum allowed incoming packet size (default 2MB)
+   * @param options.maxOutGoingPacketSize Maximum allowed outgoing packet size (default 2MB)
    * @param options.protocolLevel Supported protocolLevel
    */
   constructor({
@@ -146,6 +147,7 @@ export class MqttConn implements IMqttConn {
     this.conn = new Conn(conn);
     this.codecOpts = {
       maxIncomingPacketSize,
+      maxOutgoingPacketSize: maxIncomingPacketSize,
       protocolLevel,
     };
   }

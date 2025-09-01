@@ -21,6 +21,7 @@ export async function handlePublish(ctx: Context, packet: PublishPacket) {
       ctx.receivePublish(packet);
       await ctx.send({
         type: PacketType.puback,
+        protocolLevel: ctx.protocolLevel,
         id: packet.id,
       });
       return;
@@ -30,6 +31,7 @@ export async function handlePublish(ctx: Context, packet: PublishPacket) {
       ctx.store.pendingIncoming.set(packet.id, packet);
       await ctx.send({
         type: PacketType.pubrec,
+        protocolLevel: ctx.protocolLevel,
         id: packet.id,
       });
     }

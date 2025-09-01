@@ -56,6 +56,7 @@ function processValidatedConnect(
     if (packet.will) {
       ctx.will = {
         type: PacketType.publish,
+        protocolLevel: ctx.protocolLevel,
         qos: packet.will.qos,
         retain: packet.will.retain,
         topic: packet.will.topic,
@@ -105,6 +106,7 @@ export function handleConnect(ctx: Context, packet: ConnectPacket): void {
   );
   ctx.send({
     type: PacketType.connack,
+    protocolLevel: ctx.protocolLevel,
     sessionPresent,
     returnCode,
   });
