@@ -67,6 +67,7 @@ export class DecoderError extends Error {
  * Decoder class for parsing MQTT packets
  */
 export class Decoder {
+  private packetType: TPacketType;
   private buf: Uint8Array;
   private pos: number;
   private len: number;
@@ -76,7 +77,8 @@ export class Decoder {
    * @param buf - The buffer to decode
    * @param pos - Starting position in the buffer (default: 0)
    */
-  constructor(buf: Uint8Array, pos: number = 0) {
+  constructor(packetType: TPacketType, buf: Uint8Array, pos: number = 0) {
+    this.packetType = packetType;
     this.buf = buf;
     this.pos = pos;
     this.len = buf.length;
@@ -291,13 +293,12 @@ export class Decoder {
 
   /**
    * Gets a reason code from the buffer
-   * @param packetType
    * @returns The decoded reason code
    * @throws {DecoderError} If reason code is invalid
    */
-  getReasonCode(packetType: TPacketType): TReasonCode {
+  getReasonCode(): TReasonCode {
     const reasonCode = this.getByte();
-    if (!isValidReasonCode(packetType, reasonCode)) {
+    if (!isValidReasonCode(this.packetType, reasonCode)) {
       throw new DecoderError("Invalid reason code");
     }
     return reasonCode as TReasonCode;

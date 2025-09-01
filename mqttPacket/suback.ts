@@ -39,6 +39,7 @@ export const suback: {
     buffer: Uint8Array,
     flags: number,
     codecOpts: CodecOpts,
+    packetType: TPacketType,
   ): SubackPacket;
 } = {
   encode(packet: SubackPacket, codecOpts: CodecOpts): Uint8Array {
@@ -69,9 +70,10 @@ export const suback: {
     buffer: Uint8Array,
     _flags: number,
     codecOpts: CodecOpts,
+    packetType: TPacketType
   ): SubackPacket {
     const packet = {} as SubackPacket;
-    const decoder = new Decoder(buffer);
+    const decoder = new Decoder( packetType,buffer);
     packet.type = PacketType.suback;
     packet.id = decoder.getInt16();
     packet.protocolLevel = codecOpts.protocolLevel;
@@ -90,7 +92,7 @@ export const suback: {
     packet.properties = decoder.getProperties(PacketType.suback);
     packet.reasonCodes = [];
     while (!decoder.atEnd()) {
-      const code = decoder.getReasonCode(PacketType.suback);
+      const code = decoder.getReasonCode();
       packet.reasonCodes.push(code);
     }
     return packet;

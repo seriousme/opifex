@@ -47,6 +47,7 @@ export const publish: {
     buffer: Uint8Array,
     flags: number,
     codecOpts: CodecOpts,
+    packetType: TPacketType,
   ): PublishPacket;
 } = {
   encode(packet: PublishPacket, codecOpts: CodecOpts): Uint8Array {
@@ -82,6 +83,7 @@ export const publish: {
     buffer: Uint8Array,
     flags: number,
     codecOpts: CodecOpts,
+    packetType: TPacketType,
   ): PublishPacket {
     const dup = booleanFlag(flags, BitMask.bit3);
     const qos = (flags & 6) >> 1;
@@ -95,7 +97,7 @@ export const publish: {
       throw new DecoderError("Invalid qos for possible duplicate");
     }
 
-    const decoder = new Decoder(buffer);
+    const decoder = new Decoder( packetType,buffer);
     const topic = decoder.getTopic();
 
     let id = 0;

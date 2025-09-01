@@ -36,6 +36,7 @@ export const disconnect: {
     buffer: Uint8Array,
     _flags: number,
     codecOpts: CodecOpts,
+    packetType: TPacketType,
   ): DisconnectPacket;
 } = {
   encode(packet: DisconnectPacket, codecOpts: CodecOpts): Uint8Array {
@@ -61,7 +62,12 @@ export const disconnect: {
     return encoder.done(0);
   },
 
-  decode(buffer: Uint8Array, _flags: number, codecOpts): DisconnectPacket {
+  decode(
+    buffer: Uint8Array,
+    _flags: number,
+    codecOpts,
+    packetType: TPacketType,
+  ): DisconnectPacket {
     if (codecOpts.protocolLevel !== 5) {
       isEmptyBuf(buffer);
       return {
@@ -69,7 +75,7 @@ export const disconnect: {
         protocolLevel: codecOpts.protocolLevel,
       };
     }
-    const decoder = new Decoder(buffer);
+    const decoder = new Decoder(packetType, buffer);
     if (decoder.atEnd()) {
       return {
         type: PacketType.disconnect,
@@ -77,7 +83,7 @@ export const disconnect: {
         reasonCode: 0,
       };
     }
-    const reasonCode = decoder.getReasonCode(PacketType.disconnect);
+    const reasonCode = decoder.getReasonCode();
     const properties = decoder.getProperties(PacketType.disconnect);
     decoder.done();
     return {

@@ -18,6 +18,7 @@ export const pingreq: {
     buffer: Uint8Array,
     flags: number,
     codecOpts: CodecOpts,
+    _packetType: TPacketType,
   ): PingreqPacket;
 } = {
   encode(_packet: PingreqPacket, _codecOpts: CodecOpts): Uint8Array {
@@ -28,6 +29,7 @@ export const pingreq: {
     buffer: Uint8Array,
     flags: number,
     codecOpts: CodecOpts,
+    _packetType: TPacketType,
   ): PingreqPacket {
     hasEmptyFlags(flags);
     isEmptyBuf(buffer);

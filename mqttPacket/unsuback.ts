@@ -7,7 +7,7 @@ import type {
 } from "./types.ts";
 import type { UnsubackProperties } from "./Properties.ts";
 import { PacketType } from "./PacketType.ts";
-import { Decoder, DecoderError } from "./decoder.ts";
+import { Decoder } from "./decoder.ts";
 import { Encoder } from "./encoder.ts";
 
 /**
@@ -36,6 +36,7 @@ export const unsuback: {
     buffer: Uint8Array,
     flags: number,
     codecOpts: CodecOpts,
+    packetType: TPacketType,
   ): UnsubackPacket;
 } = {
   encode(packet: UnsubackPacket, codecOpts: CodecOpts): Uint8Array {
@@ -59,14 +60,15 @@ export const unsuback: {
     buffer: Uint8Array,
     _flags: number,
     codecOpts: CodecOpts,
+    packetType: TPacketType
   ): UnsubackPacket {
-    const decoder = new Decoder(buffer);
+    const decoder = new Decoder( packetType,buffer);
     const id = decoder.getInt16();
     if (codecOpts.protocolLevel === 5) {
       const properties = decoder.getProperties(PacketType.unsuback);
       const reasonCodes = [];
       while (!decoder.atEnd()) {
-        const reasonCode = decoder.getReasonCode(PacketType.unsuback);
+        const reasonCode = decoder.getReasonCode();
         reasonCodes.push(reasonCode);
       }
       return {

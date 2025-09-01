@@ -80,6 +80,7 @@ export const connect: {
     buffer: Uint8Array,
     flags: number,
     codecOpts: CodecOpts,
+    packetType: TPacketType,
   ): ConnectPacket;
 } = {
   encode(packet: ConnectPacket, codecOpts: CodecOpts): Uint8Array {
@@ -162,8 +163,9 @@ export const connect: {
     buffer: Uint8Array,
     flags: number,
     _codecOpts: CodecOpts,
+    packetType: TPacketType,
   ): ConnectPacket {
-    const decoder = new Decoder(buffer);
+    const decoder = new Decoder( packetType,buffer);
     const protocolName = decoder.getUTF8String();
     const protocolLevel = decoder.getByte();
     if (invalidProtocolName(protocolLevel, protocolName)) {

@@ -56,6 +56,7 @@ export const subscribe: {
     buffer: Uint8Array,
     flags: number,
     codecOpts: CodecOpts,
+    packetType: TPacketType,
   ): SubscribePacket;
 } = {
   encode(packet: SubscribePacket, codecOpts: CodecOpts): Uint8Array {
@@ -100,6 +101,7 @@ export const subscribe: {
     buffer: Uint8Array,
     flags: number,
     codecOpts: CodecOpts,
+    packetType: TPacketType,
   ): SubscribePacket {
     // Bits 3,2,1 and 0 of the fixed header of the SUBSCRIBE Control Packet are reserved and
     // MUST be set to 0,0,1 and 0 respectively. The Server MUST treat any other value as
@@ -107,7 +109,7 @@ export const subscribe: {
     if (flags !== 0b0010) {
       throw new DecoderError("Invalid header");
     }
-    const decoder = new Decoder(buffer);
+    const decoder = new Decoder( packetType,buffer);
     const id = decoder.getInt16();
     let properties = {};
     if (codecOpts.protocolLevel === 5) {

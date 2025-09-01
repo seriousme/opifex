@@ -39,7 +39,7 @@ test("decoder.getProperties decodes allowed properties for connect", () => {
   const buf = encoder.done(0);
   // skip the first byte which contains the packet identifier
   // and the second byte that holds the packet length
-  const decoder = new Decoder(buf, 2);
+  const decoder = new Decoder( PacketType.connect,buf, 2);
   const decoded = decoder.getProperties(PacketType.connect);
   assert.equal(decoded.sessionExpiryInterval, 60);
   assert.equal(decoded.authenticationMethod, "basic");
@@ -65,7 +65,7 @@ test("decoder.getProperties decodes allowed properties for connack", () => {
   const buf = encoder.done(0);
   // skip the first byte which contains the packet identifier
   // and the second byte that holds the packet length
-  const decoder = new Decoder(buf, 2);
+  const decoder = new Decoder( PacketType.connack,buf, 2);
   const decoded = decoder.getProperties(PacketType.connack);
   assert.equal(decoded.maximumQos, 2);
 });
@@ -87,7 +87,7 @@ test("encoder.setProperties does not encode properties not allowed for packet ty
   };
   encoder.setProperties(props, PacketType.publish, 2048);
   const buf = encoder.done(0);
-  const decoder = new Decoder(buf, 2);
+  const decoder = new Decoder( PacketType.publish,buf, 2);
   const decoded = decoder.getProperties(PacketType.publish);
   assert.deepStrictEqual(Object.keys(decoded), [
     "subscriptionIdentifier",
@@ -104,7 +104,7 @@ test("decoder.getProperties throws on duplicate property", () => {
   encoder.setVariableByteInteger(0x01); // payloadFormatIndicator again
   encoder.setByte(1);
   const buf = encoder.done(0);
-  const decoder = new Decoder(buf, 2);
+  const decoder = new Decoder( PacketType.publish,buf, 2);
   assert.throws(
     () => decoder.getProperties(PacketType.publish),
     /Property payloadFormatIndicator only allowed once/,
@@ -117,7 +117,7 @@ test("decoder.getProperties throws on property not allowed for packet type", () 
   encoder.setVariableByteInteger(0x13); // serverKeepAlive (not allowed for publish)
   encoder.setInt32(30);
   const buf = encoder.done(0);
-  const decoder = new Decoder(buf, 2);
+  const decoder = new Decoder( PacketType.publish,buf, 2);
   assert.throws(
     () => decoder.getProperties(PacketType.publish),
     /Property type serverKeepAlive not allowed/,
@@ -152,7 +152,7 @@ test("decodeProperty throws on invalid property kind", () => {
   encoder.setByte(1);
 
   const buf = encoder.done(0);
-  const decoder = new Decoder(buf, 2);
+  const decoder = new Decoder(PacketType.publish,buf, 2);
 
   assert.throws(
     () => decoder.getProperties(PacketType.publish),

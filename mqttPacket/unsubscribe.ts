@@ -25,6 +25,7 @@ export const unsubscribe: {
     buffer: Uint8Array,
     flags: number,
     codecOpts: CodecOpts,
+    packetType: TPacketType,
   ): UnsubscribePacket;
 } = {
   encode(packet: UnsubscribePacket, _codecOpts: CodecOpts): Uint8Array {
@@ -45,6 +46,7 @@ export const unsubscribe: {
     buffer: Uint8Array,
     flags: number,
     codecOpts: CodecOpts,
+    packetType: TPacketType,
   ): UnsubscribePacket {
     if (codecOpts.protocolLevel === 5) {
       throw new DecoderError("Invalid protocol version");
@@ -52,7 +54,7 @@ export const unsubscribe: {
     if (!booleanFlag(flags, BitMask.bit1)) {
       throw new DecoderError("Invalid header");
     }
-    const decoder = new Decoder(buffer);
+    const decoder = new Decoder( packetType,buffer);
     const id = decoder.getInt16();
 
     const topicFilters: Topic[] = [];

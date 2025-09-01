@@ -1,5 +1,5 @@
 import { PacketType } from "./PacketType.ts";
-import { isEmptyBuf } from "./decoder.ts";
+import { hasEmptyFlags, isEmptyBuf } from "./decoder.ts";
 import type { CodecOpts, ProtocolLevel, TPacketType } from "./types.ts";
 
 /**
@@ -17,8 +17,9 @@ export const pingres: {
   encode(packet: PingresPacket, _codecOpts: CodecOpts): Uint8Array;
   decode(
     buffer: Uint8Array,
-    _flags: number,
-    _codecOpts: CodecOpts,
+    flags: number,
+    codecOpts: CodecOpts,
+    _packetType: TPacketType
   ): PingresPacket;
 } = {
   encode(_packet: PingresPacket, _codecOpts: CodecOpts): Uint8Array {
@@ -27,9 +28,11 @@ export const pingres: {
 
   decode(
     buffer: Uint8Array,
-    _flags: number,
+    flags: number,
     codecOpts: CodecOpts,
+    _packetType: TPacketType
   ): PingresPacket {
+    hasEmptyFlags(flags);
     isEmptyBuf(buffer);
     return {
       type: PacketType.pingres,
