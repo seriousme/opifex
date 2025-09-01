@@ -19,7 +19,7 @@ export const pingres: {
     buffer: Uint8Array,
     flags: number,
     codecOpts: CodecOpts,
-    _packetType: TPacketType
+    _packetType: TPacketType,
   ): PingresPacket;
 } = {
   encode(_packet: PingresPacket, _codecOpts: CodecOpts): Uint8Array {
@@ -30,7 +30,7 @@ export const pingres: {
     buffer: Uint8Array,
     flags: number,
     codecOpts: CodecOpts,
-    _packetType: TPacketType
+    _packetType: TPacketType,
   ): PingresPacket {
     hasEmptyFlags(flags);
     isEmptyBuf(buffer);

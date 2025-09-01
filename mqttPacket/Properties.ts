@@ -172,6 +172,9 @@ export const PropertyByPropertySetType = {
     propertyToId.subscriptionIdentifier,
     propertyToId.userProperty,
   ],
+  [PropertySetType.unsubscribe]: [
+    propertyToId.userProperty,
+  ],
 
   [PropertySetType.disconnect]: [
     propertyToId.sessionExpiryInterval,
@@ -211,9 +214,7 @@ export const PropertyByPropertySetType = {
   ],
   [PropertySetType.pingreq]: [],
   [PropertySetType.pingres]: [],
-  [PropertySetType.unsubscribe]: [
-    propertyToId.userProperty,
-  ],
+
   [PropertySetType.will]: [
     propertyToId.payloadFormatIndicator,
     propertyToId.messageExpiryInterval,

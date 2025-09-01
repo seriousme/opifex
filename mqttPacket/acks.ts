@@ -78,7 +78,7 @@ export const anyAck: {
     codecOpts: CodecOpts,
     packetType: TPacketType,
   ): AnyAckPacket {
-    const decoder = new Decoder( packetType,buffer);
+    const decoder = new Decoder(packetType, buffer);
     const id = decoder.getInt16();
     if (codecOpts.protocolLevel !== 5) {
       decoder.done();

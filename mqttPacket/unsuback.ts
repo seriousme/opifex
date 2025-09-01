@@ -60,9 +60,9 @@ export const unsuback: {
     buffer: Uint8Array,
     _flags: number,
     codecOpts: CodecOpts,
-    packetType: TPacketType
+    packetType: TPacketType,
   ): UnsubackPacket {
-    const decoder = new Decoder( packetType,buffer);
+    const decoder = new Decoder(packetType, buffer);
     const id = decoder.getInt16();
     if (codecOpts.protocolLevel === 5) {
       const properties = decoder.getProperties(PacketType.unsuback);

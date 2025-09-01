@@ -109,7 +109,7 @@ export const subscribe: {
     if (flags !== 0b0010) {
       throw new DecoderError("Invalid header");
     }
-    const decoder = new Decoder( packetType,buffer);
+    const decoder = new Decoder(packetType, buffer);
     const id = decoder.getInt16();
     let properties = {};
     if (codecOpts.protocolLevel === 5) {

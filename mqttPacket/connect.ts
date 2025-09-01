@@ -165,7 +165,7 @@ export const connect: {
     _codecOpts: CodecOpts,
     packetType: TPacketType,
   ): ConnectPacket {
-    const decoder = new Decoder( packetType,buffer);
+    const decoder = new Decoder(packetType, buffer);
     const protocolName = decoder.getUTF8String();
     const protocolLevel = decoder.getByte();
     if (invalidProtocolName(protocolLevel, protocolName)) {

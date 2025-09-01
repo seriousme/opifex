@@ -97,7 +97,7 @@ export const publish: {
       throw new DecoderError("Invalid qos for possible duplicate");
     }
 
-    const decoder = new Decoder( packetType,buffer);
+    const decoder = new Decoder(packetType, buffer);
     const topic = decoder.getTopic();
 
     let id = 0;

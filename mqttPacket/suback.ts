@@ -70,10 +70,10 @@ export const suback: {
     buffer: Uint8Array,
     _flags: number,
     codecOpts: CodecOpts,
-    packetType: TPacketType
+    packetType: TPacketType,
   ): SubackPacket {
     const packet = {} as SubackPacket;
-    const decoder = new Decoder( packetType,buffer);
+    const decoder = new Decoder(packetType, buffer);
     packet.type = PacketType.suback;
     packet.id = decoder.getInt16();
     packet.protocolLevel = codecOpts.protocolLevel;
