@@ -2,6 +2,7 @@ import type {
   Topic,
   TopicFilter,
   TPacketType,
+  TReasonCode,
   UTF8StringPair,
 } from "./types.ts";
 
@@ -23,6 +24,7 @@ import {
 
 import { encodeLength } from "./length.ts";
 import { invalidTopic, invalidTopicFilter } from "./validators.ts";
+import { isValidReasonCode } from "./ReasonCode.ts";
 
 const utf8Encoder = new TextEncoder();
 /**
@@ -301,6 +303,16 @@ export class Encoder {
       }
     }
     propsEncoder.addToEncoder(this);
+  }
+
+  setReasonCode(reasonCode: TReasonCode) {
+    if (!isValidReasonCode(this.packetType, reasonCode)) {
+      throw new EncoderError(
+        `Reason code ${reasonCode} not allowed for packet type ${this.packetType}`,
+      );
+    }
+    this.setByte(reasonCode);
+    return this;
   }
 
   /**

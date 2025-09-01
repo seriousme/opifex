@@ -62,7 +62,7 @@ export const anyAck: {
       if (reasonCode === 0 && !packet.properties) {
         return encoder.done(flags);
       }
-      encoder.setByte(reasonCode);
+      encoder.setReasonCode(reasonCode);
       encoder.setProperties(
         packet.properties || {},
         packet.type,
@@ -96,8 +96,8 @@ export const anyAck: {
         reasonCode: 0,
       };
     }
-    const reasonCode = decoder.getByte() as TReasonCode;
-    const properties = decoder.getProperties(PacketType.puback);
+    const reasonCode = decoder.getReasonCode(packetType);
+    const properties = decoder.getProperties(packetType);
     return {
       type: packetType,
       protocolLevel: 5,

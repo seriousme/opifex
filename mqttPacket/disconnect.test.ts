@@ -1,7 +1,6 @@
-import { PacketType } from "./PacketType.ts";
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { decode, encode, MQTTLevel } from "./mod.ts";
+import { decode, encode, MQTTLevel, PacketType, ReasonCode } from "./mod.ts";
 import type { CodecOpts } from "./mod.ts";
 
 const codecOptsV4: CodecOpts = {
@@ -16,60 +15,85 @@ const codecOptsV5: CodecOpts = {
   maxOutgoingPacketSize: 0xffff,
 };
 
-test("encode Disconnect V4", () => {
+test("encode/decode Disconnect V4", () => {
+  const packet = {
+    type: PacketType.disconnect,
+    protocolLevel: MQTTLevel.v4,
+  };
+  const encoded = encode({
+    type: PacketType.disconnect,
+    protocolLevel: MQTTLevel.v4,
+  }, codecOptsV4);
   assert.deepStrictEqual(
-    encode({
-      type: PacketType.disconnect,
-      protocolLevel: MQTTLevel.v4,
-    }, codecOptsV4),
+    encoded,
     Uint8Array.from([
       // fixedHeader
       224, // packetType + flags
       0, // remainingLength
     ]),
   );
-});
-
-test("encode/decode short Disconnect V5", () => {
-  const packet = {
-    type: PacketType.disconnect,
-    protocolLevel: MQTTLevel.v5,
-    reasonCode: 0,
-  };
-
-  const buf = Uint8Array.from([
-    // fixedHeader
-    224, // packetType + flags
-    0, // remainingLength
-  ]);
+  const decoded = decode(encoded, codecOptsV4);
   assert.deepStrictEqual(
-    encode(packet, codecOptsV5),
-    buf,
-  );
-  assert.deepStrictEqual(
-    decode(buf, codecOptsV5),
+    decoded,
     packet,
   );
 });
 
-test("decode Disconnect V4", () => {
-  assert.deepStrictEqual(
-    decode(
-      Uint8Array.from([
-        // fixedHeader
-        224, // packetType + flags
-        0, // remainingLength
-      ]),
-      codecOptsV4,
-    ),
-    {
-      type: PacketType.disconnect,
-      protocolLevel: MQTTLevel.v4,
+test("encode/decode Disconnect V5", () => {
+  const packet = {
+    type: PacketType.disconnect,
+    protocolLevel: MQTTLevel.v5,
+    reasonCode: ReasonCode.success,
+    properties: {
+      reasonString: "reason",
     },
+  };
+
+  const encoded = encode(packet, codecOptsV5);
+  assert.deepStrictEqual(
+    encoded,
+    Uint8Array.from([
+      // fixedHeader
+      224, // packetType + flags
+      11, // remaining length
+      0, // reasoncode
+      9, // property length
+      31, //reason string
+      0, // string MSB
+      6, // string LSB
+      114, // r
+      101, // e
+      97, // a
+      115, // s
+      111, // o
+      110, // n
+    ]),
   );
+  const decoded = decode(encoded, codecOptsV5);
+  assert.deepStrictEqual(decoded, packet);
 });
 
-test("decode invalid Disconnect", () => {
+test("encode/decode Short Disconnect V5", () => {
+  const packet = {
+    type: PacketType.disconnect,
+    protocolLevel: MQTTLevel.v5,
+    reasonCode: ReasonCode.success,
+  };
+
+  const encoded = encode(packet, codecOptsV5);
+  assert.deepStrictEqual(
+    encoded,
+    Uint8Array.from([
+      // fixedHeader
+      224, // packetType + flags
+      0, // remainingLength
+    ]),
+  );
+  const decoded = decode(encoded, codecOptsV5);
+  assert.deepStrictEqual(decoded, packet);
+});
+
+test("decode invalid Disconnect v4", () => {
   assert.throws(
     () =>
       decode(
@@ -84,5 +108,22 @@ test("decode invalid Disconnect", () => {
       ),
     Error,
     "too long",
+  );
+});
+
+test("decode invalid Disconnect V5, invalid reasonCode", () => {
+  assert.throws(
+    () =>
+      decode(
+        Uint8Array.from([
+          // fixedHeader
+          224, // packetType + flags
+          2, // remainingLength
+          ReasonCode.grantedQos1, // reason code
+          0, // properties
+        ]),
+        codecOptsV5,
+      ),
+    /Invalid reason code/,
   );
 });

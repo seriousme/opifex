@@ -229,6 +229,7 @@ const reasonCodesToString = {
 // Can't import this from types as this would create an import loop
 type TPacketType = typeof PacketType[keyof typeof PacketType];
 export type TReasonCode = typeof ReasonCode[keyof typeof ReasonCode];
+type TReasonCodeByPacket = keyof typeof ReasonCodebyPacket;
 
 export function reasonCodeToString(
   packetType: TPacketType,
@@ -243,4 +244,13 @@ export function reasonCodeToString(
     }
   }
   return reasonCodesToString[code];
+}
+
+export function isValidReasonCode(
+  packetType: TPacketType,
+  code: number,
+): boolean {
+  const validReasonCodes =
+    ReasonCodebyPacket[packetType as TReasonCodeByPacket] as readonly number[];
+  return validReasonCodes.includes(code);
 }

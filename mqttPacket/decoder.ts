@@ -1,5 +1,13 @@
-import type { TBitMask, Topic, TopicFilter, UTF8StringPair } from "./types.ts";
+import type {
+  TBitMask,
+  Topic,
+  TopicFilter,
+  TPacketType,
+  TReasonCode,
+  UTF8StringPair,
+} from "./types.ts";
 import { invalidTopic, invalidTopicFilter } from "./validators.ts";
+import { isValidReasonCode } from "./ReasonCode.ts";
 import type {
   Mqttv5PropertyTypesNoUser,
   PropsByPacketSetType,
@@ -208,6 +216,11 @@ export class Decoder {
     return this.buf.subarray(start, end);
   }
 
+  /**
+   * Gets a single property
+   * @param id
+   * @returns
+   */
   private getProperty(
     id: ValidPropertyNumber,
   ): Mqttv5PropertyTypesNoUser {
@@ -231,6 +244,13 @@ export class Decoder {
     throw new DecoderError("Invalid property kind");
   }
 
+  /**
+   * Gets all properties from the buffer
+   * and validates if they are allowed for this type of packet
+   * @param propertySetType
+   * @returns
+   * @throws {DecoderError} If properties are invalid
+   */
   getProperties<T extends keyof PropsByPacketSetType>(
     propertySetType: T,
   ): PropsByPacketSetType[T] {
@@ -268,6 +288,21 @@ export class Decoder {
     }
     return properties;
   }
+
+  /**
+   * Gets a reason code from the buffer
+   * @param packetType
+   * @returns The decoded reason code
+   * @throws {DecoderError} If reason code is invalid
+   */
+  getReasonCode(packetType: TPacketType): TReasonCode {
+    const reasonCode = this.getByte();
+    if (!isValidReasonCode(packetType, reasonCode)) {
+      throw new DecoderError("Invalid reason code");
+    }
+    return reasonCode as TReasonCode;
+  }
+
   /**
    * Checks if decoder has reached the end of the buffer
    * @returns True if at end, false otherwise

@@ -1,9 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { PacketType } from "./PacketType.ts";
-import { decode, encode, MQTTLevel } from "./mod.ts";
-import type { CodecOpts } from "./mod.ts";
-import type { ConnackPacket } from "./connack.ts";
+import { decode, encode, MQTTLevel, PacketType, ReasonCode } from "./mod.ts";
+import type { CodecOpts, ConnackPacket } from "./mod.ts";
 
 const codecOptsV4: CodecOpts = {
   protocolLevel: MQTTLevel.v4,
@@ -17,55 +15,39 @@ const codecOptsV5: CodecOpts = {
   maxOutgoingPacketSize: 0xffff,
 };
 
-test("encode Connack packet", () => {
+test("encode/decode Connack packet v4", () => {
+  const packet = {
+    type: PacketType.connack,
+    protocolLevel: MQTTLevel.v4,
+    sessionPresent: false,
+    returnCode: 0,
+  };
+  const encoded = encode(packet, codecOptsV4);
   assert.deepStrictEqual(
-    encode({
-      type: PacketType.connack,
-      protocolLevel: MQTTLevel.v4,
-      sessionPresent: false,
-      returnCode: 0,
-    }, codecOptsV4),
-    Uint8Array.from([
+    encoded,
+    Uint8Array.from(Uint8Array.from([
       // fixedHeader
       0x20, // packetType + flags
       2, // remainingLength
       // variableHeader
       0, // connack flags
       0, // return code
-    ]),
+    ])),
   );
+  const decoded = decode(encoded, codecOptsV4);
+  assert.deepStrictEqual(decoded, packet);
 });
 
-test("decode Connack packet", () => {
+test("encode/decode Connack with session present v4", () => {
+  const packet = {
+    type: PacketType.connack,
+    protocolLevel: MQTTLevel.v4,
+    sessionPresent: true,
+    returnCode: 0,
+  };
+  const encoded = encode(packet, codecOptsV4);
   assert.deepStrictEqual(
-    decode(
-      Uint8Array.from([
-        // fixedHeader
-        0x20, // packetType + flags
-        2, // remainingLength
-        // variableHeader
-        0, // connack flags
-        0, // return code
-      ]),
-      codecOptsV4,
-    ),
-    {
-      protocolLevel: 4,
-      type: PacketType.connack,
-      sessionPresent: false,
-      returnCode: 0,
-    },
-  );
-});
-
-test("encode Connack with session present", () => {
-  assert.deepStrictEqual(
-    encode({
-      type: PacketType.connack,
-      protocolLevel: 4,
-      sessionPresent: true,
-      returnCode: 0,
-    }, codecOptsV4),
+    encoded,
     Uint8Array.from([
       // fixedHeader
       0x20, // packetType + flags
@@ -75,29 +57,8 @@ test("encode Connack with session present", () => {
       0, // return code
     ]),
   );
-});
-
-test("decode Connack with session present", () => {
-  assert
-    .deepStrictEqual(
-      decode(
-        Uint8Array.from([
-          // fixedHeader
-          0x20, // packetType + flags
-          2, // remainingLength
-          // variableHeader
-          1, // connack flags (sessionPresent)
-          0, // return code
-        ]),
-        codecOptsV4,
-      ),
-      {
-        type: PacketType.connack,
-        protocolLevel: 4,
-        sessionPresent: true,
-        returnCode: 0,
-      },
-    );
+  const decoded = decode(encoded, codecOptsV4);
+  assert.deepStrictEqual(decoded, packet);
 });
 
 test("decode Connack with non-zero returnCode", () => {
@@ -160,7 +121,7 @@ test("encode/decode connack v5", () => {
     protocolLevel: 5,
     type: PacketType.connack,
     sessionPresent: false,
-    reasonCode: 0x01,
+    reasonCode: ReasonCode.badUserNameOrPassword,
     properties: {
       userProperty: [["key", "value"]],
     },
@@ -175,7 +136,7 @@ test("encode/decode connack v5 as v4", () => {
     protocolLevel: 5,
     type: PacketType.connack,
     sessionPresent: false,
-    reasonCode: 0x01,
+    reasonCode: ReasonCode.banned,
     properties: {
       userProperty: [["key", "value"]],
     },

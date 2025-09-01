@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { decode, encode, MQTTLevel, PacketType } from "./mod.ts";
-import type { CodecOpts, TPacketType } from "./mod.ts";
+import { decode, encode, MQTTLevel, PacketType, ReasonCode } from "./mod.ts";
+import type { CodecOpts, TPacketType, TReasonCode } from "./mod.ts";
 
 const codecOptsV4: CodecOpts = {
   protocolLevel: MQTTLevel.v4,
@@ -17,13 +17,17 @@ const codecOptsV5: CodecOpts = {
 };
 
 const packetTypesToTest = [
-  [PacketType.puback, "Puback"],
-  [PacketType.pubrec, "Pubrec"],
-  [PacketType.pubrel, "Pubrel"],
-  [PacketType.pubcomp, "Pubcomp"],
+  [PacketType.puback, "Puback", ReasonCode.packetIdentifierInUse],
+  [PacketType.pubrec, "Pubrec", ReasonCode.packetIdentifierInUse],
+  [PacketType.pubrel, "Pubrel", ReasonCode.packetIdentifierNotFound],
+  [PacketType.pubcomp, "Pubcomp", ReasonCode.packetIdentifierNotFound],
 ];
 for (const item of packetTypesToTest) {
-  const [ackType, label] = item as [TPacketType, string];
+  const [ackType, label, reasonCode] = item as [
+    TPacketType,
+    string,
+    TReasonCode,
+  ];
   const ackTypeByte = ackType << 4;
   test(`encode/decode ${label} v4`, () => {
     const packet = {
@@ -52,7 +56,7 @@ for (const item of packetTypesToTest) {
       type: ackType,
       protocolLevel: MQTTLevel.v5,
       id: 1337,
-      reasonCode: 12,
+      reasonCode,
       properties: { reasonString: "test" },
     };
     const encoded = encode(packet, codecOptsV5);
@@ -65,7 +69,7 @@ for (const item of packetTypesToTest) {
         // variableHeader
         5, // id MSB
         57, // id LSB
-        12, // reasonCode
+        reasonCode, // reasonCode
         // properties
         7, // propertyLength
         31, // reasonString

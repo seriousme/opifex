@@ -1,9 +1,14 @@
 import { PacketType } from "./PacketType.ts";
 import { Decoder, isEmptyBuf } from "./decoder.ts";
-import type { CodecOpts, ProtocolLevelNoV5, TPacketType } from "./types.ts";
+import type {
+  CodecOpts,
+  ProtocolLevelNoV5,
+  TPacketType,
+  TReasonCode,
+} from "./types.ts";
 import type { DisconnectProperties } from "./Properties.ts";
-import type { TReasonCode } from "./ReasonCode.ts";
 import { Encoder } from "./encoder.ts";
+import { ReasonCode } from "./ReasonCode.ts";
 
 /**
  * DisconnectPacket is the final control packet sent from the client to the server.
@@ -17,7 +22,7 @@ export type DisconnectPacketv4 = {
 export type DisconnectPacketv5 = {
   type: TPacketType;
   protocolLevel: 5;
-  reasonCode: number;
+  reasonCode: TReasonCode;
   properties?: DisconnectProperties;
 };
 
@@ -37,7 +42,7 @@ export const disconnect: {
     if (packet.protocolLevel !== 5) {
       return DISCONNECT_PACKET;
     }
-    const reasonCode = packet.reasonCode || 0;
+    const reasonCode = packet.reasonCode || ReasonCode.success;
     const encoder = new Encoder(packet.type);
     // see MQTT v5 3.14.2.1
     // if remaining length is less than 1 the value of 0x00 (normal disconnect) is used.
@@ -45,7 +50,7 @@ export const disconnect: {
       return encoder.done(0);
     }
     encoder
-      .setByte(reasonCode);
+      .setReasonCode(reasonCode);
     if (packet.properties) {
       encoder.setProperties(
         packet.properties,
@@ -72,8 +77,8 @@ export const disconnect: {
         reasonCode: 0,
       };
     }
-    const reasonCode = decoder.getByte() as TReasonCode;
-    const properties = decoder.getProperties(PacketType.connack);
+    const reasonCode = decoder.getReasonCode(PacketType.disconnect);
+    const properties = decoder.getProperties(PacketType.disconnect);
     decoder.done();
     return {
       type: PacketType.disconnect,

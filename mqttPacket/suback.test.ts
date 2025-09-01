@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { decode, encode, MQTTLevel, PacketType } from "./mod.ts";
+import { decode, encode, MQTTLevel, PacketType, ReasonCode } from "./mod.ts";
 import type { CodecOpts } from "./mod.ts";
 
 const codecOptsV4: CodecOpts = {
@@ -46,7 +46,7 @@ test("encode/decode Suback v5", () => {
     type: PacketType.suback,
     protocolLevel: MQTTLevel.v5,
     id: 1,
-    returnCodes: [0, 1],
+    reasonCodes: [ReasonCode.grantedQos0, ReasonCode.grantedQos1],
     properties: {
       reasonString: "reason",
       userProperty: [["test", "test"]],

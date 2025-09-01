@@ -433,7 +433,7 @@ test("encode/decode MQTTv5", () => {
       sessionExpiryInterval: 1234,
       receiveMaximum: 432,
       maximumPacketSize: 100,
-      topicAliasMaximum: 456,
+      topicAliasMaximum: 133,
       requestResponseInformation: true,
       requestProblemInformation: true,
       userProperty: [["test", "test"]],
@@ -445,7 +445,7 @@ test("encode/decode MQTTv5", () => {
 
   const buf = Uint8Array.from([
     16,
-    125, // Header
+    124, // Header
     0,
     4, // Protocol ID length
     77,
@@ -456,27 +456,35 @@ test("encode/decode MQTTv5", () => {
     54, // Connect flags
     0,
     30, // Keepalive
-    47, // properties length
-    17,
+    46, // properties length
+    17, // sessionExpiryInterval, 4 bytes
     0,
     0,
     4,
-    210, // sessionExpiryInterval
-    33,
+    210,
+    21, // authenticationMethod, string 4 char
+    0,
+    4,
+    116,
+    101,
+    115,
+    116,
+    22, // authenticationData, string 4 char
+    0,
+    4,
     1,
-    176, // receiveMaximum
-    39,
-    0,
-    0,
-    0,
-    100, // maximumPacketSize
-    34,
+    2,
+    3,
+    4,
+    23, // requestProblemInformation, boolean
     1,
-    200, // topicAliasMaximum
-    25,
-    1, // requestResponseInformation
-    23,
-    1, // requestProblemInformation,
+    25, // requestResponseInformation, boolean
+    1,
+    33, // receiveMaximum 2 bytes
+    1,
+    176,
+    34, // topicAliasMaximum 1 byte
+    133,
     38,
     0,
     4,
@@ -489,47 +497,33 @@ test("encode/decode MQTTv5", () => {
     116,
     101,
     115,
-    116, // userProperties,
-    21,
+    116,
+    39, // maximumPacketSize 4 bytes
+    0,
+    0,
+    0,
+    100,
     0,
     4,
     116,
     101,
     115,
-    116, // authenticationMethod
-    22,
-    0,
-    4,
-    1,
-    2,
-    3,
-    4, // authenticationData
-    0,
-    4, // Client ID length
     116,
-    101,
-    115,
-    116, // Client ID
-    47, // will properties
-    24,
-    0,
-    0,
-    4,
-    210, // will delay interval
+    47,
     1,
-    0, // payload format indicator
+    0,
     2,
     0,
     0,
     16,
-    225, // message expiry interval
+    225,
     3,
     0,
     4,
     116,
     101,
     115,
-    116, // content type
+    116,
     8,
     0,
     5,
@@ -537,15 +531,20 @@ test("encode/decode MQTTv5", () => {
     111,
     112,
     105,
-    99, // response topic
+    99,
     9,
     0,
     4,
     1,
     2,
     3,
-    4, // corelation data
-    38,
+    4,
+    24,
+    0,
+    0,
+    4,
+    210,
+    38, // userProperties, stringpair 2x 4 bytes
     0,
     4,
     116,
@@ -557,22 +556,22 @@ test("encode/decode MQTTv5", () => {
     116,
     101,
     115,
-    116, // user properties
-    0,
-    5, // Will topic length
+    116,
+    0, // will topic
+    5,
     116,
     111,
     112,
     105,
-    99, // Will topic
-    0,
-    4, // Will payload length
+    99,
+    0, // will payload
+    4,
     4,
     3,
     2,
-    1, // Will payload
+    1,
   ]);
   const encoded = encode(packet, codecOptsUnknown);
+  assert.deepStrictEqual(buf, encoded);
   assert.deepStrictEqual(decode(encoded, codecOptsUnknown), packet);
-  assert.deepStrictEqual(decode(buf, codecOptsUnknown), packet);
 });

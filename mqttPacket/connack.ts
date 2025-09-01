@@ -39,7 +39,7 @@ export const connack: {
     buffer: Uint8Array,
     _flags: number,
     codecOpts: CodecOpts,
-  ): ConnackPacket | undefined;
+  ): ConnackPacket;
 } = {
   encode(packet: ConnackPacket, codecOpts: CodecOpts): Uint8Array {
     if (packet.protocolLevel !== 5) {
@@ -53,7 +53,7 @@ export const connack: {
     const encoder = new Encoder(packet.type);
     encoder
       .setByte(packet.sessionPresent ? 1 : 0)
-      .setByte(packet.reasonCode || 0)
+      .setReasonCode(packet.reasonCode || 0)
       .setProperties(
         packet.properties || {},
         packet.type,
@@ -66,7 +66,7 @@ export const connack: {
     buffer: Uint8Array,
     _flags: number,
     codecOpts: CodecOpts,
-  ): ConnackPacket | undefined {
+  ): ConnackPacket {
     const decoder = new Decoder(buffer);
 
     if (codecOpts.protocolLevel !== 5) {
@@ -84,7 +84,7 @@ export const connack: {
       };
     }
     const sessionPresent = booleanFlag(decoder.getByte(), BitMask.bit0);
-    const reasonCode = decoder.getByte() as TReasonCode;
+    const reasonCode = decoder.getReasonCode(PacketType.connack);
     const properties = decoder.getProperties(PacketType.connack);
     decoder.done();
     return {
