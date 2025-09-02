@@ -7,7 +7,7 @@ import {
   PacketType,
 } from "../../mqttPacket/mod.ts";
 import { AsyncQueue, nextTick } from "../../utils/mod.ts";
-import { MqttConn } from "../deps.ts";
+import { MqttConn, MQTTLevel } from "../deps.ts";
 import { MqttServer } from "../mod.ts";
 import { handlers } from "./test-handlers.ts";
 
@@ -28,6 +28,7 @@ const connectPacket: AnyPacket = {
 
 const disconnectPacket: AnyPacket = {
   type: PacketType.disconnect,
+  protocolLevel: MQTTLevel.v4,
 };
 
 const mqttServer = new MqttServer({ handlers });

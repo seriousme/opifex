@@ -5,7 +5,7 @@ import {
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { PacketType } from "../deps.ts";
+import { MQTTLevel, PacketType } from "../deps.ts";
 import type { PublishPacket } from "../deps.ts";
 
 const payloadAny = new TextEncoder().encode("any");
@@ -40,6 +40,7 @@ test("pub/sub should work", async () => {
   const topic = "/myTopic";
   const publishPacket: PublishPacket = {
     type: PacketType.publish,
+    protocolLevel: MQTTLevel.v4,
     id: 1,
     topic,
     payload: payloadAny,
@@ -78,6 +79,7 @@ test("many packets should work", async () => {
   const numMessages = 1000;
   const publishPacket: PublishPacket = {
     type: PacketType.publish,
+    protocolLevel: MQTTLevel.v4,
     id: 1,
     topic,
     payload: payloadAny,
@@ -124,6 +126,7 @@ test("unsubscribe should work", () => {
   const topic = "/myTopic";
   const publishPacket: PublishPacket = {
     type: PacketType.publish,
+    protocolLevel: MQTTLevel.v4,
     id: 1,
     topic,
     payload: payloadAny,

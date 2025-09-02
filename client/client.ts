@@ -37,9 +37,15 @@ export type ConnectParameters = {
 };
 
 /** PublishParameters define how a message should be published */
-export type PublishParameters = Omit<PublishPacket, "type" | "id">;
+export type PublishParameters = Omit<
+  PublishPacket,
+  "type" | "id" | "protocolLevel"
+>;
 /** SubscribeParameters define how to subscribe to a topic */
-export type SubscribeParameters = Omit<SubscribePacket, "type" | "id">;
+export type SubscribeParameters = Omit<
+  SubscribePacket,
+  "type" | "id" | "protocolLevel"
+>;
 
 /**
  * Implements exponential backoff sleep with optional randomization
@@ -188,6 +194,7 @@ export class Client {
     );
     this.connectPacket = {
       type: PacketType.connect,
+      protocolLevel: this.ctx.protocolLevel,
       ...options,
     };
     const deferred = new Deferred<TAuthenticationResult>();
@@ -212,6 +219,7 @@ export class Client {
   async publish(params: PublishParameters): Promise<void> {
     const packet: PublishPacket = {
       type: PacketType.publish,
+      protocolLevel: this.ctx.protocolLevel,
       ...params,
     };
     await this.ctx.publish(packet);
@@ -226,6 +234,7 @@ export class Client {
     const packet: SubscribePacket = {
       type: PacketType.subscribe,
       id: 0, //placeholder
+      protocolLevel: this.ctx.protocolLevel,
       ...params,
     };
     await this.ctx.subscribe(packet);

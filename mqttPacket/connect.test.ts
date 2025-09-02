@@ -24,7 +24,7 @@ test("encode Connect with ClientId", () => {
       type: PacketType.connect,
       protocolLevel: MQTTLevel.v4,
       clientId: "id",
-    }, codecOptsV4),
+    }, codecOptsUnknown),
     Uint8Array.from([
       // fixedHeader
       16, // packetType + flags
@@ -57,7 +57,7 @@ test("encode Connect with Clean false", () => {
       protocolLevel: MQTTLevel.v4,
       clientId: "id",
       clean: false,
-    }, codecOptsV4),
+    }, codecOptsUnknown),
     Uint8Array.from([
       // fixedHeader
       16, // packetType + flags

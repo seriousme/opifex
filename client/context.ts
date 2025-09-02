@@ -71,10 +71,10 @@ export class Context {
     }
     if (this.mqttConn) {
       this.connectionState = ConnectionState.disconnecting;
-      await this.mqttConn.send({ 
+      await this.mqttConn.send({
         type: PacketType.disconnect,
-        protocolLevel: this.protocolLevel
-       });
+        protocolLevel: this.protocolLevel,
+      });
       this.mqttConn.close();
       this.protocolLevel = MQTTLevel.unknown;
     }
@@ -96,10 +96,10 @@ export class Context {
   }
 
   sendPing() {
-    this.send({ 
+    this.send({
       type: PacketType.pingreq,
-      protocolLevel:this.protocolLevel
-     });
+      protocolLevel: this.protocolLevel,
+    });
   }
 
   async handleConnection(

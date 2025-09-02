@@ -1,9 +1,7 @@
-import type { CodecOpts, TAuthenticationResult, TPacketType } from "./types.ts";
+import type { CodecOpts, TPacketType } from "./types.ts";
 import { PacketType } from "./PacketType.ts";
-import { BitMask } from "./BitMask.ts";
 import { Encoder, EncoderError } from "./encoder.ts";
-import { booleanFlag, Decoder, DecoderError } from "./decoder.ts";
-import { AuthenticationResultByNumber } from "./AuthenticationResult.ts";
+import { Decoder, DecoderError } from "./decoder.ts";
 import type { TReasonCode } from "./ReasonCode.ts";
 import type { AuthProperties } from "./Properties.ts";
 

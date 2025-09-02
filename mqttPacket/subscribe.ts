@@ -27,7 +27,7 @@ export type SubscribePacketV5 = {
   type: TPacketType;
   protocolLevel: 5;
   id: PacketId;
-  properties: SubscribeProperties;
+  properties?: SubscribeProperties;
   subscriptions: Array<SubscriptionV5>;
 };
 

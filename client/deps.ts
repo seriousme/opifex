@@ -17,6 +17,7 @@ export type {
   SubscribePacket,
   TAuthenticationResult,
   Topic,
+  TReasonCode,
   UnsubackPacket,
   UnsubscribePacket,
 } from "../mqttPacket/mod.ts";
@@ -29,6 +30,7 @@ export {
   MQTTLevel,
   PacketNameByType,
   PacketType,
+  ReasonCodeByNumber,
 } from "../mqttPacket/mod.ts";
 
 export { MqttConn } from "../mqttConn/mqttConn.ts";

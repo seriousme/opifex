@@ -261,6 +261,7 @@ export const connect: {
     }
     return {
       ...commonProps,
+      protocolLevel: protocolLevel as ProtocolLevel,
       will: willFlag
         ? {
           topic: willTopic || "",
