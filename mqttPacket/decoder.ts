@@ -267,7 +267,7 @@ export class Decoder {
       const label = propertyByNumber[id];
       if (!(allowedProps as readonly number[]).includes(id)) {
         throw new DecoderError(
-          `Property type ${label ? label : id} not allowed`,
+          `Property type ${label ? label : id} not allowed at byte ${this.pos}`,
         );
       }
       if (label !== "userProperty") {

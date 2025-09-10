@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { makeDummySockConn } from "../dev_utils/mod.ts";
-import { decode, encode, MQTTLevel, PacketType } from "../mqttPacket/mod.ts";
+import { encode, MQTTLevel, PacketType } from "../mqttPacket/mod.ts";
 import { MqttConn, MqttConnError } from "./mqttConn.ts";
 import type { AnyPacket, CodecOpts } from "../mqttPacket/mod.ts";
 
@@ -46,7 +46,7 @@ const disconnectPacket: AnyPacket = {
 };
 
 test("MqttConn should act as asyncIterator", async () => {
-  const connect = encode(connectPacket, codecOptsV4);
+  const connect = encode(connectPacket, codecOptsUnknown);
   const publish = encode(publishPacket, codecOptsV4);
   const disconnect = encode(disconnectPacket, codecOptsV4);
 
