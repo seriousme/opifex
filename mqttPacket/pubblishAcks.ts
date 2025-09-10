@@ -6,7 +6,7 @@ import type {
 } from "./types.ts";
 import type { TReasonCode } from "./ReasonCode.ts";
 import type { PubackProperties } from "./Properties.ts";
-import { PacketType } from "./PacketType.ts";
+import type { PacketType } from "./PacketType.ts";
 import { Decoder } from "./decoder.ts";
 import { Encoder } from "./encoder.ts";
 

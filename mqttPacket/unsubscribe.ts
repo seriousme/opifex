@@ -8,9 +8,8 @@ import type {
 } from "./types.ts";
 import type { UnsubscribeProperties } from "./Properties.ts";
 import { PacketType } from "./PacketType.ts";
-import { BitMask } from "./BitMask.ts";
 import { Encoder } from "./encoder.ts";
-import { booleanFlag, Decoder, DecoderError } from "./decoder.ts";
+import { Decoder, DecoderError } from "./decoder.ts";
 
 /**
  * UnsubscribePacket is sent from client to server to unsubscribe from topics
