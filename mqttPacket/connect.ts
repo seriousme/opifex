@@ -1,4 +1,5 @@
 import type {
+  BridgeMode,
   ClientId,
   CodecOpts,
   Payload,
@@ -27,6 +28,7 @@ export type ConnectPacketV4 = {
   type: TPacketType;
   protocolName?: string;
   protocolLevel: ProtocolLevelNoV5;
+  bridgeMode?: BridgeMode;
   clientId?: ClientId;
   username?: string;
   password?: Uint8Array;
@@ -44,6 +46,7 @@ export type ConnectPacketV5 = {
   type: TPacketType;
   protocolName?: string;
   protocolLevel: 5;
+  bridgeMode?: BridgeMode;
   clientId?: ClientId;
   username?: string;
   password?: Uint8Array;
@@ -89,6 +92,7 @@ export const connect: {
     if (protocolLevel < 3 || protocolLevel > 5) {
       throw new EncoderError("Unsupported protocol level");
     }
+    const bridgeMask = packet.bridgeMode ? 128 : 0;
     const protocolName = protocolLevel > 3 ? "MQTT" : "MQIsdp";
     const clientId = packet.clientId || "";
     const usernameFlag = packet.username !== undefined;
@@ -123,7 +127,7 @@ export const connect: {
     const encoder = new Encoder(packet.type);
     encoder
       .setUtf8String(protocolName)
-      .setByte(protocolLevel)
+      .setByte(protocolLevel + bridgeMask)
       .setByte(connectFlags)
       .setInt16(keepAlive);
     if (packet.protocolLevel === 5) {
@@ -167,7 +171,10 @@ export const connect: {
   ): ConnectPacket {
     const decoder = new Decoder(packetType, buffer);
     const protocolName = decoder.getUTF8String();
-    const protocolLevel = decoder.getByte();
+    const levelByte = decoder.getByte();
+    const bridgeMode = levelByte > 128;
+    const protocolLevel = bridgeMode ? levelByte - 128 : levelByte;
+
     if (invalidProtocolName(protocolLevel, protocolName)) {
       throw new DecoderError("Invalid protocol name");
     }
@@ -238,14 +245,19 @@ export const connect: {
       protocolName: protocolName,
       protocolLevel: protocolLevel as ProtocolLevel,
       clientId: clientId,
-      username: username ? username : undefined,
+      username,
       password: password ? password : undefined,
       clean: cleanSession,
       keepAlive,
     };
+    let bridgeProp = {};
+    if (bridgeMode) {
+      bridgeProp = { bridgeMode: true };
+    }
     if (isV5) {
       return {
         ...commonProps,
+        ...bridgeProp,
         protocolLevel: 5,
         will: willFlag
           ? {
@@ -261,6 +273,7 @@ export const connect: {
     }
     return {
       ...commonProps,
+      ...bridgeProp,
       protocolLevel: protocolLevel as ProtocolLevel,
       will: willFlag
         ? {
