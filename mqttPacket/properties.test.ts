@@ -19,7 +19,7 @@ test("encoder.setProperties encodes allowed properties for connect", () => {
     maximumPacketSize: 1024,
   };
   encoder.setProperties(props, PacketType.connect, 2048);
-  assert.equal(encoder.encodedSize(), 47);
+  assert.equal(encoder.encodedSize(), 48);
 });
 
 test("decoder.getProperties decodes allowed properties for connect", () => {

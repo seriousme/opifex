@@ -445,7 +445,7 @@ test("encode/decode MQTTv5", () => {
 
   const buf = Uint8Array.from([
     16,
-    124, // Header
+    125, // Header
     0,
     4, // Protocol ID length
     77,
@@ -456,7 +456,7 @@ test("encode/decode MQTTv5", () => {
     54, // Connect flags
     0,
     30, // Keepalive
-    46, // properties length
+    47, // properties length
     17, // sessionExpiryInterval, 4 bytes
     0,
     0,
@@ -483,7 +483,8 @@ test("encode/decode MQTTv5", () => {
     33, // receiveMaximum 2 bytes
     1,
     176,
-    34, // topicAliasMaximum 1 byte
+    34, // topicAliasMaximum 2 byte
+    0,
     133,
     38,
     0,

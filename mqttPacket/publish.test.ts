@@ -200,13 +200,13 @@ test("encode/decode Publish v5", () => {
     Uint8Array.from([
       // fixedHeader
       48, // packetType + flags
-      68, // remainingLength
+      69, // remainingLength
       0, // topic length MSB
       3, // topic length LSB
       97, // a
       47, // /
       98, // b
-      55, // propertyLength
+      56, // propertyLength
       1, // payload format indicator
       1, // true
       2, // message expiry interval (4 bytes)
@@ -244,6 +244,7 @@ test("encode/decode Publish v5", () => {
       11, // subscriptionIdentifier
       123, // 123
       35, // topicAlias
+      0,
       123,
       38, // userproperties
       0, // string length MSB
