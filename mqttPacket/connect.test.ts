@@ -268,49 +268,6 @@ test("encode Connect with username and password and will", () => {
   );
 });
 
-test("encode/decode bridgeMode", () => {
-  const packet = {
-    type: PacketType.connect,
-    protocolLevel: MQTTLevel.v4,
-    protocolName: "MQTT",
-    clientId: "id",
-    clean: false,
-    keepAlive: 0,
-    username: undefined,
-    password: undefined,
-    will: undefined,
-    bridgeMode: true,
-  };
-  const encoded = encode(packet, codecOptsUnknown);
-  assert.deepStrictEqual(
-    encoded,
-    Uint8Array.from([
-      // fixedHeader
-      16, // packetType + flags
-      14, // remainingLength
-      // variableHeader
-      0, // protocolNameLength MSB
-      4, // protocolNameLength LSB
-      77, // 'M'
-      81, // 'Q'
-      84, // 'T'
-      84, // 'T'
-      132, // protocolLevel
-      0, // connectFlags
-      0, // keepAlive MSB
-      0, // keepAlive LSB
-      // payload
-      // clientId
-      0, // length MSB
-      2, // length LSB
-      105, // 'i'
-      100, // 'd'
-    ]),
-  );
-  const decoded = decode(encoded, codecOptsUnknown);
-  assert.deepEqual(decoded, packet);
-});
-
 test("decode invalid Connect", () => {
   // Test packet with extra byte
   const longConnect = [...encodedConnect, 0];

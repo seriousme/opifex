@@ -59,12 +59,6 @@ export type TopicFilter = string;
 export type Dup = boolean;
 
 /**
- * BridgeMode (not in the MQTT standard but common practice)
- * if bridgeMode is set then 128 is added to protocolLevel during connect
- */
-export type BridgeMode = boolean;
-
-/**
  * Packet identifier, unique per client session
  */
 export type PacketId = number;

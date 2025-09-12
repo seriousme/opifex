@@ -37,9 +37,7 @@ function validateConnect(
   if (packet.protocolLevel !== 4) {
     return AuthenticationResult.unacceptableProtocol;
   }
-  if (packet.bridgeMode === true) {
-    return AuthenticationResult.unacceptableProtocol;
-  }
+ 
   return isAuthenticated(ctx, packet);
 }
 
