@@ -275,7 +275,7 @@ test("encode/decode bridgeMode", () => {
     protocolName: "MQTT",
     clientId: "id",
     clean: false,
-    keepAlive:0,
+    keepAlive: 0,
     username: undefined,
     password: undefined,
     will: undefined,
