@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { Encoder } from "./encoder.ts";
-import { Decoder } from "./decoder.ts";
+import { Decoder, DecoderError } from "./decoder.ts";
 import { PacketType } from "./PacketType.ts";
 
 test("encoder.setProperties encodes allowed properties for connect", () => {
@@ -73,7 +73,6 @@ test("decoder.getProperties decodes allowed properties for connack", () => {
 test("encoder.setProperties does not encode properties not allowed for packet type", () => {
   const encoder = new Encoder(PacketType.publish);
   const props = {
-    subscriptionIdentifier: 1,
     userProperty: [["key", "value"]],
     // Not allowed for publish
     sessionExpiryInterval: 60,
@@ -90,7 +89,6 @@ test("encoder.setProperties does not encode properties not allowed for packet ty
   const decoder = new Decoder(PacketType.publish, buf, 2);
   const decoded = decoder.getProperties(PacketType.publish);
   assert.deepStrictEqual(Object.keys(decoded), [
-    "subscriptionIdentifier",
     "userProperty",
   ]);
 });
@@ -148,7 +146,7 @@ test("decodeProperty throws on invalid property kind", () => {
   const encoder = new Encoder(PacketType.publish);
   // Manually encode an invalid property kind
   encoder.setVariableByteInteger(0x02); // propertyLength
-  encoder.setVariableByteInteger(0xFF); // Invalid property ID
+  encoder.setVariableByteInteger(0xF0); // Invalid property ID
   encoder.setByte(1);
 
   const buf = encoder.done(0);
@@ -156,7 +154,7 @@ test("decodeProperty throws on invalid property kind", () => {
 
   assert.throws(
     () => decoder.getProperties(PacketType.publish),
-    /Property type 255 not allowed/,
+    /Property type 240 not allowed/,
   );
 });
 
@@ -180,4 +178,16 @@ test("userProperty item must be an array", () => {
     () => encoder.setProperties(props, PacketType.puback, 10),
     / userProperty item must be an array/,
   );
+});
+
+test("encode/decode subscriptionIdentifiers", () => {
+  const props = { subscriptionIdentifiers: [3, 5, 7] };
+  const bytes = new Uint8Array([48, 7, 6, 0xb, 3, 0xb, 5, 0xb, 7]);
+  const encoder = new Encoder(PacketType.publish);
+  encoder.setProperties(props, PacketType.publish, 1000);
+  const buf = encoder.done(0);
+  assert.deepStrictEqual(buf, bytes);
+  const decoder = new Decoder(PacketType.publish, buf, 2);
+  const decoded = decoder.getProperties(PacketType.publish);
+  assert.deepStrictEqual(decoded, props);
 });

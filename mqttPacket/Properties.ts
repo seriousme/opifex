@@ -18,6 +18,7 @@ export const propertyKind = {
   byteArray: 5,
   utf8string: 6,
   utf8StringPairs: 7,
+  varIntArray: 8,
 } as const;
 
 export const propertyToId = {
@@ -27,6 +28,8 @@ export const propertyToId = {
   responseTopic: 0x08,
   correlationData: 0x09,
   subscriptionIdentifier: 0x0b,
+  // special case,placeholder to encode decode multiple subscription identifiers
+  subscriptionIdentifiers: 0xff,
   sessionExpiryInterval: 0x11,
   assignedClientIdentifier: 0x12,
   serverKeepAlive: 0x13,
@@ -60,6 +63,7 @@ export const propertyToKind = {
   [propertyToId.responseTopic]: propertyKind.utf8string,
   [propertyToId.correlationData]: propertyKind.byteArray,
   [propertyToId.subscriptionIdentifier]: propertyKind.varInt,
+  [propertyToId.subscriptionIdentifiers]: propertyKind.varIntArray,
   [propertyToId.sessionExpiryInterval]: propertyKind.int32,
   [propertyToId.assignedClientIdentifier]: propertyKind.utf8string,
   [propertyToId.serverKeepAlive]: propertyKind.int16,
@@ -83,7 +87,8 @@ export const propertyToKind = {
   [propertyToId.sharedSubscriptionAvailable]: propertyKind.boolean,
 } as const;
 
-export type UserPropertyType = UTF8StringPair[];
+export type UserPropertyType = Array<UTF8StringPair>;
+export type SubscriptionIdentifiersType = Array<number>;
 
 type PropertyKindMap = {
   [propertyKind.boolean]: boolean;
@@ -94,6 +99,7 @@ type PropertyKindMap = {
   [propertyKind.byteArray]: Uint8Array;
   [propertyKind.utf8string]: string;
   [propertyKind.utf8StringPairs]: UserPropertyType;
+  [propertyKind.varIntArray]: SubscriptionIdentifiersType;
 };
 
 type Mqttv5PropertyType<K extends number> = K extends keyof PropertyKindMap
@@ -164,7 +170,7 @@ export const PropertyByPropertySetType = {
     propertyToId.contentType,
     propertyToId.responseTopic,
     propertyToId.correlationData,
-    propertyToId.subscriptionIdentifier,
+    propertyToId.subscriptionIdentifiers,
     propertyToId.topicAlias,
     propertyToId.userProperty,
   ],

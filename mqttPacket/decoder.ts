@@ -11,16 +11,22 @@ import { isValidReasonCode } from "./ReasonCode.ts";
 import type {
   Mqttv5PropertyTypesNoUser,
   PropsByPacketSetType,
+  SubscriptionIdentifiersType,
+  UserPropertyType,
   ValidPropertyNumber,
 } from "./Properties.ts";
 import {
   propertyByNumber,
   PropertyByPropertySetType,
   propertyKind,
+  propertyToId,
   propertyToKind,
 } from "./Properties.ts";
 
 const utf8Decoder = new TextDecoder("utf-8");
+const userPropID = propertyToId.userProperty;
+const subIdentID = propertyToId.subscriptionIdentifier;
+const subIdentsID = propertyToId.subscriptionIdentifiers;
 /**
  * Checks if a specific bit flag is set in a byte using a bitmask
  * @param byte - The byte to check
@@ -256,37 +262,51 @@ export class Decoder {
   getProperties<T extends keyof PropsByPacketSetType>(
     propertySetType: T,
   ): PropsByPacketSetType[T] {
-    const allowedProps = PropertyByPropertySetType[propertySetType];
+    const allowedProps: readonly number[] =
+      PropertyByPropertySetType[propertySetType];
     const properties = {} as PropsByPacketSetType[T];
     const propLength = this.getVariableByteInteger();
     const endPos = this.pos + propLength;
-    const userProps: Array<UTF8StringPair> = [];
+    const userProps: UserPropertyType = [];
+    const subIdents: SubscriptionIdentifiersType = [];
 
     while (this.pos < endPos) {
       const id = this.getVariableByteInteger() as ValidPropertyNumber;
       const label = propertyByNumber[id];
-      if (!(allowedProps as readonly number[]).includes(id)) {
+      if (
+        id === subIdentID && allowedProps.includes(subIdentsID)
+      ) {
+        subIdents.push(this.getVariableByteInteger());
+        continue;
+      }
+      if (!allowedProps.includes(id)) {
         throw new DecoderError(
           `Property type ${label ? label : id} not allowed at byte ${this.pos}`,
         );
       }
-      if (label !== "userProperty") {
-        const value = this.getProperty(id);
-        // deno-lint-ignore no-explicit-any
-        if ((properties as any)[label] !== undefined) {
-          throw new DecoderError(`Property ${label} only allowed once`);
-        } else {
-          // deno-lint-ignore no-explicit-any
-          (properties as any)[label] = value;
-        }
-      } else {
+      if (id === userPropID) {
         const stringPair = this.getUTF8StringPair();
         userProps.push(stringPair);
+        continue;
+      }
+
+      const value = this.getProperty(id);
+
+      // deno-lint-ignore no-explicit-any
+      if ((properties as any)[label] !== undefined) {
+        throw new DecoderError(`Property ${label} only allowed once`);
+      } else {
+        // deno-lint-ignore no-explicit-any
+        (properties as any)[label] = value;
       }
     }
     if (userProps.length > 0) {
       // deno-lint-ignore no-explicit-any
       (properties as any).userProperty = userProps;
+    }
+    if (subIdents.length > 0) {
+      // deno-lint-ignore no-explicit-any
+      (properties as any).subscriptionIdentifiers = subIdents;
     }
     return properties;
   }

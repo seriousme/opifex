@@ -9,6 +9,7 @@ import type {
 import type {
   Mqttv5PropertyTypes,
   PropsByPacketSetType,
+  SubscriptionIdentifiersType,
   TPropertySetType,
   UserPropertyType,
   ValidPropertyNumber,
@@ -240,6 +241,17 @@ export class Encoder {
         }
         this.setVariableByteInteger(id);
         this.setUtf8StringPair(item);
+      }
+      return;
+    }
+
+    if (kind === propertyKind.varIntArray) {
+      if (!Array.isArray(value)) {
+        throw new EncoderError("Subscription Identifiers must be an array");
+      }
+      for (const item of value as SubscriptionIdentifiersType) {
+        this.setVariableByteInteger(propertyToId["subscriptionIdentifier"]);
+        this.setVariableByteInteger(item);
       }
       return;
     }
