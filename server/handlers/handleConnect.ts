@@ -37,7 +37,7 @@ function validateConnect(
   if (packet.protocolLevel !== 4) {
     return AuthenticationResult.unacceptableProtocol;
   }
- 
+
   return isAuthenticated(ctx, packet);
 }
 

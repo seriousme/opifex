@@ -37,7 +37,7 @@ const publishPacket: AnyPacket = {
   dup: false,
   retain: false,
   qos: 0,
-  id: 0,
+  id: undefined,
 };
 
 const disconnectPacket: AnyPacket = {

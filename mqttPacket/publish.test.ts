@@ -27,7 +27,7 @@ test("encode/decode short Publish v4", () => {
     protocolLevel: MQTTLevel.v4,
     qos: 0,
     dup: false,
-    id: 0,
+    id: undefined,
     retain: false,
     topic: "a/b",
     payload,
@@ -66,7 +66,7 @@ test("encode/decode extended Publish v4", () => {
     dup: false,
     qos: 0,
     retain: false,
-    id: 0,
+    id: undefined,
     topic: "a/b",
     payload: Uint8Array.from([
       112, // 'p'
@@ -112,7 +112,7 @@ test("encode/decode Publish v4 no payload", () => {
     dup: false,
     qos: 0,
     retain: false,
-    id: 0,
+    id: undefined,
     topic: "a/b",
     payload: Uint8Array.from([]),
   };
@@ -180,7 +180,7 @@ test("encode/decode Publish v5", () => {
     dup: false,
     qos: 0,
     retain: false,
-    id: 0,
+    id: undefined,
     topic: "a/b",
     payload,
     properties: {
@@ -189,7 +189,7 @@ test("encode/decode Publish v5", () => {
       contentType: "content",
       responseTopic: "response",
       correlationData: Uint8Array.from([1, 2, 3]),
-      subscriptionIdentifier: 123,
+      subscriptionIdentifiers: [123],
       topicAlias: 123,
       userProperty: [["user", "property"]],
     },

@@ -100,7 +100,7 @@ export const publish: {
     const decoder = new Decoder(packetType, buffer);
     const topic = decoder.getTopic();
 
-    let id = 0;
+    let id = undefined;
     if (qos > 0) {
       id = decoder.getInt16();
     }

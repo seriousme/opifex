@@ -37,7 +37,7 @@ export const connack: {
   encode(packet: ConnackPacket, codecOpts: CodecOpts): Uint8Array;
   decode(
     buffer: Uint8Array,
-    _flags: number,
+    flags: number,
     codecOpts: CodecOpts,
     packetType: TPacketType,
   ): ConnackPacket;
@@ -65,14 +65,20 @@ export const connack: {
 
   decode(
     buffer: Uint8Array,
-    _flags: number,
+    flags: number,
     codecOpts: CodecOpts,
     packetType: TPacketType,
   ): ConnackPacket {
     const decoder = new Decoder(packetType, buffer);
-
+    if (flags !== 0) {
+      throw new DecoderError("Invalid header flags");
+    }
+    const ackflags = decoder.getByte();
+    if (ackflags > 1) {
+      throw new DecoderError("Invalid Connect Acknowledge flags");
+    }
+    const sessionPresent = booleanFlag(ackflags, BitMask.bit0);
     if (codecOpts.protocolLevel !== 5) {
-      const sessionPresent = booleanFlag(decoder.getByte(), BitMask.bit0);
       const returnCode = decoder.getByte() as TAuthenticationResult;
       decoder.done();
       if (!AuthenticationResultByNumber[returnCode]) {
@@ -85,7 +91,6 @@ export const connack: {
         returnCode,
       };
     }
-    const sessionPresent = booleanFlag(decoder.getByte(), BitMask.bit0);
     const reasonCode = decoder.getReasonCode();
     const properties = decoder.getProperties(PacketType.connack);
     decoder.done();
