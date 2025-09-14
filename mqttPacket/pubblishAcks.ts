@@ -54,7 +54,7 @@ export const anyAck: {
   ): AnyAckPacket;
 } = {
   encode(packet: AnyAckPacket, codecOpts: CodecOpts): Uint8Array {
-    const flags = 0;
+    const flags = packet.type === PacketType.pubrel ? 2 : 0;
     const encoder = new Encoder(packet.type);
     encoder.setInt16(packet.id);
     if (packet.protocolLevel === 5) {

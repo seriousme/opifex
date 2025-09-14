@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { Encoder } from "./encoder.ts";
-import { Decoder, DecoderError } from "./decoder.ts";
+import { Decoder } from "./decoder.ts";
 import { PacketType } from "./PacketType.ts";
 
 test("encoder.setProperties encodes allowed properties for connect", () => {

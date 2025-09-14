@@ -28,7 +28,7 @@ for (const item of packetTypesToTest) {
     string,
     TReasonCode,
   ];
-  const ackTypeByte = ackType << 4;
+  const ackTypeByte = (ackType << 4) + (ackType === PacketType.pubrel ? 2 : 0);
   test(`encode/decode ${label} v4`, () => {
     const packet = {
       type: ackType,
