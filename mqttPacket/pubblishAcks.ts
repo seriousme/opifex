@@ -4,10 +4,10 @@ import type {
   ProtocolLevelNoV5,
   TPacketType,
 } from "./types.ts";
-import type { TReasonCode } from "./ReasonCode.ts";
+import { ReasonCode, type TReasonCode } from "./ReasonCode.ts";
 import type { PubackProperties } from "./Properties.ts";
-import type { PacketType } from "./PacketType.ts";
-import { Decoder } from "./decoder.ts";
+import { PacketType } from "./PacketType.ts";
+import { Decoder, DecoderError } from "./decoder.ts";
 import { Encoder } from "./encoder.ts";
 
 /**
@@ -48,7 +48,7 @@ export const anyAck: {
   encode(packet: AnyAckPacket, codecOpts: CodecOpts): Uint8Array;
   decode(
     buffer: Uint8Array,
-    _flags: number,
+    flags: number,
     codecOpts: CodecOpts,
     packetType: TPacketType,
   ): AnyAckPacket;
@@ -58,8 +58,12 @@ export const anyAck: {
     const encoder = new Encoder(packet.type);
     encoder.setInt16(packet.id);
     if (packet.protocolLevel === 5) {
-      const reasonCode = packet.reasonCode || 0;
-      if (reasonCode === 0 && !packet.properties) {
+      const reasonCode = packet.reasonCode || ReasonCode.success;
+      // if remaining length is less than 1 the value of 0x00 (success) is used.
+      if (
+        reasonCode === ReasonCode.success &&
+        Object.keys(packet.properties || {}).length === 0
+      ) {
         return encoder.done(flags);
       }
       encoder.setReasonCode(reasonCode);
@@ -74,10 +78,14 @@ export const anyAck: {
 
   decode(
     buffer: Uint8Array,
-    _flags: number,
+    flags: number,
     codecOpts: CodecOpts,
     packetType: TPacketType,
   ): AnyAckPacket {
+    const expectedFlags = packetType === PacketType.pubrel ? 2 : 0;
+    if (flags !== expectedFlags) {
+      throw new DecoderError("Invalid flags");
+    }
     const decoder = new Decoder(packetType, buffer);
     const id = decoder.getInt16();
     if (codecOpts.protocolLevel !== 5) {

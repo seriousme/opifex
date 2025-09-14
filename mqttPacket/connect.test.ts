@@ -276,6 +276,7 @@ test("decode invalid Connect", () => {
   assert.throws(
     () => decode(Uint8Array.from([...longConnect]), codecOptsUnknown),
     /Packet too long/,
+    "Packet too long",
   );
 
   // Test packet with invalid reserved bit
@@ -285,6 +286,7 @@ test("decode invalid Connect", () => {
   assert.throws(
     () => decode(Uint8Array.from(reservedBitConnect), codecOptsUnknown),
     /Invalid reserved bit/,
+    "Invalid reserved bit",
   );
 
   // Test packet with invalid will
@@ -297,6 +299,7 @@ test("decode invalid Connect", () => {
   assert.throws(
     () => decode(Uint8Array.from(invalidProtocolName), codecOptsUnknown),
     /Invalid protocol name/,
+    "Invalid protocol name",
   );
 
   // Test packet with wrong protocol name length
@@ -305,7 +308,8 @@ test("decode invalid Connect", () => {
 
   assert.throws(
     () => decode(Uint8Array.from(invalidProtocolLength), codecOptsUnknown),
-    /Packet too short/,
+    /Invalid protocol name or level/,
+    "incorrect protocol name length",
   );
 
   // Test packet with protocol level 5 and protocol name MQIsdp
@@ -318,7 +322,21 @@ test("decode invalid Connect", () => {
         Uint8Array.from(invalidProtocolNameLevel5),
         codecOptsUnknown,
       ),
-    /Invalid protocol name/,
+    /Invalid protocol name or level/,
+    "Invalid protocol name",
+  );
+
+  const invalidProtocolLevel = [...encodedConnect];
+  invalidProtocolLevel[9] = 1;
+
+  assert.throws(
+    () =>
+      decode(
+        Uint8Array.from(invalidProtocolNameLevel5),
+        codecOptsUnknown,
+      ),
+    /Invalid protocol name or level/,
+    "Invalid protocol level",
   );
 
   assert.throws(
@@ -328,6 +346,7 @@ test("decode invalid Connect", () => {
         codecOptsUnknown,
       ),
     /Invalid will qos/,
+    "Invalid will qos",
   );
 
   assert.throws(
@@ -347,6 +366,7 @@ test("decode invalid Connect", () => {
         codecOptsUnknown,
       ),
     /Packet too short/,
+    "Packet too short 2",
   );
 });
 

@@ -1,5 +1,5 @@
 import { PacketType } from "./PacketType.ts";
-import { Decoder, isEmptyBuf } from "./decoder.ts";
+import { Decoder, DecoderError, isEmptyBuf } from "./decoder.ts";
 import type {
   CodecOpts,
   ProtocolLevelNoV5,
@@ -43,11 +43,14 @@ export const disconnect: {
     if (packet.protocolLevel !== 5) {
       return DISCONNECT_PACKET;
     }
-    const reasonCode = packet.reasonCode || ReasonCode.success;
+    const reasonCode = packet.reasonCode || ReasonCode.normalDisconnection;
     const encoder = new Encoder(packet.type);
     // see MQTT v5 3.14.2.1
     // if remaining length is less than 1 the value of 0x00 (normal disconnect) is used.
-    if (reasonCode === 0 && packet.properties === undefined) {
+    if (
+      reasonCode === ReasonCode.normalDisconnection &&
+      Object.keys(packet.properties || {}).length === 0
+    ) {
       return encoder.done(0);
     }
     encoder
@@ -64,10 +67,13 @@ export const disconnect: {
 
   decode(
     buffer: Uint8Array,
-    _flags: number,
+    flags: number,
     codecOpts,
     packetType: TPacketType,
   ): DisconnectPacket {
+    if (flags !== 0) {
+      throw new DecoderError("Invalid flags");
+    }
     if (codecOpts.protocolLevel !== 5) {
       isEmptyBuf(buffer);
       return {

@@ -62,16 +62,16 @@ export type ConnectPacketV5 = {
 export type ConnectPacket = ConnectPacketV4 | ConnectPacketV5;
 
 function invalidProtocolName(version: number, name: string): boolean {
-  if (version === 3 && name !== "MQIsdp") {
-    return true;
+  if (version === 3 && name === "MQIsdp") {
+    return false;
   }
-  if (version === 4 && name !== "MQTT") {
-    return true;
+  if (version === 4 && name === "MQTT") {
+    return false;
   }
-  if (version === 5 && name !== "MQTT") {
-    return true;
+  if (version === 5 && name == "MQTT") {
+    return false;
   }
-  return false;
+  return true;
 }
 
 export const connect: {
@@ -170,7 +170,7 @@ export const connect: {
     const protocolLevel = decoder.getByte();
 
     if (invalidProtocolName(protocolLevel, protocolName)) {
-      throw new DecoderError("Invalid protocol name");
+      throw new DecoderError("Invalid protocol name or level");
     }
 
     const connectFlags = decoder.getByte();
