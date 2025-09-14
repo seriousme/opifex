@@ -43,35 +43,12 @@ class Uint8QueuedWriter implements WritableStreamDefaultWriter {
   }
 }
 
-function ReadableStreamFrom(
-  iterable: AsyncIterable<Uint8Array>,
-): ReadableStream {
-  if (!iterable || !(Symbol.asyncIterator in iterable)) {
-    throw new TypeError("Argument must be an asyncIterable");
-  }
-
-  return new ReadableStream({
-    type: "bytes",
-    async pull(controller) {
-      const iterator = iterable[Symbol.asyncIterator]();
-      const next = await iterator.next();
-
-      if (next.done) {
-        controller.close();
-        return;
-      }
-      controller.enqueue(next.value);
-    },
-  });
-}
-
 export function makeDummySockConn(
   readerBuffs: Uint8Array[],
   writerBuf: Uint8Array,
   close = () => {},
 ) {
-  const readBlob = new Blob(readerBuffs);
-  const readable = readBlob.stream();
+  const readable = ReadableStream.from(readerBuffs);
   const writable = new WritableStream(new Uint8Writer(writerBuf));
   return {
     readable,
@@ -85,7 +62,7 @@ export function makeDummyQueueSockConn(
   w: AsyncQueue<Uint8Array>,
   close = () => {},
 ) {
-  const readable = ReadableStreamFrom(r);
+  const readable = ReadableStream.from(r);
   const writable = new WritableStream(new Uint8QueuedWriter(w));
   return {
     readable,
