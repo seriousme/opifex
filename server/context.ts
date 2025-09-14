@@ -115,10 +115,10 @@ export class Context {
 
   close(executewill = true): void {
     if (this.connected) {
-      logger.debug(
+      logger.info(
         `Closing ${this.store?.clientId} while mqttConn is ${
           this.mqttConn.isClosed ? "" : "not "
-        }closed`,
+        }closed because of "${this.mqttConn.reason || "normal disconnect"}"`,
       );
       this.connected = false;
       if (typeof this.timer === "object") {
@@ -130,6 +130,12 @@ export class Context {
       if (executewill) {
         this.handleWill();
       }
+    } else {
+      logger.info(
+        `closing connection from ${this.mqttConn.remoteAddress} because of "${
+          this.mqttConn.reason || "normal disconnect"
+        }"`,
+      );
     }
     if (!this.mqttConn.isClosed) {
       this.mqttConn.close();

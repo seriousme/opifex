@@ -157,6 +157,14 @@ export class MqttConn implements IMqttConn {
     return this._reason;
   }
 
+  /** Get remoteAdress */
+  get remoteAddress(): string {
+    if (this.conn.remoteAddr?.transport === "tcp") {
+      return this.conn.remoteAddr.hostname;
+    }
+    return "unknown";
+  }
+
   /**
    * Async iterator for receiving packets
    * @yields MQTT packets

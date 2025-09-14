@@ -1,5 +1,5 @@
 import { PacketType } from "./PacketType.ts";
-import { Decoder, DecoderError, isEmptyBuf } from "./decoder.ts";
+import { Decoder, hasEmptyFlags, isEmptyBuf } from "./decoder.ts";
 import type {
   CodecOpts,
   ProtocolLevelNoV5,
@@ -71,9 +71,7 @@ export const disconnect: {
     codecOpts,
     packetType: TPacketType,
   ): DisconnectPacket {
-    if (flags !== 0) {
-      throw new DecoderError("Invalid flags");
-    }
+    hasEmptyFlags(flags);
     if (codecOpts.protocolLevel !== 5) {
       isEmptyBuf(buffer);
       return {

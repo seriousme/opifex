@@ -1,7 +1,7 @@
 import type { CodecOpts, TPacketType } from "./types.ts";
 import { PacketType } from "./PacketType.ts";
 import { Encoder, EncoderError } from "./encoder.ts";
-import { Decoder, DecoderError } from "./decoder.ts";
+import { Decoder, DecoderError, hasEmptyFlags } from "./decoder.ts";
 import type { TReasonCode } from "./ReasonCode.ts";
 import type { AuthProperties } from "./Properties.ts";
 
@@ -26,7 +26,7 @@ export const auth: {
   encode(packet: AuthPacket, codecOpts: CodecOpts): Uint8Array;
   decode(
     buffer: Uint8Array,
-    _flags: number,
+    flags: number,
     codecOpts: CodecOpts,
     packetType: TPacketType,
   ): AuthPacket;
@@ -54,9 +54,7 @@ export const auth: {
   ): AuthPacket {
     // Bits 3,2,1 and 0 of the Fixed Header of the AUTH packet are reserved and MUST all be set to 0.
     // The Client or Server MUST treat any other value as malformed and close the Network Connection [MQTT-3.15.1-1].
-    if (flags !== 0) {
-      throw new DecoderError("Invalid flags");
-    }
+    hasEmptyFlags(flags);
     if (codecOpts.protocolLevel !== 5) {
       throw new DecoderError("Invalid protocol level");
     }

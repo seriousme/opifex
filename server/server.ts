@@ -62,7 +62,9 @@ export class MqttServer {
     } catch (err) {
       logger.debug(`Error while serving:${err}`);
     } finally {
-      ctx.close();
+      if (!ctx.mqttConn.isClosed) {
+        ctx.close();
+      }
     }
   }
 }

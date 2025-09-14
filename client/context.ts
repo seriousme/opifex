@@ -110,16 +110,17 @@ export class Context {
     if (this.mqttConn === undefined) {
       return true;
     }
-    logger.debug("Send connect packet");
-    await this.connect(connectPacket);
+
     try {
+      logger.debug("Send connect packet", connectPacket);
+      await this.connect(connectPacket);
       logger.debug("Accepting packets");
       for await (const packet of this.mqttConn) {
         handlePacket(this, packet);
       }
       logger.debug("No more packets");
     } catch (err) {
-      logger.debug(err);
+      logger.debug(`error ${err}`);
       if (this.mqttConn.isClosed) {
         this.mqttConn.close();
       }

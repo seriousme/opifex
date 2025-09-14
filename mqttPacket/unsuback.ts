@@ -7,7 +7,7 @@ import type {
 } from "./types.ts";
 import type { UnsubackProperties } from "./Properties.ts";
 import { PacketType } from "./PacketType.ts";
-import { Decoder, DecoderError } from "./decoder.ts";
+import { Decoder, hasEmptyFlags } from "./decoder.ts";
 import { Encoder } from "./encoder.ts";
 
 /**
@@ -62,9 +62,7 @@ export const unsuback: {
     codecOpts: CodecOpts,
     packetType: TPacketType,
   ): UnsubackPacket {
-    if (flags !== 0) {
-      throw new DecoderError("Invalid flags");
-    }
+    hasEmptyFlags(flags);
     const decoder = new Decoder(packetType, buffer);
     const id = decoder.getInt16();
     if (codecOpts.protocolLevel === 5) {

@@ -68,6 +68,7 @@ function processValidatedConnect(
     ctx.connect(clientId, packet.clean || false);
     ctx.protocolLevel = packet.protocolLevel;
     if (ctx.mqttConn) {
+      logger.debug(`Setting protocolLevel to ${ctx.protocolLevel}`);
       ctx.mqttConn.codecOpts.protocolLevel = ctx.protocolLevel;
     }
 
@@ -111,7 +112,7 @@ export function handleConnect(ctx: Context, packet: ConnectPacket): void {
     sessionPresent,
     returnCode,
   });
-
+  logger.debug("connect returnCode", returnCode);
   if (returnCode !== AuthenticationResult.ok) {
     ctx.close();
   }

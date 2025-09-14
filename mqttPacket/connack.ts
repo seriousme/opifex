@@ -7,7 +7,12 @@ import type {
 import { PacketType } from "./PacketType.ts";
 import { BitMask } from "./BitMask.ts";
 import { Encoder } from "./encoder.ts";
-import { booleanFlag, Decoder, DecoderError } from "./decoder.ts";
+import {
+  booleanFlag,
+  Decoder,
+  DecoderError,
+  hasEmptyFlags,
+} from "./decoder.ts";
 import { AuthenticationResultByNumber } from "./AuthenticationResult.ts";
 import type { TReasonCode } from "./ReasonCode.ts";
 import type { ConnackProperties } from "./Properties.ts";
@@ -70,9 +75,7 @@ export const connack: {
     packetType: TPacketType,
   ): ConnackPacket {
     const decoder = new Decoder(packetType, buffer);
-    if (flags !== 0) {
-      throw new DecoderError("Invalid header flags");
-    }
+    hasEmptyFlags(flags);
     const ackflags = decoder.getByte();
     if (ackflags > 1) {
       throw new DecoderError("Invalid Connect Acknowledge flags");

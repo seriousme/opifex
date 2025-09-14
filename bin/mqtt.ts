@@ -29,7 +29,13 @@
  * @requires ../node/tcpClient.ts
  * @requires ../utils/mod.ts
  */
-import { DEFAULT_URL } from "../client/mod.ts";
+
+import {
+  DEFAULT_KEEPALIVE,
+  DEFAULT_PROTOCOLLEVEL,
+  DEFAULT_URL,
+} from "../client/mod.ts";
+import type { ProtocolLevel } from "../client/mod.ts";
 import { getFileData, TcpClient } from "../node/tcpClient.ts";
 import { getArgs, logger, LogLevel, parseArgs } from "../utils/mod.ts";
 import type { Args } from "../utils/mod.ts";
@@ -52,8 +58,10 @@ const ConnectHelp = `
   -U/--username   the username to connect to the server
   -P/--password   the password to connect to the server
   -C/--caFile     the path to a CA certificate file
+  -V/--mqttVersion the MQTT version to use (3,4 or 5): default is ${DEFAULT_PROTOCOLLEVEL}
   -c/--certFile   the path to a certificate file
   -k/--keyFile    the path to a key file
+  -K/--keepAlive  the keep alive of the client (in seconds): default is ${DEFAULT_KEEPALIVE}
   -n/--noClean    try to resume a previous session
   -h/--help       this text
   `;
@@ -67,6 +75,7 @@ const connectOpts = {
     "certFile",
     "keyFile",
     "clientId",
+    "mqttVersion",
   ],
   alias: {
     u: "url",
@@ -75,14 +84,18 @@ const connectOpts = {
     C: "caFile",
     c: "certFile",
     k: "keyFile",
+    K: "keepAlive",
     i: "clientId",
     n: "noClean",
+    V: "mqttVersion",
     h: "help",
   },
   boolean: ["noClean", "help"],
   default: {
     noClean: false,
     clientId: `Opifex-${crypto.randomUUID()}`,
+    keepAlive: DEFAULT_KEEPALIVE,
+    mqttVersion: DEFAULT_PROTOCOLLEVEL,
   },
 };
 
@@ -134,13 +147,15 @@ async function getTLSdata(connectArgs: Args) {
   };
 }
 
+function encodePwd(password: string | undefined) {
+  if (typeof password === "string") {
+    return encoder.encode(password);
+  }
+  return undefined;
+}
+
 async function subscribe() {
   const connectArgs = parseArgs(getArgs(), connectOpts);
-  const {
-    caCerts,
-    cert,
-    key,
-  } = await getTLSdata(connectArgs);
   const subscribeArgs = parseArgs(getArgs(), subscribeOpts);
   if (connectArgs.help) {
     console.log(SubscribeHelp);
@@ -151,21 +166,7 @@ async function subscribe() {
     return;
   }
   try {
-    await client.connect({
-      url: connectArgs.url,
-      caCerts,
-      cert,
-      key,
-      options: {
-        username: connectArgs.username,
-        password: encoder.encode(connectArgs.password),
-        clientId: connectArgs.clientId,
-        clean: !connectArgs.noClean,
-        keepAlive: 60,
-      },
-    });
-    logger.debug("Connected !");
-
+    await connect(connectArgs);
     client.subscribe({
       subscriptions: [
         {
@@ -215,13 +216,31 @@ const publishOpts = {
   },
 };
 
-async function publish() {
-  const connectArgs = parseArgs(getArgs(), connectOpts);
+async function connect(connectArgs: Args) {
   const {
     caCerts,
     cert,
     key,
   } = await getTLSdata(connectArgs);
+  await client.connect({
+    url: connectArgs.url,
+    caCerts,
+    cert,
+    key,
+    options: {
+      username: connectArgs.username,
+      password: encodePwd(connectArgs.password),
+      clientId: connectArgs.clientId,
+      clean: !connectArgs.noClean,
+      keepAlive: connectArgs.keepAlive,
+      protocolLevel: parseInt(connectArgs.mqttVersion) as ProtocolLevel,
+    },
+  });
+  logger.debug("Connected !");
+}
+
+async function publish() {
+  const connectArgs = parseArgs(getArgs(), connectOpts);
   const publishArgs = parseArgs(getArgs(), publishOpts);
   if (connectArgs.help) {
     console.log(PublishHelp);
@@ -232,19 +251,7 @@ async function publish() {
     return;
   }
   try {
-    await client.connect({
-      url: connectArgs.url,
-      caCerts,
-      cert,
-      key,
-      options: {
-        username: connectArgs.username,
-        password: encoder.encode(connectArgs.password),
-        clientId: connectArgs.clientId,
-        clean: !connectArgs.noClean,
-      },
-    });
-    logger.debug("Connected !");
+    await connect(connectArgs);
     await client.publish({
       topic: publishArgs.topic,
       payload: encoder.encode(publishArgs.message),

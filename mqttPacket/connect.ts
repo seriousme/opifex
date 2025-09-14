@@ -85,6 +85,10 @@ export const connect: {
 } = {
   encode(packet: ConnectPacket, codecOpts: CodecOpts): Uint8Array {
     const flags = 0;
+
+    if (typeof packet.protocolLevel !== "number") {
+      throw new EncoderError("Protocol level must be a number");
+    }
     const protocolLevel = packet.protocolLevel || 4;
     if (protocolLevel < 3 || protocolLevel > 5) {
       throw new EncoderError("Unsupported protocol level");
@@ -95,7 +99,7 @@ export const connect: {
     if (protocolLevel === 3 && clientId === "") {
       throw new EncoderError("Client id required for protocol level 3");
     }
-    const passwordFlag = packet.password !== undefined;
+    const passwordFlag = usernameFlag && packet.password !== undefined;
     const willRetain = !!packet.will?.retain;
     const willQoS = packet.will?.qos || 0;
     const willFlag = packet.will !== undefined;
@@ -153,7 +157,7 @@ export const connect: {
       encoder.setUtf8String(packet.username);
     }
 
-    if (packet.password !== undefined) {
+    if (passwordFlag && packet.password !== undefined) {
       encoder.setByteArray(packet.password);
     }
     return encoder.done(flags);
@@ -194,6 +198,10 @@ export const connect: {
       throw new DecoderError("Invalid will qos");
     }
 
+    if (!usernameFlag && passwordFlag) {
+      throw new DecoderError("Password without username");
+    }
+
     const keepAlive = decoder.getInt16();
     const isV5 = protocolLevel === 5;
     let properties;
@@ -202,13 +210,12 @@ export const connect: {
     }
     const clientId = decoder.getUTF8String();
     let willProperties;
-    if (isV5) {
-      willProperties = decoder.getProperties(PropertySetType.will);
-    }
-
     let willTopic;
     let willPayload;
     if (willFlag) {
+      if (isV5) {
+        willProperties = decoder.getProperties(PropertySetType.will);
+      }
       willTopic = decoder.getTopic();
       willPayload = decoder.getByteArray();
     }
@@ -237,7 +244,6 @@ export const connect: {
     const commonProps = {
       type: PacketType.connect,
       protocolName: protocolName,
-      protocolLevel: protocolLevel as ProtocolLevel,
       clientId: clientId,
       username,
       password: password ? password : undefined,

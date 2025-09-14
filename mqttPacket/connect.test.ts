@@ -596,3 +596,87 @@ test("encode/decode MQTTv5", () => {
   assert.deepStrictEqual(buf, encoded);
   assert.deepStrictEqual(decode(encoded, codecOptsUnknown), packet);
 });
+
+test("encode/decode minimal connect MQTTv5", () => {
+  const packet = {
+    type: PacketType.connect,
+    keepAlive: 60,
+    clientId: "Opifex-38417844-2161-4c40-a88f-0fe232891607",
+    protocolLevel: MQTTLevel.v5,
+    username: undefined,
+    password: undefined,
+    clean: false,
+  };
+
+  const expected = {
+    ...packet,
+    protocolName: "MQTT",
+    will: undefined,
+    properties: {},
+  };
+
+  const buf = Uint8Array.from([
+    16,
+    56,
+    0,
+    4,
+    77,
+    81,
+    84,
+    84,
+    5,
+    0,
+    0,
+    60,
+    0,
+    0,
+    43,
+    79,
+    112,
+    105,
+    102,
+    101,
+    120,
+    45,
+    51,
+    56,
+    52,
+    49,
+    55,
+    56,
+    52,
+    52,
+    45,
+    50,
+    49,
+    54,
+    49,
+    45,
+    52,
+    99,
+    52,
+    48,
+    45,
+    97,
+    56,
+    56,
+    102,
+    45,
+    48,
+    102,
+    101,
+    50,
+    51,
+    50,
+    56,
+    57,
+    49,
+    54,
+    48,
+    55,
+  ]);
+  const encoded = encode(packet, codecOptsUnknown);
+  assert.deepStrictEqual(buf, encoded);
+  const decoded = decode(encoded, codecOptsUnknown);
+  assert.deepStrictEqual(decoded, expected);
+});
