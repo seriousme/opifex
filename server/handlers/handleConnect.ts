@@ -37,6 +37,7 @@ function validateConnect(
   if (packet.protocolLevel !== 4) {
     return AuthenticationResult.unacceptableProtocol;
   }
+
   return isAuthenticated(ctx, packet);
 }
 
@@ -56,6 +57,7 @@ function processValidatedConnect(
     if (packet.will) {
       ctx.will = {
         type: PacketType.publish,
+        protocolLevel: ctx.protocolLevel,
         qos: packet.will.qos,
         retain: packet.will.retain,
         topic: packet.will.topic,
@@ -64,6 +66,11 @@ function processValidatedConnect(
     }
 
     ctx.connect(clientId, packet.clean || false);
+    ctx.protocolLevel = packet.protocolLevel;
+    if (ctx.mqttConn) {
+      logger.debug(`Setting protocolLevel to ${ctx.protocolLevel}`);
+      ctx.mqttConn.codecOpts.protocolLevel = ctx.protocolLevel;
+    }
 
     const keepAlive = packet.keepAlive || 0;
     if (keepAlive > 0) {
@@ -101,10 +108,11 @@ export function handleConnect(ctx: Context, packet: ConnectPacket): void {
   );
   ctx.send({
     type: PacketType.connack,
+    protocolLevel: ctx.protocolLevel,
     sessionPresent,
     returnCode,
   });
-
+  logger.debug("connect returnCode", returnCode);
   if (returnCode !== AuthenticationResult.ok) {
     ctx.close();
   }

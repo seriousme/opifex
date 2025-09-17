@@ -3,6 +3,7 @@ import {
   Deferred,
   logger,
   MqttConn,
+  MQTTLevel,
   nextTick,
   PacketType,
   Timer,
@@ -12,6 +13,7 @@ import type {
   ConnectPacket,
   MemoryStore,
   PacketId,
+  ProtocolLevel,
   PublishPacket,
   ReturnCodes,
   SockConn,
@@ -27,6 +29,7 @@ import { ConnectionState } from "./ConnectionState.ts";
 export class Context {
   mqttConn?: MqttConn;
   connectionState: TConnectionState;
+  protocolLevel: ProtocolLevel;
   pingTimer?: Timer;
   unresolvedConnect?: Deferred<TAuthenticationResult>;
   unresolvedPublish: Map<PacketId, Deferred<void>>;
@@ -38,6 +41,7 @@ export class Context {
   constructor(store: MemoryStore) {
     this.store = store;
     this.connectionState = ConnectionState.offline;
+    this.protocolLevel = MQTTLevel.unknown;
     this.incoming = new AsyncQueue();
     this.unresolvedPublish = new Map();
     this.unresolvedSubscribe = new Map();
@@ -46,6 +50,10 @@ export class Context {
 
   async connect(packet: ConnectPacket) {
     this.connectionState = ConnectionState.connecting;
+    if (packet.protocolLevel === MQTTLevel.unknown) {
+      packet.protocolLevel = MQTTLevel.v4;
+    }
+    this.protocolLevel = packet.protocolLevel;
     await this.mqttConn?.send(packet);
     const keepAlive = packet.keepAlive || 0;
     if (keepAlive > 0) {
@@ -63,8 +71,12 @@ export class Context {
     }
     if (this.mqttConn) {
       this.connectionState = ConnectionState.disconnecting;
-      await this.mqttConn.send({ type: PacketType.disconnect });
+      await this.mqttConn.send({
+        type: PacketType.disconnect,
+        protocolLevel: this.protocolLevel,
+      });
       this.mqttConn.close();
+      this.protocolLevel = MQTTLevel.unknown;
     }
   }
 
@@ -84,7 +96,10 @@ export class Context {
   }
 
   sendPing() {
-    this.send({ type: PacketType.pingreq });
+    this.send({
+      type: PacketType.pingreq,
+      protocolLevel: this.protocolLevel,
+    });
   }
 
   async handleConnection(
@@ -95,16 +110,17 @@ export class Context {
     if (this.mqttConn === undefined) {
       return true;
     }
-    logger.debug("Send connect packet");
-    await this.connect(connectPacket);
+
     try {
+      logger.debug("Send connect packet", connectPacket);
+      await this.connect(connectPacket);
       logger.debug("Accepting packets");
       for await (const packet of this.mqttConn) {
         handlePacket(this, packet);
       }
       logger.debug("No more packets");
     } catch (err) {
-      logger.debug(err);
+      logger.debug(`error ${err}`);
       if (this.mqttConn.isClosed) {
         this.mqttConn.close();
       }

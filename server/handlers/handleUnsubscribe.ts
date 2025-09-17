@@ -20,5 +20,6 @@ export async function handleUnsubscribe(
   await ctx.send({
     type: PacketType.unsuback,
     id: packet.id,
+    protocolLevel: ctx.protocolLevel,
   });
 }

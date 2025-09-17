@@ -43,6 +43,21 @@ class Uint8QueuedWriter implements WritableStreamDefaultWriter {
   }
 }
 
+function readableByteStreamFromArray(readerBuffs: Array<Uint8Array>) {
+  let i = 0;
+  return new ReadableStream({
+    type: "bytes",
+    pull(controller) {
+      if (i === readerBuffs.length) {
+        controller.close();
+        controller.byobRequest?.respond(0);
+        return;
+      }
+      controller.enqueue(readerBuffs[i++]);
+    },
+  });
+}
+
 function ReadableStreamFrom(
   iterable: AsyncIterable<Uint8Array>,
 ): ReadableStream {
@@ -58,6 +73,7 @@ function ReadableStreamFrom(
 
       if (next.done) {
         controller.close();
+        controller.byobRequest?.respond(0);
         return;
       }
       controller.enqueue(next.value);
@@ -70,8 +86,7 @@ export function makeDummySockConn(
   writerBuf: Uint8Array,
   close = () => {},
 ) {
-  const readBlob = new Blob(readerBuffs);
-  const readable = readBlob.stream();
+  const readable = readableByteStreamFromArray(readerBuffs);
   const writable = new WritableStream(new Uint8Writer(writerBuf));
   return {
     readable,

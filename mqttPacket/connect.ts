@@ -1,7 +1,18 @@
-import type { ClientId, Payload, QoS, Topic, TPacketType } from "./types.ts";
+import type {
+  ClientId,
+  CodecOpts,
+  Payload,
+  ProtocolLevel,
+  ProtocolLevelNoV5,
+  QoS,
+  Topic,
+  TPacketType,
+} from "./types.ts";
+import type { ConnectProperties, WillProperties } from "./Properties.ts";
+import { PropertySetType } from "./Properties.ts";
 import { PacketType } from "./PacketType.ts";
 import { BitMask } from "./BitMask.ts";
-import { Encoder } from "./encoder.ts";
+import { Encoder, EncoderError } from "./encoder.ts";
 import {
   booleanFlag,
   Decoder,
@@ -12,10 +23,10 @@ import {
 /**
  * ConnectPacket is sent from the client to the server to initiate a connection.
  */
-export type ConnectPacket = {
+export type ConnectPacketV4 = {
   type: TPacketType;
   protocolName?: string;
-  protocolLevel?: number;
+  protocolLevel: ProtocolLevelNoV5;
   clientId?: ClientId;
   username?: string;
   password?: Uint8Array;
@@ -29,29 +40,81 @@ export type ConnectPacket = {
   keepAlive?: number;
 };
 
+export type ConnectPacketV5 = {
+  type: TPacketType;
+  protocolName?: string;
+  protocolLevel: 5;
+  clientId?: ClientId;
+  username?: string;
+  password?: Uint8Array;
+  will?: {
+    topic: Topic;
+    payload: Payload;
+    retain?: boolean;
+    qos?: QoS;
+    properties?: WillProperties;
+  };
+  clean?: boolean;
+  keepAlive?: number;
+  properties?: ConnectProperties;
+};
+
+export type ConnectPacket = ConnectPacketV4 | ConnectPacketV5;
+
 function invalidProtocolName(version: number, name: string): boolean {
-  if (version === 4 && name !== "MQTT") {
-    return true;
+  if (version === 3 && name === "MQIsdp") {
+    return false;
   }
-  return false;
+  if (version === 4 && name === "MQTT") {
+    return false;
+  }
+  if (version === 5 && name == "MQTT") {
+    return false;
+  }
+  return true;
 }
 
 export const connect: {
-  encode(packet: ConnectPacket): { flags: number; bytes: number[] };
-  decode(buffer: Uint8Array, flags: number): ConnectPacket;
+  encode(packet: ConnectPacket, _codecOpts: CodecOpts): Uint8Array;
+  decode(
+    buffer: Uint8Array,
+    flags: number,
+    codecOpts: CodecOpts,
+    packetType: TPacketType,
+  ): ConnectPacket;
 } = {
-  encode(packet: ConnectPacket): { flags: number; bytes: number[] } {
+  encode(packet: ConnectPacket, codecOpts: CodecOpts): Uint8Array {
     const flags = 0;
 
-    const protocolLevel = 4;
-    const protocolName = protocolLevel === 4 ? "MQTT" : "MQIsdp";
+    if (typeof packet.protocolLevel !== "number") {
+      throw new EncoderError("Protocol level must be a number");
+    }
+    const protocolLevel = packet.protocolLevel || 4;
+    if (protocolLevel < 3 || protocolLevel > 5) {
+      throw new EncoderError("Unsupported protocol level");
+    }
+    const protocolName = protocolLevel > 3 ? "MQTT" : "MQIsdp";
     const clientId = packet.clientId || "";
-    const usernameFlag = !!packet.username;
-    const passwordFlag = !!packet.password;
+    const usernameFlag = packet.username !== undefined;
+    if (protocolLevel === 3 && clientId === "") {
+      throw new EncoderError("Client id required for protocol level 3");
+    }
+    const passwordFlag = usernameFlag && packet.password !== undefined;
     const willRetain = !!packet.will?.retain;
     const willQoS = packet.will?.qos || 0;
-    const willFlag = !!packet.will;
+    const willFlag = packet.will !== undefined;
+    if (willFlag) {
+      if (packet.will?.topic === undefined) {
+        throw new EncoderError("Will topic must be defined");
+      }
+      if (packet.will?.payload === undefined) {
+        throw new EncoderError("Will payload must be defined");
+      }
+    }
     const cleanSession = packet.clean !== false;
+    if (!cleanSession && (clientId === "")) {
+      throw new EncoderError("Client id required for clean session");
+    }
     const connectFlags = (usernameFlag ? BitMask.bit7 : 0) +
       (passwordFlag ? BitMask.bit6 : 0) +
       (willRetain ? BitMask.bit5 : 0) +
@@ -61,34 +124,57 @@ export const connect: {
       (cleanSession ? BitMask.bit1 : 0);
     const keepAlive = packet.keepAlive || 0;
 
-    const encoder = new Encoder();
+    const encoder = new Encoder(packet.type);
     encoder
       .setUtf8String(protocolName)
       .setByte(protocolLevel)
       .setByte(connectFlags)
-      .setInt16(keepAlive)
-      .setUtf8String(clientId);
+      .setInt16(keepAlive);
+    if (packet.protocolLevel === 5) {
+      encoder.setProperties(
+        packet.properties || {},
+        PropertySetType.connect,
+        codecOpts.maxOutgoingPacketSize,
+      );
+    }
+    encoder.setUtf8String(clientId);
 
-    if (packet.will) {
+    if (
+      packet.will !== undefined && packet.will.topic !== undefined &&
+      packet.will.payload !== undefined
+    ) {
+      if (packet.protocolLevel === 5) {
+        encoder.setProperties(
+          packet.will?.properties || {},
+          PropertySetType.will,
+          codecOpts.maxOutgoingPacketSize,
+        );
+      }
       encoder.setTopic(packet.will.topic).setByteArray(packet.will.payload);
     }
 
-    if (packet.username) {
+    if (packet.username !== undefined) {
       encoder.setUtf8String(packet.username);
     }
 
-    if (packet.password) {
+    if (passwordFlag && packet.password !== undefined) {
       encoder.setByteArray(packet.password);
     }
-    return { flags, bytes: encoder.done() };
+    return encoder.done(flags);
   },
 
-  decode(buffer: Uint8Array, flags: number): ConnectPacket {
-    const decoder = new Decoder(buffer);
-    const protocolName = decoder.getUtf8String();
+  decode(
+    buffer: Uint8Array,
+    flags: number,
+    _codecOpts: CodecOpts,
+    packetType: TPacketType,
+  ): ConnectPacket {
+    const decoder = new Decoder(packetType, buffer);
+    const protocolName = decoder.getUTF8String();
     const protocolLevel = decoder.getByte();
+
     if (invalidProtocolName(protocolLevel, protocolName)) {
-      throw new DecoderError("Invalid protocol name");
+      throw new DecoderError("Invalid protocol name or level");
     }
 
     const connectFlags = decoder.getByte();
@@ -112,12 +198,24 @@ export const connect: {
       throw new DecoderError("Invalid will qos");
     }
 
-    const keepAlive = decoder.getInt16();
-    const clientId = decoder.getUtf8String();
+    if (!usernameFlag && passwordFlag) {
+      throw new DecoderError("Password without username");
+    }
 
+    const keepAlive = decoder.getInt16();
+    const isV5 = protocolLevel === 5;
+    let properties;
+    if (isV5) {
+      properties = decoder.getProperties(PropertySetType.connect);
+    }
+    const clientId = decoder.getUTF8String();
+    let willProperties;
     let willTopic;
     let willPayload;
     if (willFlag) {
+      if (isV5) {
+        willProperties = decoder.getProperties(PropertySetType.will);
+      }
       willTopic = decoder.getTopic();
       willPayload = decoder.getByteArray();
     }
@@ -125,7 +223,7 @@ export const connect: {
     let username;
     let password;
     if (usernameFlag) {
-      username = decoder.getUtf8String();
+      username = decoder.getUTF8String();
     }
 
     if (passwordFlag) {
@@ -143,13 +241,35 @@ export const connect: {
       throw new DecoderError("Clean session must be true if clientID is empty");
     }
 
-    return {
+    const commonProps = {
       type: PacketType.connect,
       protocolName: protocolName,
-      protocolLevel,
       clientId: clientId,
-      username: username ? username : undefined,
+      username,
       password: password ? password : undefined,
+      clean: cleanSession,
+      keepAlive,
+    };
+
+    if (isV5) {
+      return {
+        ...commonProps,
+        protocolLevel: 5,
+        will: willFlag
+          ? {
+            topic: willTopic || "",
+            payload: willPayload || Uint8Array.from([0]),
+            retain: willRetain,
+            qos: willQoS,
+            properties: willProperties,
+          }
+          : undefined,
+        properties,
+      };
+    }
+    return {
+      ...commonProps,
+      protocolLevel: protocolLevel as ProtocolLevel,
       will: willFlag
         ? {
           topic: willTopic || "",
@@ -158,8 +278,6 @@ export const connect: {
           qos: willQoS,
         }
         : undefined,
-      clean: cleanSession,
-      keepAlive,
     };
   },
 };

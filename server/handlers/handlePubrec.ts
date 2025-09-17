@@ -23,6 +23,7 @@ export async function handlePubrec(
     ctx.store.pendingAckOutgoing.add(id);
     await ctx.send({
       type: PacketType.pubrel,
+      protocolLevel: ctx.protocolLevel,
       id,
     });
   }

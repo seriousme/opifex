@@ -12,6 +12,7 @@ export type {
   PacketId,
   PingreqPacket,
   PingresPacket,
+  ProtocolLevel,
   PubackPacket,
   PubcompPacket,
   PublishPacket,
@@ -30,6 +31,7 @@ export type {
 
 export {
   AuthenticationResult,
+  MQTTLevel,
   PacketNameByType,
   PacketType,
 } from "../mqttPacket/mod.ts";

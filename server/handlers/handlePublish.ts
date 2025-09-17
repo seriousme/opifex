@@ -47,6 +47,7 @@ export async function handlePublish(
       ctx.persistence.publish(packet.topic, packet);
       await ctx.send({
         type: PacketType.puback,
+        protocolLevel: ctx.protocolLevel,
         id,
       });
       return;
@@ -56,6 +57,7 @@ export async function handlePublish(
       ctx.store.pendingIncoming.set(packet.id, packet);
       await ctx.send({
         type: PacketType.pubrec,
+        protocolLevel: ctx.protocolLevel,
         id: packet.id,
       });
     }

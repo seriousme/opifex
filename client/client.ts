@@ -1,13 +1,17 @@
 import {
-  type ConnectPacket,
   Deferred,
   logger,
   MemoryStore,
+  MQTTLevel,
   PacketType,
-  type PublishPacket,
-  type SockConn,
-  type SubscribePacket,
-  type TAuthenticationResult,
+} from "./deps.ts";
+
+import type {
+  ConnectPacket,
+  PublishPacket,
+  SockConn,
+  SubscribePacket,
+  TAuthenticationResult,
 } from "./deps.ts";
 
 import { Context } from "./context.ts";
@@ -23,7 +27,7 @@ function generateClientId(prefix: string): string {
 
 type ConnectOptions = Omit<
   ConnectPacket,
-  "type" | "protocolName" | "protocolLevel"
+  "type" | "protocolName"
 >;
 
 /** ConnectParameters define how to connect */
@@ -37,9 +41,15 @@ export type ConnectParameters = {
 };
 
 /** PublishParameters define how a message should be published */
-export type PublishParameters = Omit<PublishPacket, "type" | "id">;
+export type PublishParameters = Omit<
+  PublishPacket,
+  "type" | "id" | "protocolLevel"
+>;
 /** SubscribeParameters define how to subscribe to a topic */
-export type SubscribeParameters = Omit<SubscribePacket, "type" | "id">;
+export type SubscribeParameters = Omit<
+  SubscribePacket,
+  "type" | "id" | "protocolLevel"
+>;
 
 /**
  * Implements exponential backoff sleep with optional randomization
@@ -62,7 +72,8 @@ function backOffSleep(random: boolean, attempt: number): Promise<void> {
 
 /**  the default MQTT URL to connect to */
 export const DEFAULT_URL = "mqtt://localhost:1883/";
-const DEFAULT_KEEPALIVE = 60; // 60 seconds
+export const DEFAULT_PROTOCOLLEVEL = MQTTLevel.v4;
+export const DEFAULT_KEEPALIVE = 60; // 60 seconds
 const DEFAULT_RETRIES = 3; // on first connect
 const CLIENTID_PREFIX = "opifex"; // on first connect
 
@@ -80,6 +91,7 @@ export class Client {
   protected numberOfRetries = DEFAULT_RETRIES;
   protected url: URL = new URL(DEFAULT_URL);
   protected keepAlive = DEFAULT_KEEPALIVE;
+  protected protocolLevel = DEFAULT_PROTOCOLLEVEL;
   protected autoReconnect = true;
   private caCerts?: string[];
   private cert?: string;
@@ -127,12 +139,13 @@ export class Client {
     if (!this.connectPacket) {
       return;
     }
+
     let isReconnect = false;
     let attempt = 1;
     let lastMessage = new Error();
     let tryConnect = true;
     while (tryConnect) {
-      logger.debug(`${isReconnect ? "re" : ""}connecting`);
+      logger.debug(`${isReconnect ? "re" : ""}connecting, attempt ${attempt}`);
       try {
         const conn = await this.createConn(
           this.url.protocol,
@@ -153,13 +166,17 @@ export class Client {
       } catch (err) {
         if (err instanceof Error) {
           lastMessage = err;
+          logger.debug({ lastMessage });
         }
-        logger.debug(lastMessage);
-        if (!isReconnect && attempt > this.numberOfRetries) {
-          tryConnect = false;
-        } else {
-          await backOffSleep(true, attempt++);
+      }
+
+      if (tryConnect && (isReconnect || attempt < this.numberOfRetries)) {
+        await backOffSleep(true, attempt);
+        if (!isReconnect) {
+          attempt++;
         }
+      } else {
+        tryConnect = false;
       }
     }
 
@@ -183,6 +200,7 @@ export class Client {
       {
         keepAlive: this.keepAlive,
         clientId: this.clientId,
+        protocolLevel: this.protocolLevel,
       },
       params?.options,
     );
@@ -212,6 +230,7 @@ export class Client {
   async publish(params: PublishParameters): Promise<void> {
     const packet: PublishPacket = {
       type: PacketType.publish,
+      protocolLevel: this.ctx.protocolLevel,
       ...params,
     };
     await this.ctx.publish(packet);
@@ -226,6 +245,7 @@ export class Client {
     const packet: SubscribePacket = {
       type: PacketType.subscribe,
       id: 0, //placeholder
+      protocolLevel: this.ctx.protocolLevel,
       ...params,
     };
     await this.ctx.subscribe(packet);

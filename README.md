@@ -1,15 +1,49 @@
+[![Nodejs CI](https://github.com/seriousme/opifex/actions/workflows/nodejs-ci.yml/badge.svg)](https://github.com/seriousme/opifex/actions/workflows/nodejs-ci.yml)
 [![Deno CI](https://github.com/seriousme/opifex/actions/workflows/deno-ci.yml/badge.svg)](https://github.com/seriousme/opifex/actions/workflows/deno-ci.yml)
 [![CodeQL](https://github.com/seriousme/opifex/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/seriousme/opifex/actions/workflows/codeql-analysis.yml)
 
 # Opifex
 
 Opifex aims to provide a MQTT server and MQTT client in Typescript to be used
-with [Deno](https://deno.land), [NodeJS](https://nodejs.org) or
+with [NodeJS](https://nodejs.org), [Deno](https://deno.land) or
 [Bun](https://bun.sh) It has _no_ third party dependencies, it only relies on
 built in modules.
 
-Its a work in progress, only does MQTT 3.1.1 and currently only has memory based
-persistence.
+# Compatibility
+
+The following MQTT versions are supported:
+
+|                | MQTT 3.1 (v3) | MQTT 3.11 (v4) | MQTT 5.0 (v5) |
+| -------------- | ------------- | -------------- | ------------- |
+| Packet/encoder | ✅            | ✅             | ✅            |
+| Client         | ✅            | ✅             | ✅ partially  |
+| Server         | ❌            | ✅             | ❌            |
+
+Client and server currently only have memory based persistence, but one can
+provide its own persistence. (see [#Architecture] )
+
+## Usage
+
+The most easy way to use this project is to just use the demo server
+(demoServer) and/or the demo client (mqtt).
+
+- [NodeJS/Bun](node/README.md)
+- [Deno](deno/README.md)
+
+If you want to change the behaviour of the server and/or the client beyond what
+can be done with CLI options then the next step is to clone the demo server
+and/or the client scripts and modify them to your liking.
+
+If you want to port the platform independent client and server libs to other
+types of transport (e.g. Unix sockets or websocketstream) then its recommended
+to clone and modify the platform specific code in `/node` or `/deno` as well.
+
+If you want to port the platform independent client and server libs to another
+platform then the platform specific code in `/node` or `/deno` might serve as
+inspiration.
+
+Bun (as of version 1.2) and Deno are both capable of running the NodeJS version,
+but for historic reasons `/deno` still exists.
 
 ## Example
 
@@ -64,29 +98,6 @@ A more elaborate example including client and server can be found in the
 
 7. The demo client opens a platform specific socket and passes the resulting
    platform independent streams to the client module.
-
-## Usage
-
-The most easy way to use this project is to just use the demo server
-(demoServer) and/or the demo client (mqtt). There are separate usage
-instructions for:
-
-- [Deno](deno/README.md)
-- [NodeJS](node/README.md)
-
-If you want to change the behaviour of the server and/or the client beyond what
-can be done with CLI options then the next step is to clone the demo server
-and/or the client scripts and modify them to your liking.
-
-If you want to port the platform independent client and server libs to other
-types of transport (e.g. Unix sockets or websocketstream) then its recommended
-to clone and modify the platform specific code in `/node` or `/deno` as well.
-
-If you want to port the platform independent client and server libs to another
-platform then the platform specific code in `/node` or `/deno` might serve as
-inspiration.
-
-Bun (as of version 1.2) is capable of running the NodeJS version.
 
 ## Exports
 

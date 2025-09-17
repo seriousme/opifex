@@ -17,6 +17,7 @@ export const PacketType = {
   pingreq: 12,
   pingres: 13,
   disconnect: 14,
+  auth: 15,
 } as const;
 
 /**

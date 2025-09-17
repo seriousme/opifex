@@ -22,6 +22,7 @@ export async function handlePubrec(
   const id = packet.id;
   const ack: PubrelPacket = {
     type: PacketType.pubrel,
+    protocolLevel: ctx.protocolLevel,
     id,
   };
   if (ctx.store.pendingOutgoing.has(id)) {

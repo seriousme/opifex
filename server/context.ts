@@ -1,8 +1,15 @@
-import { logger, MqttConn, PacketNameByType, PacketType } from "./deps.ts";
+import {
+  logger,
+  MqttConn,
+  MQTTLevel,
+  PacketNameByType,
+  PacketType,
+} from "./deps.ts";
 import type {
   AnyPacket,
   IPersistence,
   IStore,
+  ProtocolLevel,
   PublishPacket,
   SockConn,
   TAuthenticationResult,
@@ -46,6 +53,7 @@ export type Handlers = {
 
 export class Context {
   connected: boolean;
+  protocolLevel: ProtocolLevel;
   conn: SockConn;
   mqttConn: MqttConn;
   persistence: IPersistence;
@@ -61,6 +69,7 @@ export class Context {
     this.conn = conn;
     this.mqttConn = new MqttConn({ conn });
     this.handlers = handlers;
+    this.protocolLevel = MQTTLevel.unknown;
   }
 
   async send(packet: AnyPacket): Promise<void> {
@@ -106,10 +115,10 @@ export class Context {
 
   close(executewill = true): void {
     if (this.connected) {
-      logger.debug(
+      logger.info(
         `Closing ${this.store?.clientId} while mqttConn is ${
           this.mqttConn.isClosed ? "" : "not "
-        }closed`,
+        }closed because of "${this.mqttConn.reason || "normal disconnect"}"`,
       );
       this.connected = false;
       if (typeof this.timer === "object") {
@@ -121,6 +130,12 @@ export class Context {
       if (executewill) {
         this.handleWill();
       }
+    } else {
+      logger.info(
+        `closing connection from ${this.mqttConn.remoteAddress} because of "${
+          this.mqttConn.reason || "normal disconnect"
+        }"`,
+      );
     }
     if (!this.mqttConn.isClosed) {
       this.mqttConn.close();
@@ -142,6 +157,7 @@ export class Context {
   broadcast(topic: Topic, payload: string, retain = false): void {
     const packet: PublishPacket = {
       type: PacketType.publish,
+      protocolLevel: this.protocolLevel,
       topic,
       retain,
       payload: utf8Encoder.encode(payload),

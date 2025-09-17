@@ -1,6 +1,6 @@
 import { PacketType } from "./PacketType.ts";
-import { isEmptyBuf } from "./decoder.ts";
-import type { TPacketType } from "./types.ts";
+import { hasEmptyFlags, isEmptyBuf } from "./decoder.ts";
+import type { CodecOpts, ProtocolLevel, TPacketType } from "./types.ts";
 
 /**
  * PingresPacket is  an empty packet that is sent by the server in response to a PingreqPacket.
@@ -8,21 +8,35 @@ import type { TPacketType } from "./types.ts";
  */
 export type PingresPacket = {
   type: TPacketType;
+  protocolLevel: ProtocolLevel;
 };
 
+const PINGRES_PACKET = new Uint8Array([PacketType.pingres << 4, 0]);
+
 export const pingres: {
-  encode(_packet: PingresPacket): { flags: number; bytes: number[] };
-  decode(buffer: Uint8Array): PingresPacket;
+  encode(packet: PingresPacket, _codecOpts: CodecOpts): Uint8Array;
+  decode(
+    buffer: Uint8Array,
+    flags: number,
+    codecOpts: CodecOpts,
+    _packetType: TPacketType,
+  ): PingresPacket;
 } = {
-  encode(_packet: PingresPacket): { flags: number; bytes: number[] } {
-    const flags = 0;
-    return { flags, bytes: [] };
+  encode(_packet: PingresPacket, _codecOpts: CodecOpts): Uint8Array {
+    return PINGRES_PACKET;
   },
 
-  decode(buffer: Uint8Array): PingresPacket {
+  decode(
+    buffer: Uint8Array,
+    flags: number,
+    codecOpts: CodecOpts,
+    _packetType: TPacketType,
+  ): PingresPacket {
+    hasEmptyFlags(flags);
     isEmptyBuf(buffer);
     return {
       type: PacketType.pingres,
+      protocolLevel: codecOpts.protocolLevel,
     };
   },
 };

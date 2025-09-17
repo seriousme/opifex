@@ -13,5 +13,7 @@ import type { SubackPacket } from "../deps.ts";
 export function handleSuback(ctx: Context, packet: SubackPacket): void {
   const id = packet.id;
   ctx.store.pendingOutgoing.delete(id);
-  ctx.receiveSuback(id, packet.returnCodes);
+  if (packet.protocolLevel !== 5) {
+    ctx.receiveSuback(id, packet.returnCodes);
+  }
 }

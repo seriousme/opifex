@@ -6,6 +6,7 @@ export type {
   Dup,
   PacketId,
   Payload,
+  ProtocolLevel,
   PubackPacket,
   PubcompPacket,
   PublishPacket,
@@ -16,6 +17,7 @@ export type {
   SubscribePacket,
   TAuthenticationResult,
   Topic,
+  TReasonCode,
   UnsubackPacket,
   UnsubscribePacket,
 } from "../mqttPacket/mod.ts";
@@ -25,8 +27,10 @@ export {
   AuthenticationResultByNumber,
   decodePayload,
   encode,
+  MQTTLevel,
   PacketNameByType,
   PacketType,
+  ReasonCodeByNumber,
 } from "../mqttPacket/mod.ts";
 
 export { MqttConn } from "../mqttConn/mqttConn.ts";
