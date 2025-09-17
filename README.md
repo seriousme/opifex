@@ -13,21 +13,19 @@ built in modules.
 
 The following MQTT versions are supported:
 
-| | MQTT 3.1 (v3) | MQTT 3.11 (v4) | MQTT 5.0 (v5)
--- | -- | -- | --
-Packet/encoder | ✅ | ✅ | ✅
-Client | ✅ | ✅ | ✅ partially
-Server | ❌ | ✅ | ❌
+|                | MQTT 3.1 (v3) | MQTT 3.11 (v4) | MQTT 5.0 (v5) |
+| -------------- | ------------- | -------------- | ------------- |
+| Packet/encoder | ✅            | ✅             | ✅            |
+| Client         | ✅            | ✅             | ✅ partially  |
+| Server         | ❌            | ✅             | ❌            |
 
-Client and server currently only have memory based
-persistence, but one can provide its own persistence.
-(see [#Architecture] )
-
+Client and server currently only have memory based persistence, but one can
+provide its own persistence. (see [#Architecture] )
 
 ## Usage
 
 The most easy way to use this project is to just use the demo server
-(demoServer) and/or the demo client (mqtt). 
+(demoServer) and/or the demo client (mqtt).
 
 - [NodeJS/Bun](node/README.md)
 - [Deno](deno/README.md)
