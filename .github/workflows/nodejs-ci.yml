@@ -16,7 +16,7 @@ jobs:
         node-version: ["lts/*", "node"]
     steps:
       - name: Checkout code
-      - uses: actions/checkout@v5
+        uses: actions/checkout@v5
 
       - name: Set up Node
       - name: Use Node.js ${{ matrix.node-version }}
