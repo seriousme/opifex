@@ -5,10 +5,11 @@
  * MQTT Server implementation with authentication and authorization
  * @module mqttServer
  */
+import { parseArgs } from "node:util";
 import { TcpServer } from "../node/tcpServer.ts";
 import type { Context, TAuthenticationResult, Topic } from "../server/mod.ts";
 import { AuthenticationResult } from "../server/mod.ts";
-import { getArgs, logger, LogLevel, parseArgs } from "../utils/mod.ts";
+import { logger, LogLevel } from "../utils/mod.ts";
 
 /**
  * UTF-8 decoder for parsing passwords
@@ -101,7 +102,7 @@ function isAuthorizedToSubscribe(ctx: Context, topic: Topic): boolean {
 /**
  * Parse command line arguments and start server
  */
-const { _: [portNum] } = parseArgs(getArgs());
+const { positionals: [portNum] } = parseArgs({ allowPositionals: true });
 const port = Number(portNum ?? 1883);
 const hostname = "::";
 logger.level(LogLevel.info);
