@@ -11,7 +11,7 @@ jobs:
       - name: 🛠️ Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: x.x.x # the lastest Bun version
+          bun-version: latest # the lastest Bun version
 
       - name: 📦 Install dependencies
         run: bun install
