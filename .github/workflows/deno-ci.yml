@@ -6,22 +6,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
       - uses: actions/checkout@v5
-
-      - name: Set up Deno
-        uses: denoland/setup-deno@v2
+      - uses: denoland/setup-deno@v2
         with:
           deno-version: vx.x.x # Run with latest stable Deno.
-
-      - name: Install dependencies
       - run: deno install
-
-      - name: Run Deno linter
-        run: deno lint
-
-      - name: Check code formatting
-        run: deno fmt --check
-
-      - name: Run tests
+      - run: deno fmt --check
+      - run: deno lint
       - run: deno test -A
