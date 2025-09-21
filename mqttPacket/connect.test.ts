@@ -188,6 +188,36 @@ test("encode Connect with username and password", () => {
   );
 });
 
+test("encode short Connect V5", () => {
+  assert.deepStrictEqual(
+    encode({
+      type: PacketType.connect,
+      protocolLevel: MQTTLevel.v5,
+    }, codecOptsUnknown),
+    Uint8Array.from([
+      // fixedHeader
+      16, // packetType + flags
+      13, // remainingLength
+      // variableHeader
+      0, // protocolNameLength MSB
+      4, // protocolNameLength LSB
+      77, // 'M'
+      81, // 'Q'
+      84, // 'T'
+      84, // 'T'
+      5, // protocolLevel
+      2, // connectFlags (cleanSession)
+      0, // keepAlive MSB
+      0, // keepAlive LSB
+      // payload
+      // clientId
+      0, // length MSB
+      0, // length LSB
+      0, // properties length
+    ]),
+  );
+});
+
 test("decode Connect with username and password", () => {
   assert.deepStrictEqual(
     decode(Uint8Array.from(encodedConnect), codecOptsUnknown),
