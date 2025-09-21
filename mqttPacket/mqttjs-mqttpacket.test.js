@@ -1,3 +1,6 @@
+// these tests have been adapted from:
+// https://github.com/mqttjs/mqtt-packet/blob/4690e25c66546579bad3a0783e6e7ef49d82e274/test.js
+
 import test from "node:test";
 import { decode, encode } from "./mod.ts";
 
@@ -73,7 +76,7 @@ function testGenerateErrorMultipleCmds(cmds, expected, fixture, opts) {
   });
 }
 
-function testParseGenerateDefaults(name, object, buffer, generated, opts) {
+function testParseGenerateDefaults(name, object, buffer, _generated, opts) {
   //testParseOnly(`${name} parse`, generated, buffer, opts);
   testGenerateOnly(`${name} generate`, object, buffer, opts);
 }
