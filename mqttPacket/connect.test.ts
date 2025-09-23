@@ -188,12 +188,62 @@ test("encode Connect with username and password", () => {
   );
 });
 
-test("encode short Connect V5", () => {
+test("encode/decode short Connect V5 with defaults and bridgeMode", () => {
+  const packet = {
+    type: PacketType.connect,
+    protocolLevel: MQTTLevel.v5,
+    bridgeMode: true,
+  };
+  const encoded = encode(packet, codecOptsUnknown);
   assert.deepStrictEqual(
-    encode({
-      type: PacketType.connect,
-      protocolLevel: MQTTLevel.v5,
-    }, codecOptsUnknown),
+    encoded,
+    Uint8Array.from([
+      // fixedHeader
+      16, // packetType + flags
+      13, // remainingLength
+      // variableHeader
+      0, // protocolNameLength MSB
+      4, // protocolNameLength LSB
+      77, // 'M'
+      81, // 'Q'
+      84, // 'T'
+      84, // 'T'
+      133, // protocolLevel
+      2, // connectFlags (cleanSession)
+      0, // keepAlive MSB
+      0, // keepAlive LSB
+      // payload
+      // clientId
+      0, // length MSB
+      0, // length LSB
+      0, // properties length
+    ]),
+  );
+  const decoded = decode(encoded, codecOptsUnknown);
+  const expected = {
+    clean: true,
+    clientId: "",
+    keepAlive: 0,
+    password: undefined,
+    properties: {},
+    protocolLevel: MQTTLevel.v5,
+    protocolName: "MQTT",
+    type: PacketType.connect,
+    username: undefined,
+    will: undefined,
+    bridgeMode: true,
+  };
+  assert.deepStrictEqual(decoded, expected);
+});
+
+test("encode/decode short Connect V5 with defaults", () => {
+  const packet = {
+    type: PacketType.connect,
+    protocolLevel: MQTTLevel.v5,
+  };
+  const encoded = encode(packet, codecOptsUnknown);
+  assert.deepStrictEqual(
+    encoded,
     Uint8Array.from([
       // fixedHeader
       16, // packetType + flags
@@ -216,6 +266,20 @@ test("encode short Connect V5", () => {
       0, // properties length
     ]),
   );
+  const decoded = decode(encoded, codecOptsUnknown);
+  const expected = {
+    clean: true,
+    clientId: "",
+    keepAlive: 0,
+    password: undefined,
+    properties: {},
+    protocolLevel: MQTTLevel.v5,
+    protocolName: "MQTT",
+    type: PacketType.connect,
+    username: undefined,
+    will: undefined,
+  };
+  assert.deepStrictEqual(decoded, expected);
 });
 
 test("decode Connect with username and password", () => {
