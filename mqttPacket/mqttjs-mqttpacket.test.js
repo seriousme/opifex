@@ -4,12 +4,7 @@
 import test from "node:test";
 import { decode, encode } from "./mod.ts";
 
-function testParseGenerate(
-  name,
-  expected,
-  buffer,
-  opts,
-) {
+function testParseGenerate(name, expected, buffer, opts) {
   const codecOpts = {
     protocolLevel: expected.protocolLevel || opts?.protocolVersion,
     maxIncomingPacketSize: 0xffff,
@@ -129,15 +124,15 @@ testParseError(
 testParseGenerate(
   "minimal connect",
   {
-    "clean": false,
-    "clientId": "test",
-    "type": 1,
-    "keepAlive": 30,
-    "protocolName": "MQIsdp",
-    "protocolLevel": 3,
-    "username": undefined,
-    "password": undefined,
-    "will": undefined,
+    clean: false,
+    clientId: "test",
+    type: 1,
+    keepAlive: 30,
+    protocolName: "MQIsdp",
+    protocolLevel: 3,
+    username: undefined,
+    password: undefined,
+    will: undefined,
   },
   Uint8Array.from([
     16,
@@ -168,12 +163,12 @@ testParseGenerate(
 testGenerateOnly(
   "minimal connect with clientId as Buffer",
   {
-    "clean": false,
-    "clientId": "test", // Uint8Array.from([116, 101, 115, 116])
-    "type": 1,
-    "keepAlive": 30,
-    "protocolName": "MQIsdp",
-    "protocolLevel": 3,
+    clean: false,
+    clientId: "test", // Uint8Array.from([116, 101, 115, 116])
+    type: 1,
+    keepAlive: 30,
+    protocolName: "MQIsdp",
+    protocolLevel: 3,
   },
   Uint8Array.from([
     16,
@@ -201,42 +196,116 @@ testGenerateOnly(
 );
 
 testParseGenerate(
+  "connect MQTT bridge 131",
+  {
+    type: 1,
+    protocolName: "MQIsdp",
+    protocolLevel: 3,
+    bridgeMode: true,
+    clean: false,
+    keepAlive: 30,
+    clientId: "test",
+    username: undefined,
+    password: undefined,
+    will: undefined,
+  },
+  Uint8Array.from([
+    16,
+    18, // Header
+    0,
+    6, // Protocol ID length
+    77,
+    81,
+    73,
+    115,
+    100,
+    112, // Protocol ID
+    131, // Protocol version
+    0, // Connect flags
+    0,
+    30, // Keepalive
+    0,
+    4, // Client ID length
+    116,
+    101,
+    115,
+    116, // Client ID
+  ]),
+);
+
+testParseGenerate(
+  "connect MQTT bridge 132",
+  {
+    type: 1,
+    protocolName: "MQTT",
+    protocolLevel: 4,
+    bridgeMode: true,
+    clean: false,
+    keepAlive: 30,
+    clientId: "test",
+    username: undefined,
+    password: undefined,
+    will: undefined,
+  },
+  Uint8Array.from([
+    16,
+    18, // Header
+    0,
+    4,
+    77,
+    81,
+    84,
+    84, // Protocol ID
+    132, // Protocol version
+    0, // Connect flags
+    0,
+    30, // Keepalive
+    0,
+    4, // Client ID length
+    116,
+    101,
+    115,
+    116, // Client ID
+  ]),
+);
+
+testParseGenerate(
   "connect MQTT 5",
   {
-    "will": {
-      "retain": true,
-      "qos": 2,
-      "properties": {
-        "willDelayInterval": 1234,
-        "payloadFormatIndicator": false,
-        "messageExpiryInterval": 4321,
-        "contentType": "test",
-        "responseTopic": "topic",
-        "correlationData": Uint8Array.from([1, 2, 3, 4]),
-        "userProperty": [["test", "test"]],
+    will: {
+      retain: true,
+      qos: 2,
+      properties: {
+        willDelayInterval: 1234,
+        payloadFormatIndicator: false,
+        messageExpiryInterval: 4321,
+        contentType: "test",
+        responseTopic: "topic",
+        correlationData: Uint8Array.from([1, 2, 3, 4]),
+        userProperty: [["test", "test"]],
       },
-      "topic": "topic",
-      "payload": Uint8Array.from([4, 3, 2, 1]),
+      topic: "topic",
+      payload: Uint8Array.from([4, 3, 2, 1]),
     },
-    "clean": true,
-    "properties": {
-      "sessionExpiryInterval": 1234,
-      "receiveMaximum": 432,
-      "maximumPacketSize": 100,
-      "topicAliasMaximum": 456,
-      "requestResponseInformation": true,
-      "requestProblemInformation": true,
-      "authenticationMethod": "test",
-      "authenticationData": Uint8Array.from([1, 2, 3, 4]),
-      "userProperty": [["test", "test"]],
+    clean: true,
+    properties: {
+      sessionExpiryInterval: 1234,
+      receiveMaximum: 432,
+      maximumPacketSize: 100,
+      topicAliasMaximum: 456,
+      requestResponseInformation: true,
+      requestProblemInformation: true,
+      authenticationMethod: "test",
+      authenticationData: Uint8Array.from([1, 2, 3, 4]),
+      userProperty: [["test", "test"]],
     },
-    "clientId": "test",
-    "type": 1,
-    "keepAlive": 30,
-    "protocolName": "MQTT",
-    "protocolLevel": 5,
-    "username": undefined,
-    "password": undefined,
+    clientId: "test",
+    type: 1,
+    keepAlive: 30,
+    protocolName: "MQTT",
+    protocolLevel: 5,
+    username: undefined,
+    password: undefined,
   },
   Uint8Array.from([
     16,
@@ -373,40 +442,40 @@ testParseGenerate(
 testParseGenerate(
   "connect MQTT 5 with will properties but with empty will payload",
   {
-    "will": {
-      "retain": true,
-      "qos": 2,
-      "properties": {
-        "willDelayInterval": 1234,
-        "payloadFormatIndicator": false,
-        "messageExpiryInterval": 4321,
-        "contentType": "test",
-        "responseTopic": "topic",
-        "correlationData": Uint8Array.from([1, 2, 3, 4]),
-        "userProperty": [["test", "test"]],
+    will: {
+      retain: true,
+      qos: 2,
+      properties: {
+        willDelayInterval: 1234,
+        payloadFormatIndicator: false,
+        messageExpiryInterval: 4321,
+        contentType: "test",
+        responseTopic: "topic",
+        correlationData: Uint8Array.from([1, 2, 3, 4]),
+        userProperty: [["test", "test"]],
       },
-      "topic": "topic",
-      "payload": Uint8Array.from([]),
+      topic: "topic",
+      payload: Uint8Array.from([]),
     },
-    "clean": true,
-    "properties": {
-      "sessionExpiryInterval": 1234,
-      "receiveMaximum": 432,
-      "maximumPacketSize": 100,
-      "topicAliasMaximum": 456,
-      "requestResponseInformation": true,
-      "requestProblemInformation": true,
-      "authenticationMethod": "test",
-      "authenticationData": Uint8Array.from([1, 2, 3, 4]),
-      "userProperty": [["test", "test"]],
+    clean: true,
+    properties: {
+      sessionExpiryInterval: 1234,
+      receiveMaximum: 432,
+      maximumPacketSize: 100,
+      topicAliasMaximum: 456,
+      requestResponseInformation: true,
+      requestProblemInformation: true,
+      authenticationMethod: "test",
+      authenticationData: Uint8Array.from([1, 2, 3, 4]),
+      userProperty: [["test", "test"]],
     },
-    "clientId": "test",
-    "type": 1,
-    "keepAlive": 30,
-    "protocolName": "MQTT",
-    "protocolLevel": 5,
-    "username": undefined,
-    "password": undefined,
+    clientId: "test",
+    type: 1,
+    keepAlive: 30,
+    protocolName: "MQTT",
+    protocolLevel: 5,
+    username: undefined,
+    password: undefined,
   },
   Uint8Array.from([
     16,
@@ -539,32 +608,32 @@ testParseGenerate(
 testParseGenerate(
   "connect MQTT 5 w/o will properties",
   {
-    "will": {
-      "retain": true,
-      "qos": 2,
-      "topic": "topic",
-      "payload": Uint8Array.from([4, 3, 2, 1]),
-      "properties": {},
+    will: {
+      retain: true,
+      qos: 2,
+      topic: "topic",
+      payload: Uint8Array.from([4, 3, 2, 1]),
+      properties: {},
     },
-    "clean": true,
-    "properties": {
-      "sessionExpiryInterval": 1234,
-      "receiveMaximum": 432,
-      "maximumPacketSize": 100,
-      "topicAliasMaximum": 456,
-      "requestResponseInformation": true,
-      "requestProblemInformation": true,
-      "authenticationMethod": "test",
-      "authenticationData": Uint8Array.from([1, 2, 3, 4]),
-      "userProperty": [["test", "test"]],
+    clean: true,
+    properties: {
+      sessionExpiryInterval: 1234,
+      receiveMaximum: 432,
+      maximumPacketSize: 100,
+      topicAliasMaximum: 456,
+      requestResponseInformation: true,
+      requestProblemInformation: true,
+      authenticationMethod: "test",
+      authenticationData: Uint8Array.from([1, 2, 3, 4]),
+      userProperty: [["test", "test"]],
     },
-    "clientId": "test",
-    "type": 1,
-    "keepAlive": 30,
-    "protocolName": "MQTT",
-    "protocolLevel": 5,
-    "username": undefined,
-    "password": undefined,
+    clientId: "test",
+    type: 1,
+    keepAlive: 30,
+    protocolName: "MQTT",
+    protocolLevel: 5,
+    username: undefined,
+    password: undefined,
   },
   Uint8Array.from([
     16,
@@ -654,15 +723,15 @@ testParseGenerate(
 testParseGenerate(
   "no clientId with 3.1.1",
   {
-    "clean": true,
-    "clientId": "",
-    "type": 1,
-    "keepAlive": 30,
-    "protocolName": "MQTT",
-    "protocolLevel": 4,
-    "username": undefined,
-    "password": undefined,
-    "will": undefined,
+    clean: true,
+    clientId: "",
+    type: 1,
+    keepAlive: 30,
+    protocolName: "MQTT",
+    protocolLevel: 4,
+    username: undefined,
+    password: undefined,
+    will: undefined,
   },
   Uint8Array.from([16, 12, 0, 4, 77, 81, 84, 84, 4, 2, 0, 30, 0, 0]),
   undefined,
@@ -671,13 +740,13 @@ testParseGenerate(
 testParseGenerateDefaults(
   "no clientId with 5.0",
   {
-    "type": 1,
-    "protocolName": "MQTT",
-    "protocolLevel": 5,
-    "clean": true,
-    "keepAlive": 60,
-    "properties": { "receiveMaximum": 20 },
-    "clientId": "",
+    type: 1,
+    protocolName: "MQTT",
+    protocolLevel: 5,
+    clean: true,
+    keepAlive: 60,
+    properties: { receiveMaximum: 20 },
+    clientId: "",
   },
   Uint8Array.from([
     16,
@@ -700,36 +769,36 @@ testParseGenerateDefaults(
     0,
   ]),
   {
-    "cmd": "connect",
-    "retain": false,
-    "qos": 0,
-    "dup": false,
-    "length": 16,
-    "topic": null,
-    "payload": null,
-    "protocolId": "MQTT",
-    "protocolVersion": 5,
-    "clean": true,
-    "keepalive": 60,
-    "properties": { "receiveMaximum": 20 },
-    "clientId": "",
+    cmd: "connect",
+    retain: false,
+    qos: 0,
+    dup: false,
+    length: 16,
+    topic: null,
+    payload: null,
+    protocolId: "MQTT",
+    protocolVersion: 5,
+    clean: true,
+    keepalive: 60,
+    properties: { receiveMaximum: 20 },
+    clientId: "",
   },
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseGenerateDefaults(
   "utf-8 clientId with 5.0",
   {
-    "type": 1,
-    "retain": false,
-    "qos": 0,
-    "dup": false,
-    "length": 23,
-    "protocolName": "MQTT",
-    "protocolLevel": 4,
-    "clean": true,
-    "keepAlive": 30,
-    "clientId": "Ŧėśt🜄",
+    type: 1,
+    retain: false,
+    qos: 0,
+    dup: false,
+    length: 23,
+    protocolName: "MQTT",
+    protocolLevel: 4,
+    clean: true,
+    keepAlive: 30,
+    clientId: "Ŧėśt🜄",
   },
   Uint8Array.from([
     16,
@@ -759,25 +828,25 @@ testParseGenerateDefaults(
     132,
   ]),
   {
-    "cmd": "connect",
-    "retain": false,
-    "qos": 0,
-    "dup": false,
-    "length": 23,
-    "topic": null,
-    "payload": null,
-    "protocolId": "MQTT",
-    "protocolVersion": 4,
-    "clean": true,
-    "keepalive": 30,
-    "clientId": "Ŧėśt🜄",
+    cmd: "connect",
+    retain: false,
+    qos: 0,
+    dup: false,
+    length: 23,
+    topic: null,
+    payload: null,
+    protocolId: "MQTT",
+    protocolVersion: 4,
+    clean: true,
+    keepalive: 30,
+    clientId: "Ŧėśt🜄",
   },
-  { "protocol": 5 },
+  { protocol: 5 },
 );
 
 testParseGenerateDefaults(
   "default connect",
-  { type: 1, protocolLevel: 4, "clientId": "test" },
+  { type: 1, protocolLevel: 4, clientId: "test" },
   Uint8Array.from([
     16,
     16,
@@ -799,18 +868,18 @@ testParseGenerateDefaults(
     116,
   ]),
   {
-    "cmd": "connect",
-    "retain": false,
-    "qos": 0,
-    "dup": false,
-    "length": 16,
-    "topic": null,
-    "payload": null,
-    "protocolId": "MQTT",
-    "protocolVersion": 4,
-    "clean": true,
-    "keepalive": 0,
-    "clientId": "test",
+    cmd: "connect",
+    retain: false,
+    qos: 0,
+    dup: false,
+    length: 16,
+    topic: null,
+    payload: null,
+    protocolId: "MQTT",
+    protocolVersion: 4,
+    clean: true,
+    keepalive: 0,
+    clientId: "test",
   },
   undefined,
 );
@@ -818,12 +887,12 @@ testParseGenerateDefaults(
 testParseAndGenerate(
   "Version 4 CONACK",
   {
-    "topic": null,
-    "payload": null,
-    "sessionPresent": false,
-    "returnCode": 1,
-    "type": 2,
-    "protocolLevel": 4,
+    topic: null,
+    payload: null,
+    sessionPresent: false,
+    returnCode: 1,
+    type: 2,
+    protocolLevel: 4,
   },
   Uint8Array.from([32, 2, 0, 1]),
   {},
@@ -832,77 +901,77 @@ testParseAndGenerate(
 testParseAndGenerate(
   "Version 5 CONACK",
   {
-    "topic": null,
-    "payload": null,
-    "sessionPresent": false,
-    "reasonCode": 140,
-    "type": 2,
-    "protocolLevel": 5,
-    "properties": {},
+    topic: null,
+    payload: null,
+    sessionPresent: false,
+    reasonCode: 140,
+    type: 2,
+    protocolLevel: 5,
+    properties: {},
   },
   Uint8Array.from([32, 3, 0, 140, 0]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseAndGenerate(
   "Version 5 PUBACK test 2",
   {
-    "topic": null,
-    "payload": null,
-    "reasonCode": 0,
-    "type": 4,
-    "id": 42,
-    "protocolLevel": 5,
+    topic: null,
+    payload: null,
+    reasonCode: 0,
+    type: 4,
+    id: 42,
+    protocolLevel: 5,
   },
   Uint8Array.from([64, 2, 0, 42]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseAndGenerate(
   "Version 5 CONNACK test 3",
   {
-    "topic": null,
-    "payload": null,
-    "sessionPresent": true,
-    "reasonCode": 0,
-    "type": 2,
-    "protocolLevel": 5,
-    "properties": {},
+    topic: null,
+    payload: null,
+    sessionPresent: true,
+    reasonCode: 0,
+    type: 2,
+    protocolLevel: 5,
+    properties: {},
   },
   Uint8Array.from([32, 3, 1, 0, 0]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseAndGenerate(
   "Version 5 DISCONNECT test 3",
   {
-    "topic": null,
-    "payload": null,
-    "reasonCode": 0,
-    "type": 14,
-    "protocolLevel": 5,
+    topic: null,
+    payload: null,
+    reasonCode: 0,
+    type: 14,
+    protocolLevel: 5,
   },
   Uint8Array.from([224, 0]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseGenerate(
   "empty will payload",
   {
-    "will": {
-      "retain": true,
-      "qos": 2,
-      "topic": "topic",
-      "payload": Uint8Array.from([]),
+    will: {
+      retain: true,
+      qos: 2,
+      topic: "topic",
+      payload: Uint8Array.from([]),
     },
-    "clean": true,
-    "clientId": "test",
-    "username": "username",
-    "password": Uint8Array.from([112, 97, 115, 115, 119, 111, 114, 100]),
-    "type": 1,
-    "keepAlive": 30,
-    "protocolName": "MQIsdp",
-    "protocolLevel": 3,
+    clean: true,
+    clientId: "test",
+    username: "username",
+    password: Uint8Array.from([112, 97, 115, 115, 119, 111, 114, 100]),
+    type: 1,
+    keepAlive: 30,
+    protocolName: "MQIsdp",
+    protocolLevel: 3,
   },
   Uint8Array.from([
     16,
@@ -961,15 +1030,15 @@ testParseGenerate(
 testParseGenerate(
   "empty buffer username payload",
   {
-    "clean": true,
-    "clientId": "test",
-    "username": "",
-    "type": 1,
-    "keepAlive": 30,
-    "protocolName": "MQIsdp",
-    "protocolLevel": 3,
-    "password": undefined,
-    "will": undefined,
+    clean: true,
+    clientId: "test",
+    username: "",
+    type: 1,
+    keepAlive: 30,
+    protocolName: "MQIsdp",
+    protocolLevel: 3,
+    password: undefined,
+    will: undefined,
   },
   Uint8Array.from([
     16,
@@ -1001,15 +1070,15 @@ testParseGenerate(
 testParseGenerate(
   "empty string username payload",
   {
-    "clean": true,
-    "clientId": "test",
-    "username": "",
-    "type": 1,
-    "keepAlive": 30,
-    "protocolName": "MQIsdp",
-    "protocolLevel": 3,
-    "password": undefined,
-    "will": undefined,
+    clean: true,
+    clientId: "test",
+    username: "",
+    type: 1,
+    keepAlive: 30,
+    protocolName: "MQIsdp",
+    protocolLevel: 3,
+    password: undefined,
+    will: undefined,
   },
   Uint8Array.from([
     16,
@@ -1041,15 +1110,15 @@ testParseGenerate(
 testParseGenerate(
   "empty buffer password payload",
   {
-    "clean": true,
-    "clientId": "test",
-    "username": "username",
-    "password": Uint8Array.from([]),
-    "type": 1,
-    "keepAlive": 30,
-    "protocolName": "MQIsdp",
-    "protocolLevel": 3,
-    "will": undefined,
+    clean: true,
+    clientId: "test",
+    username: "username",
+    password: Uint8Array.from([]),
+    type: 1,
+    keepAlive: 30,
+    protocolName: "MQIsdp",
+    protocolLevel: 3,
+    will: undefined,
   },
   Uint8Array.from([
     16,
@@ -1091,15 +1160,15 @@ testParseGenerate(
 testParseGenerate(
   "empty string password payload",
   {
-    "clean": true,
-    "clientId": "test",
-    "username": "username",
-    "password": Uint8Array.from([]),
-    "type": 1,
-    "keepAlive": 30,
-    "protocolName": "MQIsdp",
-    "protocolLevel": 3,
-    "will": undefined,
+    clean: true,
+    clientId: "test",
+    username: "username",
+    password: Uint8Array.from([]),
+    type: 1,
+    keepAlive: 30,
+    protocolName: "MQIsdp",
+    protocolLevel: 3,
+    will: undefined,
   },
   Uint8Array.from([
     16,
@@ -1141,15 +1210,15 @@ testParseGenerate(
 testParseGenerate(
   "empty string username and password payload",
   {
-    "clean": true,
-    "clientId": "test",
-    "username": "",
-    "password": Uint8Array.from([]),
-    "type": 1,
-    "keepAlive": 30,
-    "protocolName": "MQIsdp",
-    "protocolLevel": 3,
-    "will": undefined,
+    clean: true,
+    clientId: "test",
+    username: "",
+    password: Uint8Array.from([]),
+    type: 1,
+    keepAlive: 30,
+    protocolName: "MQIsdp",
+    protocolLevel: 3,
+    will: undefined,
   },
   Uint8Array.from([
     16,
@@ -1183,20 +1252,20 @@ testParseGenerate(
 testParseGenerate(
   "maximal connect",
   {
-    "will": {
-      "retain": true,
-      "qos": 2,
-      "topic": "topic",
-      "payload": Uint8Array.from([112, 97, 121, 108, 111, 97, 100]),
+    will: {
+      retain: true,
+      qos: 2,
+      topic: "topic",
+      payload: Uint8Array.from([112, 97, 121, 108, 111, 97, 100]),
     },
-    "clean": true,
-    "clientId": "test",
-    "username": "username",
-    "password": Uint8Array.from([112, 97, 115, 115, 119, 111, 114, 100]),
-    "type": 1,
-    "keepAlive": 30,
-    "protocolName": "MQIsdp",
-    "protocolLevel": 3,
+    clean: true,
+    clientId: "test",
+    username: "username",
+    password: Uint8Array.from([112, 97, 115, 115, 119, 111, 114, 100]),
+    type: 1,
+    keepAlive: 30,
+    protocolName: "MQIsdp",
+    protocolLevel: 3,
   },
   Uint8Array.from([
     16,
@@ -1262,20 +1331,20 @@ testParseGenerate(
 testParseGenerate(
   "max connect with special chars",
   {
-    "will": {
-      "retain": true,
-      "qos": 2,
-      "topic": "tòpic",
-      "payload": Uint8Array.from([112, 97, 121, 194, 163, 111, 97, 100]),
+    will: {
+      retain: true,
+      qos: 2,
+      topic: "tòpic",
+      payload: Uint8Array.from([112, 97, 121, 194, 163, 111, 97, 100]),
     },
-    "clean": true,
-    "clientId": "te$t",
-    "username": "u$ern4me",
-    "password": Uint8Array.from([112, 52, 36, 36, 119, 48, 194, 163, 100]),
-    "type": 1,
-    "keepAlive": 30,
-    "protocolName": "MQIsdp",
-    "protocolLevel": 3,
+    clean: true,
+    clientId: "te$t",
+    username: "u$ern4me",
+    password: Uint8Array.from([112, 52, 36, 36, 119, 48, 194, 163, 100]),
+    type: 1,
+    keepAlive: 30,
+    protocolName: "MQIsdp",
+    protocolLevel: 3,
   },
   Uint8Array.from([
     16,
@@ -1344,20 +1413,20 @@ testParseGenerate(
 testGenerateOnly(
   "connect all strings generate",
   {
-    "will": {
-      "retain": true,
-      "qos": 2,
-      "topic": "topic",
-      "payload": "payload",
+    will: {
+      retain: true,
+      qos: 2,
+      topic: "topic",
+      payload: "payload",
     },
-    "clean": true,
-    "clientId": "test",
-    "username": "username",
-    "password": Uint8Array.from([112, 97, 115, 115, 119, 111, 114, 100]),
-    "type": 1,
-    "keepAlive": 30,
-    "protocolName": "MQIsdp",
-    "protocolLevel": 3,
+    clean: true,
+    clientId: "test",
+    username: "username",
+    password: Uint8Array.from([112, 97, 115, 115, 119, 111, 114, 100]),
+    type: 1,
+    keepAlive: 30,
+    protocolName: "MQIsdp",
+    protocolLevel: 3,
   },
   Uint8Array.from([
     16,
@@ -1626,48 +1695,48 @@ testParseError(
 testParseError(
   "Packet too short",
   Uint8Array.from([16, 8, 0, 4, 77, 81, 84, 84, 5, 2, 0, 0, 0, 0, 0]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseError(
   "Malformed subscribe, no payload specified",
   Uint8Array.from([130, 0]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseError(
   "Malformed suback, no payload specified",
   Uint8Array.from([144, 0]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseError(
   "Malformed unsubscribe, no payload specified",
   Uint8Array.from([162, 0]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseError(
   "Malformed unsuback, no payload specified",
   Uint8Array.from([176, 0]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseError(
   "Malformed unsuback, payload length must be 2",
   Uint8Array.from([176, 1, 1]),
-  { "protocolVersion": 4 },
+  { protocolVersion: 4 },
 );
 
 testParseError(
   "Malformed unsuback, payload length must be 2",
   Uint8Array.from([176, 1, 1]),
-  { "protocolVersion": 3 },
+  { protocolVersion: 3 },
 );
 
 testParseGenerate(
   "connack with return code 0",
-  { "sessionPresent": false, "returnCode": 0, "type": 2, "protocolLevel": 4 },
+  { sessionPresent: false, returnCode: 0, type: 2, protocolLevel: 4 },
   Uint8Array.from([32, 2, 0, 0]),
   undefined,
 );
@@ -1675,29 +1744,29 @@ testParseGenerate(
 testParseGenerate(
   "connack MQTT 5 with properties",
   {
-    "sessionPresent": false,
-    "reasonCode": 0,
-    "properties": {
-      "sessionExpiryInterval": 1234,
-      "receiveMaximum": 432,
-      "retainAvailable": true,
-      "maximumPacketSize": 100,
-      "assignedClientIdentifier": "test",
-      "topicAliasMaximum": 456,
-      "reasonString": "test",
-      "wildcardSubscriptionAvailable": true,
-      "sharedSubscriptionAvailable": false,
-      "serverKeepAlive": 1234,
-      "responseInformation": "test",
-      "serverReference": "test",
-      "authenticationMethod": "test",
-      "authenticationData": Uint8Array.from([1, 2, 3, 4]),
-      "userProperty": [["test", "test"]],
-      "maximumQos": 2,
-      "subscriptionIdentifierAvailable": true,
+    sessionPresent: false,
+    reasonCode: 0,
+    properties: {
+      sessionExpiryInterval: 1234,
+      receiveMaximum: 432,
+      retainAvailable: true,
+      maximumPacketSize: 100,
+      assignedClientIdentifier: "test",
+      topicAliasMaximum: 456,
+      reasonString: "test",
+      wildcardSubscriptionAvailable: true,
+      sharedSubscriptionAvailable: false,
+      serverKeepAlive: 1234,
+      responseInformation: "test",
+      serverReference: "test",
+      authenticationMethod: "test",
+      authenticationData: Uint8Array.from([1, 2, 3, 4]),
+      userProperty: [["test", "test"]],
+      maximumQos: 2,
+      subscriptionIdentifierAvailable: true,
     },
-    "type": 2,
-    "protocolLevel": 5,
+    type: 2,
+    protocolLevel: 5,
   },
   Uint8Array.from([
     32,
@@ -1790,35 +1859,38 @@ testParseGenerate(
     3,
     4,
   ]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseGenerate(
   "connack MQTT 5 with properties and doubled user properties",
   {
-    "sessionPresent": false,
-    "reasonCode": 0,
-    "properties": {
-      "sessionExpiryInterval": 1234,
-      "receiveMaximum": 432,
-      "retainAvailable": true,
-      "maximumPacketSize": 100,
-      "assignedClientIdentifier": "test",
-      "topicAliasMaximum": 456,
-      "reasonString": "test",
-      "wildcardSubscriptionAvailable": true,
-      "sharedSubscriptionAvailable": false,
-      "serverKeepAlive": 1234,
-      "responseInformation": "test",
-      "serverReference": "test",
-      "authenticationMethod": "test",
-      "authenticationData": Uint8Array.from([1, 2, 3, 4]),
-      "userProperty": [["test", "test"], ["test", "test"]],
-      "maximumQos": 2,
-      "subscriptionIdentifierAvailable": true,
+    sessionPresent: false,
+    reasonCode: 0,
+    properties: {
+      sessionExpiryInterval: 1234,
+      receiveMaximum: 432,
+      retainAvailable: true,
+      maximumPacketSize: 100,
+      assignedClientIdentifier: "test",
+      topicAliasMaximum: 456,
+      reasonString: "test",
+      wildcardSubscriptionAvailable: true,
+      sharedSubscriptionAvailable: false,
+      serverKeepAlive: 1234,
+      responseInformation: "test",
+      serverReference: "test",
+      authenticationMethod: "test",
+      authenticationData: Uint8Array.from([1, 2, 3, 4]),
+      userProperty: [
+        ["test", "test"],
+        ["test", "test"],
+      ],
+      maximumQos: 2,
+      subscriptionIdentifierAvailable: true,
     },
-    "type": 2,
-    "protocolLevel": 5,
+    type: 2,
+    protocolLevel: 5,
   },
   Uint8Array.from([
     32,
@@ -1924,19 +1996,19 @@ testParseGenerate(
     3,
     4,
   ]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseGenerate(
   "connack with return code 0 session present bit set",
-  { "sessionPresent": true, "returnCode": 0, "type": 2, "protocolLevel": 4 },
+  { sessionPresent: true, returnCode: 0, type: 2, protocolLevel: 4 },
   Uint8Array.from([32, 2, 1, 0]),
   undefined,
 );
 
 testParseGenerate(
   "connack with return code 5",
-  { "sessionPresent": false, "returnCode": 5, "type": 2, "protocolLevel": 4 },
+  { sessionPresent: false, returnCode: 5, type: 2, protocolLevel: 4 },
   Uint8Array.from([32, 2, 0, 5]),
   undefined,
 );
@@ -1954,26 +2026,26 @@ testParseError(
 );
 
 testGenerateError("Invalid return code", {
-  "cmd": "connack",
-  "retain": false,
-  "qos": 0,
-  "dup": false,
-  "length": 2,
-  "sessionPresent": false,
-  "returnCode": "5",
+  cmd: "connack",
+  retain: false,
+  qos: 0,
+  dup: false,
+  length: 2,
+  sessionPresent: false,
+  returnCode: "5",
 });
 
 testParseGenerate(
   "minimal publish",
   {
-    "retain": false,
-    "qos": 0,
-    "dup": false,
-    "topic": "test",
-    "payload": Uint8Array.from([116, 101, 115, 116]),
-    "type": 3,
-    "protocolLevel": 4,
-    "id": undefined,
+    retain: false,
+    qos: 0,
+    dup: false,
+    topic: "test",
+    payload: Uint8Array.from([116, 101, 115, 116]),
+    type: 3,
+    protocolLevel: 4,
+    id: undefined,
   },
   Uint8Array.from([48, 10, 0, 4, 116, 101, 115, 116, 116, 101, 115, 116]),
   undefined,
@@ -1982,24 +2054,28 @@ testParseGenerate(
 testParseGenerate(
   "publish MQTT 5 properties",
   {
-    "retain": true,
-    "qos": 2,
-    "dup": true,
-    "topic": "test",
-    "payload": Uint8Array.from([116, 101, 115, 116]),
-    "properties": {
-      "payloadFormatIndicator": true,
-      "messageExpiryInterval": 4321,
-      "topicAlias": 100,
-      "responseTopic": "topic",
-      "correlationData": Uint8Array.from([1, 2, 3, 4]),
-      "contentType": "test",
-      "subscriptionIdentifiers": [120],
-      "userProperty": [["test", "test"], ["test", "test"], ["test", "test"]],
+    retain: true,
+    qos: 2,
+    dup: true,
+    topic: "test",
+    payload: Uint8Array.from([116, 101, 115, 116]),
+    properties: {
+      payloadFormatIndicator: true,
+      messageExpiryInterval: 4321,
+      topicAlias: 100,
+      responseTopic: "topic",
+      correlationData: Uint8Array.from([1, 2, 3, 4]),
+      contentType: "test",
+      subscriptionIdentifiers: [120],
+      userProperty: [
+        ["test", "test"],
+        ["test", "test"],
+        ["test", "test"],
+      ],
     },
-    "type": 3,
-    "id": 10,
-    "protocolLevel": 5,
+    type: 3,
+    id: 10,
+    protocolLevel: 5,
   },
   Uint8Array.from([
     61,
@@ -2091,30 +2167,30 @@ testParseGenerate(
     115,
     116,
   ]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseGenerate(
   "publish MQTT 5 with multiple same properties",
   {
-    "retain": true,
-    "qos": 2,
-    "dup": true,
-    "topic": "test",
-    "payload": Uint8Array.from([116, 101, 115, 116]),
-    "properties": {
-      "payloadFormatIndicator": true,
-      "messageExpiryInterval": 4321,
-      "topicAlias": 100,
-      "responseTopic": "topic",
-      "correlationData": Uint8Array.from([1, 2, 3, 4]),
-      "contentType": "test",
-      "subscriptionIdentifiers": [120, 121, 122],
-      "userProperty": [["test", "test"]],
+    retain: true,
+    qos: 2,
+    dup: true,
+    topic: "test",
+    payload: Uint8Array.from([116, 101, 115, 116]),
+    properties: {
+      payloadFormatIndicator: true,
+      messageExpiryInterval: 4321,
+      topicAlias: 100,
+      responseTopic: "topic",
+      correlationData: Uint8Array.from([1, 2, 3, 4]),
+      contentType: "test",
+      subscriptionIdentifiers: [120, 121, 122],
+      userProperty: [["test", "test"]],
     },
-    "type": 3,
-    "id": 10,
-    "protocolLevel": 5,
+    type: 3,
+    id: 10,
+    protocolLevel: 5,
   },
   Uint8Array.from([
     61,
@@ -2184,24 +2260,24 @@ testParseGenerate(
     115,
     116,
   ]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseGenerate(
   "publish MQTT 5 properties with 0-4 byte varbyte",
   {
-    "retain": true,
-    "qos": 2,
-    "dup": true,
-    "topic": "test",
-    "payload": Uint8Array.from([116, 101, 115, 116]),
-    "properties": {
-      "payloadFormatIndicator": false,
-      "subscriptionIdentifiers": [128, 16384, 2097152],
+    retain: true,
+    qos: 2,
+    dup: true,
+    topic: "test",
+    payload: Uint8Array.from([116, 101, 115, 116]),
+    properties: {
+      payloadFormatIndicator: false,
+      subscriptionIdentifiers: [128, 16384, 2097152],
     },
-    "type": 3,
-    "id": 10,
-    "protocolLevel": 5,
+    type: 3,
+    id: 10,
+    protocolLevel: 5,
   },
   Uint8Array.from([
     61,
@@ -2234,24 +2310,24 @@ testParseGenerate(
     115,
     116,
   ]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseGenerate(
   "publish MQTT 5 properties with max value varbyte",
   {
-    "retain": true,
-    "qos": 2,
-    "dup": true,
-    "topic": "test",
-    "payload": Uint8Array.from([116, 101, 115, 116]),
-    "properties": {
-      "payloadFormatIndicator": false,
-      "subscriptionIdentifiers": [1, 268435455],
+    retain: true,
+    qos: 2,
+    dup: true,
+    topic: "test",
+    payload: Uint8Array.from([116, 101, 115, 116]),
+    properties: {
+      payloadFormatIndicator: false,
+      subscriptionIdentifiers: [1, 268435455],
     },
-    "type": 3,
-    "id": 10,
-    "protocolLevel": 5,
+    type: 3,
+    id: 10,
+    protocolLevel: 5,
   },
   Uint8Array.from([
     61,
@@ -2279,20 +2355,20 @@ testParseGenerate(
     115,
     116,
   ]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseGenerate(
   "maximal publish",
   {
-    "retain": true,
-    "qos": 2,
-    "dup": true,
-    "topic": "test",
-    "payload": Uint8Array.from([116, 101, 115, 116]),
-    "type": 3,
-    "id": 10,
-    "protocolLevel": 4,
+    retain: true,
+    qos: 2,
+    dup: true,
+    topic: "test",
+    payload: Uint8Array.from([116, 101, 115, 116]),
+    type: 3,
+    id: 10,
+    protocolLevel: 4,
   },
   Uint8Array.from([
     61,
@@ -2316,14 +2392,14 @@ testParseGenerate(
 testParseGenerate(
   "empty publish",
   {
-    "retain": false,
-    "qos": 0,
-    "dup": false,
-    "topic": "test",
-    "payload": Uint8Array.from([]),
-    "type": 3,
-    "protocolLevel": 4,
-    "id": undefined,
+    retain: false,
+    qos: 0,
+    dup: false,
+    topic: "test",
+    payload: Uint8Array.from([]),
+    type: 3,
+    protocolLevel: 4,
+    id: undefined,
   },
   Uint8Array.from([48, 6, 0, 4, 116, 101, 115, 116]),
   undefined,
@@ -2338,26 +2414,26 @@ testParseError(
 testGenerateError(
   "Invalid subscriptionIdentifier: 268435456",
   {
-    "cmd": "publish",
-    "retain": true,
-    "qos": 2,
-    "dup": true,
-    "length": 27,
-    "topic": "test",
-    "payload": Uint8Array.from([116, 101, 115, 116]),
-    "messageId": 10,
-    "properties": {
-      "payloadFormatIndicator": false,
-      "subscriptionIdentifier": 268435456,
+    cmd: "publish",
+    retain: true,
+    qos: 2,
+    dup: true,
+    length: 27,
+    topic: "test",
+    payload: Uint8Array.from([116, 101, 115, 116]),
+    messageId: 10,
+    properties: {
+      payloadFormatIndicator: false,
+      subscriptionIdentifier: 268435456,
     },
   },
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
   "MQTT 5.0 var byte integer >24 bits throws error",
 );
 
 testParseGenerate(
   "puback",
-  { "type": 4, "id": 2, "protocolLevel": 4 },
+  { type: 4, id: 2, protocolLevel: 4 },
   Uint8Array.from([64, 2, 0, 2]),
   undefined,
 );
@@ -2370,35 +2446,35 @@ testParseError(
 
 testParseGenerate(
   "puback without reason and no MQTT 5 properties",
-  { "reasonCode": 0, "type": 4, "id": 2, "protocolLevel": 5 },
+  { reasonCode: 0, type: 4, id: 2, protocolLevel: 5 },
   Uint8Array.from([64, 2, 0, 2]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseGenerate(
   "puback with reason and no MQTT 5 properties",
   {
-    "reasonCode": 16,
-    "type": 4,
-    "id": 2,
-    "protocolLevel": 5,
-    "properties": {},
+    reasonCode: 16,
+    type: 4,
+    id: 2,
+    protocolLevel: 5,
+    properties: {},
   },
   Uint8Array.from([64, 4, 0, 2, 16, 0]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseGenerate(
   "puback MQTT 5 properties",
   {
-    "reasonCode": 16,
-    "properties": {
-      "reasonString": "test",
-      "userProperty": [["test", "test"]],
+    reasonCode: 16,
+    properties: {
+      reasonString: "test",
+      userProperty: [["test", "test"]],
     },
-    "type": 4,
-    "id": 2,
-    "protocolLevel": 5,
+    type: 4,
+    id: 2,
+    protocolLevel: 5,
   },
   Uint8Array.from([
     64,
@@ -2428,18 +2504,18 @@ testParseGenerate(
     115,
     116,
   ]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseError(
   "Invalid puback reason code",
   Uint8Array.from([64, 4, 0, 2, 17, 0]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseGenerate(
   "pubrec",
-  { "type": 5, "id": 2, "protocolLevel": 4 },
+  { type: 5, id: 2, protocolLevel: 4 },
   Uint8Array.from([80, 2, 0, 2]),
   undefined,
 );
@@ -2453,14 +2529,14 @@ testParseError(
 testParseGenerate(
   "pubrec MQTT 5 properties",
   {
-    "reasonCode": 16,
-    "properties": {
-      "reasonString": "test",
-      "userProperty": [["test", "test"]],
+    reasonCode: 16,
+    properties: {
+      reasonString: "test",
+      userProperty: [["test", "test"]],
     },
-    "type": 5,
-    "id": 2,
-    "protocolLevel": 5,
+    type: 5,
+    id: 2,
+    protocolLevel: 5,
   },
   Uint8Array.from([
     80,
@@ -2490,12 +2566,12 @@ testParseGenerate(
     115,
     116,
   ]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseGenerate(
   "pubrel",
-  { "type": 6, "id": 2, "protocolLevel": 4 },
+  { type: 6, id: 2, protocolLevel: 4 },
   Uint8Array.from([98, 2, 0, 2]),
   undefined,
 );
@@ -2503,7 +2579,7 @@ testParseGenerate(
 testParseError(
   "Invalid pubrel reason code",
   Uint8Array.from([98, 4, 0, 2, 17, 0]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseError(
@@ -2515,14 +2591,14 @@ testParseError(
 testParseGenerate(
   "pubrel MQTT5 properties",
   {
-    "reasonCode": 146,
-    "properties": {
-      "reasonString": "test",
-      "userProperty": [["test", "test"]],
+    reasonCode: 146,
+    properties: {
+      reasonString: "test",
+      userProperty: [["test", "test"]],
     },
-    "type": 6,
-    "id": 2,
-    "protocolLevel": 5,
+    type: 6,
+    id: 2,
+    protocolLevel: 5,
   },
   Uint8Array.from([
     98,
@@ -2552,18 +2628,18 @@ testParseGenerate(
     115,
     116,
   ]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseError(
   "Invalid pubrel reason code",
   Uint8Array.from([98, 4, 0, 2, 16, 0]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseGenerate(
   "pubcomp",
-  { "type": 7, "id": 2, "protocolLevel": 4 },
+  { type: 7, id: 2, protocolLevel: 4 },
   Uint8Array.from([112, 2, 0, 2]),
   undefined,
 );
@@ -2577,14 +2653,14 @@ testParseError(
 testParseGenerate(
   "pubcomp MQTT 5 properties",
   {
-    "reasonCode": 146,
-    "properties": {
-      "reasonString": "test",
-      "userProperty": [["test", "test"]],
+    reasonCode: 146,
+    properties: {
+      reasonString: "test",
+      userProperty: [["test", "test"]],
     },
-    "type": 7,
-    "id": 2,
-    "protocolLevel": 5,
+    type: 7,
+    id: 2,
+    protocolLevel: 5,
   },
   Uint8Array.from([
     112,
@@ -2614,13 +2690,13 @@ testParseGenerate(
     115,
     116,
   ]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseError(
   "Invalid pubcomp reason code",
   Uint8Array.from([112, 4, 0, 2, 16, 0]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseError(
@@ -2632,10 +2708,10 @@ testParseError(
 testParseGenerate(
   "subscribe to one topic",
   {
-    "subscriptions": [{ "qos": 0, "topicFilter": "test" }],
-    "type": 8,
-    "id": 6,
-    "protocolLevel": 4,
+    subscriptions: [{ qos: 0, topicFilter: "test" }],
+    type: 8,
+    id: 6,
+    protocolLevel: 4,
   },
   Uint8Array.from([130, 9, 0, 6, 0, 4, 116, 101, 115, 116, 0]),
   undefined,
@@ -2650,13 +2726,13 @@ testParseError(
 testParseError(
   "Invalid subscribe topic flag bits, bits 7-6 must be 0",
   Uint8Array.from([130, 10, 0, 6, 0, 0, 4, 116, 101, 115, 116, 128]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseError(
   "Invalid retain handling, must be <= 2",
   Uint8Array.from([130, 10, 0, 6, 0, 0, 4, 116, 101, 115, 116, 48]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseError(
@@ -2668,20 +2744,22 @@ testParseError(
 testParseGenerate(
   "subscribe to one topic by MQTT 5",
   {
-    "subscriptions": [{
-      "qos": 0,
-      "topicFilter": "test",
-      "noLocal": false,
-      "retainHandling": 1,
-      "retainAsPublished": true,
-    }],
-    "properties": {
-      "subscriptionIdentifier": 145,
-      "userProperty": [["test", "test"]],
+    subscriptions: [
+      {
+        qos: 0,
+        topicFilter: "test",
+        noLocal: false,
+        retainHandling: 1,
+        retainAsPublished: true,
+      },
+    ],
+    properties: {
+      subscriptionIdentifier: 145,
+      userProperty: [["test", "test"]],
     },
-    "type": 8,
-    "id": 6,
-    "protocolLevel": 5,
+    type: 8,
+    id: 6,
+    protocolLevel: 5,
   },
   Uint8Array.from([
     130,
@@ -2713,19 +2791,23 @@ testParseGenerate(
     116,
     24,
   ]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseGenerate(
   "subscribe to three topics",
   {
-    "subscriptions": [{ "qos": 0, "topicFilter": "test" }, {
-      "qos": 1,
-      "topicFilter": "uest",
-    }, { "qos": 2, "topicFilter": "tfst" }],
-    "type": 8,
-    "id": 6,
-    "protocolLevel": 4,
+    subscriptions: [
+      { qos: 0, topicFilter: "test" },
+      {
+        qos: 1,
+        topicFilter: "uest",
+      },
+      { qos: 2, topicFilter: "tfst" },
+    ],
+    type: 8,
+    id: 6,
+    protocolLevel: 4,
   },
   Uint8Array.from([
     130,
@@ -2760,32 +2842,36 @@ testParseGenerate(
 testParseGenerate(
   "subscribe to 3 topics by MQTT 5",
   {
-    "subscriptions": [{
-      "qos": 0,
-      "topicFilter": "test",
-      "noLocal": false,
-      "retainHandling": 1,
-      "retainAsPublished": true,
-    }, {
-      "qos": 1,
-      "topicFilter": "uest",
-      "noLocal": false,
-      "retainHandling": 0,
-      "retainAsPublished": false,
-    }, {
-      "qos": 2,
-      "topicFilter": "tfst",
-      "noLocal": true,
-      "retainHandling": 0,
-      "retainAsPublished": false,
-    }],
-    "properties": {
-      "subscriptionIdentifier": 145,
-      "userProperty": [["test", "test"]],
+    subscriptions: [
+      {
+        qos: 0,
+        topicFilter: "test",
+        noLocal: false,
+        retainHandling: 1,
+        retainAsPublished: true,
+      },
+      {
+        qos: 1,
+        topicFilter: "uest",
+        noLocal: false,
+        retainHandling: 0,
+        retainAsPublished: false,
+      },
+      {
+        qos: 2,
+        topicFilter: "tfst",
+        noLocal: true,
+        retainHandling: 0,
+        retainAsPublished: false,
+      },
+    ],
+    properties: {
+      subscriptionIdentifier: 145,
+      userProperty: [["test", "test"]],
     },
-    "type": 8,
-    "id": 6,
-    "protocolLevel": 5,
+    type: 8,
+    id: 6,
+    protocolLevel: 5,
   },
   Uint8Array.from([
     130,
@@ -2831,12 +2917,12 @@ testParseGenerate(
     116,
     6,
   ]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseGenerate(
   "suback",
-  { "type": 9, "id": 6, "protocolLevel": 4, "returnCodes": [0, 1, 2] },
+  { type: 9, id: 6, protocolLevel: 4, returnCodes: [0, 1, 2] },
   Uint8Array.from([144, 5, 0, 6, 0, 1, 2]),
   undefined,
 );
@@ -2844,14 +2930,14 @@ testParseGenerate(
 testParseGenerate(
   "suback",
   {
-    "type": 9,
-    "id": 6,
-    "protocolLevel": 5,
-    "properties": {},
-    "reasonCodes": [0, 1, 2, 128],
+    type: 9,
+    id: 6,
+    protocolLevel: 5,
+    properties: {},
+    reasonCodes: [0, 1, 2, 128],
   },
   Uint8Array.from([144, 7, 0, 6, 0, 0, 1, 2, 128]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseError(
@@ -2863,20 +2949,20 @@ testParseError(
 testParseError(
   "Invalid suback code",
   Uint8Array.from([144, 6, 0, 6, 0, 1, 2, 121]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseGenerate(
   "suback MQTT 5",
   {
-    "properties": {
-      "reasonString": "test",
-      "userProperty": [["test", "test"]],
+    properties: {
+      reasonString: "test",
+      userProperty: [["test", "test"]],
     },
-    "type": 9,
-    "id": 6,
-    "protocolLevel": 5,
-    "reasonCodes": [0, 1, 2, 128],
+    type: 9,
+    id: 6,
+    protocolLevel: 5,
+    reasonCodes: [0, 1, 2, 128],
   },
   Uint8Array.from([
     144,
@@ -2909,12 +2995,12 @@ testParseGenerate(
     2,
     128,
   ]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseGenerate(
   "unsubscribe",
-  { "type": 10, "id": 7, "protocolLevel": 4, "topicFilters": ["tfst", "test"] },
+  { type: 10, id: 7, protocolLevel: 4, topicFilters: ["tfst", "test"] },
   Uint8Array.from([
     162,
     14,
@@ -2962,13 +3048,13 @@ testParseError(
 testGenerateError(
   "Invalid unsubscriptions",
   {
-    "cmd": "unsubscribe",
-    "retain": false,
-    "qos": 1,
-    "dup": true,
-    "length": 5,
-    "unsubscriptions": 5,
-    "messageId": 7,
+    cmd: "unsubscribe",
+    retain: false,
+    qos: 1,
+    dup: true,
+    length: 5,
+    unsubscriptions: 5,
+    messageId: 7,
   },
   {},
   "unsubscribe with unsubscriptions not an array",
@@ -2977,13 +3063,13 @@ testGenerateError(
 testGenerateError(
   "Invalid unsubscriptions",
   {
-    "cmd": "unsubscribe",
-    "retain": false,
-    "qos": 1,
-    "dup": true,
-    "length": 5,
-    "unsubscriptions": [1, 2],
-    "messageId": 7,
+    cmd: "unsubscribe",
+    retain: false,
+    qos: 1,
+    dup: true,
+    length: 5,
+    unsubscriptions: [1, 2],
+    messageId: 7,
   },
   {},
   "unsubscribe with unsubscriptions as an object",
@@ -2992,11 +3078,11 @@ testGenerateError(
 testParseGenerate(
   "unsubscribe MQTT 5",
   {
-    "properties": { "userProperty": [["test", "test"]] },
-    "type": 10,
-    "id": 7,
-    "protocolLevel": 5,
-    "topicFilters": ["tfst", "test"],
+    properties: { userProperty: [["test", "test"]] },
+    type: 10,
+    id: 7,
+    protocolLevel: 5,
+    topicFilters: ["tfst", "test"],
   },
   Uint8Array.from([
     162,
@@ -3030,12 +3116,12 @@ testParseGenerate(
     115,
     116,
   ]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseGenerate(
   "unsuback",
-  { "type": 11, "id": 8, "protocolLevel": 4 },
+  { type: 11, id: 8, protocolLevel: 4 },
   Uint8Array.from([176, 2, 0, 8]),
   undefined,
 );
@@ -3049,14 +3135,14 @@ testParseError(
 testParseGenerate(
   "unsuback MQTT 5",
   {
-    "properties": {
-      "reasonString": "test",
-      "userProperty": [["test", "test"]],
+    properties: {
+      reasonString: "test",
+      userProperty: [["test", "test"]],
     },
-    "type": 11,
-    "id": 8,
-    "protocolLevel": 5,
-    "reasonCodes": [0, 128],
+    type: 11,
+    id: 8,
+    protocolLevel: 5,
+    reasonCodes: [0, 128],
   },
   Uint8Array.from([
     176,
@@ -3087,18 +3173,18 @@ testParseGenerate(
     0,
     128,
   ]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseError(
   "Invalid unsuback code",
   Uint8Array.from([176, 4, 0, 8, 0, 132]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseGenerate(
   "pingreq",
-  { "type": 12, "protocolLevel": 4 },
+  { type: 12, protocolLevel: 4 },
   Uint8Array.from([192, 0]),
   undefined,
 );
@@ -3111,7 +3197,7 @@ testParseError(
 
 testParseGenerate(
   "pingresp",
-  { "type": 13, "protocolLevel": 4 },
+  { type: 13, protocolLevel: 4 },
   Uint8Array.from([208, 0]),
   undefined,
 );
@@ -3124,7 +3210,7 @@ testParseError(
 
 testParseGenerate(
   "disconnect",
-  { "type": 14, "protocolLevel": 4 },
+  { type: 14, protocolLevel: 4 },
   Uint8Array.from([224, 0]),
   undefined,
 );
@@ -3138,15 +3224,15 @@ testParseError(
 testParseGenerate(
   "disconnect MQTT 5",
   {
-    "reasonCode": 0,
-    "properties": {
-      "sessionExpiryInterval": 145,
-      "reasonString": "test",
-      "serverReference": "test",
-      "userProperty": [["test", "test"]],
+    reasonCode: 0,
+    properties: {
+      sessionExpiryInterval: 145,
+      reasonString: "test",
+      serverReference: "test",
+      userProperty: [["test", "test"]],
     },
-    "type": 14,
-    "protocolLevel": 5,
+    type: 14,
+    protocolLevel: 5,
   },
   Uint8Array.from([
     224,
@@ -3186,34 +3272,34 @@ testParseGenerate(
     115,
     116,
   ]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseGenerate(
   "disconnect MQTT 5 with no properties",
-  { "reasonCode": 0, "type": 14, "protocolLevel": 5 },
+  { reasonCode: 0, type: 14, protocolLevel: 5 },
   Uint8Array.from([224, 0]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseError(
   "Invalid disconnect reason code",
   Uint8Array.from([224, 2, 5, 0]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseGenerate(
   "auth MQTT 5",
   {
-    "reasonCode": 0,
-    "properties": {
-      "authenticationMethod": "test",
-      "authenticationData": Uint8Array.from([0, 1, 2, 3]),
-      "reasonString": "test",
-      "userProperty": [["test", "test"]],
+    reasonCode: 0,
+    properties: {
+      authenticationMethod: "test",
+      authenticationData: Uint8Array.from([0, 1, 2, 3]),
+      reasonString: "test",
+      userProperty: [["test", "test"]],
     },
-    "type": 15,
-    "protocolLevel": 5,
+    type: 15,
+    protocolLevel: 5,
   },
   Uint8Array.from([
     240,
@@ -3255,253 +3341,265 @@ testParseGenerate(
     115,
     116,
   ]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseError("Invalid auth reason code", Uint8Array.from([240, 2, 23, 0]), {
-  "protocolVersion": 5,
+  protocolVersion: 5,
 });
 
 testGenerateError("Invalid protocolId", {
-  "cmd": "connect",
-  "retain": false,
-  "qos": 0,
-  "dup": false,
-  "length": 54,
-  "protocolId": 42,
-  "protocolVersion": 3,
-  "will": { "retain": true, "qos": 2, "topic": "topic", "payload": "payload" },
-  "clean": true,
-  "keepalive": 30,
-  "clientId": "test",
-  "username": "username",
-  "password": "password",
+  cmd: "connect",
+  retain: false,
+  qos: 0,
+  dup: false,
+  length: 54,
+  protocolId: 42,
+  protocolVersion: 3,
+  will: { retain: true, qos: 2, topic: "topic", payload: "payload" },
+  clean: true,
+  keepalive: 30,
+  clientId: "test",
+  username: "username",
+  password: "password",
 });
 
 testGenerateError("Invalid protocol version", {
-  "cmd": "connect",
-  "retain": false,
-  "qos": 0,
-  "dup": false,
-  "length": 54,
-  "protocolId": "MQIsdp",
-  "protocolVersion": 1,
-  "will": { "retain": true, "qos": 2, "topic": "topic", "payload": "payload" },
-  "clean": true,
-  "keepalive": 30,
-  "clientId": "test",
-  "username": "username",
-  "password": "password",
+  cmd: "connect",
+  retain: false,
+  qos: 0,
+  dup: false,
+  length: 54,
+  protocolId: "MQIsdp",
+  protocolVersion: 1,
+  will: { retain: true, qos: 2, topic: "topic", payload: "payload" },
+  clean: true,
+  keepalive: 30,
+  clientId: "test",
+  username: "username",
+  password: "password",
 });
 
 testGenerateError("clientId must be supplied before 3.1.1", {
-  "cmd": "connect",
-  "retain": false,
-  "qos": 0,
-  "dup": false,
-  "length": 54,
-  "protocolId": "MQIsdp",
-  "protocolVersion": 3,
-  "will": { "retain": true, "qos": 2, "topic": "topic", "payload": "payload" },
-  "clean": true,
-  "keepalive": 30,
-  "username": "username",
-  "password": "password",
+  cmd: "connect",
+  retain: false,
+  qos: 0,
+  dup: false,
+  length: 54,
+  protocolId: "MQIsdp",
+  protocolVersion: 3,
+  will: { retain: true, qos: 2, topic: "topic", payload: "payload" },
+  clean: true,
+  keepalive: 30,
+  username: "username",
+  password: "password",
 });
 
 testGenerateError("clientId must be given if cleanSession set to 0", {
-  "cmd": "connect",
-  "retain": false,
-  "qos": 0,
-  "dup": false,
-  "length": 54,
-  "protocolId": "MQTT",
-  "protocolVersion": 4,
-  "will": { "retain": true, "qos": 2, "topic": "topic", "payload": "payload" },
-  "clean": false,
-  "keepalive": 30,
-  "username": "username",
-  "password": "password",
+  cmd: "connect",
+  retain: false,
+  qos: 0,
+  dup: false,
+  length: 54,
+  protocolId: "MQTT",
+  protocolVersion: 4,
+  will: { retain: true, qos: 2, topic: "topic", payload: "payload" },
+  clean: false,
+  keepalive: 30,
+  username: "username",
+  password: "password",
 });
 
 testGenerateError("Invalid keepalive", {
-  "cmd": "connect",
-  "retain": false,
-  "qos": 0,
-  "dup": false,
-  "length": 54,
-  "protocolId": "MQIsdp",
-  "protocolVersion": 3,
-  "will": { "retain": true, "qos": 2, "topic": "topic", "payload": "payload" },
-  "clean": true,
-  "keepalive": "hello",
-  "clientId": "test",
-  "username": "username",
-  "password": "password",
+  cmd: "connect",
+  retain: false,
+  qos: 0,
+  dup: false,
+  length: 54,
+  protocolId: "MQIsdp",
+  protocolVersion: 3,
+  will: { retain: true, qos: 2, topic: "topic", payload: "payload" },
+  clean: true,
+  keepalive: "hello",
+  clientId: "test",
+  username: "username",
+  password: "password",
 });
 
 testGenerateError("Invalid keepalive", {
-  "cmd": "connect",
-  "keepalive": 3.1416,
+  cmd: "connect",
+  keepalive: 3.1416,
 });
 
 testGenerateError("Invalid will", {
-  "cmd": "connect",
-  "retain": false,
-  "qos": 0,
-  "dup": false,
-  "length": 54,
-  "protocolId": "MQIsdp",
-  "protocolVersion": 3,
-  "will": 42,
-  "clean": true,
-  "keepalive": 30,
-  "clientId": "test",
-  "username": "username",
-  "password": "password",
+  cmd: "connect",
+  retain: false,
+  qos: 0,
+  dup: false,
+  length: 54,
+  protocolId: "MQIsdp",
+  protocolVersion: 3,
+  will: 42,
+  clean: true,
+  keepalive: 30,
+  clientId: "test",
+  username: "username",
+  password: "password",
 });
 
 testGenerateError("Invalid will topic", {
-  "cmd": "connect",
-  "retain": false,
-  "qos": 0,
-  "dup": false,
-  "length": 54,
-  "protocolId": "MQIsdp",
-  "protocolVersion": 3,
-  "will": { "retain": true, "qos": 2, "payload": "payload" },
-  "clean": true,
-  "keepalive": 30,
-  "clientId": "test",
-  "username": "username",
-  "password": "password",
+  cmd: "connect",
+  retain: false,
+  qos: 0,
+  dup: false,
+  length: 54,
+  protocolId: "MQIsdp",
+  protocolVersion: 3,
+  will: { retain: true, qos: 2, payload: "payload" },
+  clean: true,
+  keepalive: 30,
+  clientId: "test",
+  username: "username",
+  password: "password",
 });
 
 testGenerateError("Invalid will payload", {
-  "cmd": "connect",
-  "retain": false,
-  "qos": 0,
-  "dup": false,
-  "length": 54,
-  "protocolId": "MQIsdp",
-  "protocolVersion": 3,
-  "will": { "retain": true, "qos": 2, "topic": "topic", "payload": 42 },
-  "clean": true,
-  "keepalive": 30,
-  "clientId": "test",
-  "username": "username",
-  "password": "password",
+  cmd: "connect",
+  retain: false,
+  qos: 0,
+  dup: false,
+  length: 54,
+  protocolId: "MQIsdp",
+  protocolVersion: 3,
+  will: { retain: true, qos: 2, topic: "topic", payload: 42 },
+  clean: true,
+  keepalive: 30,
+  clientId: "test",
+  username: "username",
+  password: "password",
 });
 
 testGenerateError("Invalid username", {
-  "cmd": "connect",
-  "retain": false,
-  "qos": 0,
-  "dup": false,
-  "length": 54,
-  "protocolId": "MQIsdp",
-  "protocolVersion": 3,
-  "will": { "retain": true, "qos": 2, "topic": "topic", "payload": "payload" },
-  "clean": true,
-  "keepalive": 30,
-  "clientId": "test",
-  "username": 42,
-  "password": "password",
+  cmd: "connect",
+  retain: false,
+  qos: 0,
+  dup: false,
+  length: 54,
+  protocolId: "MQIsdp",
+  protocolVersion: 3,
+  will: { retain: true, qos: 2, topic: "topic", payload: "payload" },
+  clean: true,
+  keepalive: 30,
+  clientId: "test",
+  username: 42,
+  password: "password",
 });
 
 testGenerateError("Invalid password", {
-  "cmd": "connect",
-  "retain": false,
-  "qos": 0,
-  "dup": false,
-  "length": 54,
-  "protocolId": "MQIsdp",
-  "protocolVersion": 3,
-  "will": { "retain": true, "qos": 2, "topic": "topic", "payload": "payload" },
-  "clean": true,
-  "keepalive": 30,
-  "clientId": "test",
-  "username": "username",
-  "password": 42,
+  cmd: "connect",
+  retain: false,
+  qos: 0,
+  dup: false,
+  length: 54,
+  protocolId: "MQIsdp",
+  protocolVersion: 3,
+  will: { retain: true, qos: 2, topic: "topic", payload: "payload" },
+  clean: true,
+  keepalive: 30,
+  clientId: "test",
+  username: "username",
+  password: 42,
 });
 
 testGenerateError("Username is required to use password", {
-  "cmd": "connect",
-  "retain": false,
-  "qos": 0,
-  "dup": false,
-  "length": 54,
-  "protocolId": "MQIsdp",
-  "protocolVersion": 3,
-  "will": { "retain": true, "qos": 2, "topic": "topic", "payload": "payload" },
-  "clean": true,
-  "keepalive": 30,
-  "clientId": "test",
-  "password": "password",
+  cmd: "connect",
+  retain: false,
+  qos: 0,
+  dup: false,
+  length: 54,
+  protocolId: "MQIsdp",
+  protocolVersion: 3,
+  will: { retain: true, qos: 2, topic: "topic", payload: "payload" },
+  clean: true,
+  keepalive: 30,
+  clientId: "test",
+  password: "password",
 });
 
-testGenerateError("Invalid messageExpiryInterval: -4321", {
-  "cmd": "publish",
-  "retain": true,
-  "qos": 2,
-  "dup": true,
-  "length": 60,
-  "topic": "test",
-  "payload": Uint8Array.from([116, 101, 115, 116]),
-  "messageId": 10,
-  "properties": {
-    "payloadFormatIndicator": true,
-    "messageExpiryInterval": -4321,
-    "topicAlias": 100,
-    "responseTopic": "topic",
-    "correlationData": Uint8Array.from([1, 2, 3, 4]),
-    "userProperties": { "test": "test" },
-    "subscriptionIdentifier": 120,
-    "contentType": "test",
+testGenerateError(
+  "Invalid messageExpiryInterval: -4321",
+  {
+    cmd: "publish",
+    retain: true,
+    qos: 2,
+    dup: true,
+    length: 60,
+    topic: "test",
+    payload: Uint8Array.from([116, 101, 115, 116]),
+    messageId: 10,
+    properties: {
+      payloadFormatIndicator: true,
+      messageExpiryInterval: -4321,
+      topicAlias: 100,
+      responseTopic: "topic",
+      correlationData: Uint8Array.from([1, 2, 3, 4]),
+      userProperties: { test: "test" },
+      subscriptionIdentifier: 120,
+      contentType: "test",
+    },
   },
-}, { "protocolVersion": 5 });
+  { protocolVersion: 5 },
+);
 
-testGenerateError("Invalid topicAlias: -100", {
-  "cmd": "publish",
-  "retain": true,
-  "qos": 2,
-  "dup": true,
-  "length": 60,
-  "topic": "test",
-  "payload": Uint8Array.from([116, 101, 115, 116]),
-  "messageId": 10,
-  "properties": {
-    "payloadFormatIndicator": true,
-    "messageExpiryInterval": 4321,
-    "topicAlias": -100,
-    "responseTopic": "topic",
-    "correlationData": Uint8Array.from([1, 2, 3, 4]),
-    "userProperties": { "test": "test" },
-    "subscriptionIdentifier": 120,
-    "contentType": "test",
+testGenerateError(
+  "Invalid topicAlias: -100",
+  {
+    cmd: "publish",
+    retain: true,
+    qos: 2,
+    dup: true,
+    length: 60,
+    topic: "test",
+    payload: Uint8Array.from([116, 101, 115, 116]),
+    messageId: 10,
+    properties: {
+      payloadFormatIndicator: true,
+      messageExpiryInterval: 4321,
+      topicAlias: -100,
+      responseTopic: "topic",
+      correlationData: Uint8Array.from([1, 2, 3, 4]),
+      userProperties: { test: "test" },
+      subscriptionIdentifier: 120,
+      contentType: "test",
+    },
   },
-}, { "protocolVersion": 5 });
+  { protocolVersion: 5 },
+);
 
-testGenerateError("Invalid subscriptionIdentifier: -120", {
-  "cmd": "publish",
-  "retain": true,
-  "qos": 2,
-  "dup": true,
-  "length": 60,
-  "topic": "test",
-  "payload": Uint8Array.from([116, 101, 115, 116]),
-  "messageId": 10,
-  "properties": {
-    "payloadFormatIndicator": true,
-    "messageExpiryInterval": 4321,
-    "topicAlias": 100,
-    "responseTopic": "topic",
-    "correlationData": Uint8Array.from([1, 2, 3, 4]),
-    "userProperties": { "test": "test" },
-    "subscriptionIdentifier": -120,
-    "contentType": "test",
+testGenerateError(
+  "Invalid subscriptionIdentifier: -120",
+  {
+    cmd: "publish",
+    retain: true,
+    qos: 2,
+    dup: true,
+    length: 60,
+    topic: "test",
+    payload: Uint8Array.from([116, 101, 115, 116]),
+    messageId: 10,
+    properties: {
+      payloadFormatIndicator: true,
+      messageExpiryInterval: 4321,
+      topicAlias: 100,
+      responseTopic: "topic",
+      correlationData: Uint8Array.from([1, 2, 3, 4]),
+      userProperties: { test: "test" },
+      subscriptionIdentifier: -120,
+      contentType: "test",
+    },
   },
-}, { "protocolVersion": 5 });
+  { protocolVersion: 5 },
+);
 
 testParseError(
   "Packet too short",
@@ -3688,7 +3786,7 @@ testParseError(
     115,
     116,
   ]),
-  { "protocolVersion": 5 },
+  { protocolVersion: 5 },
 );
 
 testParseError(
@@ -3771,6 +3869,6 @@ testGenerateErrorMultipleCmds(
     "unsuback",
   ],
   "Invalid messageId",
-  { "qos": 1, "topic": "test", "messageId": "a" },
+  { qos: 1, topic: "test", messageId: "a" },
   {},
 );

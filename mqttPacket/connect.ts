@@ -38,6 +38,7 @@ export type ConnectPacketV4 = {
   };
   clean?: boolean;
   keepAlive?: number;
+  bridgeMode?: boolean;
 };
 
 export type ConnectPacketV5 = {
@@ -56,6 +57,7 @@ export type ConnectPacketV5 = {
   };
   clean?: boolean;
   keepAlive?: number;
+  bridgeMode?: boolean;
   properties?: ConnectProperties;
 };
 
@@ -123,11 +125,13 @@ export const connect: {
       (willFlag ? BitMask.bit2 : 0) +
       (cleanSession ? BitMask.bit1 : 0);
     const keepAlive = packet.keepAlive || 0;
+    const bridgeMode = !!packet.bridgeMode;
+    const rawProtocolLevel = bridgeMode ? protocolLevel + 128 : protocolLevel;
 
     const encoder = new Encoder(packet.type);
     encoder
       .setUtf8String(protocolName)
-      .setByte(protocolLevel)
+      .setByte(rawProtocolLevel)
       .setByte(connectFlags)
       .setInt16(keepAlive);
     if (packet.protocolLevel === 5) {
@@ -171,7 +175,11 @@ export const connect: {
   ): ConnectPacket {
     const decoder = new Decoder(packetType, buffer);
     const protocolName = decoder.getUTF8String();
-    const protocolLevel = decoder.getByte();
+    const rawProtocolLevel = decoder.getByte();
+    const bridgeMode = rawProtocolLevel > 128;
+    const protocolLevel = bridgeMode
+      ? rawProtocolLevel - 128
+      : rawProtocolLevel;
 
     if (invalidProtocolName(protocolLevel, protocolName)) {
       throw new DecoderError("Invalid protocol name or level");
@@ -241,6 +249,10 @@ export const connect: {
       throw new DecoderError("Clean session must be true if clientID is empty");
     }
 
+    let bridgeModeProp = {};
+    if (bridgeMode) {
+      bridgeModeProp = { bridgeMode };
+    }
     const commonProps = {
       type: PacketType.connect,
       protocolName: protocolName,
@@ -249,6 +261,7 @@ export const connect: {
       password: password ? password : undefined,
       clean: cleanSession,
       keepAlive,
+      ...bridgeModeProp,
     };
 
     if (isV5) {
