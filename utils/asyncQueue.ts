@@ -1,3 +1,4 @@
+import { Deferred } from "./deferred.ts";
 import { nextTick } from "./nextTick.ts";
 /**
  * An Async Queue is a queue that can be used to push items to it and then wait
@@ -12,13 +13,17 @@ import { nextTick } from "./nextTick.ts";
  * }
  * ```
  */
+
+
+
 export class AsyncQueue<T> {
   private queue: T[] = [];
   private maxQueueLength = Infinity;
-  private nextResolve = (_value: T) => {};
-  private nextReject = (_reason?: string) => {};
+
   private done = false;
-  private hasNext = false;
+
+
+  #next?: Deferred<T>;
 
   constructor(maxQueueLength?: number) {
     if (maxQueueLength) {
@@ -28,39 +33,33 @@ export class AsyncQueue<T> {
 
   async next(): Promise<T> {
     await nextTick();
-    if (this.done && this.queue.length === 0) {
+    if (this.queue.length) {
+      return Promise.resolve(this.queue.shift()!);
+    } else if (this.done) {
       return Promise.reject("Closed");
+    } else if (!this.#next) {
+      this.#next = new Deferred<T>();
     }
-    return new Promise((resolve, reject) => {
-      if (this.queue.length > 0) {
-        const item = this.queue.shift();
-        if (item) {
-          return resolve(item);
-        }
-      }
-      this.nextResolve = resolve;
-      this.nextReject = reject;
-      this.hasNext = true;
-    });
+    return this.#next.promise;
   }
 
   close(reason = "closed"): void {
     this.done = true;
-    if (this.hasNext) {
-      this.nextReject(reason);
+    if (this.#next) {
+      this.#next.reject(new Error(reason));
     }
   }
 
   async *[Symbol.asyncIterator](): AsyncGenerator<Awaited<T>, void, unknown> {
     while (true) {
-      yield this.next();
+      yield await this.next();
     }
   }
 
   push(item: T) {
-    if (this.hasNext) {
-      this.nextResolve(item);
-      this.hasNext = false;
+    if (this.#next) {
+      this.#next.resolve(item);
+      this.#next = undefined;
       return;
     }
     if (this.queue.length > this.maxQueueLength) {

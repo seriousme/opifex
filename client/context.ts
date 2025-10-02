@@ -107,21 +107,17 @@ export class Context {
     connectPacket: ConnectPacket,
   ): Promise<boolean> {
     this.mqttConn = new MqttConn({ conn });
-    if (this.mqttConn === undefined) {
-      return true;
-    }
-
     try {
       logger.debug("Send connect packet", connectPacket);
       await this.connect(connectPacket);
       logger.debug("Accepting packets");
       for await (const packet of this.mqttConn) {
-        handlePacket(this, packet);
+        await handlePacket(this, packet);
       }
       logger.debug("No more packets");
     } catch (err) {
       logger.debug(`error ${err}`);
-      if (this.mqttConn.isClosed) {
+      if (!this.mqttConn.isClosed) {
         this.mqttConn.close();
       }
     }

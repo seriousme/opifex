@@ -134,7 +134,7 @@ export class MemoryPersistence implements IPersistence {
       newPacket.qos = qos;
       //  logger.debug(`publish ${topic} to client ${clientId}`);
       const client = this.clientList.get(clientId);
-      client?.handler(packet);
+      client?.handler(newPacket);
     }
   }
 
