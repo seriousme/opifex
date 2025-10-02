@@ -75,7 +75,7 @@ export const subscribe: {
       );
     }
     for (const sub of packet.subscriptions) {
-      encoder.setTopic(sub.topicFilter);
+      encoder.setTopicFilter(sub.topicFilter);
       if (packet.protocolLevel === 5) {
         const {
           qos,
