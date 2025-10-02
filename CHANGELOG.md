@@ -4,8 +4,16 @@
 
 ### Changed
 
+## [v1.10.0] 02-10-2025
+
+### Changed
+
+- fix(subscription): fixes breaking subscription when using wildcards due
+  (@jacoscaz)
+- feat: add MQTT v5 support to Opifex client (not server yet) to mismatched
+  encoder method
 - chore: update dependencies
-  - @types/node ^22.13.1 → ^24.1.0
+  - @types/node ^22.13.1 → ^24.6.2
 - fix: Typescript 5.9 compatibility issue
 
 ## [v1.9.4] 30-05-2025
