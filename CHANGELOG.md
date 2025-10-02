@@ -6,9 +6,9 @@
 
 ## [v1.10.1] 02-10-2025
 
-- fix(deno): update deno.lock
-
 ### Changed
+
+- fix(deno): update deno.lock
 
 ## [v1.10.0] 02-10-2025
 
