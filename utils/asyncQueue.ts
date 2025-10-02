@@ -14,14 +14,11 @@ import { nextTick } from "./nextTick.ts";
  * ```
  */
 
-
-
 export class AsyncQueue<T> {
   private queue: T[] = [];
   private maxQueueLength = Infinity;
 
   private done = false;
-
 
   #next?: Deferred<T>;
 
