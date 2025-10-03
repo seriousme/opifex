@@ -10,10 +10,6 @@ import { PacketType } from "./PacketType.ts";
 import { Decoder, hasEmptyFlags } from "./decoder.ts";
 import { Encoder } from "./encoder.ts";
 
-/**
- * UnsubackPacket is sent by the server to the client to confirm receipt
- * of an UnsubscribePacket.
- */
 export type UnsubackPacketV4 = {
   type: TPacketType;
   protocolLevel: ProtocolLevelNoV5;
@@ -28,6 +24,10 @@ export type UnsubackPacketV5 = {
   reasonCodes: Array<TReasonCode>;
 };
 
+/**
+ * UnsubackPacket is sent by the server to the client to confirm receipt
+ * of an UnsubscribePacket.
+ */
 export type UnsubackPacket = UnsubackPacketV4 | UnsubackPacketV5;
 
 export const unsuback: {

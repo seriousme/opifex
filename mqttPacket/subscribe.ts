@@ -13,9 +13,6 @@ import { BitMask } from "./BitMask.ts";
 import { Encoder } from "./encoder.ts";
 import { booleanFlag, Decoder, DecoderError } from "./decoder.ts";
 
-/**
- * SubscribePacket is sent from client to server to subscribe to topics
- */
 export type SubscribePacketV4 = {
   type: TPacketType;
   protocolLevel: ProtocolLevelNoV5;
@@ -31,6 +28,9 @@ export type SubscribePacketV5 = {
   subscriptions: Array<SubscriptionV5>;
 };
 
+/**
+ * SubscribePacket is sent from client to server to subscribe to topics
+ */
 export type SubscribePacket = SubscribePacketV4 | SubscribePacketV5;
 /**
  * The topic to subscribe to and the associated QoS

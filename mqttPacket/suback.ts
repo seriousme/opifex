@@ -12,10 +12,6 @@ import { Encoder } from "./encoder.ts";
 import { Decoder, DecoderError } from "./decoder.ts";
 const validReturnCodes = [0x00, 0x01, 0x02, 0x80];
 
-/**
- * SubackPacket is sent by the server to the client to confirm receipt and
- * processing of a SubscribePacket.
- */
 export type SubackPacketV4 = {
   type: TPacketType;
   protocolLevel: ProtocolLevelNoV5;
@@ -31,6 +27,10 @@ export type SubackPacketV5 = {
   reasonCodes: Array<TReasonCode>;
 };
 
+/**
+ * SubackPacket is sent by the server to the client to confirm receipt and
+ * processing of a SubscribePacket.
+ */
 export type SubackPacket = SubackPacketV4 | SubackPacketV5;
 
 export const suback: {

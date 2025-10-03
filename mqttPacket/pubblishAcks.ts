@@ -10,14 +10,6 @@ import { PacketType } from "./PacketType.ts";
 import { Decoder, DecoderError } from "./decoder.ts";
 import { Encoder } from "./encoder.ts";
 
-/**
- * PubackPacket is sent to indicate publish complete (QoS 1)
- * Pubrec is sent to indicate publish received (QoS 2)
- * Pubrel is sent to indicate publish release (QoS 2)
- * Pubcomp is sent to indicate publish complete (QoS 2)
- *
- * all 4 packets are identical except for packet type
- */
 export type AckPacketV4<T> = {
   type: TPacketType;
   protocolLevel: ProtocolLevelNoV5;
@@ -31,11 +23,25 @@ export type AckPacketV5<T> = {
   reasonCode?: TReasonCode;
   properties?: PubackProperties;
 };
-
+/**
+ * all 4 ack packets are identical except for packet type and flags of Pubrel
+ */
 export type AckPacket<T> = AckPacketV4<T> | AckPacketV5<T>;
+/**
+ * PubackPacket is sent to indicate publish complete (QoS 1)
+ */
 export type PubackPacket = AckPacket<typeof PacketType.puback>;
+/**
+ * Pubrec is sent to indicate publish received (QoS 2)
+ */
 export type PubrecPacket = AckPacket<typeof PacketType.pubrec>;
+/**
+ * Pubrel is sent to indicate publish release (QoS 2)
+ */
 export type PubrelPacket = AckPacket<typeof PacketType.pubrel>;
+/**
+ * Pubcomp is sent to indicate publish complete (QoS 2)
+ */
 export type PubcompPacket = AckPacket<typeof PacketType.pubcomp>;
 
 export type AnyAckPacket =

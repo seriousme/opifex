@@ -73,6 +73,9 @@ export type ReturnCodes = number[];
  */
 export type ClientId = string;
 
+/**
+ * helper type to limit retain handling values
+ */
 export type TRetainHandling =
   typeof RetainHandling[keyof typeof RetainHandling];
 
