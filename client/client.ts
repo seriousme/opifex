@@ -178,11 +178,13 @@ export class Client {
         this.connectPacket.clean = false;
         this.ctx.close();
       } catch (err) {
-        assert(err instanceof Error, `Caught something that is not an instance of Error: ${err}`);
+        assert(
+          err instanceof Error,
+          `Caught something that is not an instance of Error: ${err}`,
+        );
         queueMicrotask(() => this.onError(err));
         lastMessage = err;
         logger.debug({ lastMessage });
-
       }
 
       if (tryConnect && (isReconnect || attempt < this.numberOfRetries)) {

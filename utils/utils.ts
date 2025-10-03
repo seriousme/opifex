@@ -3,4 +3,4 @@
  * deserve their own dedicated files.
  */
 
-export const noop = () => { };
+export const noop = () => {};

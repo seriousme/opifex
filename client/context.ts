@@ -136,7 +136,10 @@ export class Context {
       }
       logger.debug("No more packets");
     } catch (err) {
-      assert(err instanceof Error, `Caught something that is not an instance of Error: ${err}`);
+      assert(
+        err instanceof Error,
+        `Caught something that is not an instance of Error: ${err}`,
+      );
       queueMicrotask(() => this.#client.onError(err));
       logger.debug(`error ${err}`);
       if (!this.mqttConn.isClosed) {
