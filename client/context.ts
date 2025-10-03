@@ -26,6 +26,7 @@ import { handlePacket } from "./handlers/handlePacket.ts";
 import type { TConnectionState } from "./ConnectionState.ts";
 import { ConnectionState } from "./ConnectionState.ts";
 import type { Client } from "./client.ts";
+import { assert } from "../utils/assert.ts";
 
 export class Context {
   mqttConn?: MqttConn;
@@ -135,10 +136,8 @@ export class Context {
       }
       logger.debug("No more packets");
     } catch (err) {
-      // TODO: can we replace this with an assert that ensures err to be instanceof Error?
-      if (err instanceof Error) {
-        queueMicrotask(() => this.#client.onError(err));
-      }
+      assert(err instanceof Error, `Caught something that is not an instance of Error: ${err}`);
+      queueMicrotask(() => this.#client.onError(err));
       logger.debug(`error ${err}`);
       if (!this.mqttConn.isClosed) {
         this.mqttConn.close();

@@ -18,6 +18,7 @@ import { noop } from "../utils/utils.ts";
 
 import { Context } from "./context.ts";
 import type { TConnectionState } from "./ConnectionState.ts";
+import { assert } from "../utils/assert.ts";
 
 /**
  * Generates a random client ID with the given prefix
@@ -177,12 +178,11 @@ export class Client {
         this.connectPacket.clean = false;
         this.ctx.close();
       } catch (err) {
-        // TODO: can we replace this with an assert that ensures err to be instanceof Error?
-        if (err instanceof Error) {
-          queueMicrotask(() => this.onError(err));
-          lastMessage = err;
-          logger.debug({ lastMessage });
-        }
+        assert(err instanceof Error, `Caught something that is not an instance of Error: ${err}`);
+        queueMicrotask(() => this.onError(err));
+        lastMessage = err;
+        logger.debug({ lastMessage });
+
       }
 
       if (tryConnect && (isReconnect || attempt < this.numberOfRetries)) {
