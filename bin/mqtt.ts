@@ -194,7 +194,7 @@ async function subscribe() {
   }
   try {
     await connect(subscribeArgs);
-    client.subscribe({
+    await client.subscribe({
       subscriptions: [
         {
           topicFilter: subscribeArgs.topic,
