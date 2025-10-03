@@ -14,7 +14,10 @@ import type {
   TAuthenticationResult,
 } from "./deps.ts";
 
+import { noop } from "../utils/utils.ts";
+
 import { Context } from "./context.ts";
+import type { TConnectionState } from "./ConnectionState.ts";
 
 /**
  * Generates a random client ID with the given prefix
@@ -87,6 +90,11 @@ const CLIENTID_PREFIX = "opifex"; // on first connect
  * connection type that is supported by the subclass.
  */
 export class Client {
+  public onError: (err: Error) => void = noop;
+  public onConnected: () => void = noop;
+  public onDisconnected: () => void = noop;
+  public onReconnecting: () => void = noop;
+
   protected clientIdPrefix = CLIENTID_PREFIX;
   protected numberOfRetries = DEFAULT_RETRIES;
   protected url: URL = new URL(DEFAULT_URL);
@@ -97,15 +105,20 @@ export class Client {
   private cert?: string;
   private key?: string;
   private clientId: string;
-  private ctx = new Context(new MemoryStore());
+  private ctx: Context;
   private connectPacket?: ConnectPacket;
 
   /**
    * Creates a new MQTT client instance
    */
   constructor() {
+    this.ctx = new Context(new MemoryStore(), this);
     this.clientId = generateClientId(this.clientIdPrefix);
     this.numberOfRetries = DEFAULT_RETRIES;
+  }
+
+  get connectionState(): TConnectionState {
+    return this.ctx.connectionState;
   }
 
   /**
@@ -164,7 +177,9 @@ export class Client {
         this.connectPacket.clean = false;
         this.ctx.close();
       } catch (err) {
+        // TODO: can we replace this with an assert that ensures err to be instanceof Error?
         if (err instanceof Error) {
+          queueMicrotask(() => this.onError(err));
           lastMessage = err;
           logger.debug({ lastMessage });
         }
@@ -175,6 +190,7 @@ export class Client {
         if (!isReconnect) {
           attempt++;
         }
+        queueMicrotask(this.onReconnecting);
       } else {
         tryConnect = false;
       }

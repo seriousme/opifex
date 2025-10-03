@@ -25,10 +25,11 @@ import type {
 import { handlePacket } from "./handlers/handlePacket.ts";
 import type { TConnectionState } from "./ConnectionState.ts";
 import { ConnectionState } from "./ConnectionState.ts";
+import type { Client } from "./client.ts";
 
 export class Context {
   mqttConn?: MqttConn;
-  connectionState: TConnectionState;
+  #connectionState: TConnectionState;
   protocolLevel: ProtocolLevel;
   pingTimer?: Timer;
   unresolvedConnect?: Deferred<TAuthenticationResult>;
@@ -37,15 +38,33 @@ export class Context {
   unresolvedUnSubscribe: Map<PacketId, Deferred<void>>;
   store: MemoryStore;
   incoming: AsyncQueue<PublishPacket>;
+  #client: Client;
 
-  constructor(store: MemoryStore) {
+  constructor(store: MemoryStore, client: Client) {
+    this.#client = client;
     this.store = store;
-    this.connectionState = ConnectionState.offline;
+    this.#connectionState = ConnectionState.offline;
     this.protocolLevel = MQTTLevel.unknown;
     this.incoming = new AsyncQueue();
     this.unresolvedPublish = new Map();
     this.unresolvedSubscribe = new Map();
     this.unresolvedUnSubscribe = new Map();
+  }
+
+  get connectionState(): TConnectionState {
+    return this.#connectionState;
+  }
+
+  set connectionState(state: TConnectionState) {
+    this.#connectionState = state;
+    switch (state) {
+      case "connected":
+        queueMicrotask(this.#client.onConnected);
+        break;
+      case "disconnected":
+        queueMicrotask(this.#client.onDisconnected);
+        break;
+    }
   }
 
   async connect(packet: ConnectPacket) {
@@ -116,6 +135,10 @@ export class Context {
       }
       logger.debug("No more packets");
     } catch (err) {
+      // TODO: can we replace this with an assert that ensures err to be instanceof Error?
+      if (err instanceof Error) {
+        queueMicrotask(() => this.#client.onError(err));
+      }
       logger.debug(`error ${err}`);
       if (!this.mqttConn.isClosed) {
         this.mqttConn.close();
