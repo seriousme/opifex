@@ -1,3 +1,5 @@
+import { noop } from "./utils.ts";
+
 /**
  * The available log levels
  */
@@ -30,21 +32,20 @@ export class Logger {
   private defaultInfo = console.info;
   private defaultVerbose = console.log;
   private defaultDebug = console.log;
-  // deno-lint-ignore no-explicit-any
-  private noop = (..._data: any[]) => {};
-  error = this.defaultError;
-  warn = this.defaultWarn;
-  info = this.defaultInfo;
-  verbose = this.noop;
-  debug = this.noop;
+
+  error: typeof console.log = this.defaultError;
+  warn: typeof console.log = this.defaultWarn;
+  info: typeof console.log = this.defaultInfo;
+  verbose: typeof console.log = noop;
+  debug: typeof console.log = noop;
 
   constructor() {}
 
   level(logLevel: TLogLevel) {
-    this.warn = logLevel > 0 ? this.defaultWarn : this.noop;
-    this.info = logLevel > 1 ? this.defaultInfo : this.noop;
-    this.verbose = logLevel > 2 ? this.defaultVerbose : this.noop;
-    this.debug = logLevel > 3 ? this.defaultDebug : this.noop;
+    this.warn = logLevel > 0 ? this.defaultWarn : noop;
+    this.info = logLevel > 1 ? this.defaultInfo : noop;
+    this.verbose = logLevel > 2 ? this.defaultVerbose : noop;
+    this.debug = logLevel > 3 ? this.defaultDebug : noop;
   }
 }
 

@@ -14,7 +14,11 @@ import type {
   TAuthenticationResult,
 } from "./deps.ts";
 
+import { noop } from "../utils/utils.ts";
+
 import { Context } from "./context.ts";
+import type { TConnectionState } from "./ConnectionState.ts";
+import { assert } from "../utils/assert.ts";
 
 /**
  * Generates a random client ID with the given prefix
@@ -87,6 +91,11 @@ const CLIENTID_PREFIX = "opifex"; // on first connect
  * connection type that is supported by the subclass.
  */
 export class Client {
+  public onError: (err: Error) => void = noop;
+  public onConnected: () => void = noop;
+  public onDisconnected: () => void = noop;
+  public onReconnecting: () => void = noop;
+
   protected clientIdPrefix = CLIENTID_PREFIX;
   protected numberOfRetries = DEFAULT_RETRIES;
   protected url: URL = new URL(DEFAULT_URL);
@@ -97,15 +106,20 @@ export class Client {
   private cert?: string;
   private key?: string;
   private clientId: string;
-  private ctx = new Context(new MemoryStore());
+  private ctx: Context;
   private connectPacket?: ConnectPacket;
 
   /**
    * Creates a new MQTT client instance
    */
   constructor() {
+    this.ctx = new Context(new MemoryStore(), this);
     this.clientId = generateClientId(this.clientIdPrefix);
     this.numberOfRetries = DEFAULT_RETRIES;
+  }
+
+  get connectionState(): TConnectionState {
+    return this.ctx.connectionState;
   }
 
   /**
@@ -128,7 +142,7 @@ export class Client {
   ): Promise<SockConn> {
     // if you need to support alternative connection types just
     // overload this method in your subclass
-    throw `Unsupported protocol: ${protocol}`;
+    throw new Error(`Unsupported protocol: ${protocol}`);
   }
 
   /**
@@ -164,10 +178,13 @@ export class Client {
         this.connectPacket.clean = false;
         this.ctx.close();
       } catch (err) {
-        if (err instanceof Error) {
-          lastMessage = err;
-          logger.debug({ lastMessage });
-        }
+        assert(
+          err instanceof Error,
+          `Caught something that is not an instance of Error: ${err}`,
+        );
+        queueMicrotask(() => this.onError(err));
+        lastMessage = err;
+        logger.debug({ lastMessage });
       }
 
       if (tryConnect && (isReconnect || attempt < this.numberOfRetries)) {
@@ -175,6 +192,7 @@ export class Client {
         if (!isReconnect) {
           attempt++;
         }
+        queueMicrotask(this.onReconnecting);
       } else {
         tryConnect = false;
       }

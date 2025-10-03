@@ -96,6 +96,6 @@ export class TcpClient extends Client {
     if (protocol === "mqtt:") {
       return this.connectMQTT(hostname, port);
     }
-    throw `Unsupported protocol: ${protocol}`;
+    throw new Error(`Unsupported protocol: ${protocol}`);
   }
 }
