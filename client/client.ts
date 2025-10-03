@@ -141,7 +141,7 @@ export class Client {
   ): Promise<SockConn> {
     // if you need to support alternative connection types just
     // overload this method in your subclass
-    throw `Unsupported protocol: ${protocol}`;
+    throw new Error(`Unsupported protocol: ${protocol}`);
   }
 
   /**
