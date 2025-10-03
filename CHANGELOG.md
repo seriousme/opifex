@@ -4,6 +4,15 @@
 
 ### Changed
 
+## [v1.11.0] 03-10-2025
+
+### Changed
+
+- feat(client): adds callback hooks for connection state changes, surfaces
+  connection state (@jacoscaz)
+- fix(client): await subscribe in mqtt.ts
+- chore(doc): update jsdoc to improve docs on JSR.io
+
 ## [v1.10.1] 02-10-2025
 
 ### Changed
