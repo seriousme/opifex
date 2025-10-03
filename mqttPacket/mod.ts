@@ -209,6 +209,7 @@ export function decodePayload(
 /**
  * @function decode
  * @description Decodes a complete MQTT packet from binary format into a packet object
+ *
  * @param {Uint8Array} buffer - The binary buffer containing the complete MQTT packet
  * @param {CodecOpts} codecOpts - the options for the decoder
  * @returns {AnyPacket} The decoded MQTT packet object

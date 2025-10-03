@@ -10,10 +10,6 @@ import type { DisconnectProperties } from "./Properties.ts";
 import { Encoder } from "./encoder.ts";
 import { ReasonCode } from "./ReasonCode.ts";
 
-/**
- * DisconnectPacket is the final control packet sent from the client to the server.
- * It indicates that the client is disconnecting cleanly.
- */
 export type DisconnectPacketv4 = {
   type: TPacketType;
   protocolLevel: ProtocolLevelNoV5;
@@ -26,6 +22,10 @@ export type DisconnectPacketv5 = {
   properties?: DisconnectProperties;
 };
 
+/**
+ * DisconnectPacket is the final control packet sent from the client to the server.
+ * It indicates that the client is disconnecting cleanly.
+ */
 export type DisconnectPacket = DisconnectPacketv4 | DisconnectPacketv5;
 
 const DISCONNECT_PACKET = new Uint8Array([PacketType.disconnect << 4, 0]);

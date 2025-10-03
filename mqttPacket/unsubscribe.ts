@@ -11,9 +11,6 @@ import { PacketType } from "./PacketType.ts";
 import { Encoder } from "./encoder.ts";
 import { Decoder, DecoderError } from "./decoder.ts";
 
-/**
- * UnsubscribePacket is sent from client to server to unsubscribe from topics
- */
 export type UnsubscribePacketV4 = {
   type: TPacketType;
   protocolLevel: ProtocolLevelNoV5;
@@ -29,6 +26,9 @@ export type UnsubscribePacketV5 = {
   topicFilters: TopicFilter[];
 };
 
+/**
+ * UnsubscribePacket is sent from client to server to unsubscribe from topics
+ */
 export type UnsubscribePacket = UnsubscribePacketV4 | UnsubscribePacketV5;
 
 export const unsubscribe: {

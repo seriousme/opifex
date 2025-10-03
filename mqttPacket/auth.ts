@@ -5,13 +5,6 @@ import { Decoder, DecoderError, hasEmptyFlags } from "./decoder.ts";
 import type { TReasonCode } from "./ReasonCode.ts";
 import type { AuthProperties } from "./Properties.ts";
 
-/**
- * An AUTH packet is sent from Client to Server or Server to Client as part of an extended
- * authentication exchange, such as challenge / response authentication.
- * It is a Protocol Error for the Client or Server to send an AUTH packet
- * if the CONNECT packet did not contain the same Authentication Method.
- */
-
 // AuthPacket does not exist on protocol levels < 5
 export type AuthPacketV5 = {
   type: TPacketType;
@@ -20,6 +13,12 @@ export type AuthPacketV5 = {
   properties?: AuthProperties;
 };
 
+/**
+ * An AUTH packet is sent from Client to Server or Server to Client as part of an extended
+ * authentication exchange, such as challenge / response authentication.
+ * It is a Protocol Error for the Client or Server to send an AUTH packet
+ * if the CONNECT packet did not contain the same Authentication Method.
+ */
 export type AuthPacket = AuthPacketV5;
 
 export const auth: {

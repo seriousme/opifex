@@ -17,10 +17,6 @@ import { AuthenticationResultByNumber } from "./AuthenticationResult.ts";
 import type { TReasonCode } from "./ReasonCode.ts";
 import type { ConnackProperties } from "./Properties.ts";
 
-/**
- * ConnackPacket is sent from the server to the client in response to a connect packet.
- * It indicates that the connect is accepted.
- */
 export type ConnackPacketV4 = {
   type: TPacketType;
   protocolLevel: ProtocolLevelNoV5;
@@ -36,6 +32,10 @@ export type ConnackPacketV5 = {
   properties?: ConnackProperties;
 };
 
+/**
+ * ConnackPacket is sent from the server to the client in response to a connect packet.
+ * It indicates that the connect is accepted.
+ */
 export type ConnackPacket = ConnackPacketV4 | ConnackPacketV5;
 
 export const connack: {

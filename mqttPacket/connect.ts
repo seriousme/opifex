@@ -20,9 +20,6 @@ import {
   hasEmptyFlags,
 } from "./decoder.ts";
 
-/**
- * ConnectPacket is sent from the client to the server to initiate a connection.
- */
 export type ConnectPacketV4 = {
   type: TPacketType;
   protocolName?: string;
@@ -61,6 +58,9 @@ export type ConnectPacketV5 = {
   properties?: ConnectProperties;
 };
 
+/**
+ * ConnectPacket is sent from the client to the server to initiate a connection.
+ */
 export type ConnectPacket = ConnectPacketV4 | ConnectPacketV5;
 
 function invalidProtocolName(version: number, name: string): boolean {

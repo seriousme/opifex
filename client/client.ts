@@ -74,9 +74,11 @@ function backOffSleep(random: boolean, attempt: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, delay));
 }
 
-/**  the default MQTT URL to connect to */
+/** the default MQTT URL to connect to */
 export const DEFAULT_URL = "mqtt://localhost:1883/";
+/** the default protocol level to connect with*/
 export const DEFAULT_PROTOCOLLEVEL = MQTTLevel.v4;
+/** the default keepalive time */
 export const DEFAULT_KEEPALIVE = 60; // 60 seconds
 const DEFAULT_RETRIES = 3; // on first connect
 const CLIENTID_PREFIX = "opifex"; // on first connect
