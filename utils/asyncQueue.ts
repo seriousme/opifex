@@ -1,5 +1,6 @@
 import { Deferred } from "./deferred.ts";
 import { nextTick } from "./nextTick.ts";
+import { ArrayQueue } from "./queue.ts";
 /**
  * An Async Queue is a queue that can be used to push items to it and then wait
  * for them to be consumed.
@@ -15,7 +16,7 @@ import { nextTick } from "./nextTick.ts";
  */
 
 export class AsyncQueue<T> {
-  private queue: T[] = [];
+  private queue: ArrayQueue<T> = new ArrayQueue<T>();
   private maxQueueLength = Infinity;
 
   private done = false;
@@ -30,8 +31,8 @@ export class AsyncQueue<T> {
 
   async next(): Promise<T> {
     await nextTick();
-    if (this.queue.length) {
-      return Promise.resolve(this.queue.shift()!);
+    if (this.queue.size() > 0) {
+      return Promise.resolve(this.queue.dequeue()!);
     } else if (this.done) {
       return Promise.reject("Closed");
     } else if (!this.#next) {
@@ -59,10 +60,10 @@ export class AsyncQueue<T> {
       this.#next = undefined;
       return;
     }
-    if (this.queue.length > this.maxQueueLength) {
-      this.queue.shift();
+    if (this.queue.size() > this.maxQueueLength) {
+      this.queue.dequeue();
     }
-    this.queue.push(item);
+    this.queue.enqueue(item);
   }
 
   get isDone(): boolean {
