@@ -4,6 +4,8 @@
 
 ### Changed
 
+- feat(util): add ArrayQueue
+
 ## [v1.11.0] 03-10-2025
 
 ### Changed
