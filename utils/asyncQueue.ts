@@ -49,7 +49,7 @@ export class AsyncQueue<T> {
   }
 
   async *[Symbol.asyncIterator](): AsyncGenerator<Awaited<T>, void, unknown> {
-    while (true) {
+    while (!this.done) {
       yield await this.next();
     }
   }

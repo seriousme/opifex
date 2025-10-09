@@ -131,9 +131,7 @@ export class Context {
       logger.debug("Send connect packet", connectPacket);
       await this.connect(connectPacket);
       logger.debug("Accepting packets");
-      for await (const packet of this.mqttConn) {
-        await handlePacket(this, packet);
-      }
+      await this.mqttConn.receive((packet) => handlePacket(this, packet));
       logger.debug("No more packets");
     } catch (err) {
       assert(
