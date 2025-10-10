@@ -34,15 +34,15 @@ const DEFAULT_MAX_PACKETSIZE = 2 * 1024 * 1024; // 2MB
 /**
  * Interface for MQTT connection handling
  */
-export interface IMqttConn extends AsyncIterable<AnyPacket> {
+export interface IMqttConn {
   /** Underlying connection */
   readonly conn: Conn;
   /** Whether connection is closed */
   readonly isClosed: boolean;
   /** Reason for connection closure if any */
   readonly reason: string | undefined;
-  /** Async iterator for receiving packets */
-  [Symbol.asyncIterator](): AsyncIterableIterator<AnyPacket>;
+  /** Hook for receiving packets */
+  receive(callback: (packet: AnyPacket) => Promise<void>): Promise<void>;
   /** Send an MQTT packet */
   send(data: AnyPacket): Promise<void>;
   /** Close the connection */
@@ -166,28 +166,39 @@ export class MqttConn implements IMqttConn {
   }
 
   /**
-   * Async iterator for receiving packets
-   * @yields MQTT packets
+   * Takes a callback function that will be called whenever a packet is
+   * successfully read from the underlying connection.
+   *
+   * @returns a promise that resolves when the connection is closed and
+   *          the provided callback will not be called anymore.
    */
-  async *[Symbol.asyncIterator](): AsyncIterableIterator<AnyPacket> {
-    while (!this._isClosed) {
-      try {
-        yield await readPacket(
-          this.conn,
-          this.codecOpts,
-        );
-      } catch (err) {
+  async receive(callback: (packet: AnyPacket) => Promise<void>): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const onReadErr = (err: any) => {
         if (err instanceof Error) {
           if (err.name === "PartialReadError") {
             err.message = MqttConnError.UnexpectedEof;
           }
           this._reason = err.message;
         }
-        // packet too large, malformed packet or connection closed
+        // packet too large, malformed packet, connection closed or
+        // downstream error while handling the packet
         this.close();
-        break;
-      }
-    }
+        resolve(undefined);
+      };
+      const tryRead = () => {
+        if (!this._isClosed) {
+          readPacket(this.conn, this.codecOpts)
+            .then(callback)
+            .catch(onReadErr)
+            .finally(tryRead);
+        } else {
+          resolve(undefined);
+        }
+      };
+      queueMicrotask(tryRead);
+    });
+
   }
 
   /**
