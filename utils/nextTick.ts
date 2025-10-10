@@ -13,6 +13,17 @@
  *
  * @returns {Promise<void>} A promise that resolves on the next tick of the event loop
  */
+
+let counter = 0;
+
 export function nextTick(): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, 0));
+  return new Promise((resolve) => {
+    if (counter === 100) {
+      setImmediate(resolve);
+      counter = 0;
+    } else {
+      queueMicrotask(resolve);
+      counter += 1;
+    }
+  });
 }
