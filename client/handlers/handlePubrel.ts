@@ -26,7 +26,7 @@ export async function handlePubrel(
   if (ctx.store.pendingIncoming.has(id)) {
     const storedPacket = ctx.store.pendingIncoming.get(id);
     if (storedPacket) {
-      ctx.receivePublish(storedPacket);
+      await ctx.receivePublish(storedPacket);
       ctx.store.pendingIncoming.delete(id);
       await ctx.send({
         type: PacketType.pubcomp,

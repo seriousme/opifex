@@ -1,10 +1,8 @@
 import {
-  AsyncQueue,
   Deferred,
   logger,
   MqttConn,
   MQTTLevel,
-  nextTick,
   PacketType,
   Timer,
 } from "./deps.ts";
@@ -38,7 +36,6 @@ export class Context {
   unresolvedSubscribe: Map<PacketId, Deferred<ReturnCodes>>;
   unresolvedUnSubscribe: Map<PacketId, Deferred<void>>;
   store: MemoryStore;
-  incoming: AsyncQueue<PublishPacket>;
   #client: Client;
 
   constructor(store: MemoryStore, client: Client) {
@@ -46,7 +43,6 @@ export class Context {
     this.store = store;
     this.#connectionState = ConnectionState.offline;
     this.protocolLevel = MQTTLevel.unknown;
-    this.incoming = new AsyncQueue();
     this.unresolvedPublish = new Map();
     this.unresolvedSubscribe = new Map();
     this.unresolvedUnSubscribe = new Map();
@@ -108,7 +104,6 @@ export class Context {
     ) {
       await this.mqttConn?.send(packet);
       this.pingTimer?.reset();
-      await nextTick(); // Yield to allow other tasks to run
       return;
     }
     logger.debug("not connected");
@@ -131,7 +126,11 @@ export class Context {
       logger.debug("Send connect packet", connectPacket);
       await this.connect(connectPacket);
       logger.debug("Accepting packets");
-      await this.mqttConn.receive((packet) => handlePacket(this, packet));
+      let packet: AnyPacket | undefined;
+      while ((packet = await this.mqttConn.receive()) !== undefined) {
+        await handlePacket(this, packet);
+        // await resolveAsap();
+      }
       logger.debug("No more packets");
     } catch (err) {
       assert(
@@ -156,8 +155,8 @@ export class Context {
     this.pingTimer?.clear();
   }
 
-  receivePublish(packet: PublishPacket) {
-    this.incoming.push(packet);
+  async receivePublish(packet: PublishPacket) {
+    await this.#client.onPacket(packet);
   }
 
   async publish(packet: PublishPacket): Promise<void> {
@@ -165,8 +164,7 @@ export class Context {
     if (qos === 0) {
       packet.id = 0;
       await this.send(packet);
-      // return empty promise
-      return Promise.resolve();
+      return;
     }
     packet.id = this.store.nextId();
     this.store.pendingOutgoing.set(packet.id, packet);

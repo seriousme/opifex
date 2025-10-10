@@ -1,33 +1,38 @@
-#! /usr/bin/env node
 
-import { TcpClient } from '../node/tcpClient.js';
+import { loader, runAsap } from './utils.ts';
 
-const client = new TcpClient();
+loader(async (ClientClass) => {
 
-client.connect({
-  url: new URL('mqtt://localhost:1884'),
-})
+  const client = new ClientClass();
 
-const payload = Buffer.from('payload');
+  client.connect({
+    url: new URL('mqtt://127.0.0.1:1884'),
+  });
 
-let sent = 0
-const interval = 5000
+  client.onConnected = () => {
 
-client.onConnected = () => {
-  const loop = () => {
-    sent++;
-    client.publish({ topic: 'test', payload }).then(loop);
+    const payload = new TextEncoder().encode('payload');
+
+    let sent = 0;
+    const interval = 5000;
+
+    const loop = () => {
+      sent++;
+      client.publish({ topic: 'test', payload })
+        .then(() => runAsap(loop));
+    };
+
+    function count() {
+      console.log('sent/s', (sent / interval) * 1000);
+      sent = 0;
+    }
+
+    setInterval(count, interval);
+    loop();
   };
-  queueMicrotask(loop);
-};
 
-function count() {
-	console.log('sent/s', (sent / interval) * 1000)
-	sent = 0
-}
+  client.onError = (err) => {
+    console.log('client error', err);
+  };
 
-setInterval(count, interval)
-
-client.onError = (err) => {
-  console.log('client error', err);
-};
+});

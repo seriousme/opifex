@@ -42,7 +42,7 @@ export interface IMqttConn {
   /** Reason for connection closure if any */
   readonly reason: string | undefined;
   /** Hook for receiving packets */
-  receive(callback: (packet: AnyPacket) => Promise<void>): Promise<void>;
+  receive(): Promise<AnyPacket | undefined>;
   /** Send an MQTT packet */
   send(data: AnyPacket): Promise<void>;
   /** Close the connection */
@@ -166,39 +166,27 @@ export class MqttConn implements IMqttConn {
   }
 
   /**
-   * Takes a callback function that will be called whenever a packet is
-   * successfully read from the underlying connection.
+   * Returns incoming MQTT packages until the connection is closed. Note that
+   * the connection will close automatically upon receiving an invalid packet.
    *
-   * @returns a promise that resolves when the connection is closed and
-   *          the provided callback will not be called anymore.
+   * @returns a Promise that resolves to AnyPacket if the connection is open
+   *          and working nominally, undefined otherwise.
    */
-  async receive(callback: (packet: AnyPacket) => Promise<void>): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const onReadErr = (err: any) => {
+  async receive(): Promise<AnyPacket | undefined> {
+    if (!this._isClosed) {
+      return readPacket(this.conn, this.codecOpts).catch((err) => {
         if (err instanceof Error) {
           if (err.name === "PartialReadError") {
             err.message = MqttConnError.UnexpectedEof;
           }
           this._reason = err.message;
         }
-        // packet too large, malformed packet, connection closed or
-        // downstream error while handling the packet
+        // packet too large, malformed packet or connection closed.
         this.close();
-        resolve(undefined);
-      };
-      const tryRead = () => {
-        if (!this._isClosed) {
-          readPacket(this.conn, this.codecOpts)
-            .then(callback)
-            .catch(onReadErr)
-            .finally(tryRead);
-        } else {
-          resolve(undefined);
-        }
-      };
-      queueMicrotask(tryRead);
-    });
-
+        return undefined;
+      });
+    }
+    return undefined;
   }
 
   /**
