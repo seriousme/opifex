@@ -20,12 +20,12 @@ The following MQTT versions are supported:
 | Server         | ❌            | ✅             | ❌            |
 
 Client and server currently only have memory based persistence, but one can
-provide its own persistence. (see [#Architecture] )
+provide its own persistence. (see [Architecture](#architecture))
 
 ## Usage
 
-The most easy way to use this project is to just use the demo server
-(demoServer) and/or the demo client (mqtt).
+The easiest way to use this project is to just use the demo server (demoServer)
+and/or the demo client (mqtt).
 
 - [NodeJS/Bun](node/README.md)
 - [Deno](deno/README.md)
@@ -35,7 +35,7 @@ can be done with CLI options then the next step is to clone the demo server
 and/or the client scripts and modify them to your liking.
 
 If you want to port the platform independent client and server libs to other
-types of transport (e.g. Unix sockets or websocketstream) then its recommended
+types of transports (e.g. Unix sockets or websocketstream) then it's recommended
 to clone and modify the platform specific code in `/node` or `/deno` as well.
 
 If you want to port the platform independent client and server libs to another
@@ -65,7 +65,7 @@ A more elaborate example including client and server can be found in the
 ## Architecture
 
 1. The basis of Opifex is the MQTT packet module
-   ([mqttPacket/mod.ts](mqttPacket/mod.ts)) which contains al the logic to
+   ([mqttPacket/mod.ts](mqttPacket/mod.ts)) which contains all the logic to
    encode and decode packets.
 
 2. On top of mqttPacket sits the MQTT connection module
