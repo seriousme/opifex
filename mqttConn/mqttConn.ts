@@ -34,15 +34,15 @@ const DEFAULT_MAX_PACKETSIZE = 2 * 1024 * 1024; // 2MB
 /**
  * Interface for MQTT connection handling
  */
-export interface IMqttConn extends AsyncIterable<AnyPacket> {
+export interface IMqttConn {
   /** Underlying connection */
   readonly conn: Conn;
   /** Whether connection is closed */
   readonly isClosed: boolean;
   /** Reason for connection closure if any */
   readonly reason: string | undefined;
-  /** Async iterator for receiving packets */
-  [Symbol.asyncIterator](): AsyncIterableIterator<AnyPacket>;
+  /** Hook for receiving packets */
+  receive(): Promise<AnyPacket | undefined>;
   /** Send an MQTT packet */
   send(data: AnyPacket): Promise<void>;
   /** Close the connection */
@@ -166,28 +166,27 @@ export class MqttConn implements IMqttConn {
   }
 
   /**
-   * Async iterator for receiving packets
-   * @yields MQTT packets
+   * Returns incoming MQTT packages until the connection is closed. Note that
+   * the connection will close automatically upon receiving an invalid packet.
+   *
+   * @returns a Promise that resolves to AnyPacket if the connection is open
+   *          and working nominally, undefined otherwise.
    */
-  async *[Symbol.asyncIterator](): AsyncIterableIterator<AnyPacket> {
-    while (!this._isClosed) {
-      try {
-        yield await readPacket(
-          this.conn,
-          this.codecOpts,
-        );
-      } catch (err) {
+  async receive(): Promise<AnyPacket | undefined> {
+    if (!this._isClosed) {
+      return readPacket(this.conn, this.codecOpts).catch((err) => {
         if (err instanceof Error) {
           if (err.name === "PartialReadError") {
             err.message = MqttConnError.UnexpectedEof;
           }
           this._reason = err.message;
         }
-        // packet too large, malformed packet or connection closed
+        // packet too large, malformed packet or connection closed.
         this.close();
-        break;
-      }
+        return undefined;
+      });
     }
+    return undefined;
   }
 
   /**
