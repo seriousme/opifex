@@ -24,8 +24,8 @@ provide its own persistence. (see [Architecture](#architecture))
 
 ## Usage
 
-The easiest way to use this project is to just use the demo server
-(demoServer) and/or the demo client (mqtt).
+The easiest way to use this project is to just use the demo server (demoServer)
+and/or the demo client (mqtt).
 
 - [NodeJS/Bun](node/README.md)
 - [Deno](deno/README.md)
