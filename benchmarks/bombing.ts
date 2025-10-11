@@ -1,5 +1,6 @@
 
-import { loader, runAsap } from './utils.ts';
+import { loader } from './utils.ts';
+import { runAsap } from '../utils/timers.ts';
 
 loader(async (ClientClass) => {
 

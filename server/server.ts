@@ -56,7 +56,9 @@ export class MqttServer {
       logger.debug(`socket connected from ${conn.remoteAddr.hostname}`);
     }
     try {
-      await ctx.mqttConn.receive(packet => handlePacket(ctx, packet));
+      for await (const packet of ctx.mqttConn) {
+        handlePacket(ctx, packet);
+      }
     } catch (err) {
       logger.debug(`Error while serving:${err}`);
     } finally {

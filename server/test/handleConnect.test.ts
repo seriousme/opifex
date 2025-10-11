@@ -6,7 +6,7 @@ import {
   AuthenticationResult,
   PacketType,
 } from "../../mqttPacket/mod.ts";
-import { AsyncQueue, nextTick } from "../../utils/mod.ts";
+import { BufferedAsyncIterable, resolveAsap } from "../../utils/mod.ts";
 import { MqttConn, MQTTLevel } from "../deps.ts";
 import { MqttServer } from "../mod.ts";
 import { handlers } from "./test-handlers.ts";
@@ -34,11 +34,11 @@ const disconnectPacket: AnyPacket = {
 const mqttServer = new MqttServer({ handlers });
 
 function startServer(): {
-  reader: AsyncIterableIterator<AnyPacket>;
+  reader: AsyncIterator<AnyPacket>;
   mqttConn: MqttConn;
 } {
-  const reader = new AsyncQueue<Uint8Array>();
-  const writer = new AsyncQueue<Uint8Array>();
+  const reader = new BufferedAsyncIterable<Uint8Array>();
+  const writer = new BufferedAsyncIterable<Uint8Array>();
 
   const outputConn = makeDummyQueueSockConn(writer, reader);
   const mqttConn = new MqttConn({ conn: outputConn });
@@ -66,7 +66,7 @@ test("Authentication with valid username and password works", async () => {
     );
   }
   mqttConn.send(disconnectPacket);
-  await nextTick();
+  await resolveAsap();
   assert.deepStrictEqual(
     mqttConn.isClosed,
     true,
@@ -92,7 +92,7 @@ test("Authentication with invalid username fails", async () => {
       "Expected badUsernameOrPassword",
     );
   }
-  await nextTick();
+  await resolveAsap();
   assert.deepStrictEqual(
     mqttConn.isClosed,
     true,
@@ -118,7 +118,7 @@ test("Authentication with invalid password fails", async () => {
       "Expected badUsernameOrPassword",
     );
   }
-  await nextTick();
+  await resolveAsap();
   assert.deepStrictEqual(
     mqttConn.isClosed,
     true,
