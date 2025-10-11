@@ -57,9 +57,9 @@ test("MqttConn should act as asyncIterator", async () => {
   const mqttConn = new MqttConn({ conn, protocolLevel: 4 });
 
   const packets: AnyPacket[] = [];
-  mqttConn.receive(async (packet) => {
+  for await (const packet of mqttConn) {
     packets.push(packet);
-  });
+  }
 
   assert.deepStrictEqual(packets.length, 3);
   assert.deepStrictEqual(packets[0], connectPacket);
@@ -72,9 +72,9 @@ test("MqttConn should close on malformed length", async () => {
   const mqttConn = new MqttConn({ conn });
 
   const packets: AnyPacket[] = [];
-  mqttConn.receive(async (packet) => {
+  for await (const packet of mqttConn) {
     packets.push(packet);
-  });
+  }
 
   assert.deepStrictEqual(packets.length, 0);
   assert.deepStrictEqual(mqttConn.isClosed, true);
@@ -90,9 +90,9 @@ test("MqttConn should close on failed packets", async () => {
   const mqttConn = new MqttConn({ conn });
 
   const packets: AnyPacket[] = [];
-  mqttConn.receive(async (packet) => {
+  for await (const packet of mqttConn) {
     packets.push(packet);
-  });
+  }
 
   assert.deepStrictEqual(packets.length, 1);
   assert.deepStrictEqual(packets[0], connectPacket);
@@ -107,9 +107,9 @@ test("MqttConn should close on packets too large", async () => {
   const mqttConn = new MqttConn({ conn, maxIncomingPacketSize: 20 });
 
   const packets: AnyPacket[] = [];
-  mqttConn.receive(async (packet) => {
+  for await (const packet of mqttConn) {
     packets.push(packet);
-  });
+  }
 
   assert.deepStrictEqual(packets.length, 0);
   assert.deepStrictEqual(mqttConn.isClosed, true);
