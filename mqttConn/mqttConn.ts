@@ -184,7 +184,7 @@ export class MqttConn implements IMqttConn {
         return undefined;
       });
     }
-    return undefined;
+    return Promise.resolve(undefined);
   }
 
   async *[Symbol.asyncIterator](): AsyncIterator<AnyPacket> {
