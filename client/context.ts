@@ -126,10 +126,8 @@ export class Context {
       logger.debug("Send connect packet", connectPacket);
       await this.connect(connectPacket);
       logger.debug("Accepting packets");
-      let packet: AnyPacket | undefined;
-      while ((packet = await this.mqttConn.receive()) !== undefined) {
+      for await ( const packet of this.mqttConn) {
         await handlePacket(this, packet);
-        // await resolveAsap();
       }
       logger.debug("No more packets");
     } catch (err) {

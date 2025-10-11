@@ -34,15 +34,13 @@ const DEFAULT_MAX_PACKETSIZE = 2 * 1024 * 1024; // 2MB
 /**
  * Interface for MQTT connection handling
  */
-export interface IMqttConn {
+export interface IMqttConn extends AsyncIterable<AnyPacket> {
   /** Underlying connection */
   readonly conn: Conn;
   /** Whether connection is closed */
   readonly isClosed: boolean;
   /** Reason for connection closure if any */
   readonly reason: string | undefined;
-  /** Hook for receiving packets */
-  receive(): Promise<AnyPacket | undefined>;
   /** Send an MQTT packet */
   send(data: AnyPacket): Promise<void>;
   /** Close the connection */
@@ -172,7 +170,7 @@ export class MqttConn implements IMqttConn {
    * @returns a Promise that resolves to AnyPacket if the connection is open
    *          and working nominally, undefined otherwise.
    */
-  async receive(): Promise<AnyPacket | undefined> {
+  async #receive(): Promise<AnyPacket | undefined> {
     if (!this._isClosed) {
       return readPacket(this.conn, this.codecOpts).catch((err) => {
         if (err instanceof Error) {
@@ -187,6 +185,13 @@ export class MqttConn implements IMqttConn {
       });
     }
     return undefined;
+  }
+
+  async* [Symbol.asyncIterator](): AsyncIterator<AnyPacket> {
+    let packet: AnyPacket | undefined;
+    while ((packet = await this.#receive()) !== undefined) {
+      yield packet;
+    }
   }
 
   /**
