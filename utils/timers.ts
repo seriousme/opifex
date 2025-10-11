@@ -24,7 +24,7 @@ let taskCounter = 0;
  * See https://nodejs.org/en/learn/asynchronous-work/understanding-setimmediate
  * See https://developer.mozilla.org/en-US/docs/Web/API/HTML_DOM_API/Microtask_guide
  */
-export const runAsap = (fn: () => any): void => {
+export const runAsap = (fn: () => void): void => {
   if (taskCounter === 64) {
     taskCounter = 0;
     setImmediate(fn);

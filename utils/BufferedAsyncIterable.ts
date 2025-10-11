@@ -33,7 +33,7 @@ export class BufferedAsyncIterable<T> implements AsyncIterable<T> {
     }
   }
 
-  async next(): Promise<T> {
+  next(): T | Promise<T> {
     // await nextTick();
     if (this.buffer.size() > 0) {
       return this.buffer.dequeue()!;
@@ -52,7 +52,7 @@ export class BufferedAsyncIterable<T> implements AsyncIterable<T> {
     }
   }
 
-  readonly push = async (item: T): Promise<void> => {
+  readonly push = (item: T): void | Promise<void> => {
     if (this.#next) {
       this.#next.resolve(item);
       this.#next = undefined;

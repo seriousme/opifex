@@ -170,7 +170,7 @@ export class MqttConn implements IMqttConn {
    * @returns a Promise that resolves to AnyPacket if the connection is open
    *          and working nominally, undefined otherwise.
    */
-  async #receive(): Promise<AnyPacket | undefined> {
+  #receive(): Promise<AnyPacket | undefined> {
     if (!this._isClosed) {
       return readPacket(this.conn, this.codecOpts).catch((err) => {
         if (err instanceof Error) {

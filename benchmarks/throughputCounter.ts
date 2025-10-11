@@ -25,7 +25,7 @@ loader(async (ClientClass) => {
   // };
 
   // Consume using an AsyncIterator
-  for await (const message of client.messages()) {
+  for await (const _ of client.messages()) {
     counter++;
   }
 });

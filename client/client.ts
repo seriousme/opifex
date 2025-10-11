@@ -7,7 +7,6 @@ import {
 } from "./deps.ts";
 
 import type {
-  AnyPacket,
   ConnectPacket,
   PublishPacket,
   SockConn,

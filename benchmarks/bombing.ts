@@ -1,7 +1,7 @@
 import { loader } from "./utils.ts";
 import { runAsap } from "../utils/timers.ts";
 
-loader(async (ClientClass) => {
+loader((ClientClass) => {
   const client = new ClientClass();
 
   client.connect({
