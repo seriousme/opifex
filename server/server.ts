@@ -57,7 +57,7 @@ export class MqttServer {
     }
     try {
       for await (const packet of ctx.mqttConn) {
-        handlePacket(ctx, packet);
+        await handlePacket(ctx, packet);
       }
     } catch (err) {
       logger.debug(`Error while serving:${err}`);
