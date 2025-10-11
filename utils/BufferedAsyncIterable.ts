@@ -1,4 +1,3 @@
-
 import { Deferred } from "./deferred.ts";
 import { ArrayQueue } from "./queue.ts";
 
@@ -16,7 +15,6 @@ import { ArrayQueue } from "./queue.ts";
  * ```
  */
 export class BufferedAsyncIterable<T> implements AsyncIterable<T> {
-
   private buffer: ArrayQueue<T>;
   private bufferSize: number;
 
@@ -29,7 +27,7 @@ export class BufferedAsyncIterable<T> implements AsyncIterable<T> {
     this.bufferSize = bufferSize;
   }
 
-  async* [Symbol.asyncIterator](): AsyncGenerator<Awaited<T>, void, unknown> {
+  async *[Symbol.asyncIterator](): AsyncGenerator<Awaited<T>, void, unknown> {
     while (!this.done) {
       yield this.next();
     }
@@ -54,7 +52,7 @@ export class BufferedAsyncIterable<T> implements AsyncIterable<T> {
     }
   }
 
-  readonly push = async (item: T): Promise<void> =>{
+  readonly push = async (item: T): Promise<void> => {
     if (this.#next) {
       this.#next.resolve(item);
       this.#next = undefined;
@@ -68,9 +66,9 @@ export class BufferedAsyncIterable<T> implements AsyncIterable<T> {
       // into the queue. Note that this might be an exceedingly simple heuristic,
       // a PID (Proportional-Integral-Derivative) controller could be used to improve
       // the responsiveness of the system.
-      return new Promise(resolve => setTimeout(resolve, this.buffer.size()));
+      return new Promise((resolve) => setTimeout(resolve, this.buffer.size()));
     }
-  }
+  };
 
   get isDone(): boolean {
     return this.done;

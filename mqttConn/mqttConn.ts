@@ -187,7 +187,7 @@ export class MqttConn implements IMqttConn {
     return undefined;
   }
 
-  async* [Symbol.asyncIterator](): AsyncIterator<AnyPacket> {
+  async *[Symbol.asyncIterator](): AsyncIterator<AnyPacket> {
     let packet: AnyPacket | undefined;
     while ((packet = await this.#receive()) !== undefined) {
       yield packet;

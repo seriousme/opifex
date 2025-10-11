@@ -1,30 +1,27 @@
-
-import { loader } from './utils.ts';
-import { runAsap } from '../utils/timers.ts';
+import { loader } from "./utils.ts";
+import { runAsap } from "../utils/timers.ts";
 
 loader(async (ClientClass) => {
-
   const client = new ClientClass();
 
   client.connect({
-    url: new URL('mqtt://127.0.0.1:1884'),
+    url: new URL("mqtt://127.0.0.1:1884"),
   });
 
   client.onConnected = () => {
-
-    const payload = new TextEncoder().encode('payload');
+    const payload = new TextEncoder().encode("payload");
 
     let sent = 0;
     const interval = 5000;
 
     const loop = () => {
       sent++;
-      client.publish({ topic: 'test', payload })
+      client.publish({ topic: "test", payload })
         .then(() => runAsap(loop));
     };
 
     function count() {
-      console.log('sent/s', (sent / interval) * 1000);
+      console.log("sent/s", (sent / interval) * 1000);
       sent = 0;
     }
 
@@ -33,7 +30,6 @@ loader(async (ClientClass) => {
   };
 
   client.onError = (err) => {
-    console.log('client error', err);
+    console.log("client error", err);
   };
-
 });

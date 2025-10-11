@@ -95,7 +95,6 @@ const CLIENTID_PREFIX = "opifex"; // on first connect
  * connection type that is supported by the subclass.
  */
 export class Client {
-
   public onError: (err: Error) => void = noop;
   public onPacket: (pkt: PublishPacket) => void | Promise<void> = noop;
   public onConnected: () => void = noop;
@@ -284,5 +283,4 @@ export class Client {
     this.onPacket = bufferedIterable.push;
     return bufferedIterable;
   }
-
 }

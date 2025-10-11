@@ -1,21 +1,19 @@
-
-import { loader } from './utils.ts';
+import { loader } from "./utils.ts";
 
 loader(async (ClientClass) => {
-
   const client = new ClientClass();
 
   await client.connect({
-    url: new URL('mqtt://127.0.0.1:1884'),
+    url: new URL("mqtt://127.0.0.1:1884"),
   });
 
-  await client.subscribe({ subscriptions: [{ topicFilter: 'test', qos: 0 }] });
+  await client.subscribe({ subscriptions: [{ topicFilter: "test", qos: 0 }] });
 
   let counter = 0;
   const interval = 5000;
 
   function count() {
-    console.log('received/s', (counter / interval) * 1000);
+    console.log("received/s", (counter / interval) * 1000);
     counter = 0;
   }
 
@@ -30,5 +28,4 @@ loader(async (ClientClass) => {
   for await (const message of client.messages()) {
     counter++;
   }
-
 });
