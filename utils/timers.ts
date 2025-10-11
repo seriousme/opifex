@@ -42,3 +42,10 @@ export const runAsap = (fn: () => void): void => {
 export const resolveAsap = (): Promise<void> => {
   return new Promise((resolve) => runAsap(resolve));
 };
+
+/**
+ * Returns a promise that resolves in the next tick of the event loop.
+ */
+export const resolveNextTick = (): Promise<void> => {
+  return new Promise((resolve) => setImmediate(resolve));
+};
