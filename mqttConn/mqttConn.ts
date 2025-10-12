@@ -41,8 +41,6 @@ export interface IMqttConn extends AsyncIterable<AnyPacket> {
   readonly isClosed: boolean;
   /** Reason for connection closure if any */
   readonly reason: string | undefined;
-  /** Async iterator for receiving packets */
-  [Symbol.asyncIterator](): AsyncIterableIterator<AnyPacket>;
   /** Send an MQTT packet */
   send(data: AnyPacket): Promise<void>;
   /** Close the connection */
@@ -166,27 +164,33 @@ export class MqttConn implements IMqttConn {
   }
 
   /**
-   * Async iterator for receiving packets
-   * @yields MQTT packets
+   * Returns incoming MQTT packages until the connection is closed. Note that
+   * the connection will close automatically upon receiving an invalid packet.
+   *
+   * @returns a Promise that resolves to AnyPacket if the connection is open
+   *          and working nominally, undefined otherwise.
    */
-  async *[Symbol.asyncIterator](): AsyncIterableIterator<AnyPacket> {
-    while (!this._isClosed) {
-      try {
-        yield await readPacket(
-          this.conn,
-          this.codecOpts,
-        );
-      } catch (err) {
+  #receive(): Promise<AnyPacket | undefined> {
+    if (!this._isClosed) {
+      return readPacket(this.conn, this.codecOpts).catch((err) => {
         if (err instanceof Error) {
           if (err.name === "PartialReadError") {
             err.message = MqttConnError.UnexpectedEof;
           }
           this._reason = err.message;
         }
-        // packet too large, malformed packet or connection closed
+        // packet too large, malformed packet or connection closed.
         this.close();
-        break;
-      }
+        return undefined;
+      });
+    }
+    return Promise.resolve(undefined);
+  }
+
+  async *[Symbol.asyncIterator](): AsyncIterator<AnyPacket> {
+    let packet: AnyPacket | undefined;
+    while ((packet = await this.#receive()) !== undefined) {
+      yield packet;
     }
   }
 

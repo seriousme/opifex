@@ -72,7 +72,6 @@ test("Deno Test pubSub using client and server", async function () {
 
   await sleep(100);
   logger.verbose(`Disconnect client`);
-  //client.closeMessages();
   await client.disconnect();
 
   logger.verbose(`Check completeness`);

@@ -56,7 +56,7 @@ test("MqttConn should act as asyncIterator", async () => {
   );
   const mqttConn = new MqttConn({ conn, protocolLevel: 4 });
 
-  const packets = [];
+  const packets: AnyPacket[] = [];
   for await (const packet of mqttConn) {
     packets.push(packet);
   }
@@ -71,7 +71,7 @@ test("MqttConn should close on malformed length", async () => {
   const conn = makeDummySockConn([new Uint8Array([1, 175])], new Uint8Array());
   const mqttConn = new MqttConn({ conn });
 
-  const packets = [];
+  const packets: AnyPacket[] = [];
   for await (const packet of mqttConn) {
     packets.push(packet);
   }
@@ -89,7 +89,7 @@ test("MqttConn should close on failed packets", async () => {
   const conn = makeDummySockConn([connect, brokenPublish], new Uint8Array());
   const mqttConn = new MqttConn({ conn });
 
-  const packets = [];
+  const packets: AnyPacket[] = [];
   for await (const packet of mqttConn) {
     packets.push(packet);
   }
@@ -105,7 +105,8 @@ test("MqttConn should close on packets too large", async () => {
 
   const conn = makeDummySockConn([connect], new Uint8Array());
   const mqttConn = new MqttConn({ conn, maxIncomingPacketSize: 20 });
-  const packets = [];
+
+  const packets: AnyPacket[] = [];
   for await (const packet of mqttConn) {
     packets.push(packet);
   }

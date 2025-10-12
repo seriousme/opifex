@@ -19,6 +19,7 @@ import { noop } from "../utils/utils.ts";
 import { Context } from "./context.ts";
 import type { TConnectionState } from "./ConnectionState.ts";
 import { assert } from "../utils/assert.ts";
+import { BufferedAsyncIterable } from "./deps.ts";
 
 /**
  * Generates a random client ID with the given prefix
@@ -94,6 +95,7 @@ const CLIENTID_PREFIX = "opifex"; // on first connect
  */
 export class Client {
   public onError: (err: Error) => void = noop;
+  public onPacket: (pkt: PublishPacket) => void | Promise<void> = noop;
   public onConnected: () => void = noop;
   public onDisconnected: () => void = noop;
   public onReconnecting: () => void = noop;
@@ -275,15 +277,9 @@ export class Client {
    * Gets an async iterator for received messages
    * @returns AsyncGenerator yielding received publish packets
    */
-  async *messages(): AsyncGenerator<PublishPacket, void, unknown> {
-    yield* this.ctx.incoming;
-  }
-
-  /**
-   * Closes the message stream
-   * @param reason - Optional reason for closing
-   */
-  closeMessages(reason?: string) {
-    this.ctx.incoming.close(reason);
+  messages(): AsyncIterable<PublishPacket> {
+    const bufferedIterable = new BufferedAsyncIterable<PublishPacket>();
+    this.onPacket = bufferedIterable.push;
+    return bufferedIterable;
   }
 }

@@ -1,4 +1,4 @@
-import type { AsyncQueue } from "../utils/mod.ts";
+import type { BufferedAsyncIterable } from "../utils/mod.ts";
 
 class Uint8Writer implements WritableStreamDefaultWriter {
   private buff: Uint8Array;
@@ -24,7 +24,7 @@ class Uint8Writer implements WritableStreamDefaultWriter {
 }
 
 class Uint8QueuedWriter implements WritableStreamDefaultWriter {
-  private queue: AsyncQueue<Uint8Array>;
+  private queue: BufferedAsyncIterable<Uint8Array>;
   closed = Promise.resolve(undefined);
   close = () => Promise.resolve();
   abort = () => Promise.resolve();
@@ -33,7 +33,7 @@ class Uint8QueuedWriter implements WritableStreamDefaultWriter {
   desiredSize = 20;
 
   constructor(
-    queue: AsyncQueue<Uint8Array>,
+    queue: BufferedAsyncIterable<Uint8Array>,
   ) {
     this.queue = queue;
   }
@@ -96,8 +96,8 @@ export function makeDummySockConn(
 }
 
 export function makeDummyQueueSockConn(
-  r: AsyncQueue<Uint8Array>,
-  w: AsyncQueue<Uint8Array>,
+  r: BufferedAsyncIterable<Uint8Array>,
+  w: BufferedAsyncIterable<Uint8Array>,
   close = () => {},
 ) {
   const readable = ReadableStreamFrom(r);
