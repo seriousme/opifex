@@ -5,6 +5,8 @@
 ### Changed
 
 - feat(util): add ArrayQueue
+- docs(README): fix section link, fix typos and improve grammar (@Tobbe)
+- perf: bringing Opifex to MQTT.js's orders of magnitude (@jacoscaz)
 
 ## [v1.11.0] 03-10-2025
 
