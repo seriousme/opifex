@@ -6,7 +6,7 @@ const { TcpClient } = await importClientClass();
 const client = new TcpClient();
 client.onError = (err) => {
   console.log("client error", err);
-  exit(1)
+  exit(1);
 };
 
 await client.connect({
@@ -30,4 +30,3 @@ function count() {
 
 setInterval(count, interval);
 loop();
-
