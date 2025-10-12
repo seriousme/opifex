@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { makeDummyQueueSockConn } from "../../dev_utils/mod.ts";
+import { makeDummyQueueSockConn, resolveNextTick } from "../../dev_utils/mod.ts";
 import {
   type AnyPacket,
   AuthenticationResult,
   PacketType,
 } from "../../mqttPacket/mod.ts";
-import { BufferedAsyncIterable, resolveNextTick } from "../../utils/mod.ts";
+import { BufferedAsyncIterable } from "../../utils/mod.ts";
 import { MqttConn, MQTTLevel } from "../deps.ts";
 import { MqttServer } from "../mod.ts";
 import { handlers } from "./test-handlers.ts";

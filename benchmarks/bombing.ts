@@ -1,5 +1,5 @@
 import { loader } from "./utils.ts";
-import { runAsap } from "../utils/timers.ts";
+import { runAsap } from "../dev_utils/timers.ts";
 
 loader((ClientClass) => {
   const client = new ClientClass();
