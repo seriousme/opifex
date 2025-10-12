@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { makeDummyQueueSockConn, resolveNextTick } from "../../dev_utils/mod.ts";
+import {
+  makeDummyQueueSockConn,
+  resolveNextTick,
+} from "../../dev_utils/mod.ts";
 import {
   type AnyPacket,
   AuthenticationResult,
