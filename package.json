@@ -1,6 +1,6 @@
 {
   "name": "@seriousme/opifex",
-  "version": "1.11.1",
+  "version": "1.11.2",
   "description": "MQTT client & server for Deno & NodeJS",
   "type": "module",
   "scripts": {
