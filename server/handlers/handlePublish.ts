@@ -52,9 +52,25 @@ export async function handlePublish(
       });
       return;
     }
-    // qos 2
+
+    /*
+In the QoS 2 delivery protocol, the Receiver
+
+- MUST respond with a PUBREC containing the Packet Identifier from the incoming PUBLISH Packet,
+having accepted ownership of the Application Message.
+- Until it has received the corresponding PUBREL packet, the Receiver MUST acknowledge any subsequent
+PUBLISH packet with the same Packet Identifier by sending a PUBREC. It MUST NOT cause duplicate
+messages to be delivered to any onward recipients in this case.
+- MUST respond to a PUBREL packet by sending a PUBCOMP packet containing the same Packet Identifier as the PUBREL.
+- After it has sent a PUBCOMP, the receiver MUST treat any subsequent PUBLISH packet that contains that Packet
+Identifier as being a new publication.
+[MQTT-4.3.3-2].
+    */
     if (ctx.store) {
-      ctx.store.pendingIncoming.set(packet.id, packet);
+      if (!ctx.store.pendingIncoming.has(packet.id)) {
+        ctx.store.pendingIncoming.set(packet.id, packet);
+        ctx.persistence.publish(packet.topic, packet);
+      }
       await ctx.send({
         type: PacketType.pubrec,
         protocolLevel: ctx.protocolLevel,
