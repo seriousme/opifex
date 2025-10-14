@@ -4,6 +4,14 @@
 
 ### Changed
 
+## [v1.11.2] 14-10-2025
+
+### Changed
+
+- fix: make QoS 2 compliant to MQTT-4.3.3-2 of 3.11 (#58)
+- chore(deps): bump github/codeql-action from 3 to 4 (#57)
+- chore(dev): refactor benchmarks (#56)
+
 ## [v1.11.1] 12-10-2025
 
 ### Changed
