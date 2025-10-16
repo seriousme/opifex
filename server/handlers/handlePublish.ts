@@ -68,8 +68,8 @@ Identifier as being a new publication.
     */
     if (ctx.store) {
       if (!ctx.store.pendingIncoming.has(packet.id)) {
-        ctx.store.pendingIncoming.set(packet.id, packet);
         ctx.persistence.publish(packet.topic, packet);
+        ctx.store.pendingIncoming.add(packet.id);
       }
       await ctx.send({
         type: PacketType.pubrec,
