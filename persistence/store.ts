@@ -1,15 +1,16 @@
 import type { ClientId, PacketId, PublishPacket, QoS, Topic } from "./deps.ts";
 
 export type PacketStore = Map<PacketId, PublishPacket>;
+export type PacketIdStore = Set<PacketId>;
 
 export type SubscriptionStore = Map<Topic, QoS>;
 
 export interface IStore {
   existingSession: boolean;
   clientId: ClientId;
-  pendingIncoming: PacketStore;
+  pendingIncoming: PacketIdStore;
   pendingOutgoing: PacketStore;
-  pendingAckOutgoing: Set<PacketId>;
+  pendingAckOutgoing: PacketIdStore;
   subscriptions: SubscriptionStore;
   nextId(): PacketId;
 }

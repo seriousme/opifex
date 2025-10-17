@@ -5,6 +5,7 @@ import type {
   IPersistence,
   IStore,
   PacketId,
+  PacketIdStore,
   PacketStore,
   PublishPacket,
   QoS,
@@ -28,14 +29,14 @@ export class MemoryStore implements IStore {
   existingSession: boolean = false;
   clientId: ClientId;
   private packetId: PacketId;
-  pendingIncoming: PacketStore;
+  pendingIncoming: PacketIdStore;
   pendingOutgoing: PacketStore;
-  pendingAckOutgoing: Set<PacketId>;
+  pendingAckOutgoing: PacketIdStore;
   subscriptions: SubscriptionStore;
 
   constructor(clientId: ClientId) {
     this.packetId = 0;
-    this.pendingIncoming = new Map();
+    this.pendingIncoming = new Set();
     this.pendingOutgoing = new Map();
     this.pendingAckOutgoing = new Set();
     this.subscriptions = new Map();
