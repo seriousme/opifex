@@ -1,7 +1,7 @@
 #!/bin/bash
 
 license='LICENSE.txt'
-prefix='2016-'
+prefix='2023-'
 current_year=$(date +%Y)
 sed -i -e "s/$prefix\([0-9\]\+\)/$prefix$current_year/" $license
 
