@@ -199,7 +199,7 @@ export class MqttConn implements IMqttConn {
     return { value: undefined, done: true };
   }
 
-  [Symbol.asyncIterator]() {
+  [Symbol.asyncIterator](): this {
     return this;
   }
 
