@@ -59,6 +59,9 @@ export class Conn {
 
   close() {
     if (!this.closed) {
+      try {
+        this.writer.close();
+      } catch (_err) { /* swallow any errors on close */ }
       this.closed = true;
       try {
         this.closer();

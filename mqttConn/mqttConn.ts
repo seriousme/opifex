@@ -170,9 +170,11 @@ export class MqttConn implements IMqttConn {
    * @returns a Promise that resolves to AnyPacket if the connection is open
    *          and working nominally, undefined otherwise.
    */
-  #receive(): Promise<AnyPacket | undefined> {
+  async #receive(): Promise<AnyPacket | undefined> {
     if (!this._isClosed) {
-      return readPacket(this.conn, this.codecOpts).catch((err) => {
+      try {
+        return await readPacket(this.conn, this.codecOpts);
+      } catch (err) {
         if (err instanceof Error) {
           if (err.name === "PartialReadError") {
             err.message = MqttConnError.UnexpectedEof;
@@ -182,16 +184,23 @@ export class MqttConn implements IMqttConn {
         // packet too large, malformed packet or connection closed.
         this.close();
         return undefined;
-      });
+      }
     }
     return Promise.resolve(undefined);
   }
 
-  async *[Symbol.asyncIterator](): AsyncIterator<AnyPacket> {
-    let packet: AnyPacket | undefined;
-    while ((packet = await this.#receive()) !== undefined) {
-      yield packet;
+  async next(): Promise<IteratorResult<AnyPacket>> {
+    const packet = await this.#receive();
+
+    if (packet !== undefined) {
+      return { value: packet, done: false };
     }
+
+    return { value: undefined, done: true };
+  }
+
+  [Symbol.asyncIterator]() {
+    return this;
   }
 
   /**

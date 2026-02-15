@@ -1,15 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import {
-  makeDummyQueueSockConn,
-  resolveNextTick,
-} from "../../dev_utils/mod.ts";
+import { createWebSocketPair, resolveNextTick } from "../../dev_utils/mod.ts";
 import {
   type AnyPacket,
   AuthenticationResult,
   PacketType,
 } from "../../mqttPacket/mod.ts";
-import { BufferedAsyncIterable } from "../../utils/mod.ts";
 import { MqttConn, MQTTLevel } from "../deps.ts";
 import { MqttServer } from "../mod.ts";
 import { handlers } from "./test-handlers.ts";
@@ -37,25 +33,21 @@ const disconnectPacket: AnyPacket = {
 const mqttServer = new MqttServer({ handlers });
 
 function startServer(): {
-  reader: AsyncIterator<AnyPacket>;
   mqttConn: MqttConn;
 } {
-  const reader = new BufferedAsyncIterable<Uint8Array>();
-  const writer = new BufferedAsyncIterable<Uint8Array>();
-
-  const outputConn = makeDummyQueueSockConn(writer, reader);
-  const mqttConn = new MqttConn({ conn: outputConn });
-  const inputConn = makeDummyQueueSockConn(reader, writer, () => {
+  const { input, output } = createWebSocketPair();
+  const mqttConn = new MqttConn({ conn: output });
+  input.close = () => {
     mqttConn.close();
-  });
-  mqttServer.serve(inputConn);
-  return { reader: mqttConn[Symbol.asyncIterator](), mqttConn };
+  };
+  mqttServer.serve(input);
+  return { mqttConn };
 }
 
 test("Authentication with valid username and password works", async () => {
-  const { reader, mqttConn } = startServer();
+  const { mqttConn } = startServer();
   mqttConn.send(connectPacket);
-  const { value: connack } = await reader.next();
+  const { value: connack } = await mqttConn.next();
   assert.deepStrictEqual(
     connack.type,
     PacketType.connack,
@@ -80,9 +72,9 @@ test("Authentication with valid username and password works", async () => {
 test("Authentication with invalid username fails", async () => {
   const newPacket = Object.assign({}, connectPacket);
   newPacket.username = "wrong";
-  const { reader, mqttConn } = startServer();
+  const { mqttConn } = startServer();
   mqttConn.send(newPacket);
-  const { value: connack } = await reader.next();
+  const { value: connack } = await mqttConn.next();
   assert.deepStrictEqual(
     connack.type,
     PacketType.connack,
@@ -106,9 +98,9 @@ test("Authentication with invalid username fails", async () => {
 test("Authentication with invalid password fails", async () => {
   const newPacket = Object.assign({}, connectPacket);
   newPacket.password = undefined;
-  const { reader, mqttConn } = startServer();
+  const { mqttConn } = startServer();
   mqttConn.send(newPacket);
-  const { value: connack } = await reader.next();
+  const { value: connack } = await mqttConn.next();
   assert.deepStrictEqual(
     connack.type,
     PacketType.connack,
