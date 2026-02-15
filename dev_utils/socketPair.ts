@@ -35,7 +35,9 @@ export function createWebSocketPair(): {
   const endpointAWritable = new WritableStream<Uint8Array>({
     write(chunk) {
       // Data written by A becomes readable by B
-      bController.enqueue(chunk);
+      if (chunk.byteLength>0) {
+        bController.enqueue(chunk);
+      }
     },
     close() {
       bController.close();
@@ -48,7 +50,9 @@ export function createWebSocketPair(): {
   const endpointBWritable = new WritableStream<Uint8Array>({
     write(chunk) {
       // Data written by B becomes readable by A
-      aController.enqueue(chunk);
+      if (chunk.byteLength>0) {
+        aController.enqueue(chunk);
+      }
     },
     close() {
       aController.close();
