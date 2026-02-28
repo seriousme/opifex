@@ -13,11 +13,11 @@ built in modules.
 
 The following MQTT versions are supported:
 
-|                | MQTT 3.1 (v3) | MQTT 3.11 (v4) | MQTT 5.0 (v5) |
-| -------------- | ------------- | -------------- | ------------- |
-| Packet/encoder | ✅            | ✅             | ✅            |
-| Client         | ✅            | ✅             | ✅ partially  |
-| Server         | ❌            | ✅             | ❌            |
+|                | MQTT 3.1 (v3) | MQTT 3.1.1 (v4) | MQTT 5.0 (v5) |
+| -------------- | ------------- | --------------- | ------------- |
+| Packet/encoder | ✅            | ✅              | ✅            |
+| Client         | ✅            | ✅              | ✅ partially  |
+| Server         | ❌            | ✅              | ❌            |
 
 Client and server currently only have memory based persistence, but one can
 provide its own persistence. (see [Architecture](#architecture))
@@ -76,11 +76,11 @@ A more elaborate example including client and server can be found in the
 
 3. On top of mqttConn live the MQTT server ([server/mod.ts](server/mod.ts)) and
    MQTT client ([client/mod.ts](client/mod.ts)) that take care of the MQTT
-   protocol handling like requiring an authentication to be successfull before
+   protocol handling like requiring an authentication to be successful before
    another type of packet will be accepted. Both follow a similar model of
    implementation where for each packet that is received a handler is invoked
-   which then triggers the next step. Server and client are totally independ of
-   the technical implementation of the connection and only need a socketConn
+   which then triggers the next step. Server and client are totally independent
+   of the technical implementation of the connection and only need a socketConn
    ([socket](socket)) to be able to work.
 
 4. As the server needs to be able to serve multiple clients at the same time, it
