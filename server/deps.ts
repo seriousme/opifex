@@ -36,4 +36,4 @@ export {
   PacketType,
 } from "../mqttPacket/mod.ts";
 export { Timer } from "../timer/timer.ts";
-export { logger } from "../utils/mod.ts";
+export { logger, LogLevel } from "../utils/mod.ts";

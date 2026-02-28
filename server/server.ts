@@ -36,6 +36,7 @@ export type MqttServerOptions = {
 export class MqttServer {
   handlers: Handlers;
   persistence: IPersistence;
+  #activeContexts = new Set<Context>();
   constructor({
     persistence,
     handlers,
@@ -50,8 +51,19 @@ export class MqttServer {
     };
   }
 
+  /**
+   * Forcefully closes all active connections and stops their serve loops
+   */
+  stop() {
+    for (const ctx of this.#activeContexts) {
+      ctx.close(); 
+    }
+    this.#activeContexts.clear();
+  }
+
   async serve(conn: SockConn): Promise<void> {
     const ctx = new Context(this.persistence, conn, this.handlers);
+    this.#activeContexts.add(ctx);
     if (conn.remoteAddr?.transport === "tcp") {
       logger.debug(`socket connected from ${conn.remoteAddr.hostname}`);
     }
@@ -62,9 +74,11 @@ export class MqttServer {
     } catch (err) {
       logger.debug(`Error while serving:${err}`);
     } finally {
+      this.#activeContexts.delete(ctx);
       if (!ctx.mqttConn.isClosed) {
         ctx.close();
       }
+      logger.debug(`server disconnected ${ctx.store?.clientId || "unknown client"}`);
     }
   }
 }
