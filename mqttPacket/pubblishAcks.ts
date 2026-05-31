@@ -10,35 +10,40 @@ import { PacketType } from "./PacketType.ts";
 import { Decoder, DecoderError } from "./decoder.ts";
 import { Encoder } from "./encoder.ts";
 
-export type AckPacketV4<T> = {
-  type: TPacketType;
+export type AckPacketV4<T extends TPacketType> = {
+  type: T;
   protocolLevel: ProtocolLevelNoV5;
   id: PacketId;
 };
 
-export type AckPacketV5<T> = {
-  type: TPacketType;
+export type AckPacketV5<T extends TPacketType> = {
+  type: T;
   protocolLevel: 5;
   id: PacketId;
   reasonCode?: TReasonCode;
   properties?: PubackProperties;
 };
+
 /**
  * all 4 ack packets are identical except for packet type and flags of Pubrel
  */
-export type AckPacket<T> = AckPacketV4<T> | AckPacketV5<T>;
+export type AckPacket<T extends TPacketType> = AckPacketV4<T> | AckPacketV5<T>;
+
 /**
  * PubackPacket is sent to indicate publish complete (QoS 1)
  */
 export type PubackPacket = AckPacket<typeof PacketType.puback>;
+
 /**
  * Pubrec is sent to indicate publish received (QoS 2)
  */
 export type PubrecPacket = AckPacket<typeof PacketType.pubrec>;
+
 /**
  * Pubrel is sent to indicate publish release (QoS 2)
  */
 export type PubrelPacket = AckPacket<typeof PacketType.pubrel>;
+
 /**
  * Pubcomp is sent to indicate publish complete (QoS 2)
  */
@@ -97,27 +102,27 @@ export const anyAck: {
     if (codecOpts.protocolLevel !== 5) {
       decoder.done();
       return {
-        type: packetType,
+        type: packetType as AnyAckPacket["type"],
         protocolLevel: codecOpts.protocolLevel,
         id,
-      };
+      } as AnyAckPacket;
     }
     if (decoder.atEnd()) {
       return {
-        type: packetType,
+        type: packetType as AnyAckPacket["type"],
         protocolLevel: 5,
         id,
         reasonCode: 0,
-      };
+      } as AnyAckPacket;
     }
     const reasonCode = decoder.getReasonCode();
     const properties = decoder.getProperties(packetType);
     return {
-      type: packetType,
+      type: packetType as AnyAckPacket["type"],
       protocolLevel: 5,
       id,
       reasonCode,
       properties,
-    };
+    } as AnyAckPacket;
   },
 };

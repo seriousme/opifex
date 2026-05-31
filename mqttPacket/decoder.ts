@@ -107,7 +107,7 @@ export class Decoder {
    */
   getByte(): number {
     this.checkpos(this.pos);
-    return this.buf[this.pos++];
+    return this.buf[this.pos++] || 0;
   }
 
   /**

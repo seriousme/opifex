@@ -22,21 +22,21 @@ export type PublishPacketV4 = {
   protocolLevel: ProtocolLevelNoV5;
   topic: Topic;
   payload: Payload;
-  dup?: Dup;
-  retain?: boolean;
-  qos?: QoS;
-  id?: number;
+  dup?: Dup | undefined;
+  retain?: boolean | undefined;
+  qos?: QoS | undefined;
+  id?: number | undefined;
 };
 export type PublishPacketV5 = {
   type: TPacketType;
   protocolLevel: 5;
   topic: Topic;
   payload: Payload;
-  dup?: Dup;
-  retain?: boolean;
-  qos?: QoS;
-  id?: number;
-  properties?: PublishProperties;
+  dup?: Dup | undefined;
+  retain?: boolean| undefined;
+  qos?: QoS| undefined;
+  id?: number | undefined;
+  properties?: PublishProperties | undefined;
 };
 
 export type PublishPacket = PublishPacketV4 | PublishPacketV5;

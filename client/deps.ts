@@ -12,6 +12,7 @@ export type {
   PublishPacket,
   PubrecPacket,
   PubrelPacket,
+  QoS,
   ReturnCodes,
   SubackPacket,
   SubscribePacket,

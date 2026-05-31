@@ -22,40 +22,40 @@ import {
 
 export type ConnectPacketV4 = {
   type: TPacketType;
-  protocolName?: string;
+  protocolName?: string | undefined;
   protocolLevel: ProtocolLevelNoV5;
-  clientId?: ClientId;
-  username?: string;
-  password?: Uint8Array;
+  clientId?: ClientId | undefined;
+  username?: string | undefined;
+  password?: Uint8Array | undefined;
   will?: {
     topic: Topic;
     payload: Payload;
-    retain?: boolean;
-    qos?: QoS;
-  };
-  clean?: boolean;
-  keepAlive?: number;
-  bridgeMode?: boolean;
+    retain?: boolean | undefined;
+    qos?: QoS | undefined;
+  } | undefined;
+  clean?: boolean | undefined;
+  keepAlive?: number | undefined;
+  bridgeMode?: boolean | undefined;
 };
 
 export type ConnectPacketV5 = {
   type: TPacketType;
-  protocolName?: string;
+  protocolName?: string | undefined;
   protocolLevel: 5;
-  clientId?: ClientId;
-  username?: string;
-  password?: Uint8Array;
+  clientId?: ClientId | undefined;
+  username?: string | undefined;
+  password?: Uint8Array | undefined;
   will?: {
     topic: Topic;
     payload: Payload;
-    retain?: boolean;
-    qos?: QoS;
-    properties?: WillProperties;
-  };
-  clean?: boolean;
-  keepAlive?: number;
-  bridgeMode?: boolean;
-  properties?: ConnectProperties;
+    retain?: boolean | undefined;
+    qos?: QoS | undefined;
+    properties?: WillProperties | undefined;
+  } | undefined;
+  clean?: boolean | undefined;
+  keepAlive?: number | undefined;
+  bridgeMode?: boolean | undefined;
+  properties?: ConnectProperties | undefined;
 };
 
 /**

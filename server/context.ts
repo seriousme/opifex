@@ -60,7 +60,7 @@ export class Context {
   handlers: Handlers;
   static clientList: Map<ClientId, Context> = new Map();
   store?: IStore;
-  will?: PublishPacket;
+  will?: PublishPacket|undefined;
   timer?: Timer;
 
   constructor(persistence: IPersistence, conn: SockConn, handlers: Handlers) {

@@ -37,12 +37,12 @@ type ConnectOptions = Omit<
 
 /** ConnectParameters define how to connect */
 export type ConnectParameters = {
-  url?: URL;
-  caCerts?: string[];
-  cert?: string;
-  key?: string;
-  numberOfRetries?: number;
-  options?: ConnectOptions;
+  url?: URL | undefined;
+  caCerts?: string[] | undefined;
+  cert?: string | undefined;
+  key?: string | undefined;
+  numberOfRetries?: number | undefined;
+  options?: ConnectOptions | undefined;
 };
 
 /** PublishParameters define how a message should be published */
@@ -106,9 +106,9 @@ export class Client {
   protected keepAlive = DEFAULT_KEEPALIVE;
   protected protocolLevel = DEFAULT_PROTOCOLLEVEL;
   protected autoReconnect = true;
-  private caCerts?: string[];
-  private cert?: string;
-  private key?: string;
+  private caCerts?: string[]|undefined;
+  private cert?: string|undefined;
+  private key?: string|undefined;
   private clientId: string;
   private ctx: Context;
   private connectPacket?: ConnectPacket;

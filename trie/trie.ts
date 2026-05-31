@@ -46,7 +46,7 @@ export class Trie<T> {
    */
   match(key: string): T[] {
     const parts = key.split(this.separator);
-    if (parts.length > 0 && parts[0].charAt(0) === this.reservedPrefix) {
+    if (parts.length > 0 && parts[0]?.charAt(0) === this.reservedPrefix) {
       return this._matchPrefix(parts);
     }
     return this._match(parts);
@@ -62,7 +62,10 @@ export class Trie<T> {
       return this.#value ? this.#value : [];
     }
     const [first, ...rest] = parts;
-    return this.matchChild(first, rest);
+    if (first !== undefined) {
+      return this.matchChild(first, rest);
+    }
+    return [];
   }
 
   /**
@@ -75,11 +78,14 @@ export class Trie<T> {
       return this.#value ? this.#value : [];
     }
     const [first, ...rest] = parts;
-    const exact = this.matchChild(first, rest);
-    const single = this.matchChild(this.wildcardOne, rest);
-    const subtree = this.matchChild(this.wildcardSubtree, []);
-    const results = exact.concat(single, subtree);
-    return results;
+    if (first !== undefined) {
+      const exact = this.matchChild(first, rest);
+      const single = this.matchChild(this.wildcardOne, rest);
+      const subtree = this.matchChild(this.wildcardSubtree, []);
+      const results = exact.concat(single, subtree);
+      return results;
+    }
+    return [];
   }
 
   /**
@@ -102,13 +108,15 @@ export class Trie<T> {
       return;
     }
     const [first, ...rest] = parts;
-    const child = this.#children.get(first);
-    if (child instanceof Trie) {
-      child._add(rest, value);
-    } else {
-      const node = new Trie<T>(this.looseCompare);
-      this.#children.set(first, node);
-      node._add(rest, value);
+    if (first !== undefined) {
+      const child = this.#children.get(first);
+      if (child instanceof Trie) {
+        child._add(rest, value);
+      } else {
+        const node = new Trie<T>(this.looseCompare);
+        this.#children.set(first, node);
+        node._add(rest, value);
+      }
     }
     return;
   }
@@ -134,11 +142,13 @@ export class Trie<T> {
       return;
     }
     const [first, ...rest] = parts;
-    const node = this.#children.get(first);
-    if (node) {
-      node._remove(rest, value);
-      if (node.#value.length === 0 && this.#children.size === 0) {
-        this.#children.delete(first);
+    if (first !== undefined) {
+      const node = this.#children.get(first);
+      if (node) {
+        node._remove(rest, value);
+        if (node.#value.length === 0 && this.#children.size === 0) {
+          this.#children.delete(first);
+        }
       }
     }
   }

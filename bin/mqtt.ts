@@ -37,15 +37,25 @@ import {
   DEFAULT_PROTOCOLLEVEL,
   DEFAULT_URL,
 } from "../client/mod.ts";
-import type { ProtocolLevel } from "../client/mod.ts";
+import type { ProtocolLevel, QoS } from "../client/mod.ts";
 import { getFileData, TcpClient } from "../node/tcpClient.ts";
 import { logger, LogLevel } from "../utils/mod.ts";
 
-type Args = Record<string, string | boolean>;
 const client = new TcpClient();
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 logger.level(LogLevel.info);
+
+// --- TypeScript Utility Types to Derive Args Natively ---
+type MapOptType<T> = T extends { type: "string" }
+  ? string | undefined
+  : T extends { type: "boolean" }
+    ? boolean
+    : never;
+
+type ParsedArgsFromOpts<T extends Record<string, { type: "string" | "boolean" }>> = {
+  [K in keyof T]: MapOptType<T[K]>;
+};
 
 const MQTTHelp = `MQTT command line interface, available commands are:
 
@@ -94,7 +104,9 @@ const connectOpts = {
   help: { type: "boolean", short: "h", default: false },
 } as const;
 
-async function connect(connectArgs: Args) {
+type ConnectArgs = ParsedArgsFromOpts<typeof connectOpts>;
+
+async function connect(connectArgs: ConnectArgs) {
   const {
     caCerts,
     cert,
@@ -111,25 +123,24 @@ async function connect(connectArgs: Args) {
       clientId: connectArgs.clientId as string,
       clean: !connectArgs.noClean,
       keepAlive: Number(connectArgs.keepAlive),
-      protocolLevel: parseInt(
-        connectArgs.mqttVersion as string,
-      ) as ProtocolLevel,
+      protocolLevel: parseProtocolLevel(connectArgs.mqttVersion),
     },
   });
   logger.debug("Connected !");
 }
 
-function parseQos(qosArg: string | number) {
+function parseProtocolLevel(mqttVersion:string|undefined):ProtocolLevel{
+   const result =parseInt(mqttVersion ?? '');
+   if (result >=3 && result<=5){
+    return result as ProtocolLevel;
+   }
+   return DEFAULT_PROTOCOLLEVEL;
+}
+
+function parseQos(qosArg: string | number | undefined): QoS {
   const qos = Number(qosArg);
-  switch (qos) {
-    case 0:
-      return 0;
-    case 1:
-      return 1;
-    case 2:
-      return 2;
-    default:
-      break;
+  if (qos === 0 || qos === 1 || qos === 2) {
+    return qos;
   }
   console.log("QoS must be between 0 and 2");
   return 0;
@@ -142,14 +153,15 @@ function safeParseArgs(config: ParseArgsConfig) {
     if (err instanceof Error) {
       console.error(err.message);
     }
+    return undefined;
   }
 }
 
-async function getTLSdata(connectArgs: Args) {
-  const caFileData = await getFileData(connectArgs.caFile as string);
+async function getTLSdata(connectArgs: Partial<ConnectArgs>) {
+  const caFileData = connectArgs.caFile ? await getFileData(connectArgs.caFile) : undefined;
   const caCerts = caFileData ? [caFileData] : undefined;
-  const cert = await getFileData(connectArgs.certFile as string);
-  const key = await getFileData(connectArgs.keyFile as string);
+  const cert = await getFileData(connectArgs.certFile);
+  const key =  await getFileData(connectArgs.keyFile);
   return {
     caCerts,
     cert,
@@ -177,13 +189,16 @@ const subscribeOpts = {
   qos: { type: "string", short: "q", default: "0" },
 } as const;
 
+type SubscribeArgs = ParsedArgsFromOpts<typeof connectOpts & typeof subscribeOpts>;
+
 async function subscribe() {
   const res = safeParseArgs({
     options: { ...connectOpts, ...subscribeOpts },
     allowPositionals: true,
   });
   if (!res) return;
-  const subscribeArgs = res.values as Record<string, string | boolean>;
+  
+  const subscribeArgs = res.values as unknown as SubscribeArgs;
   if (subscribeArgs.help) {
     console.log(SubscribeHelp);
     return;
@@ -198,7 +213,7 @@ async function subscribe() {
       subscriptions: [
         {
           topicFilter: subscribeArgs.topic,
-          qos: parseQos(subscribeArgs.qos as string),
+          qos: parseQos(subscribeArgs.qos),
         },
       ],
     });
@@ -209,8 +224,8 @@ async function subscribe() {
     }
   } catch (err) {
     if (err instanceof Error) {
-      // @ts-ignore the type spec of err is missing err.code
-      logger.info(`Error: ${err.message || err.code}`);
+      const errorWithCode = err as Error & { code?: string };
+      logger.info(`Error: ${errorWithCode.message || errorWithCode.code}`);
     }
   }
 }
@@ -232,13 +247,16 @@ const publishOpts = {
   retain: { type: "boolean", short: "r", default: false },
 } as const;
 
+type PublishArgs = ParsedArgsFromOpts<typeof connectOpts & typeof publishOpts>;
+
 async function publish() {
   const res = safeParseArgs({
     options: { ...connectOpts, ...publishOpts },
     allowPositionals: true,
   });
   if (!res) return;
-  const publishArgs = res.values as Record<string, string | boolean>;
+  
+  const publishArgs = res.values as unknown as PublishArgs;
   if (publishArgs.help) {
     console.log(PublishHelp);
     return;
@@ -251,17 +269,17 @@ async function publish() {
     await connect(publishArgs);
     await client.publish({
       topic: publishArgs.topic,
-      payload: encoder.encode(publishArgs.message as string),
-      retain: publishArgs.retain as boolean,
-      qos: parseQos(publishArgs.qos as string),
+      payload: encoder.encode(publishArgs.message ?? ""),
+      retain: publishArgs.retain,
+      qos: parseQos(publishArgs.qos),
     });
     logger.debug("Published!");
     client.disconnect();
     logger.debug("Disconnected !");
   } catch (err) {
     if (err instanceof Error) {
-      // @ts-ignore the type spec of err is missing err.code
-      logger.info(`Error: ${err.message || err.code}`);
+      const errorWithCode = err as Error & { code?: string };
+      logger.info(`Error: ${errorWithCode.message || errorWithCode.code}`);
     }
   }
 }

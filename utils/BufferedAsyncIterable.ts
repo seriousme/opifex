@@ -20,7 +20,7 @@ export class BufferedAsyncIterable<T> implements AsyncIterable<T> {
 
   private done = false;
 
-  #next?: Deferred<T>;
+  #next?: Deferred<T> | undefined;
 
   constructor(bufferSize: number = 2048) {
     this.buffer = new ArrayQueue();

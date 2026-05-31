@@ -57,8 +57,9 @@ async function readByte(conn: Conn): Promise<number> {
   const buf = new Uint8Array(1);
   const bytesRead = await conn.read(buf);
   assert(bytesRead !== null, MqttConnError.UnexpectedEof);
+  assert(bytesRead !== undefined, MqttConnError.UnexpectedEof);
   assert(bytesRead !== 0, MqttConnError.UnexpectedEof);
-  return buf[0];
+  return buf[0] || 0;
 }
 
 /**
