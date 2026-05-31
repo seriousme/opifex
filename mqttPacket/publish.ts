@@ -33,8 +33,8 @@ export type PublishPacketV5 = {
   topic: Topic;
   payload: Payload;
   dup?: Dup | undefined;
-  retain?: boolean| undefined;
-  qos?: QoS| undefined;
+  retain?: boolean | undefined;
+  qos?: QoS | undefined;
   id?: number | undefined;
   properties?: PublishProperties | undefined;
 };

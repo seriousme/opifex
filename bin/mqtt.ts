@@ -47,13 +47,13 @@ const decoder = new TextDecoder();
 logger.level(LogLevel.info);
 
 // --- TypeScript Utility Types to Derive Args Natively ---
-type MapOptType<T> = T extends { type: "string" }
-  ? string | undefined
-  : T extends { type: "boolean" }
-    ? boolean
-    : never;
+type MapOptType<T> = T extends { type: "string" } ? string | undefined
+  : T extends { type: "boolean" } ? boolean
+  : never;
 
-type ParsedArgsFromOpts<T extends Record<string, { type: "string" | "boolean" }>> = {
+type ParsedArgsFromOpts<
+  T extends Record<string, { type: "string" | "boolean" }>,
+> = {
   [K in keyof T]: MapOptType<T[K]>;
 };
 
@@ -129,12 +129,12 @@ async function connect(connectArgs: ConnectArgs) {
   logger.debug("Connected !");
 }
 
-function parseProtocolLevel(mqttVersion:string|undefined):ProtocolLevel{
-   const result =parseInt(mqttVersion ?? '');
-   if (result >=3 && result<=5){
+function parseProtocolLevel(mqttVersion: string | undefined): ProtocolLevel {
+  const result = parseInt(mqttVersion ?? "");
+  if (result >= 3 && result <= 5) {
     return result as ProtocolLevel;
-   }
-   return DEFAULT_PROTOCOLLEVEL;
+  }
+  return DEFAULT_PROTOCOLLEVEL;
 }
 
 function parseQos(qosArg: string | number | undefined): QoS {
@@ -158,10 +158,12 @@ function safeParseArgs(config: ParseArgsConfig) {
 }
 
 async function getTLSdata(connectArgs: Partial<ConnectArgs>) {
-  const caFileData = connectArgs.caFile ? await getFileData(connectArgs.caFile) : undefined;
+  const caFileData = connectArgs.caFile
+    ? await getFileData(connectArgs.caFile)
+    : undefined;
   const caCerts = caFileData ? [caFileData] : undefined;
   const cert = await getFileData(connectArgs.certFile);
-  const key =  await getFileData(connectArgs.keyFile);
+  const key = await getFileData(connectArgs.keyFile);
   return {
     caCerts,
     cert,
@@ -189,7 +191,9 @@ const subscribeOpts = {
   qos: { type: "string", short: "q", default: "0" },
 } as const;
 
-type SubscribeArgs = ParsedArgsFromOpts<typeof connectOpts & typeof subscribeOpts>;
+type SubscribeArgs = ParsedArgsFromOpts<
+  typeof connectOpts & typeof subscribeOpts
+>;
 
 async function subscribe() {
   const res = safeParseArgs({
@@ -197,7 +201,7 @@ async function subscribe() {
     allowPositionals: true,
   });
   if (!res) return;
-  
+
   const subscribeArgs = res.values as unknown as SubscribeArgs;
   if (subscribeArgs.help) {
     console.log(SubscribeHelp);
@@ -255,7 +259,7 @@ async function publish() {
     allowPositionals: true,
   });
   if (!res) return;
-  
+
   const publishArgs = res.values as unknown as PublishArgs;
   if (publishArgs.help) {
     console.log(PublishHelp);

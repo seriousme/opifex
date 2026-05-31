@@ -106,9 +106,9 @@ export class Client {
   protected keepAlive = DEFAULT_KEEPALIVE;
   protected protocolLevel = DEFAULT_PROTOCOLLEVEL;
   protected autoReconnect = true;
-  private caCerts?: string[]|undefined;
-  private cert?: string|undefined;
-  private key?: string|undefined;
+  private caCerts?: string[] | undefined;
+  private cert?: string | undefined;
+  private key?: string | undefined;
   private clientId: string;
   private ctx: Context;
   private connectPacket?: ConnectPacket;
