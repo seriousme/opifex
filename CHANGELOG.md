@@ -4,6 +4,13 @@
 
 ### Changed
 
+## [v1.11.3] 31-05-2026
+
+### Changed
+
+- chore(deps): update @types/node to 24.12.4
+- chore(dev): update types and tsconfig to support TypeScript 6
+
 ## [v1.11.2] 14-10-2025
 
 ### Changed
