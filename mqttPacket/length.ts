@@ -35,7 +35,7 @@ export function decodeLength(
   const decode = getLengthDecoder();
   const size = buf.length;
   for (let i = start; i < size; i++) {
-    const byte = buf[i];
+    const byte = buf[i] || 0;
     const { done, length, numLengthBytes } = decode(byte);
     if (done) {
       return { length, numLengthBytes };

@@ -9,7 +9,7 @@ export {
   DEFAULT_URL,
 } from "./client.ts";
 export { MQTTLevel } from "./deps.ts";
-export type { ProtocolLevel } from "./deps.ts";
+export type { ProtocolLevel, QoS } from "./deps.ts";
 export type {
   ConnectParameters,
   PublishParameters,

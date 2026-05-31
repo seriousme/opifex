@@ -225,7 +225,7 @@ export function decode(
   const { length, numLengthBytes } = decodeLength(buffer, 1);
   const start = numLengthBytes + 1;
   const end = start + length;
-  return decodePayload(buffer[0], buffer.subarray(start, end), codecOpts);
+  return decodePayload(buffer[0] || 0, buffer.subarray(start, end), codecOpts);
 }
 
 export { getLengthDecoder } from "../mqttPacket/length.ts";

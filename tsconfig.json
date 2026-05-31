@@ -1,13 +1,26 @@
 {
   "compilerOptions": {
-    // Node 18
-    "target": "ES2022",
-    "module": "esnext",
-    "moduleResolution": "node",
+    // Type Checking
+    "strict": true,
+    "noImplicitReturns": true,
+    "noImplicitOverride": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "types": ["node"],
+
+    // Module
+    "module": "nodenext",
+    "noUncheckedSideEffectImports": true,
+    "moduleDetection": "force",
     "resolveJsonModule": true,
+    // Language and Environment
+    "target": "esnext",
     "allowImportingTsExtensions": true,
     "rewriteRelativeImportExtensions": true,
-    "strict": true,
     "rootDir": ".",
     "sourceMap": true,
     "declaration": true,
