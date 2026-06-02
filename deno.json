@@ -1,6 +1,5 @@
 {
   "name": "@seriousme/opifex",
-  "version": "1.11.3",
   "license": "MIT",
   "exports": {
     "./tcpClient": "./deno/tcpClient.ts",

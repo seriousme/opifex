@@ -23,5 +23,5 @@ jobs:
       - run: deno install
       - run: npm run build
       - run: deno fmt
-      - run: npx jsr publish
+      - run: deno publish --set-version $(jq -r '.version' package.json)
       - run: npm stage publish --access public
