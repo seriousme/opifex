@@ -90,12 +90,16 @@ export function createWebStreamPair(): {
     if (aController) {
       try {
         aController.error(reason);
-      } catch (_) {}
+      } catch (_) {
+        // swallow errors
+      }
     }
     if (bController) {
       try {
         bController.error(reason);
-      } catch (_) {}
+      } catch (_) {
+        // swallow errors
+      }
     }
   }
 
