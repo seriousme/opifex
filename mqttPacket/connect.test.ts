@@ -289,7 +289,7 @@ test("decode Connect with username and password", () => {
   );
 });
 
-const decodedConnectWithWill = Object.assign({}, decodedConnect);
+const decodedConnectWithWill = structuredClone(decodedConnect);
 decodedConnectWithWill.will = {
   topic: "mywill",
   payload: Uint8Array.from([

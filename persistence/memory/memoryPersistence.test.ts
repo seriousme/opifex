@@ -86,7 +86,7 @@ test("many packets should work", async () => {
   };
 
   function makePacket(id: number | undefined) {
-    const newPacket = Object.assign({}, publishPacket);
+    const newPacket = structuredClone(publishPacket);
     newPacket.id = id;
     return newPacket;
   }
