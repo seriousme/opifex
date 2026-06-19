@@ -6,7 +6,7 @@ import {
   PacketType,
 } from "../../mqttPacket/mod.ts";
 import { MQTTLevel } from "../deps.ts";
-import { startMockServer } from "../..//dev_utils/mockServer.ts";
+import { startMockServer } from "../../dev_utils/mod.ts";
 
 const txtEncoder = new TextEncoder();
 
