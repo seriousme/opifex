@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { makeDummySockConn } from "../dev_utils/mod.ts";
+import { createMockSockConn } from "../dev_utils/mod.ts";
 import { encode, MQTTLevel, PacketType } from "../mqttPacket/mod.ts";
 import { MqttConn, MqttConnError } from "./mqttConn.ts";
 import type { AnyPacket, CodecOpts } from "../mqttPacket/mod.ts";
@@ -50,7 +50,7 @@ test("MqttConn should act as asyncIterator", async () => {
   const publish = encode(publishPacket, codecOptsV4);
   const disconnect = encode(disconnectPacket, codecOptsV4);
 
-  const conn = makeDummySockConn(
+  const conn = createMockSockConn(
     [connect, publish, disconnect],
     new Uint8Array(),
   );
@@ -62,13 +62,13 @@ test("MqttConn should act as asyncIterator", async () => {
   }
 
   assert.deepStrictEqual(packets.length, 3);
-  assert.deepStrictEqual(packets[0], connectPacket);
-  assert.deepStrictEqual(packets[1], publishPacket);
-  assert.deepStrictEqual(packets[2], disconnectPacket);
+  assert.deepStrictEqual(packets[0], connectPacket, "has connect packet");
+  assert.deepStrictEqual(packets[1], publishPacket, "has publish packet");
+  assert.deepStrictEqual(packets[2], disconnectPacket, "has disconnect packet");
 });
 
 test("MqttConn should close on malformed length", async () => {
-  const conn = makeDummySockConn([new Uint8Array([1, 175])], new Uint8Array());
+  const conn = createMockSockConn([new Uint8Array([1, 175])], new Uint8Array());
   const mqttConn = new MqttConn({ conn });
 
   const packets: AnyPacket[] = [];
@@ -86,7 +86,7 @@ test("MqttConn should close on failed packets", async () => {
   const publish = encode(publishPacket, codecOptsV4);
   const brokenPublish = publish.slice(0, 7);
 
-  const conn = makeDummySockConn([connect, brokenPublish], new Uint8Array());
+  const conn = createMockSockConn([connect, brokenPublish], new Uint8Array());
   const mqttConn = new MqttConn({ conn });
 
   const packets: AnyPacket[] = [];
@@ -103,7 +103,7 @@ test("MqttConn should close on failed packets", async () => {
 test("MqttConn should close on packets too large", async () => {
   const connect = encode(connectPacket, codecOptsV4);
 
-  const conn = makeDummySockConn([connect], new Uint8Array());
+  const conn = createMockSockConn([connect], new Uint8Array());
   const mqttConn = new MqttConn({ conn, maxIncomingPacketSize: 20 });
 
   const packets: AnyPacket[] = [];
@@ -119,7 +119,7 @@ test("MqttConn should close on packets too large", async () => {
 test("MqttConn should be writable", async () => {
   const connect = encode(connectPacket, codecOptsV4);
   const writer = new Uint8Array(24);
-  const conn = makeDummySockConn([connect], writer);
+  const conn = createMockSockConn([connect], writer);
   const mqttConn = new MqttConn({ conn });
   await mqttConn.send(connectPacket);
   assert.deepStrictEqual(writer, connect);

@@ -2,7 +2,7 @@
  * Utility functions for wrapping Node.js sockets into standard web streams.
  */
 import type { Socket } from "node:net";
-import { Writable } from "node:stream";
+import { Readable, Writable } from "node:stream";
 import type { NetAddr, SockConn } from "../socket/socket.ts";
 
 /**
@@ -21,35 +21,7 @@ function closer(sock: Socket): void {
  * @returns A socket connection object with readable/writable streams and close method
  */
 export function wrapNodeSocket(socket: Socket): SockConn {
-  const readable = new ReadableStream(
-    {
-      type: "bytes",
-      start(controller) {
-        socket.on("data", (data: Uint8Array<ArrayBuffer>) => {
-          controller.enqueue(data);
-          const desiredSize = controller.desiredSize ?? 0;
-          if (desiredSize <= 0) {
-            // The internal queue is full, so propagate
-            // the backpressure signal to the underlying source.
-            socket.pause();
-          }
-        });
-        socket.on("error", (err: unknown) => controller.error(err));
-        socket.on("end", () => {
-          // close the controller
-          controller.close();
-          // and unlock the last BYOB read request
-          controller.byobRequest?.respond(0);
-        });
-      },
-      pull: () => {
-        socket.resume();
-      },
-      cancel: () => {
-        socket.end();
-      },
-    },
-  );
+  const readable = Readable.toWeb(socket);
   const writable = Writable.toWeb(socket);
   const remoteAddr: NetAddr = {
     hostname: socket.remoteAddress || "",

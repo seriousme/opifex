@@ -43,50 +43,12 @@ class Uint8QueuedWriter implements WritableStreamDefaultWriter {
   }
 }
 
-function readableByteStreamFromArray(readerBuffs: Array<Uint8Array>) {
-  let i = 0;
-  return new ReadableStream({
-    type: "bytes",
-    pull(controller) {
-      if (i === readerBuffs.length) {
-        controller.close();
-        controller.byobRequest?.respond(0);
-        return;
-      }
-      controller.enqueue(readerBuffs[i++]);
-    },
-  });
-}
-
-function ReadableStreamFrom(
-  iterable: AsyncIterable<Uint8Array>,
-): ReadableStream {
-  if (!iterable || !(Symbol.asyncIterator in iterable)) {
-    throw new TypeError("Argument must be an asyncIterable");
-  }
-
-  return new ReadableStream({
-    type: "bytes",
-    async pull(controller) {
-      const iterator = iterable[Symbol.asyncIterator]();
-      const next = await iterator.next();
-
-      if (next.done) {
-        controller.close();
-        controller.byobRequest?.respond(0);
-        return;
-      }
-      controller.enqueue(next.value);
-    },
-  });
-}
-
-export function makeDummySockConn(
+export function createMockSockConn(
   readerBuffs: Uint8Array[],
   writerBuf: Uint8Array,
   close = () => {},
 ) {
-  const readable = readableByteStreamFromArray(readerBuffs);
+  const readable = ReadableStream.from(readerBuffs);
   const writable = new WritableStream(new Uint8Writer(writerBuf));
   return {
     readable,
@@ -95,12 +57,12 @@ export function makeDummySockConn(
   };
 }
 
-export function makeDummyQueueSockConn(
+export function createMockQueueSockConn(
   r: BufferedAsyncIterable<Uint8Array>,
   w: BufferedAsyncIterable<Uint8Array>,
   close = () => {},
 ) {
-  const readable = ReadableStreamFrom(r);
+  const readable = ReadableStream.from(r);
   const writable = new WritableStream(new Uint8QueuedWriter(w));
   return {
     readable,

@@ -1,3 +1,3 @@
-export { makeDummyQueueSockConn, makeDummySockConn } from "./dummyConn.ts";
-export { createWebSocketPair } from "./socketPair.ts";
+export { createMockQueueSockConn, createMockSockConn } from "./mockConn.ts";
+export { createWebStreamPair } from "./webStreamPair.ts";
 export { resolveAsap, resolveNextTick, runAsap } from "./timers.ts";
