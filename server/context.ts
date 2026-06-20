@@ -82,15 +82,17 @@ export class Context {
     logger.debug("Connecting", clientId);
     const existingSession = Context.clientList.get(clientId);
     if (existingSession) {
+      logger.debug(`Existing session with ${clientId} exists, closing existing session`);
       existingSession.close(false);
     }
+    
     this.store = this.persistence.registerClient(
       clientId,
       this.doPublish.bind(this),
       clean,
     );
-
     this.connected = true;
+    Context.clientList.set(clientId,this);
     this.broadcast("$SYS/connect/clients", clientId);
     logger.debug("Connected", clientId);
   }
