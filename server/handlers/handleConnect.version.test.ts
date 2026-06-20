@@ -1,11 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import {
-  type AnyPacket,
-  AuthenticationResult,
-  PacketType,
-} from "../../mqttPacket/mod.ts";
-import { MQTTLevel } from "../deps.ts";
+import type { AnyPacket } from "../deps.ts";
+import { AuthenticationResult, MQTTLevel, PacketType } from "../deps.ts";
 import { startMockServer } from "../../dev_utils/mod.ts";
 
 const txtEncoder = new TextEncoder();

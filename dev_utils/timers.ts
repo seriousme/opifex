@@ -6,6 +6,8 @@
 // This will also work on Deno:
 // https://docs.deno.com/api/node/timers/#namespace_setimmediate
 import { setImmediate } from "node:timers";
+import { setTimeout as delay } from "node:timers/promises";
+import type { AnyPacket } from "../mqttPacket/mod.ts";
 
 let taskCounter = 0;
 
@@ -49,3 +51,14 @@ export const resolveAsap = (): Promise<void> => {
 export const resolveNextTick = (): Promise<void> => {
   return new Promise((resolve) => setImmediate(resolve));
 };
+
+/**
+ * Races a promise to test timeouts
+ */
+export function withTimeout(
+  promise: Promise<IteratorResult<AnyPacket>>,
+  timeoutMs: number,
+): Promise<IteratorResult<AnyPacket> | null> {
+  const timeoutPromise = delay(timeoutMs, null);
+  return Promise.race([promise, timeoutPromise]);
+}
