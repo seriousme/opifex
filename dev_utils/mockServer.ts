@@ -5,17 +5,19 @@ import { handlers } from "./test-handlers.ts";
 
 export function startMockServer(): {
   mqttConn: MqttConn;
+  mqttServer: MqttServer;
 } {
   const mqttServer = new MqttServer({ handlers });
   const { input, output } = createWebStreamPair();
   const mqttConn = new MqttConn({ conn: output });
   mqttServer.serve(input);
-  return { mqttConn };
+  return { mqttConn, mqttServer };
 }
 
 export function startMockServer2(): {
   mqttConn1: MqttConn;
   mqttConn2: MqttConn;
+  mqttServer: MqttServer;
 } {
   const mqttServer = new MqttServer({ handlers });
   const { input: input1, output: output1 } = createWebStreamPair();
@@ -24,5 +26,5 @@ export function startMockServer2(): {
   const mqttConn2 = new MqttConn({ conn: output2 });
   mqttServer.serve(input1);
   mqttServer.serve(input2);
-  return { mqttConn1, mqttConn2 };
+  return { mqttConn1, mqttConn2, mqttServer };
 }
