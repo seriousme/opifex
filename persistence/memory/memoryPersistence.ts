@@ -114,7 +114,7 @@ export class MemoryPersistence implements IPersistence {
   publish(topic: Topic, packet: PublishPacket): void {
     if (packet.retain) {
       this.retained.set(packet.topic, packet);
-      if (packet.payload === undefined) {
+      if (!packet.payload?.byteLength) {
         this.retained.delete(packet.topic);
       }
     }
