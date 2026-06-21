@@ -1,6 +1,7 @@
 export { createMockQueueSockConn, createMockSockConn } from "./mockConn.ts";
 export { createWebStreamPair } from "./webStreamPair.ts";
 export {
+  delay,
   resolveAsap,
   resolveNextTick,
   runAsap,
@@ -12,5 +13,6 @@ export {
   connect,
   disconnect,
   nextPacketWithTimeOut,
+  ping,
   subscribe,
 } from "./packetHelpers.ts";

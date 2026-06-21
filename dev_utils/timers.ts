@@ -8,6 +8,7 @@
 import { setImmediate } from "node:timers";
 import { setTimeout as delay } from "node:timers/promises";
 import type { AnyPacket } from "../mqttPacket/mod.ts";
+export { delay };
 
 let taskCounter = 0;
 

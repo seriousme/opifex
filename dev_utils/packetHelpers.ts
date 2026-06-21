@@ -7,6 +7,11 @@ import assert from "node:assert/strict";
 const txtEncoder = new TextEncoder();
 let clientIdCounter = 1;
 
+const pingreqPacket: AnyPacket = {
+  type: PacketType.pingreq,
+  protocolLevel: MQTTLevel.v4,
+};
+
 export function nextPacketWithTimeOut(
   conn: MqttConn,
   timeoutMs: number,
@@ -20,15 +25,16 @@ export async function checkNoPacket(mqttConn: MqttConn, timeoutMs = 10) {
 }
 
 export async function connect(mqttConn: MqttConn, options?: {
-  clientId?: number;
+  clientId?: string;
+  keepAlive?: number;
 }): Promise<void> {
   const connectPacket: AnyPacket = {
     type: PacketType.connect,
     protocolName: "MQTT",
     protocolLevel: 4,
-    clientId: `testClient-${options?.clientId || clientIdCounter++}`,
+    clientId: options?.clientId || `testClient-${clientIdCounter++}`,
     clean: true,
-    keepAlive: 0,
+    keepAlive: options?.keepAlive || 0,
     username: "IoTester_1",
     password: txtEncoder.encode("strong_password"),
     will: undefined,
@@ -73,4 +79,10 @@ export async function disconnect(mqttConn: MqttConn) {
     true,
     "Expected connection to be closed",
   );
+}
+
+export async function ping(mqttConn: MqttConn) {
+  mqttConn.send(pingreqPacket);
+  const { value: pingres } = await mqttConn.next();
+  assert.deepStrictEqual(pingres.type, PacketType.pingres);
 }
