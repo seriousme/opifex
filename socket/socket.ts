@@ -36,6 +36,8 @@ export class Conn {
     this.reader = sockConn.readable.getReader();
     this.writer = sockConn.writable.getWriter();
     this.closer = sockConn.close.bind(sockConn);
+    this.reader.closed.catch(() => {});
+    this.writer.closed.catch(() => {});
     this.remoteAddr = sockConn.remoteAddr;
   }
 
@@ -101,10 +103,13 @@ export class Conn {
   close() {
     if (!this.closed) {
       try {
-        this.writer.close();
+        if (!this.writer.closed) {
+          this.writer.close();
+        }
       } catch (_err) { /* swallow */ }
       try {
-        this.reader.releaseLock();
+        this.reader.cancel();
+        this.reader?.releaseLock();
       } catch (_err) { /* swallow */ }
       this.closed = true;
       try {

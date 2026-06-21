@@ -118,6 +118,7 @@ export class Context {
   }
 
   close(executewill = true): void {
+    logger.debug(`server closing context ${this.connected}`);
     if (this.connected) {
       logger.info(
         `Closing ${this.store?.clientId} while mqttConn is ${

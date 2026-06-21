@@ -57,14 +57,14 @@ export class MqttServer {
     }
     try {
       for await (const packet of ctx.mqttConn) {
+        logger.debug("next packet");
         await handlePacket(ctx, packet);
       }
     } catch (err) {
       logger.debug(`Error while serving:${err}`);
     } finally {
-      if (!ctx.mqttConn.isClosed) {
-        ctx.close();
-      }
+      logger.debug(`done serving for ${ctx.store?.clientId}`);
+      ctx.close();
     }
   }
 }
