@@ -1,12 +1,15 @@
 import { createWebStreamPair } from "./webStreamPair.ts";
 import { MqttConn } from "@seriousme/opifex/mqttConn";
-import { MqttServer } from "@seriousme/opifex/server";
+import { Context, MqttServer } from "@seriousme/opifex/server";
 import { handlers } from "./test-handlers.ts";
 
 export function startMockServer(): {
   mqttConn: MqttConn;
   mqttServer: MqttServer;
 } {
+  // start with a fresh clientlist
+  Context.clientList.clear();
+  // create a new MQTT server
   const mqttServer = new MqttServer({ handlers });
   const { input, output } = createWebStreamPair();
   const mqttConn = new MqttConn({ conn: output });
