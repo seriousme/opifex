@@ -2,7 +2,12 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { AnyPacket } from "../deps.ts";
 import { MQTTLevel, PacketType } from "../deps.ts";
-import { connect, disconnect, startMockServer } from "../../dev_utils/mod.ts";
+import {
+  connect,
+  disconnect,
+  ping,
+  startMockServer,
+} from "../../dev_utils/mod.ts";
 
 const txtEncoder = new TextEncoder();
 
@@ -24,18 +29,8 @@ test("PUBLISH QoS 0 does not receive acknowledgment", async () => {
   mqttConn.send(publishPacket);
 
   // Send PINGREQ to verify no PUBACK was queued before it
-  const pingreqPacket: AnyPacket = {
-    type: PacketType.pingreq,
-    protocolLevel: MQTTLevel.v4,
-  };
-  mqttConn.send(pingreqPacket);
-
-  const { value: response } = await mqttConn.next();
-  assert.deepStrictEqual(
-    response.type,
-    PacketType.pingres,
-    "QoS 0 should not produce PUBACK, next response should be PINGRES",
-  );
+  // QoS 0 should not produce PUBACK, next response should be PINGRES
+  await ping(mqttConn);
 
   await disconnect(mqttConn);
 });
@@ -112,19 +107,8 @@ test("PUBLISH to $SYS topic is rejected", async () => {
   };
   mqttConn.send(publishPacket);
 
-  // Send PINGREQ to verify no PUBACK was sent (publish was silently rejected)
-  const pingreqPacket: AnyPacket = {
-    type: PacketType.pingreq,
-    protocolLevel: MQTTLevel.v4,
-  };
-  mqttConn.send(pingreqPacket);
-
-  const { value: response } = await mqttConn.next();
-  assert.deepStrictEqual(
-    response.type,
-    PacketType.pingres,
-    "$SYS publish should be silently rejected",
-  );
+  // Send PINGREQ to verify no PUBACK was sent (publish to $SYS was silently rejected)
+  await ping(mqttConn);
 
   await disconnect(mqttConn);
 });

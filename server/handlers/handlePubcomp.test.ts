@@ -1,8 +1,12 @@
-import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { AnyPacket } from "../deps.ts";
 import { MQTTLevel, PacketType } from "../deps.ts";
-import { connect, disconnect, startMockServer } from "../../dev_utils/mod.ts";
+import {
+  connect,
+  disconnect,
+  ping,
+  startMockServer,
+} from "../../dev_utils/mod.ts";
 
 test("PUBCOMP is handled without error", async () => {
   const { mqttConn } = startMockServer();
@@ -18,18 +22,7 @@ test("PUBCOMP is handled without error", async () => {
   mqttConn.send(pubcompPacket);
 
   // Verify server is still responsive
-  const pingreqPacket: AnyPacket = {
-    type: PacketType.pingreq,
-    protocolLevel: MQTTLevel.v4,
-  };
-  mqttConn.send(pingreqPacket);
-
-  const { value: pingres } = await mqttConn.next();
-  assert.deepStrictEqual(
-    pingres.type,
-    PacketType.pingres,
-    "Server should still be responsive after handling PUBCOMP",
-  );
+  await ping(mqttConn);
 
   await disconnect(mqttConn);
 });

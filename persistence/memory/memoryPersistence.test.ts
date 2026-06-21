@@ -7,13 +7,10 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { MQTTLevel, PacketType } from "../deps.ts";
 import type { PublishPacket } from "../deps.ts";
+import { delay } from "../../dev_utils/mod.ts";
 
 const payloadAny = new TextEncoder().encode("any");
 const qos = 1;
-
-function delay(ms: number): Promise<unknown> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 test("new should create new Persistence object", () => {
   const persistence = new Persistence();

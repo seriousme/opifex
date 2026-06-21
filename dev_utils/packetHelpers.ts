@@ -1,7 +1,13 @@
 import type { MqttConn } from "@seriousme/opifex/mqttConn";
 import { withTimeout } from "./timers.ts";
 import { MQTTLevel, PacketType } from "@seriousme/opifex/mqttPacket";
-import type { AnyPacket, QoS, TopicFilter } from "@seriousme/opifex/mqttPacket";
+import type {
+  AnyPacket,
+  ConnackPacket,
+  ConnectPacket,
+  QoS,
+  TopicFilter,
+} from "@seriousme/opifex/mqttPacket";
 import assert from "node:assert/strict";
 
 const txtEncoder = new TextEncoder();
@@ -27,21 +33,24 @@ export async function checkNoPacket(mqttConn: MqttConn, timeoutMs = 10) {
 export async function connect(mqttConn: MqttConn, options?: {
   clientId?: string;
   keepAlive?: number;
-}): Promise<void> {
+  clean?: boolean;
+  will?: ConnectPacket["will"];
+}): Promise<ConnackPacket> {
   const connectPacket: AnyPacket = {
     type: PacketType.connect,
     protocolName: "MQTT",
     protocolLevel: 4,
     clientId: options?.clientId || `testClient-${clientIdCounter++}`,
-    clean: true,
+    clean: options?.clean ?? true,
     keepAlive: options?.keepAlive || 0,
     username: "IoTester_1",
     password: txtEncoder.encode("strong_password"),
-    will: undefined,
+    will: options?.will,
   };
   mqttConn.send(connectPacket);
   const { value: connack } = await mqttConn.next();
   assert.deepStrictEqual(connack.type, PacketType.connack, "Expected CONNACK");
+  return connack;
 }
 
 export async function subscribe(

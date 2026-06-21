@@ -1,0 +1,181 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { PacketType } from "../deps.ts";
+import {
+  connect,
+  disconnect,
+  startMockServer,
+  startMockServer2,
+  subscribe,
+} from "../../dev_utils/mod.ts";
+
+test("sessionPresent is false for new client", async () => {
+  const { mqttConn } = startMockServer();
+
+  const connack = await connect(mqttConn, {
+    clientId: "new-client",
+    clean: false,
+  });
+
+  assert.deepStrictEqual(
+    connack.sessionPresent,
+    false,
+    "Expected sessionPresent=false for new client",
+  );
+
+  await disconnect(mqttConn);
+});
+
+test("sessionPresent is true when reconnecting with same clientId and clean=false", async () => {
+  const { mqttConn1, mqttConn2 } = startMockServer2();
+
+  const clientId = "persist-client";
+  // First connection
+  const connack1 = await connect(mqttConn1, {
+    clientId,
+    clean: false,
+  });
+
+  if (connack1.type === PacketType.connack) {
+    assert.deepStrictEqual(
+      connack1.sessionPresent,
+      false,
+      "Expected sessionPresent=false for first connection",
+    );
+  }
+  await disconnect(mqttConn1);
+
+  // Second connection with same clientId and clean=false
+  const connack2 = await connect(mqttConn2, {
+    clientId,
+    clean: false,
+  });
+
+  assert.deepStrictEqual(
+    connack2.sessionPresent,
+    true,
+    "Expected sessionPresent=true for reconnection with clean=false",
+  );
+  await disconnect(mqttConn2);
+});
+
+test("subscriptions persist with clean=false", async () => {
+  const { mqttConn1, mqttConn2, mqttServer } = startMockServer2();
+  const clientId = "subscription-persist-client";
+
+  // First connection
+  await connect(mqttConn1, {
+    clientId,
+    clean: false,
+  });
+
+  await subscribe(mqttConn1, "sensors/temperature", 1, 1);
+  await subscribe(mqttConn1, "sensors/humidity", 2, 2);
+  await disconnect(mqttConn1);
+
+  // Verify subscriptions are stored
+  const client1 = mqttServer.persistence.clientList.get(clientId);
+  assert(client1, "Expected client store for client-sub-persist");
+  assert.strictEqual(
+    client1.store.subscriptions.size,
+    2,
+    "Expected 2 subscriptions after first connection",
+  );
+  assert.strictEqual(
+    client1.store.subscriptions.get("sensors/temperature"),
+    1,
+    "Expected sensors/temperature with QoS 1",
+  );
+  assert.strictEqual(
+    client1.store.subscriptions.get("sensors/humidity"),
+    2,
+    "Expected sensors/humidity with QoS 2",
+  );
+
+  // Second connection with clean=false
+  const connack2 = await connect(mqttConn2, {
+    clientId,
+    clean: false,
+  });
+
+  if (connack2.type === PacketType.connack) {
+    assert.deepStrictEqual(
+      connack2.sessionPresent,
+      true,
+      "Expected sessionPresent=true on reconnection",
+    );
+  }
+
+  // Verify subscriptions are restored
+  const client2 = mqttServer.persistence.clientList.get(clientId);
+  assert(
+    client2,
+    "Expected client store present after reconnection",
+  );
+  assert.strictEqual(
+    client2.store.subscriptions.size,
+    2,
+    "Expected subscriptions to persist after reconnection",
+  );
+  assert.strictEqual(
+    client2.store.subscriptions.get("sensors/temperature"),
+    1,
+    "Expected sensors/temperature to persist",
+  );
+  assert.strictEqual(
+    client2.store.subscriptions.get("sensors/humidity"),
+    2,
+    "Expected sensors/humidity to persist",
+  );
+
+  await disconnect(mqttConn2);
+});
+
+test("subscriptions cleared with clean=true", async () => {
+  const { mqttConn1, mqttConn2, mqttServer } = startMockServer2();
+  const clientId = "clean-client";
+
+  // First connection - subscribe to topics
+  await connect(mqttConn1, {
+    clientId,
+    clean: false,
+  });
+
+  await subscribe(mqttConn1, "device/status", 1, 1);
+  await disconnect(mqttConn1);
+
+  // Verify subscriptions are stored
+  const client1 = mqttServer.persistence.clientList.get(clientId);
+  assert(client1, "Expected client store for client-sub-persist");
+  assert.strictEqual(
+    client1.store.subscriptions.size,
+    1,
+    "Expected 1 subscription after first connection",
+  );
+
+  // Second connection with clean=true
+  const connack2 = await connect(mqttConn2, {
+    clientId,
+    clean: true,
+  });
+
+  assert.deepStrictEqual(
+    connack2.sessionPresent,
+    false,
+    "Expected sessionPresent=false when clean=true",
+  );
+
+  // Verify subscriptions are cleared
+  const cleanClient = mqttServer.persistence.clientList.get(clientId);
+  assert(
+    cleanClient,
+    "Expected client store for client-clean after reconnection",
+  );
+  assert.strictEqual(
+    cleanClient.store.subscriptions.size,
+    0,
+    "Expected subscriptions to be cleared with clean=true",
+  );
+
+  await disconnect(mqttConn2);
+});

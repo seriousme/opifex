@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { connect, disconnect, startMockServer } from "../../dev_utils/mod.ts";
+import {
+  connect,
+  disconnect,
+  ping,
+  startMockServer,
+} from "../../dev_utils/mod.ts";
 import type { AnyPacket } from "../deps.ts";
 import { MQTTLevel, PacketType } from "../deps.ts";
 
@@ -156,19 +161,8 @@ test("ignores duplicate PUBACK gracefully", async () => {
   mqttConn.send(duplicatePubackPacket);
 
   // Send PINGREQ to verify server is still responsive
-  const pingreqPacket: AnyPacket = {
-    type: PacketType.pingreq,
-    protocolLevel: MQTTLevel.v4,
-  };
-  mqttConn.send(pingreqPacket);
-
   // Should receive PINGRES (duplicate PUBACK should be silently ignored)
-  const { value: pingres } = await mqttConn.next();
-  assert.deepStrictEqual(
-    pingres.type,
-    PacketType.pingres,
-    "Duplicate PUBACK should be gracefully ignored",
-  );
+  await ping(mqttConn);
 
   await disconnect(mqttConn);
 });

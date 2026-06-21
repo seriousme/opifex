@@ -63,7 +63,7 @@ test("MQTT-3.1.2.10: connection closes after 1.5x keepAlive timeout", {
 
   // Wait for timeout to expire (1500ms + buffer)
   await delay(1600);
-  
+
   // flush state
   await mqttConn.next();
 
