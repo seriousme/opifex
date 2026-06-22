@@ -8,6 +8,7 @@
     "prebuild": "rm -rf dist",
     "build": "npx -p typescript tsc --build",
     "format": "deno fmt",
+    "coverage": "deno test -A . --coverage --clean --coverage-raw-data-only && deno coverage --exclude=.config --html",
     "preversion": "npm run test"
   },
   "keywords": [
