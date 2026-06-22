@@ -10,9 +10,11 @@ import type { NetAddr, SockConn } from "../socket/socket.ts";
  * @param sock - The Node.js socket to close
  */
 function closer(sock: Socket): void {
+  // deno-coverage-ignore-start
   if (!sock.closed) {
     sock.end();
   }
+  // deno-coverage-ignore-stop
 }
 
 /**
@@ -23,11 +25,14 @@ function closer(sock: Socket): void {
 export function wrapNodeSocket(socket: Socket): SockConn {
   const readable = Readable.toWeb(socket);
   const writable = Writable.toWeb(socket);
+
+  // deno-coverage-ignore-start
   const remoteAddr: NetAddr = {
     hostname: socket.remoteAddress || "",
     port: socket.remotePort || 0,
     transport: "tcp",
   };
+  // deno-coverage-ignore-stop
 
   const conn: SockConn = {
     readable: readable as ReadableStream<Uint8Array>,

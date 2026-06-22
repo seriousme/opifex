@@ -78,9 +78,11 @@ export class Conn {
         await new Promise<void>((resolve) => {
           this.stream.once("readable", resolve);
           this.stream.once("end", resolve);
+          this.stream.once("error", resolve);
+          this.stream.once("close", resolve);
         });
 
-        // trie again after waiting
+        // try again after waiting
         chunk = this.stream.read(remaining);
       }
 
