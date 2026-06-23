@@ -1,17 +1,20 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { TcpClient } from "./tcpClient.ts";
-import { TcpServer } from "./tcpServer.ts";
+import { TlsServer } from "./tlsServer.ts";
 import { logger, LogLevel } from "../utils/mod.ts";
 import type { PublishPacket, QoS } from "../mqttPacket/mod.ts";
+import { generateSelfSignedCert } from "../dev_utils/mod.ts";
 
-logger.level(LogLevel.debug);
+logger.level(LogLevel.info);
 export function sleep(ms: number): Promise<unknown> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+const { key, cert } = generateSelfSignedCert();
+
 test("Test pubSub using client and server", async function () {
-  const server = new TcpServer({ port: 0 }, {});
+  const server = new TlsServer({ port: 0, key, cert }, {});
   server.start();
 
   assert.deepStrictEqual(
@@ -19,12 +22,18 @@ test("Test pubSub using client and server", async function () {
     true,
     "server runs a a random port",
   );
-  logger.verbose({ port: server.port, address: server.address });
+  logger.verbose("server running on: ", {
+    port: server.port,
+    address: server.address,
+  });
 
   const params = {
-    url: new URL(`mqtt://${server.address}:${server.port}`),
+    url: new URL(`mqtts://${server.address}:${server.port}`),
     numberOfRetries: 0,
+    caCerts: [cert],
   };
+
+  logger.verbose("client parameters: ", params);
 
   const client = new TcpClient();
 
@@ -84,67 +93,5 @@ test("Test pubSub using client and server", async function () {
   }
 
   logger.verbose(`Stop server`);
-  server.stop();
-});
-
-test("Test subscription persistence after reconnect", async function () {
-  // Start server
-  const server = new TcpServer({ port: 0 }, {});
-  server.start();
-
-  const params = {
-    url: new URL(`mqtt://${server.address}:${server.port}`),
-    numberOfRetries: 0,
-  };
-
-  logger.verbose("client parameters: ", params);
-
-  const client = new TcpClient();
-  const testTopic = "test/topic";
-  const received: PublishPacket[] = [];
-
-  // First connection and subscription
-  await client.connect(params);
-  await client.subscribe({
-    subscriptions: [{
-      topicFilter: testTopic,
-      qos: 0,
-    }],
-  });
-
-  // Start receiving messages
-  (async function () {
-    for await (const item of client.messages()) {
-      received.push(item);
-    }
-  })();
-
-  // Disconnect client
-  await client.disconnect();
-  await sleep(100);
-
-  // Reconnect client
-  await client.connect(params);
-  await sleep(100);
-
-  // Publish test message
-  await client.publish({
-    topic: testTopic,
-    qos: 0,
-    payload: new Uint8Array([0x01]),
-  });
-
-  await sleep(100);
-  logger.verbose(`Disconnect client`);
-  await client.disconnect();
-
-  // Verify message was received
-  assert.equal(received.length, 1, "Should receive one message");
-  assert.equal(
-    received[0].topic,
-    testTopic,
-    "Should receive message on subscribed topic",
-  );
-
   server.stop();
 });

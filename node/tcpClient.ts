@@ -65,9 +65,10 @@ export class TcpClient extends Client {
     const opts = {
       host: hostname,
       port,
-      secureContext: (ca || key || cert)
-        ? tls.createSecureContext({ ca, cert, key })
-        : undefined,
+      ca,
+      key,
+      cert,
+      minVersion: "TLSv1.3" as const,
     };
     logger.debug({ hostname, port, ca, cert });
     return new Promise((resolve, reject) => {
