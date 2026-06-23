@@ -59,6 +59,8 @@ export class Trie<T> {
    */
   private _matchPrefix(parts: Parts): Array<T> {
     const [first, ...rest] = parts;
+    // deno-coverage-ignore
+    if (first === undefined) return [];
     return this.matchChild(first, rest);
   }
 
@@ -72,6 +74,8 @@ export class Trie<T> {
       return this.#value;
     }
     const [first, ...rest] = parts;
+    // deno-coverage-ignore
+    if (first === undefined) return [];
 
     const exact = this.matchChild(first, rest);
     const single = this.matchChild(this.wildcardOne, rest);
@@ -94,12 +98,14 @@ export class Trie<T> {
    * @param parts Parts of the key to add at
    * @param value The value to add
    */
-  private _add(parts: Parts, value: T) {
+  private _add(parts: Parts, value: T): void {
     if (parts.length === 0) {
       this.#value = this.#value.concat(value);
       return;
     }
     const [first, ...rest] = parts;
+    // deno-coverage-ignore
+    if (first === undefined) return;
     const child = this.#children.get(first);
     if (child instanceof Trie) {
       child._add(rest, value);
@@ -131,11 +137,13 @@ export class Trie<T> {
       return;
     }
     const [first, ...rest] = parts;
+    // deno-coverage-ignore
+    if (first === undefined) return;
     const node = this.#children.get(first);
     if (node) {
       node._remove(rest, value);
       if (node.#value.length === 0 && node.#children.size === 0) {
-        this.#children.delete(first);
+        this.#children.delete(first!);
       }
     }
   }
