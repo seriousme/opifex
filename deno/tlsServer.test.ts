@@ -4,14 +4,11 @@ import { TcpClient } from "./tcpClient.ts";
 import { TlsServer } from "./tlsServer.ts";
 import { logger, LogLevel } from "../utils/mod.ts";
 import type { PublishPacket, QoS } from "../mqttPacket/mod.ts";
-import { generateCaSignedCert } from "../dev_utils/mod.ts";
+import { delay, generateLocalhostCerts } from "../dev_utils/mod.ts";
 
-logger.level(LogLevel.debug);
-export function sleep(ms: number): Promise<unknown> {
-  return new Promise((r) => setTimeout(r, ms));
-}
+logger.level(LogLevel.info);
 
-const { key, cert, caCert } = await generateCaSignedCert();
+const { key, cert, caCert } = generateLocalhostCerts();
 
 test("Deno Test pubSub using client and server", async function () {
   const server = new TlsServer(
@@ -82,7 +79,7 @@ test("Deno Test pubSub using client and server", async function () {
     });
   }
 
-  await sleep(100);
+  await delay(100);
   logger.verbose(`Disconnect client`);
   await client.disconnect();
 

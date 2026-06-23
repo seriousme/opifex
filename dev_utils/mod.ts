@@ -16,7 +16,4 @@ export {
   ping,
   subscribe,
 } from "./packetHelpers.ts";
-export {
-  generateCaSignedCert,
-  generateSelfSignedCert,
-} from "./generateCert.ts";
+export { generateLocalhostCerts } from "./generateCert.ts";

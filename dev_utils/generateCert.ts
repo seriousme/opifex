@@ -1,85 +1,95 @@
-import { execSync } from "node:child_process";
-import fs from "node:fs/promises";
-import path from "node:path";
+import forge from "node-forge";
 
-// helper function that calls openssl to generate a server key, a server cert, signed by a CA.
-export function generateSelfSignedCert(): {
+/**
+ * Generates a minimal, in-memory TLS certificate bundle for localhost development.
+ * Includes Root CA, Server Certificate, and Server Private Key with SAN support (IPv4 & IPv6).
+ */
+export function generateLocalhostCerts(): {
+  caCert: string;
   key: string;
   cert: string;
+  fullChain: string;
 } {
-  const command =
-    `openssl req -x509 -newkey rsa:2048 -nodes -keyout /dev/stdout -out /dev/stdout -days 1 -subj "/CN=localhost"`;
+  // Generate the keypairs
+  // 2048-bit RSA is used here for fast generation during local development/testing
+  const caKeys = forge.pki.rsa.generateKeyPair(2048);
+  const serverKeys = forge.pki.rsa.generateKeyPair(2048);
 
-  // execute the command and capture the output
-  const output = execSync(command, { stdio: "pipe" }).toString();
+  // Create root CA
+  const caCert = forge.pki.createCertificate();
+  caCert.publicKey = caKeys.publicKey;
+  caCert.serialNumber = "01";
+  caCert.validity.notBefore = new Date();
+  caCert.validity.notAfter = new Date();
+  caCert.validity.notAfter.setFullYear(
+    caCert.validity.notBefore.getFullYear() + 1,
+  ); // Valid for 1 year
 
-  // fetch the components we need from the output
-  const keyMatch = output.match(
-    /-----BEGIN PRIVATE KEY-----[\s\S]+-----END PRIVATE KEY-----/,
+  // Hardcoded CA Attributes
+  const caAttrs = [{ name: "commonName", value: "Local Dev Root CA" }];
+  caCert.setSubject(caAttrs);
+  caCert.setIssuer(caAttrs); // Self-signed: issuer equals subject
+
+  // Critical for CA: Define basic constraints to flag this certificate as a trusted issuer
+  caCert.setExtensions([
+    { name: "basicConstraints", cA: true, critical: true },
+    {
+      name: "keyUsage",
+      keyCertSign: true,
+      digitalSignature: true,
+      critical: true,
+    },
+  ]);
+
+  // Sign the CA certificate using its own private key
+  caCert.sign(caKeys.privateKey, forge.md.sha256.create());
+
+  // Create server certificate for localhost, valid for a year
+  const serverCert = forge.pki.createCertificate();
+  serverCert.publicKey = serverKeys.publicKey;
+  serverCert.serialNumber = "02"; // Unique serial number within this CA scope
+  serverCert.validity.notBefore = new Date();
+  serverCert.validity.notAfter = new Date();
+  serverCert.validity.notAfter.setFullYear(
+    serverCert.validity.notBefore.getFullYear() + 1,
   );
-  const certMatch = output.match(
-    /-----BEGIN CERTIFICATE-----[\s\S]+-----END CERTIFICATE-----/,
-  );
 
-  if (!keyMatch || !certMatch) {
-    throw new Error("Failed to generate certificates using system OpenSSL.");
-  }
-  const key = keyMatch[0];
-  const cert = certMatch[0];
+  // Hardcoded Server Attributes
+  serverCert.setSubject([{ name: "commonName", value: "localhost" }]);
+  serverCert.setIssuer(caCert.subject.attributes); // Issued by our custom Root CA
+
+  // Critical for Modern TLS: X509v3 Extensions containing Subject Alternative Names (SAN)
+  // Ensures compatibility with strict TLS parsers (like Deno/rustls, Go, Node.js, and modern browsers)
+  serverCert.setExtensions([
+    { name: "basicConstraints", cA: false, critical: true },
+    {
+      name: "keyUsage",
+      digitalSignature: true,
+      keyEncipherment: true,
+      critical: true,
+    },
+    {
+      name: "subjectAltName",
+      altNames: [
+        { type: 2, value: "localhost" }, // type 2 = DNS
+        { type: 7, ip: "127.0.0.1" }, // type 7 = IPv4 loopback
+        { type: 7, ip: "::1" }, // type 7 = IPv6 loopback
+      ],
+    },
+  ]);
+
+  // Sign the server certificate using the Root CA's private key
+  serverCert.sign(caKeys.privateKey, forge.md.sha256.create());
+
+  // convert data to PEM
+  const caCertPem = forge.pki.certificateToPem(caCert);
+  const serverCertPem = forge.pki.certificateToPem(serverCert);
+  const serverKeyPem = forge.pki.privateKeyToPem(serverKeys.privateKey);
 
   return {
-    key,
-    cert,
+    caCert: caCertPem,
+    key: serverKeyPem,
+    cert: serverCertPem,
+    fullChain: `${serverCertPem}\n${caCertPem}`, // Full certificate chain (Server + CA)
   };
-}
-
-
-
-// helper function that calls openssl to generate a server key, a server cert, signed by a CA.
-export async function generateCaSignedCert(): Promise<
-  { key: string; cert: string; caCert: string }
-> {
-  // the "await using" will cleanup the tempdir as soon as it goes out of scope
-  await using disposableDir = await fs.mkdtempDisposable(
-    path.join(import.meta.dirname || ".", "tls-test-"),
-  );
-  const tmpDir = disposableDir.path;
-  const caKeyFile = path.join(tmpDir, "ca.key");
-  const caCertFile = path.join(tmpDir, "ca.crt");
-  const serverKeyFile = path.join(tmpDir, "server.key");
-  const serverCsrFile = path.join(tmpDir, "server.csr");
-  const serverCertFile = path.join(tmpDir, "server.crt");
-  const extFile = path.join(tmpDir, "cert.ext");
-  await fs.writeFile(
-    extFile,
-    `
-   subjectAltName=DNS:localhost,IP:127.0.0.1
-   basicConstraints=CA:FALSE
-   keyUsage=digitalSignature,keyEncipherment
-   `.trim(),
-    "utf-8",
-  );
-
-  // Generate the CA (private Key + certificate)
-  execSync(`openssl genrsa -out ${caKeyFile} 2048`);
-  execSync(
-    `openssl req -x509 -new -nodes -key ${caKeyFile} -days 1 -subj "/CN=TestCA" -out ${caCertFile}`,
-  );
-
-  // Generate server key and certificate signing request
-  execSync(`openssl genrsa -out ${serverKeyFile} 2048`);
-  execSync(
-    `openssl req -new -key ${serverKeyFile} -subj "/CN=localhost" -out ${serverCsrFile}`,
-  );
-
-  // Let the CA sign the server key
-  execSync(
-    `openssl x509 -req -in ${serverCsrFile} -CA ${caCertFile} -CAkey ${caKeyFile} -CAcreateserial -extfile ${extFile} -out ${serverCertFile} -days 1 2>/dev/null`,
-  );
-
-  // read the results that we need
-  const key = await fs.readFile(serverKeyFile, "utf-8");
-  const cert = await fs.readFile(serverCertFile, "utf-8");
-  const caCert = await fs.readFile(caCertFile, "utf-8");
-  return { key, cert, caCert };
 }
