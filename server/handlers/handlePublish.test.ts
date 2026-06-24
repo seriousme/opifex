@@ -8,6 +8,7 @@ import {
   ping,
   startMockServer,
 } from "../../dev_utils/mod.ts";
+import { checkNoPacket } from "../../dev_utils/packetHelpers.ts";
 
 const txtEncoder = new TextEncoder();
 
@@ -89,6 +90,53 @@ test("PUBLISH QoS 2 receives PUBREC", async () => {
   await disconnect(mqttConn);
 });
 
+test("Publish with missing isAuthorizedToPublish handler authorizes publish", async () => {
+  const { mqttConn, mqttServer } = startMockServer();
+  mqttServer.handlers.isAuthorizedToPublish = undefined;
+
+  await connect(mqttConn);
+  // Try to publish to unauthorized topic
+  const publishPacket: AnyPacket = {
+    type: PacketType.publish,
+    protocolLevel: MQTTLevel.v4,
+    topic: "topic/unauthorized",
+    payload: txtEncoder.encode("test"),
+    qos: 1,
+    retain: false,
+    dup: false,
+    id: 3,
+  };
+  mqttConn.send(publishPacket);
+  const { value: puback } = await mqttConn.next();
+  assert.deepStrictEqual(puback.type, PacketType.puback, "Expected PUBACK");
+  if (puback.type === PacketType.puback) {
+    assert.deepStrictEqual(puback.id, 3, "PUBACK ID should match PUBLISH ID");
+  }
+  await disconnect(mqttConn);
+});
+
+test("PUBLISH to unauthorized topic is rejected", async () => {
+  const { mqttConn } = startMockServer();
+
+  await connect(mqttConn);
+
+  // Try to publish to unauthorized topic
+  const publishPacket: AnyPacket = {
+    type: PacketType.publish,
+    protocolLevel: MQTTLevel.v4,
+    topic: "topic/unauthorized",
+    payload: txtEncoder.encode("test"),
+    qos: 1,
+    retain: false,
+    dup: false,
+    id: 3,
+  };
+  mqttConn.send(publishPacket);
+
+  await mqttConn.next();
+  assert.equal(mqttConn.isClosed, true, "expect connection to be closed");
+});
+
 test("PUBLISH to $SYS topic is rejected", async () => {
   const { mqttConn } = startMockServer();
 
@@ -106,9 +154,6 @@ test("PUBLISH to $SYS topic is rejected", async () => {
     id: 3,
   };
   mqttConn.send(publishPacket);
-
-  // Send PINGREQ to verify no PUBACK was sent (publish to $SYS was silently rejected)
-  await ping(mqttConn);
-
-  await disconnect(mqttConn);
+  await mqttConn.next();
+  assert.equal(mqttConn.isClosed, true, "expect connection to be closed");
 });
