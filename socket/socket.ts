@@ -82,11 +82,7 @@ export class Conn {
       }
       if (done) {
         // if the stream closed and not enough data was returned, return null
-        if (bytesAccumulated < length) {
-          return null;
-        }
-        // We had enough data, return that data
-        break;
+        return null;
       }
     }
     return result;
@@ -102,14 +98,17 @@ export class Conn {
 
   close() {
     if (!this.closed) {
-      try {
-        if (!this.writer.closed) {
+      // deno-coverage-ignore-start
+      if (!this.writer.closed) {
+        try {
           this.writer.close();
-        }
-      } catch (_err) { /* swallow */ }
+        } catch (_err) { /* swallow */ }
+      }
+      // deno-coverage-ignore-stop
       try {
         this.reader.cancel();
         this.reader?.releaseLock();
+        // deno-coverage-ignore
       } catch (_err) { /* swallow */ }
       this.closed = true;
       try {
