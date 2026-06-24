@@ -36,12 +36,18 @@ function isAuthorizedToPublish(ctx: Context, topic: Topic): boolean {
   logger.debug(
     `Checking authorization of client '${ctx.store?.clientId}' to publish on topic '${topic}'`,
   );
+  if (topic === "topic/unauthorized") {
+    return false;
+  }
   return true;
 }
 function isAuthorizedToSubscribe(ctx: Context, topic: Topic): boolean {
   logger.debug(
     `Checking authorization of client '${ctx.store?.clientId}' to subscribe to topic '${topic}'`,
   );
+  if (topic === "topic/unauthorized") {
+    return false;
+  }
   return true;
 }
 

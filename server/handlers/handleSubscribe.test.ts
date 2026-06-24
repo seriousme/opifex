@@ -97,6 +97,62 @@ test("SUBSCRIBE with wildcard topics works", async () => {
   await disconnect(mqttConn);
 });
 
+test("SUBSCRIBE with missing isAuthorizedToSubscribe handler authorizes subscribe", async () => {
+  const { mqttConn, mqttServer } = startMockServer();
+  mqttServer.handlers.isAuthorizedToSubscribe = undefined;
+
+  await connect(mqttConn);
+
+  const subscribePacket: AnyPacket = {
+    type: PacketType.subscribe,
+    protocolLevel: MQTTLevel.v4,
+    id: 3,
+    subscriptions: [
+      { topicFilter: "sensors/temperature", qos: 0 },
+    ],
+  };
+  mqttConn.send(subscribePacket);
+
+  const { value: suback } = await mqttConn.next();
+  assert.deepStrictEqual(suback.type, PacketType.suback, "Expected SUBACK");
+  if (suback.type === PacketType.suback) {
+    assert.deepStrictEqual(suback.id, 3);
+    assert.deepStrictEqual(
+      suback.returnCodes,
+      [0],
+    );
+  }
+
+  await disconnect(mqttConn);
+});
+
+test("SUBSCRIBE to unauthorized topic is rejected", async () => {
+  const { mqttConn } = startMockServer();
+
+  await connect(mqttConn);
+
+  const subscribePacket: AnyPacket = {
+    type: PacketType.subscribe,
+    protocolLevel: MQTTLevel.v4,
+    id: 3,
+    subscriptions: [
+      { topicFilter: "topic/unauthorized", qos: 0 },
+    ],
+  };
+  mqttConn.send(subscribePacket);
+
+  const { value: suback } = await mqttConn.next();
+  assert.deepStrictEqual(suback.type, PacketType.suback, "Expected SUBACK");
+  if (suback.type === PacketType.suback) {
+    assert.deepStrictEqual(suback.id, 3);
+    assert.deepStrictEqual(
+      suback.returnCodes,
+      [128],
+    );
+  }
+
+  await disconnect(mqttConn);
+});
 // ============================================================================
 // Retained Message Tests
 // ============================================================================
