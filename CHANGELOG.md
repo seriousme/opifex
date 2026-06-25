@@ -4,6 +4,15 @@
 
 ### Changed
 
+- feat: replace BYOD stream by Default stream
+- feat: close connection on unauthorized publish (was ignore)
+- feat: add preconnect timeout
+- chore: add TLS testing
+- chore: add many more tests
+- chore: remove .vscode files from repo
+- fix: fix empty payload to clear retained message
+- fix:remove password from demo logging and debug logging
+
 ## [v1.11.3] 31-05-2026
 
 ### Changed
