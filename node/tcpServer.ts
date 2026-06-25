@@ -40,6 +40,7 @@ export class TcpServer {
     return;
   }
   stop() {
+    this.mqttServer.close();
     this.server?.close();
   }
 

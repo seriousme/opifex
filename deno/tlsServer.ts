@@ -27,6 +27,7 @@ export class TlsServer {
     }
   }
   stop() {
+    this.mqttServer.close();
     this.listener.close();
   }
 

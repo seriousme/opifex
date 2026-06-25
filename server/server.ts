@@ -67,4 +67,15 @@ export class MqttServer {
       ctx.close();
     }
   }
+
+  close(cleanUp = false): void {
+    logger.debug(`stopping mqttServer`);
+    for (const [clientid, ctx] of Context.clientList) {
+      logger.debug(`closing session for clientid: ${clientid}`);
+      ctx.close();
+      if (cleanUp) {
+        ctx.clean(clientid);
+      }
+    }
+  }
 }

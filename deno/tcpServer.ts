@@ -27,6 +27,7 @@ export class TcpServer {
     }
   }
   stop() {
+    this.mqttServer.close(true);
     this.listener.close();
   }
 
