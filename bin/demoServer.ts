@@ -51,7 +51,7 @@ function isAuthenticated(
 ): TAuthenticationResult {
   const pwd = utf8Decoder.decode(password);
   logger.info(
-    `Verifying authentication of client '${clientId}' with username '${username}' and password '${pwd}'`,
+    `Verifying authentication of client '${clientId}' with username '${username}'`,
   );
 
   if (!checkUsername) {
