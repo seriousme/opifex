@@ -63,7 +63,7 @@ export class Context {
   will?: PublishPacket | undefined;
   timer?: Timer;
   preconnectTimer?: Timer;
-  static preconnectTimeoutMs: number = 3000; // 3 seconds 
+  static preconnectTimeoutMs: number = 3000; // 3 seconds
 
   constructor(persistence: IPersistence, conn: SockConn, handlers: Handlers) {
     this.persistence = persistence;
