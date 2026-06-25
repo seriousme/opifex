@@ -10,7 +10,7 @@ logger.level(LogLevel.info);
 
 const { key, cert, caCert } = generateLocalhostCerts();
 
-test("Test pubSub using client and server", async function () {
+test("Test pubSub using client and server", async () => {
   const server = new TlsServer({ port: 0, key, cert }, {});
   server.start();
 
@@ -60,7 +60,7 @@ test("Test pubSub using client and server", async function () {
   // the IIFE ensures message reception runs in parallel
   logger.verbose(`Start receiving`);
   const received: PublishPacket[] = [];
-  (async function () {
+  (async () => {
     for await (const item of client.messages()) {
       logger.verbose(`Receiving: ${item.topic} -- ${item.qos}`);
       received.push(item);

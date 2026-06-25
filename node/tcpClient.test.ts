@@ -7,7 +7,7 @@ import { getFileData, TcpClient } from "./tcpClient.ts";
 
 // most client testing is already done in tcpServer.test.ts
 
-test("Test getFileData - valid file, empty file and undefined", async function () {
+test("Test getFileData - valid file, empty file and undefined", async () => {
   // Create a unique temporary directory using native NodeJS path/fs utilities
   const tempDir = await mkdtemp(join(tmpdir(), "mqtt-client-test-"));
 
@@ -47,7 +47,7 @@ test("Test getFileData - valid file, empty file and undefined", async function (
   );
 });
 
-test("Test createConn - unsupported protocol", async function () {
+test("Test createConn - unsupported protocol", async () => {
   const client = new TcpClient();
 
   // Use an unsupported protocol like 'ws://' to trigger the throw in createConn

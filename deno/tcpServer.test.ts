@@ -8,7 +8,7 @@ import type { PublishPacket, QoS } from "../mqttPacket/mod.ts";
 
 logger.level(LogLevel.info);
 
-test("Deno Test pubSub using client and server", async function () {
+test("Deno Test pubSub using client and server", async () => {
   const server = new TcpServer({ port: 0 }, {});
   server.start();
 
@@ -52,7 +52,7 @@ test("Deno Test pubSub using client and server", async function () {
   // the IIFE ensures message reception runs in parallel
   logger.verbose(`Start receiving`);
   const received: PublishPacket[] = [];
-  (async function () {
+  (async () => {
     for await (const item of client.messages()) {
       logger.verbose(`Receiving: ${item.topic} -- ${item.qos}`);
       received.push(item);
@@ -85,7 +85,7 @@ test("Deno Test pubSub using client and server", async function () {
   server.stop();
 });
 
-test("Deno Test subscription persistence after reconnect", async function () {
+test("Deno Test subscription persistence after reconnect", async () => {
   // Start server
   const server = new TcpServer({ port: 0 }, {});
   server.start();
@@ -109,7 +109,7 @@ test("Deno Test subscription persistence after reconnect", async function () {
   });
 
   // Start receiving messages
-  (async function () {
+  (async () => {
     for await (const item of client.messages()) {
       received.push(item);
     }

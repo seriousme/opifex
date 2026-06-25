@@ -28,7 +28,7 @@ function createMockConn(): {
   return { conn, stream, closeCalled };
 }
 
-test("Conn.write - successfully writes data", async function () {
+test("Conn.write - successfully writes data", async () => {
   const { conn, stream } = createMockConn();
   const data = new Uint8Array([0x01, 0x02, 0x03]);
 
@@ -45,7 +45,7 @@ test("Conn.write - successfully writes data", async function () {
   conn.close();
 });
 
-test("Conn.write - respects backpressure and waits for drain event", async function () {
+test("Conn.write - respects backpressure and waits for drain event", async () => {
   const { conn, stream } = createMockConn();
   const data = new Uint8Array([0x01, 0x02, 0x03]);
 
@@ -76,7 +76,7 @@ test("Conn.write - respects backpressure and waits for drain event", async funct
   conn.close();
 });
 
-test("Conn.read - reads exact number of bytes", async function () {
+test("Conn.read - reads exact number of bytes", async () => {
   const { conn, stream } = createMockConn();
   const data = new Uint8Array([10, 20, 30, 40, 50]);
 
@@ -99,7 +99,7 @@ test("Conn.read - reads exact number of bytes", async function () {
   conn.close();
 });
 
-test("Conn.read - waits for async data (readable event)", async function () {
+test("Conn.read - waits for async data (readable event)", async () => {
   const { conn, stream } = createMockConn();
 
   const readPromise = conn.read(2);
@@ -118,7 +118,7 @@ test("Conn.read - waits for async data (readable event)", async function () {
   conn.close();
 });
 
-test("Conn.close - gracefully closes the connection and streams", async function () {
+test("Conn.close - gracefully closes the connection and streams", async () => {
   const { conn, stream, closeCalled } = createMockConn();
 
   assert.equal(closeCalled.count, 0, "Closer has not been called yet");
@@ -142,7 +142,7 @@ test("Conn.close - gracefully closes the connection and streams", async function
   );
 });
 
-test("Conn.read - length less than 0 returns null", async function () {
+test("Conn.read - length less than 0 returns null", async () => {
   const { conn } = createMockConn();
 
   const result = await conn.read(-5);
@@ -151,7 +151,7 @@ test("Conn.read - length less than 0 returns null", async function () {
   conn.close();
 });
 
-test("Conn.read - length equal to 0 returns empty Uint8Array", async function () {
+test("Conn.read - length equal to 0 returns empty Uint8Array", async () => {
   const { conn } = createMockConn();
 
   const result = await conn.read(0);
@@ -164,7 +164,7 @@ test("Conn.read - length equal to 0 returns empty Uint8Array", async function ()
   conn.close();
 });
 
-test("Conn.read - stream errors while waiting for data (returns null)", async function () {
+test("Conn.read - stream errors while waiting for data (returns null)", async () => {
   const { conn, stream } = createMockConn();
 
   // Prevent Node.js from crashing due to an unhandled stream error during test execution
@@ -185,7 +185,7 @@ test("Conn.read - stream errors while waiting for data (returns null)", async fu
   conn.close();
 });
 
-test("Conn.read - chunk is larger than requested (populates leftover)", async function () {
+test("Conn.read - chunk is larger than requested (populates leftover)", async () => {
   const { conn, stream } = createMockConn();
   const largeChunk = new Uint8Array([1, 2, 3, 4, 5]);
 
@@ -215,7 +215,7 @@ test("Conn.read - chunk is larger than requested (populates leftover)", async fu
   conn.close();
 });
 
-test("Conn.read - partial leftover is not enough (combines leftover and new stream chunk)", async function () {
+test("Conn.read - partial leftover is not enough (combines leftover and new stream chunk)", async () => {
   const { conn, stream } = createMockConn();
 
   // 1. Write 3 bytes and read 2 (leaving 1 byte [0x03] in leftover)
@@ -236,7 +236,7 @@ test("Conn.read - partial leftover is not enough (combines leftover and new stre
   conn.close();
 });
 
-test("Conn.write - rejects immediately if stream.writable is false", async function () {
+test("Conn.write - rejects immediately if stream.writable is false", async () => {
   const { conn, stream } = createMockConn();
 
   Object.defineProperty(stream, "writable", { value: false });
@@ -250,7 +250,7 @@ test("Conn.write - rejects immediately if stream.writable is false", async funct
   conn.close();
 });
 
-test("Conn.read - fulfilled entirely from leftover buffer (skips while loop)", async function () {
+test("Conn.read - fulfilled entirely from leftover buffer (skips while loop)", async () => {
   const { conn, stream } = createMockConn();
   const data = new Uint8Array([10, 20, 30, 40, 50]);
 
@@ -277,7 +277,7 @@ test("Conn.read - fulfilled entirely from leftover buffer (skips while loop)", a
   conn.close();
 });
 
-test("Conn - handles unexpected stream close event from underlying resource", async function () {
+test("Conn - handles unexpected stream close event from underlying resource", () => {
   const { conn, stream } = createMockConn();
 
   // Initially, the connection should not be marked as closed
@@ -297,13 +297,13 @@ test("Conn - handles unexpected stream close event from underlying resource", as
   conn.close();
 });
 
-test("Conn.write - rejects the promise if stream.write invokes the callback with an error", async function () {
+test("Conn.write - rejects the promise if stream.write invokes the callback with an error", async () => {
   const { conn, stream } = createMockConn();
   const data = new Uint8Array([1, 2, 3]);
 
   // Simulate a write error by overriding stream.write
   // It forces the callback to be invoked with an Error object
-  stream.write = (chunk, callback) => {
+  stream.write = (_chunk, callback) => {
     if (typeof callback === "function") {
       // Execute the callback with an error asynchronously, mimicking Node.js behavior
       setImmediate(() => callback(new Error("Write pipeline failure")));
