@@ -77,7 +77,7 @@ async function readFull(conn: Conn, length: number): Promise<Uint8Array> {
 /**
  * Read a complete MQTT packet from the connection
  * @param conn Connection to read from
- * @param maxIncomingPacketSize Maximum allowed packet size
+ * @param codecOpts the CodecOpts
  * @returns Decoded MQTT packet
  * @throws Error if packet is invalid or too large
  */

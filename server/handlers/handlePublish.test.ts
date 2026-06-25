@@ -8,7 +8,6 @@ import {
   ping,
   startMockServer,
 } from "../../dev_utils/mod.ts";
-import { checkNoPacket } from "../../dev_utils/packetHelpers.ts";
 
 const txtEncoder = new TextEncoder();
 

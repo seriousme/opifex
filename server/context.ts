@@ -190,9 +190,6 @@ export class Context {
       retain,
       payload: utf8Encoder.encode(payload),
     };
-    if (packet.retain === true) {
-      this.persistence.retained.set(packet.topic, packet);
-    }
     this.persistence.publish(packet.topic, packet);
   }
 }
