@@ -29,7 +29,7 @@ export const MqttConnError = {
   UnexpectedEof: "Unexpected EOF",
 } as const;
 
-const DEFAULT_MAX_PACKETSIZE = 2 * 1024 * 1024; // 2MB
+const DEFAULT_MAX_PACKETSIZE = 2 * 1024; // 2Kb
 
 /**
  * Interface for MQTT connection handling
@@ -54,12 +54,11 @@ export interface IMqttConn extends AsyncIterable<AnyPacket> {
  * @throws Error if EOF reached unexpectedly
  */
 async function readByte(conn: Conn): Promise<number> {
-  const buf = new Uint8Array(1);
-  const bytesRead = await conn.read(buf);
-  assert(bytesRead !== null, MqttConnError.UnexpectedEof);
-  assert(bytesRead !== undefined, MqttConnError.UnexpectedEof);
-  assert(bytesRead !== 0, MqttConnError.UnexpectedEof);
-  return buf[0] || 0;
+  const buff = await conn.read(1);
+  assert(buff !== null, MqttConnError.UnexpectedEof);
+  assert(buff !== undefined, MqttConnError.UnexpectedEof);
+  assert(buff.byteLength !== 0, MqttConnError.UnexpectedEof);
+  return buff[0] || 0;
 }
 
 /**
@@ -68,20 +67,17 @@ async function readByte(conn: Conn): Promise<number> {
  * @param buf Buffer to read into
  * @throws Error if EOF reached unexpectedly
  */
-async function readFull(conn: Conn, buf: Uint8Array): Promise<void> {
-  let bytesRead = 0;
-  while (bytesRead < buf.length) {
-    const read = await conn.read(buf.subarray(bytesRead));
-    assert(read !== null, MqttConnError.UnexpectedEof);
-    assert(read !== 0, MqttConnError.UnexpectedEof);
-    bytesRead += read;
-  }
+async function readFull(conn: Conn, length: number): Promise<Uint8Array> {
+  const buff = await conn.read(length);
+  assert(buff !== null, MqttConnError.UnexpectedEof);
+  assert(buff.byteLength === length, MqttConnError.UnexpectedEof);
+  return buff;
 }
 
 /**
  * Read a complete MQTT packet from the connection
  * @param conn Connection to read from
- * @param maxIncomingPacketSize Maximum allowed packet size
+ * @param codecOpts the CodecOpts
  * @returns Decoded MQTT packet
  * @throws Error if packet is invalid or too large
  */
@@ -105,9 +101,8 @@ export async function readPacket(
     remainingLength < maxIncomingPacketSize - 1,
     MqttConnError.packetTooLarge,
   );
-  const packetBuf = new Uint8Array(remainingLength);
   // read the rest of the packet
-  await readFull(conn, packetBuf);
+  const packetBuf = await readFull(conn, remainingLength);
   const packet = decodePayload(firstByte, packetBuf, codecOpts);
   assert(packet !== null, MqttConnError.UnexpectedEof);
   return packet;

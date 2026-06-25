@@ -65,7 +65,7 @@ function testGenerateError(expected, fixture, opts, name) {
 
 function testGenerateErrorMultipleCmds(cmds, expected, fixture, opts) {
   cmds.forEach((cmd) => {
-    const obj = Object.assign({}, fixture);
+    const obj = structuredClone(fixture);
     obj.cmd = cmd;
     testGenerateError(expected, obj, opts, `${expected} on ${cmd}`);
   });

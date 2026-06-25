@@ -3,12 +3,10 @@ import assert from "node:assert/strict";
 import { TcpClient } from "@seriousme/opifex/tcpClient";
 import { TcpServer } from "@seriousme/opifex/tcpServer";
 import { logger, LogLevel } from "@seriousme/opifex/utils";
+import { delay } from "../dev_utils/mod.ts";
 import type { PublishPacket, QoS } from "@seriousme/opifex/mqttPacket";
 
 logger.level(LogLevel.info);
-export function sleep(ms: number): Promise<unknown> {
-  return new Promise((r) => setTimeout(r, ms));
-}
 
 test("Test pubSub using client and server", async function () {
   const server = new TcpServer({ port: 0 }, {});
@@ -70,7 +68,7 @@ test("Test pubSub using client and server", async function () {
     });
   }
 
-  await sleep(100);
+  await delay(100);
   logger.verbose(`Disconnect client`);
   await client.disconnect();
 
@@ -119,11 +117,11 @@ test("Test subscription persistence after reconnect", async function () {
 
   // Disconnect client
   await client.disconnect();
-  await sleep(100);
+  await delay(100);
 
   // Reconnect client
   await client.connect(params);
-  await sleep(100);
+  await delay(100);
 
   // Publish test message
   await client.publish({
@@ -132,7 +130,7 @@ test("Test subscription persistence after reconnect", async function () {
     payload: new Uint8Array([0x01]),
   });
 
-  await sleep(100);
+  await delay(100);
   logger.verbose(`Disconnect client`);
   await client.disconnect();
 

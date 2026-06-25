@@ -1,6 +1,5 @@
 import type { Context } from "../context.ts";
 import { AuthenticationResult, logger, PacketType, Timer } from "../deps.ts";
-
 import type { ConnectPacket, TAuthenticationResult } from "../deps.ts";
 
 /**

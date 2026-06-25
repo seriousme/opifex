@@ -8,6 +8,7 @@
     "prebuild": "rm -rf dist",
     "build": "npx -p typescript tsc --build",
     "format": "deno fmt",
+    "coverage": "deno test -A . --coverage --clean --coverage-raw-data-only && deno coverage --exclude=.config --exclude=dev_utils --html",
     "preversion": "npm run test"
   },
   "keywords": [
@@ -67,6 +68,8 @@
   },
   "homepage": "https://github.com/seriousme/opifex#readme",
   "devDependencies": {
-    "@types/node": "^24.12.4"
+    "@types/node": "^24.12.4",
+    "@types/node-forge": "^1.3.14",
+    "node-forge": "^1.4.0"
   }
 }

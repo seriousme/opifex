@@ -3,7 +3,7 @@
  * @description A Trie data structure implementation that supports wildcard matching
  * @template T The type of values stored in the trie
  */
-type Parts = string[];
+export type Parts = string[];
 
 /**
  * Trie class for storing and matching hierarchical key-value pairs with wildcard support
@@ -58,14 +58,10 @@ export class Trie<T> {
    * @returns Array of matched values
    */
   private _matchPrefix(parts: Parts): Array<T> {
-    if (parts.length === 0) {
-      return this.#value ? this.#value : [];
-    }
     const [first, ...rest] = parts;
-    if (first !== undefined) {
-      return this.matchChild(first, rest);
-    }
-    return [];
+    // deno-coverage-ignore
+    if (first === undefined) return [];
+    return this.matchChild(first, rest);
   }
 
   /**
@@ -75,17 +71,17 @@ export class Trie<T> {
    */
   private _match(parts: Parts): Array<T> {
     if (parts.length === 0) {
-      return this.#value ? this.#value : [];
+      return this.#value;
     }
     const [first, ...rest] = parts;
-    if (first !== undefined) {
-      const exact = this.matchChild(first, rest);
-      const single = this.matchChild(this.wildcardOne, rest);
-      const subtree = this.matchChild(this.wildcardSubtree, []);
-      const results = exact.concat(single, subtree);
-      return results;
-    }
-    return [];
+    // deno-coverage-ignore
+    if (first === undefined) return [];
+
+    const exact = this.matchChild(first, rest);
+    const single = this.matchChild(this.wildcardOne, rest);
+    const subtree = this.matchChild(this.wildcardSubtree, []);
+    const results = exact.concat(single, subtree);
+    return results;
   }
 
   /**
@@ -102,23 +98,22 @@ export class Trie<T> {
    * @param parts Parts of the key to add at
    * @param value The value to add
    */
-  private _add(parts: Parts, value: T) {
+  private _add(parts: Parts, value: T): void {
     if (parts.length === 0) {
       this.#value = this.#value.concat(value);
       return;
     }
     const [first, ...rest] = parts;
-    if (first !== undefined) {
-      const child = this.#children.get(first);
-      if (child instanceof Trie) {
-        child._add(rest, value);
-      } else {
-        const node = new Trie<T>(this.looseCompare);
-        this.#children.set(first, node);
-        node._add(rest, value);
-      }
+    // deno-coverage-ignore
+    if (first === undefined) return;
+    const child = this.#children.get(first);
+    if (child instanceof Trie) {
+      child._add(rest, value);
+    } else {
+      const node = new Trie<T>(this.looseCompare);
+      this.#children.set(first, node);
+      node._add(rest, value);
     }
-    return;
   }
 
   /**
@@ -137,18 +132,18 @@ export class Trie<T> {
    */
   private _remove(parts: Parts, value: T): void {
     if (parts.length === 0) {
-      const arr = this.#value || [];
+      const arr = this.#value;
       this.#value = arr.filter(this.filter(value));
       return;
     }
     const [first, ...rest] = parts;
-    if (first !== undefined) {
-      const node = this.#children.get(first);
-      if (node) {
-        node._remove(rest, value);
-        if (node.#value.length === 0 && this.#children.size === 0) {
-          this.#children.delete(first);
-        }
+    // deno-coverage-ignore
+    if (first === undefined) return;
+    const node = this.#children.get(first);
+    if (node) {
+      node._remove(rest, value);
+      if (node.#value.length === 0 && node.#children.size === 0) {
+        this.#children.delete(first!);
       }
     }
   }
@@ -159,7 +154,7 @@ export class Trie<T> {
    * @returns Filter function
    */
   private filter(value: T): (value: T, index: number, array: T[]) => boolean {
-    if (this.looseCompare && typeof value === "object") {
+    if (this.looseCompare && (typeof value === "object" && value !== null)) {
       return (item) => {
         for (const key in value) {
           if (value[key] !== item[key]) {

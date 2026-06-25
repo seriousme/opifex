@@ -40,6 +40,7 @@ export async function handleSubscribe(
    */
   const validSubscriptions: Subscription[] = [];
   const returnCodes = packet.subscriptions.map((sub) => {
+    // deno-coverage-ignore
     if (ctx.store) {
       if (!authorizedToSubscribe(ctx, sub.topicFilter)) {
         return SubscriptionFailure;
@@ -47,9 +48,11 @@ export async function handleSubscribe(
       ctx.persistence.subscribe(ctx.store, sub.topicFilter, sub.qos);
       validSubscriptions.push(sub);
       return sub.qos;
+      // deno-coverage-ignore-start
     }
     return SubscriptionFailure;
   });
+  // deno-coverage-ignore-stop
 
   await ctx.send({
     type: PacketType.suback,

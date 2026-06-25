@@ -1,7 +1,6 @@
-import { AuthenticationResult } from "../mod.ts";
-import { logger } from "../../utils/mod.ts";
-import type { TAuthenticationResult } from "../deps.ts";
-import type { Context, Topic } from "../mod.ts";
+import { AuthenticationResult } from "../server/mod.ts";
+import { logger } from "../utils/mod.ts";
+import type { Context, TAuthenticationResult, Topic } from "../server/mod.ts";
 
 const utf8Decoder = new TextDecoder();
 const userTable = new Map();
@@ -17,7 +16,7 @@ function isAuthenticated(
 ): TAuthenticationResult {
   const pwd = utf8Decoder.decode(password);
   logger.debug(
-    `Verifying authentication of client '${clientId}' with username '${username}' and password '${pwd}'`,
+    `Verifying authentication of client '${clientId}' with username '${username}''`,
   );
 
   if (!userTable.has(username)) {
@@ -37,12 +36,18 @@ function isAuthorizedToPublish(ctx: Context, topic: Topic): boolean {
   logger.debug(
     `Checking authorization of client '${ctx.store?.clientId}' to publish on topic '${topic}'`,
   );
+  if (topic === "topic/unauthorized") {
+    return false;
+  }
   return true;
 }
 function isAuthorizedToSubscribe(ctx: Context, topic: Topic): boolean {
   logger.debug(
     `Checking authorization of client '${ctx.store?.clientId}' to subscribe to topic '${topic}'`,
   );
+  if (topic === "topic/unauthorized") {
+    return false;
+  }
   return true;
 }
 

@@ -1,10 +1,7 @@
 import { Timer } from "./timer.ts";
 import assert from "node:assert/strict";
 import { test } from "node:test";
-
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+import { delay } from "../dev_utils/mod.ts";
 
 test("timer should ring", async () => {
   const wait = 50;

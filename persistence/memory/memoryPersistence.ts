@@ -114,7 +114,7 @@ export class MemoryPersistence implements IPersistence {
   publish(topic: Topic, packet: PublishPacket): void {
     if (packet.retain) {
       this.retained.set(packet.topic, packet);
-      if (packet.payload === undefined) {
+      if (!packet.payload?.byteLength) {
         this.retained.delete(packet.topic);
       }
     }
@@ -130,7 +130,7 @@ export class MemoryPersistence implements IPersistence {
 
     // publish the message to all clients
     for (const [clientId, qos] of clients) {
-      const newPacket = Object.assign({}, packet);
+      const newPacket = structuredClone(packet);
       newPacket.retain = false;
       newPacket.qos = qos;
       //  logger.debug(`publish ${topic} to client ${clientId}`);

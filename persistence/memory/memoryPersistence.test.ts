@@ -7,13 +7,10 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { MQTTLevel, PacketType } from "../deps.ts";
 import type { PublishPacket } from "../deps.ts";
+import { delay } from "../../dev_utils/mod.ts";
 
 const payloadAny = new TextEncoder().encode("any");
 const qos = 1;
-
-function delay(ms: number): Promise<unknown> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 test("new should create new Persistence object", () => {
   const persistence = new Persistence();
@@ -72,6 +69,54 @@ test("pub/sub should work", async () => {
   assert.deepStrictEqual(seen.size, 3, `received ${seen.size} messages`);
 });
 
+test("publish of an empty retained message should clear previous retained message", async () => {
+  const persistence = new Persistence();
+  const clientId = "myClient";
+  const topic = "/myTopic";
+  const publishPacket: PublishPacket = {
+    type: PacketType.publish,
+    protocolLevel: MQTTLevel.v4,
+    id: 1,
+    topic,
+    payload: payloadAny,
+    retain: true,
+  };
+
+  function makePacket(id: number | undefined) {
+    publishPacket.id = id;
+    return publishPacket;
+  }
+  const seen = new Set();
+
+  function handler(packet: PublishPacket): void {
+    seen.add(packet.id);
+  }
+
+  const store = persistence.registerClient(clientId, handler, false);
+  persistence.publish(topic, makePacket(25));
+  assert.deepStrictEqual(
+    persistence.retained.has(topic),
+    true,
+    "message is registered as retained",
+  );
+  persistence.subscribe(store, topic, qos);
+  assert.deepStrictEqual(
+    store.subscriptions.has(topic),
+    true,
+    "topic is registered as subscription",
+  );
+  const updatePacket = makePacket(27);
+  updatePacket.payload = new Uint8Array(0);
+  persistence.publish(topic, updatePacket);
+  await delay(10);
+  assert.deepStrictEqual(
+    persistence.retained.has(topic),
+    false,
+    "message is no longer registered as retained",
+  );
+  assert.deepStrictEqual(seen.size, 1, `received ${seen.size} messages`);
+});
+
 test("many packets should work", async () => {
   const persistence = new Persistence();
   const clientId = "myClient";
@@ -86,7 +131,7 @@ test("many packets should work", async () => {
   };
 
   function makePacket(id: number | undefined) {
-    const newPacket = Object.assign({}, publishPacket);
+    const newPacket = structuredClone(publishPacket);
     newPacket.id = id;
     return newPacket;
   }

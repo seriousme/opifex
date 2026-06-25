@@ -87,3 +87,4 @@ $RECYCLE.BIN/
 
 .vscode/
 dist/
+coverage/
