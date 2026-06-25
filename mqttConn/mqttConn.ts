@@ -29,7 +29,7 @@ export const MqttConnError = {
   UnexpectedEof: "Unexpected EOF",
 } as const;
 
-const DEFAULT_MAX_PACKETSIZE = 2 * 1024 * 1024; // 2MB
+const DEFAULT_MAX_PACKETSIZE = 2 * 1024; // 2Kb
 
 /**
  * Interface for MQTT connection handling
