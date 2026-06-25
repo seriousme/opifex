@@ -7,6 +7,7 @@
 - feat: replace BYOD stream by Default stream
 - feat: close connection on unauthorized publish (was ignore)
 - feat: add preconnect timeout
+- feat: set default max incomming message size to 2Kb (was 2Mb)
 - chore: add TLS testing
 - chore: add many more tests
 - chore: remove .vscode files from repo
