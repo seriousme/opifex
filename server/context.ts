@@ -4,6 +4,7 @@ import {
   MQTTLevel,
   PacketNameByType,
   PacketType,
+  Timer,
 } from "./deps.ts";
 import type {
   AnyPacket,
@@ -13,7 +14,6 @@ import type {
   PublishPacket,
   SockConn,
   TAuthenticationResult,
-  Timer,
   Topic,
 } from "./deps.ts";
 
@@ -62,6 +62,8 @@ export class Context {
   store?: IStore;
   will?: PublishPacket | undefined;
   timer?: Timer;
+  preconnectTimer?: Timer;
+  static preconnectTimeoutMs: number = 3000; // 3 seconds 
 
   constructor(persistence: IPersistence, conn: SockConn, handlers: Handlers) {
     this.persistence = persistence;
@@ -70,6 +72,20 @@ export class Context {
     this.mqttConn = new MqttConn({ conn });
     this.handlers = handlers;
     this.protocolLevel = MQTTLevel.unknown;
+    this.initializePreconnectTimer(Context.preconnectTimeoutMs);
+  }
+
+  private initializePreconnectTimer(preconnectTimeoutMs: number): void {
+    this.preconnectTimer = new Timer(() => {
+      if (!this.connected) {
+        logger.warn(
+          `Preconnect timeout: client at ${this.mqttConn.remoteAddress} failed to connect within ${
+            preconnectTimeoutMs / 1000
+          } seconds`,
+        );
+        this.close(false);
+      }
+    }, preconnectTimeoutMs);
   }
 
   async send(packet: AnyPacket): Promise<void> {
@@ -86,6 +102,10 @@ export class Context {
         `Existing session with ${clientId} exists, closing existing session`,
       );
       existingSession.close(false);
+    }
+
+    if (this.preconnectTimer) {
+      this.preconnectTimer.clear();
     }
 
     this.store = this.persistence.registerClient(
@@ -119,6 +139,9 @@ export class Context {
 
   close(executewill = true): void {
     logger.debug(`server closing context ${this.connected}`);
+    if (this.preconnectTimer) {
+      this.preconnectTimer.clear();
+    }
     if (this.connected) {
       logger.info(
         `Closing ${this.store?.clientId} while mqttConn is ${
