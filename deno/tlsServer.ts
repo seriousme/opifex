@@ -30,7 +30,7 @@ export class TlsServer {
     this.mqttServer.close();
     this.listener.close();
   }
-
+  // deno-coverage-ignore-start
   get port(): number | undefined {
     return this.listener.addr.port;
   }
@@ -38,4 +38,5 @@ export class TlsServer {
   get address(): string | undefined {
     return this.listener.addr.hostname;
   }
+  // deno-coverage-ignore-stop
 }

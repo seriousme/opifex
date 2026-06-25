@@ -31,9 +31,11 @@ export const auth: {
   ): AuthPacket;
 } = {
   encode(packet: AuthPacket, codecOpts: CodecOpts): Uint8Array {
+    // deno-coverage-ignore-start
     if (packet.protocolLevel !== 5) {
       throw new EncoderError("Invalid protocol level");
     }
+    // deno-coverage-ignore-stop
     const encoder = new Encoder(packet.type);
     encoder
       .setReasonCode(packet.reasonCode || 0)

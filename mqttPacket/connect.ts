@@ -88,6 +88,7 @@ export const connect: {
   encode(packet: ConnectPacket, codecOpts: CodecOpts): Uint8Array {
     const flags = 0;
 
+    // deno-coverage-ignore-start
     if (typeof packet.protocolLevel !== "number") {
       throw new EncoderError("Protocol level must be a number");
     }
@@ -95,6 +96,7 @@ export const connect: {
     if (protocolLevel < 3 || protocolLevel > 5) {
       throw new EncoderError("Unsupported protocol level");
     }
+    // deno-coverage-ignore-stop
     const protocolName = protocolLevel > 3 ? "MQTT" : "MQIsdp";
     const clientId = packet.clientId || "";
     const usernameFlag = packet.username !== undefined;

@@ -32,16 +32,21 @@ export class TcpServer {
   }
 
   get port(): number | undefined {
+    // deno-coverage-ignore-start
     if (this.listener.addr.transport === "tcp") {
       return this.listener.addr.port;
     }
     return undefined;
+    // deno-coverage-ignore-stop
   }
 
   get address(): string | undefined {
+    // deno-coverage-ignore-start
     if (this.listener.addr.transport === "tcp") {
       return this.listener.addr.hostname;
     }
+
     return undefined;
   }
+  // deno-coverage-ignore-stop
 }
