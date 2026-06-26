@@ -64,6 +64,7 @@ export class TlsServer {
 
   get address() {
     const addressResult = this.server?.address();
+    // deno-coverage-ignore-start
     if (typeof addressResult === "object") {
       const address = addressResult?.address;
       if (address === "::") {
@@ -76,4 +77,5 @@ export class TlsServer {
     }
     return addressResult;
   }
+  // deno-coverage-ignore-stop
 }

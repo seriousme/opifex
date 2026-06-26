@@ -28,15 +28,13 @@ function createMockConn(): {
   return { conn, stream, closeCalled };
 }
 
-test("Conn.write - successfully writes data", async function () {
+test("Conn.write - successfully writes data", async () => {
   const { conn, stream } = createMockConn();
   const data = new Uint8Array([0x01, 0x02, 0x03]);
 
-  // Write data to the connection
   const bytesWritten = await conn.write(data);
   assert.equal(bytesWritten, data.length, "Number of written bytes matches");
 
-  // Verify that the underlying stream received the data
   const chunk = stream.read();
   assert.deepStrictEqual(
     new Uint8Array(chunk),
@@ -47,14 +45,43 @@ test("Conn.write - successfully writes data", async function () {
   conn.close();
 });
 
-test("Conn.read - reads exact number of bytes", async function () {
+test("Conn.write - respects backpressure and waits for drain event", async () => {
+  const { conn, stream } = createMockConn();
+  const data = new Uint8Array([0x01, 0x02, 0x03]);
+
+  // Force stream.write to return false to simulate a full internal buffer (backpressure)
+  stream.write = () => false;
+
+  let writeResolved = false;
+  const writePromise = conn.write(data).then((bytes) => {
+    writeResolved = true;
+    return bytes;
+  });
+
+  // Yield execution shortly to ensure the promise hasn't resolved prematurely
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(
+    writeResolved,
+    false,
+    "Write promise should pend while backpressure is active",
+  );
+
+  // Emit the drain event to signal the buffer has cleared
+  stream.emit("drain");
+
+  const bytesWritten = await writePromise;
+  assert.equal(bytesWritten, data.length, "Resolves after drain event fires");
+  assert.equal(writeResolved, true);
+
+  conn.close();
+});
+
+test("Conn.read - reads exact number of bytes", async () => {
   const { conn, stream } = createMockConn();
   const data = new Uint8Array([10, 20, 30, 40, 50]);
 
-  // Push data into the stream so read() can pick it up immediately
   stream.write(data);
 
-  // Request exactly 3 bytes
   const result = await conn.read(3);
   assert.deepStrictEqual(
     result,
@@ -62,7 +89,6 @@ test("Conn.read - reads exact number of bytes", async function () {
     "First 3 bytes match",
   );
 
-  // Request the remaining 2 bytes (should be fetched from the leftover buffer)
   const restResult = await conn.read(2);
   assert.deepStrictEqual(
     restResult,
@@ -73,14 +99,13 @@ test("Conn.read - reads exact number of bytes", async function () {
   conn.close();
 });
 
-test("Conn.read - waits for async data (readable event)", async function () {
+test("Conn.read - waits for async data (readable event)", async () => {
   const { conn, stream } = createMockConn();
 
-  // Start the read action in parallel (waiting for data)
   const readPromise = conn.read(2);
 
-  // Simulate network delay and then write data to the stream
-  await new Promise((resolve) => setTimeout(resolve, 50));
+  // Simulate network latency using setImmediate or setTimeout
+  await new Promise((resolve) => setTimeout(resolve, 10));
   stream.write(new Uint8Array([0xAA, 0xBB]));
 
   const result = await readPromise;
@@ -93,7 +118,7 @@ test("Conn.read - waits for async data (readable event)", async function () {
   conn.close();
 });
 
-test("Conn.close - gracefully closes the connection and streams", async function () {
+test("Conn.close - gracefully closes the connection and streams", async () => {
   const { conn, stream, closeCalled } = createMockConn();
 
   assert.equal(closeCalled.count, 0, "Closer has not been called yet");
@@ -103,14 +128,12 @@ test("Conn.close - gracefully closes the connection and streams", async function
   assert.equal(closeCalled.count, 1, "Closer is called exactly once");
   assert.equal(stream.destroyed, true, "The underlying stream is destroyed");
 
-  // Writing after close should fail
   await assert.rejects(
     conn.write(new Uint8Array([1])),
     /Stream is closed or not writable/,
     "Writing to a closed connection throws an error",
   );
 
-  // Reading after close should return null
   const readResult = await conn.read(1);
   assert.equal(
     readResult,
@@ -119,7 +142,7 @@ test("Conn.close - gracefully closes the connection and streams", async function
   );
 });
 
-test("Conn.read - length less than 0 returns null", async function () {
+test("Conn.read - length less than 0 returns null", async () => {
   const { conn } = createMockConn();
 
   const result = await conn.read(-5);
@@ -128,7 +151,7 @@ test("Conn.read - length less than 0 returns null", async function () {
   conn.close();
 });
 
-test("Conn.read - length equal to 0 returns empty Uint8Array", async function () {
+test("Conn.read - length equal to 0 returns empty Uint8Array", async () => {
   const { conn } = createMockConn();
 
   const result = await conn.read(0);
@@ -141,35 +164,15 @@ test("Conn.read - length equal to 0 returns empty Uint8Array", async function ()
   conn.close();
 });
 
-test("Conn.read - stream errors while waiting for data (returns null)", async function () {
+test("Conn.read - stream errors while waiting for data (returns null)", async () => {
   const { conn, stream } = createMockConn();
 
-  // Attach a no-op error listener to prevent Node.js from crashing
-  // on an unhandled exception outside of the Conn class
+  // Prevent Node.js from crashing due to an unhandled stream error during test execution
   stream.on("error", () => {});
 
   const readPromise = conn.read(5);
 
-  // Emit the error, which sets this.closed = true internally
-  stream.emit("error", new Error("Network failure"));
-  stream.end();
-
-  const result = await readPromise;
-  assert.equal(
-    result,
-    null,
-    "Returns null when the stream errors out during an active read",
-  );
-
-  conn.close();
-});
-
-test("Conn.read - stream errors while waiting for data (returns null)", async function () {
-  const { conn, stream } = createMockConn();
-
-  const readPromise = conn.read(5);
-
-  // Simulate an error event on the stream
+  // Emit error event to invoke internal error tracking state
   stream.emit("error", new Error("Network failure"));
 
   const result = await readPromise;
@@ -182,13 +185,12 @@ test("Conn.read - stream errors while waiting for data (returns null)", async fu
   conn.close();
 });
 
-test("Conn.read - chunk is larger than requested (populates leftover)", async function () {
+test("Conn.read - chunk is larger than requested (populates leftover)", async () => {
   const { conn, stream } = createMockConn();
   const largeChunk = new Uint8Array([1, 2, 3, 4, 5]);
 
   stream.write(largeChunk);
 
-  // Request only 2 bytes out of 5
   const result1 = await conn.read(2);
   assert.deepStrictEqual(
     result1,
@@ -196,7 +198,6 @@ test("Conn.read - chunk is larger than requested (populates leftover)", async fu
     "Returns the exact requested chunk size",
   );
 
-  // Request next 2 bytes (should pull from leftover)
   const result2 = await conn.read(2);
   assert.deepStrictEqual(
     result2,
@@ -204,7 +205,6 @@ test("Conn.read - chunk is larger than requested (populates leftover)", async fu
     "Returns the next bytes from the leftover buffer",
   );
 
-  // Request the final byte
   const result3 = await conn.read(1);
   assert.deepStrictEqual(
     result3,
@@ -215,7 +215,7 @@ test("Conn.read - chunk is larger than requested (populates leftover)", async fu
   conn.close();
 });
 
-test("Conn.read - partial leftover is not enough (combines leftover and new stream chunk)", async function () {
+test("Conn.read - partial leftover is not enough (combines leftover and new stream chunk)", async () => {
   const { conn, stream } = createMockConn();
 
   // 1. Write 3 bytes and read 2 (leaving 1 byte [0x03] in leftover)
@@ -236,16 +236,86 @@ test("Conn.read - partial leftover is not enough (combines leftover and new stre
   conn.close();
 });
 
-test("Conn.write - rejects immediately if stream.writable is false", async function () {
+test("Conn.write - rejects immediately if stream.writable is false", async () => {
   const { conn, stream } = createMockConn();
 
-  // Force the stream's writable state to false without destroying it completely
   Object.defineProperty(stream, "writable", { value: false });
 
   await assert.rejects(
     conn.write(new Uint8Array([1, 2, 3])),
     /Stream is closed or not writable/,
     "Rejects immediately when stream.writable is false",
+  );
+
+  conn.close();
+});
+
+test("Conn.read - fulfilled entirely from leftover buffer (skips while loop)", async () => {
+  const { conn, stream } = createMockConn();
+  const data = new Uint8Array([10, 20, 30, 40, 50]);
+
+  // 1. Populate the leftover buffer by reading less than what was written
+  stream.write(data);
+  await conn.read(2); // Leaves [30, 40, 50] in leftover
+
+  // 2. Request an amount that can be fully satisfied by the leftover buffer
+  const result = await conn.read(2);
+  assert.deepStrictEqual(
+    result,
+    new Uint8Array([30, 40]),
+    "Successfully fulfilled entirely from the leftover buffer",
+  );
+
+  // 3. Verify the remaining byte is still preserved
+  const finalResult = await conn.read(1);
+  assert.deepStrictEqual(
+    finalResult,
+    new Uint8Array([50]),
+    "The remaining byte in leftover is still accessible",
+  );
+
+  conn.close();
+});
+
+test("Conn - handles unexpected stream close event from underlying resource", () => {
+  const { conn, stream } = createMockConn();
+
+  // Initially, the connection should not be marked as closed
+  assert.equal(conn["closed"], false, "Connection is open initially");
+
+  // Simulate the underlying socket/stream closing unexpectedly from the remote side
+  stream.emit("close");
+
+  // Verify that the permanent 'close' listener was triggered and updated the internal state
+  assert.equal(
+    conn["closed"],
+    true,
+    "Connection internally updates to closed when stream emits close",
+  );
+
+  // Clean up to ensure resources are disposed
+  conn.close();
+});
+
+test("Conn.write - rejects the promise if stream.write invokes the callback with an error", async () => {
+  const { conn, stream } = createMockConn();
+  const data = new Uint8Array([1, 2, 3]);
+
+  // Simulate a write error by overriding stream.write
+  // It forces the callback to be invoked with an Error object
+  stream.write = (_chunk, callback) => {
+    if (typeof callback === "function") {
+      // Execute the callback with an error asynchronously, mimicking Node.js behavior
+      setImmediate(() => callback(new Error("Write pipeline failure")));
+    }
+    return false;
+  };
+
+  // Verify that the conn.write Promise rejects with the exact error
+  await assert.rejects(
+    conn.write(data),
+    /Write pipeline failure/,
+    "The write promise should reject when the stream callback receives an error",
   );
 
   conn.close();

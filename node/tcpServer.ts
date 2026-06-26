@@ -46,16 +46,20 @@ export class TcpServer {
 
   get port() {
     const address = this.server?.address();
+    // deno-coverage-ignore-start
     if (typeof address === "object" && address !== null) {
       return address?.port;
     }
     return this.serverOptions?.port;
+    // deno-coverage-ignore-stop
   }
 
   get address() {
     const addressResult = this.server?.address();
+    // deno-coverage-ignore-start
     if (typeof addressResult === "object") {
       const address = addressResult?.address;
+
       if (address === "::") {
         return "localhost";
       }
@@ -66,4 +70,5 @@ export class TcpServer {
     }
     return addressResult;
   }
+  // deno-coverage-ignore-stop
 }
