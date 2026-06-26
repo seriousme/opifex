@@ -23,3 +23,4 @@ export type {
   RetainStore,
 } from "./persistence.ts";
 export { maxPacketId } from "./persistence.ts";
+export { SQLitePersistence } from "./sqlite/sqlitePersistence.ts";
