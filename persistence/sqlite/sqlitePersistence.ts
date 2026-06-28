@@ -83,19 +83,19 @@ function initializeDatabase(filename: string): sqlite.DatabaseSync {
 function deleteClientState(db: sqlite.DatabaseSync, clientId: ClientId): void {
   db.exec("begin;");
   db.prepare(
-    "delete from subscriptions where client_id = ?"
+    "delete from subscriptions where client_id = ?",
   ).run(clientId);
   db.prepare(
-    "delete from pending_incoming where client_id = ?"
+    "delete from pending_incoming where client_id = ?",
   ).run(clientId);
   db.prepare(
-    "delete from pending_outgoing where client_id = ?"
+    "delete from pending_outgoing where client_id = ?",
   ).run(clientId);
   db.prepare(
-    "delete from pending_ack_outgoing where client_id = ?"
+    "delete from pending_ack_outgoing where client_id = ?",
   ).run(clientId);
   db.prepare(
-    "delete from client_sessions where client_id = ?"
+    "delete from client_sessions where client_id = ?",
   ).run(clientId);
   db.exec("commit;");
 }
