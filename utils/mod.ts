@@ -6,3 +6,4 @@ export { assert } from "./assert.ts";
 export { Deferred } from "./deferred.ts";
 export { Logger, logger, LogLevel } from "./logger.ts";
 export { BufferedAsyncIterable } from "./bufferedAsyncIterable.ts";
+export { topicFilterToRegExp } from "./topicFilter.ts";

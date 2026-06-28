@@ -1,16 +1,17 @@
 import type {
   Client,
   ClientId,
+  ClientRegistrationResult,
   Handler,
+  IPacketIdStore,
+  IPacketStore,
   IPersistence,
   IStore,
+  ISubscriptionStore,
   PacketId,
-  PacketIdStore,
-  PacketStore,
   PublishPacket,
   QoS,
   RetainStore,
-  SubscriptionStore,
   Topic,
   TopicFilter,
 } from "../mod.ts";
@@ -29,10 +30,10 @@ export class MemoryStore implements IStore {
   existingSession: boolean = false;
   clientId: ClientId;
   private packetId: PacketId;
-  pendingIncoming: PacketIdStore;
-  pendingOutgoing: PacketStore;
-  pendingAckOutgoing: PacketIdStore;
-  subscriptions: SubscriptionStore;
+  pendingIncoming: IPacketIdStore;
+  pendingOutgoing: IPacketStore;
+  pendingAckOutgoing: IPacketIdStore;
+  subscriptions: ISubscriptionStore;
 
   constructor(clientId: ClientId) {
     this.packetId = 0;
@@ -71,13 +72,21 @@ export class MemoryPersistence implements IPersistence {
     this.trie = new Trie(true);
   }
 
-  registerClient(clientId: ClientId, handler: Handler, clean: boolean): IStore {
+  registerClient(
+    clientId: ClientId,
+    handler: Handler,
+    clean: boolean,
+  ): ClientRegistrationResult {
+    if (clean) {
+      this.clientList.delete(clientId);
+    }
     const existingClient = this.clientList.get(clientId);
+    const existingSession = !!existingClient;
     const store = !clean && existingClient
       ? existingClient.store
       : new MemoryStore(clientId);
     this.clientList.set(clientId, { store, handler });
-    return store;
+    return { store, existingSession };
   }
 
   deregisterClient(clientId: ClientId): void {
@@ -106,7 +115,7 @@ export class MemoryPersistence implements IPersistence {
   }
 
   private unsubscribeAll(store: IStore) {
-    for (const [topicFilter, _qos] of store.subscriptions) {
+    for (const topicFilter of store.subscriptions.keys()) {
       this.unsubscribe(store, topicFilter);
     }
   }
@@ -144,7 +153,7 @@ export class MemoryPersistence implements IPersistence {
     const client = this.clientList.get(clientId);
     const store = client?.store;
     if (store) {
-      for (const [topicFilter, _qos] of store.subscriptions) {
+      for (const topicFilter of store.subscriptions.keys()) {
         retainedTrie.add(topicFilter, clientId);
       }
       for (const [topic, packet] of this.retained) {

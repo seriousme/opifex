@@ -23,11 +23,15 @@ test(
   () => {
     const persistence = new Persistence();
     const clientId = "myClient";
-    const client = persistence.registerClient(clientId, () => {}, false);
+    const { store, existingSession } = persistence.registerClient(
+      clientId,
+      () => {},
+      false,
+    );
     assert.deepStrictEqual(persistence.clientList.has(clientId), true);
-    assert.deepStrictEqual(typeof client, "object");
-    assert.deepStrictEqual(client instanceof Store, true);
-    assert.deepStrictEqual(client.existingSession, false);
+    assert.deepStrictEqual(typeof store, "object");
+    assert.deepStrictEqual(store instanceof Store, true);
+    assert.deepStrictEqual(existingSession, false);
   },
 );
 
@@ -53,7 +57,7 @@ test("pub/sub should work", async () => {
     seen.add(packet.id);
   }
 
-  const store = persistence.registerClient(clientId, handler, false);
+  const { store } = persistence.registerClient(clientId, handler, false);
 
   persistence.subscribe(store, topic, qos);
   assert.deepStrictEqual(
@@ -92,7 +96,7 @@ test("publish of an empty retained message should clear previous retained messag
     seen.add(packet.id);
   }
 
-  const store = persistence.registerClient(clientId, handler, false);
+  const { store } = persistence.registerClient(clientId, handler, false);
   persistence.publish(topic, makePacket(25));
   assert.deepStrictEqual(
     persistence.retained.has(topic),
@@ -146,7 +150,7 @@ test("many packets should work", async () => {
     seen.add(packet.id);
   }
 
-  const store = persistence.registerClient(clientId, handler, false);
+  const { store } = persistence.registerClient(clientId, handler, false);
 
   persistence.subscribe(store, topic, qos);
   assert.deepStrictEqual(
@@ -187,7 +191,7 @@ test("unsubscribe should work", () => {
     seen.add(packet.id);
   }
 
-  const store = persistence.registerClient(clientId, handler, false);
+  const { store } = persistence.registerClient(clientId, handler, false);
   persistence.subscribe(store, topic, qos);
   persistence.unsubscribe(store, topic);
 
