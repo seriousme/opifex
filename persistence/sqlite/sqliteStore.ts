@@ -1,3 +1,9 @@
+/**
+ * @module
+ * SQLite-backed sub-stores managing persistent states for single client sessions,
+ * including incoming/outgoing packets, active subscriptions, and retained messages.
+ */
+
 import type { DatabaseSync } from "node:sqlite";
 import type { PublishPacket } from "../../mqttPacket/publish.ts";
 import type {
@@ -17,20 +23,28 @@ import type {
 } from "../store.ts";
 import { topicFilterToRegExp } from "../../utils/mod.ts";
 
+/**
+ * Represents a packet serialized into a format optimized for database retention.
+ */
 type SerializedPacket = {
   packet: string;
   payload: Uint8Array | null;
 };
 
+/**
+ * Parameters used to manage structural MQTT sessions.
+ */
 type SessionParameters = {
   clientId: ClientId;
   existingSession: boolean;
 };
 
+/**
+ * Serializes a high-level PublishPacket object into JSON and binary forms for database writing.
+ * @param packet The packet instance to process.
+ */
 function serializePacket(packet: PublishPacket): SerializedPacket {
-  const payload = packet.payload?.byteLength
-    ? Buffer.from(packet.payload)
-    : null;
+  const payload = packet.payload?.byteLength ? packet.payload : null;
   const packetData = {
     ...packet,
     payload: undefined,
@@ -41,13 +55,18 @@ function serializePacket(packet: PublishPacket): SerializedPacket {
   };
 }
 
+/**
+ * Deserializes database-retrieved entries back into a fully formed PublishPacket object.
+ * @param packet The JSON representation string of the packet properties.
+ * @param payload The raw binary content byte array.
+ */
 function deserializePacket(
   packet: string,
   payload: Uint8Array | null,
 ): PublishPacket {
   const data = JSON.parse(packet);
-  if (payload && payload.byteLength) {
-    data.payload = new Uint8Array(payload);
+  if (payload !== null) {
+    data.payload = payload;
   }
   return data as PublishPacket;
 }
@@ -55,13 +74,13 @@ function deserializePacket(
 /**
  * Helper method to cast a standard IterableIterator into a MapIterator
  * by backing it with the correct Symbol properties to satisfy TypeScript.
+ * @param rowIterator The basic iterable row cursor from SQLite.
+ * @param mapFn Transformation function mapped over individual database rows.
  */
-
 function createMapIterator<TDbRow, TResult>(
   rowIterator: IterableIterator<TDbRow>,
   mapFn: (row: TDbRow) => TResult,
 ): MapIterator<TResult> {
-  // De generator die lazy over de database-rijen heen lusst
   const generator = function* () {
     for (const row of rowIterator) {
       yield mapFn(row);
@@ -76,7 +95,6 @@ function createMapIterator<TDbRow, TResult>(
       enumerable: false,
       writable: true,
     },
-    // Zorg dat de .next() aanroep correct wordt doorgelust naar de generator
     next: {
       value: () => iteratorInstance.next(),
       configurable: true,
@@ -85,11 +103,21 @@ function createMapIterator<TDbRow, TResult>(
   }) as MapIterator<TResult>;
 }
 
+/**
+ * A database-backed Packet ID store that records acknowledgement IDs (such as QoS 2 tokens).
+ */
 export class SqlitePacketIdStore implements IPacketIdStore {
   private db: DatabaseSync;
   private clientId: ClientId;
   private tableName: "pending_incoming" | "pending_ack_outgoing";
 
+  /**
+   * Initializes a new instance of SqlitePacketIdStore.
+   * @param db The active connection database.
+   * @param clientId Identifies the relevant tracking client session.
+   * @param tableName Explicit relational table designation mapping destination tracking.
+   * @param entries Optional seed entries saved right away.
+   */
   constructor(
     db: DatabaseSync,
     clientId: ClientId,
@@ -106,6 +134,7 @@ export class SqlitePacketIdStore implements IPacketIdStore {
     }
   }
 
+  /** Inserts a packet identifier under client constraints. */
   add(value: PacketId): this {
     this.db.prepare(
       `insert or ignore into ${this.tableName}(client_id, packet_id) values(?, ?)`,
@@ -113,6 +142,7 @@ export class SqlitePacketIdStore implements IPacketIdStore {
     return this;
   }
 
+  /** Drops tracking allocation target from target row. */
   delete(value: PacketId): boolean {
     const deleted = this.db.prepare(
       `delete from ${this.tableName} where client_id = ? and packet_id = ?`,
@@ -120,12 +150,14 @@ export class SqlitePacketIdStore implements IPacketIdStore {
     return deleted;
   }
 
+  /** Clears all mapped Packet IDs tracking under this client context. */
   clear(): void {
     this.db.prepare(
       `delete from ${this.tableName} where client_id = ?`,
     ).run(this.clientId);
   }
 
+  /** Assesses existence of the requested Packet ID tracking. */
   has(key: PacketId): boolean {
     const row = this.db.prepare(
       `select 1 from ${this.tableName} where client_id = ? and packet_id = ? limit 1`,
@@ -134,6 +166,7 @@ export class SqlitePacketIdStore implements IPacketIdStore {
     return !!row;
   }
 
+  /** Returns active tracking queue length. */
   get size(): number {
     const row = this.db.prepare(
       `select count(*) as count from ${this.tableName} where client_id = ?`,
@@ -142,6 +175,7 @@ export class SqlitePacketIdStore implements IPacketIdStore {
     return row?.count ?? 0;
   }
 
+  /** Iterates across active assigned Packet IDs. */
   keys(): IterableIterator<PacketId> {
     const rows = this.db.prepare(
       `select packet_id from ${this.tableName} where client_id = ?`,
@@ -149,12 +183,12 @@ export class SqlitePacketIdStore implements IPacketIdStore {
     return rows.map((r) => r.packet_id)[Symbol.iterator]();
   }
 }
+
 /**
  * A database-backed Store that implements the Map interface.
- * It directly persists and retrieves MQTTpackets from SQLite
+ * It directly persists and retrieves MQTT packets from SQLite
  * without caching them in memory.
  */
-
 export class SqlitePacketStore implements IPacketStore {
   private db: DatabaseSync;
   private clientId: ClientId;
@@ -283,7 +317,7 @@ export class SqlitePacketStore implements IPacketStore {
    */
   entries(): MapIterator<[PacketId, PublishPacket]> {
     const rowIterator = this.db.prepare(
-      "select packet, payload from pending_outgoing where client_id = ?",
+      "select packet_id, packet, payload from pending_outgoing where client_id = ?",
     ).iterate(this.clientId) as IterableIterator<
       { packet_id: PacketId; packet: string; payload: Uint8Array | null }
     >;
@@ -305,16 +339,21 @@ export class SqlitePacketStore implements IPacketStore {
     return this.entries();
   }
 
+  /** @ignore */
   get [Symbol.toStringTag](): string {
     return "SqlitePacketStore";
   }
 }
+
+/**
+ * A database-backed Subscription store that tracks active topics and QoS constraints for a client.
+ */
 class SqliteSubscriptionStore implements ISubscriptionStore {
   private db: DatabaseSync;
   private clientId: ClientId;
 
   /**
-   * Creates an instance of SqlitePacketStore.
+   * Creates an instance of SqliteSubscriptionStore.
    * @param db The SQLite database instance containing the database connection.
    * @param clientId The unique identifier of the MQTT client.
    * @param entries Optional initial entries to be saved immediately to the database.
@@ -335,19 +374,19 @@ class SqliteSubscriptionStore implements ISubscriptionStore {
   }
 
   /**
-   * Gets the total number of pending outgoing packets for this client from the database.
+   * Gets the total number of subscriptions for this client from the database.
    */
   get size(): number {
     const row = this.db.prepare(
-      "select count(*) as count from pending_outgoing where client_id = ?",
+      "select count(*) as count from subscriptions where client_id = ?",
     ).get(this.clientId) as { count: number };
     return row?.count ?? 0;
   }
 
   /**
-   * Inserts or replaces a packet in the database.
-   * @param key The packet identifier.
-   * @param value The publish packet object.
+   * Inserts or replaces a subscription filter state in the database.
+   * @param key The topic filter identifier.
+   * @param value The matched maximum QoS parameter level.
    */
   set(key: TopicFilter, value: QoS): this {
     this.db.prepare(
@@ -357,9 +396,9 @@ class SqliteSubscriptionStore implements ISubscriptionStore {
   }
 
   /**
-   * Retrieves a packet from the database by its packet ID.
-   * @param key The packet identifier.
-   * @returns The deserialized QoS, or undefined if not found.
+   * Retrieves active QoS metadata for a specific subscription filter.
+   * @param key The requested filter expression.
+   * @returns The QoS level configuration, or undefined if not found.
    */
   get(key: TopicFilter): QoS | undefined {
     const row = this.db.prepare(
@@ -373,8 +412,8 @@ class SqliteSubscriptionStore implements ISubscriptionStore {
   }
 
   /**
-   * Checks if a packet ID exists in the database for this client.
-   * @param key The packet identifier.
+   * Checks if a topic subscription already exists in the database for this client.
+   * @param key The target topic filter pattern.
    */
   has(key: TopicFilter): boolean {
     const row = this.db.prepare(
@@ -384,8 +423,8 @@ class SqliteSubscriptionStore implements ISubscriptionStore {
   }
 
   /**
-   * Deletes a packet from the database.
-   * @param key The packet identifier to remove.
+   * Deletes an active subscription from the database.
+   * @param key The topic filter pattern to remove.
    * @returns True if a row was deleted, false otherwise.
    */
   delete(key: TopicFilter): boolean {
@@ -396,11 +435,11 @@ class SqliteSubscriptionStore implements ISubscriptionStore {
   }
 
   /**
-   * Removes all pending outgoing packets for this client from the database.
+   * Removes all active subscriptions for this client from the database.
    */
   clear(): void {
     this.db.prepare(
-      "delete from pending_outgoing where client_id = ?",
+      "delete from subscriptions where client_id = ?",
     ).run(this.clientId);
   }
 
@@ -416,7 +455,7 @@ class SqliteSubscriptionStore implements ISubscriptionStore {
   }
 
   /**
-   * Returns a MapIterator of all QoSs for this client.
+   * Returns a MapIterator of all QoS configurations for this client.
    */
   values(): MapIterator<QoS> {
     const rowIterator = this.db.prepare(
@@ -449,18 +488,22 @@ class SqliteSubscriptionStore implements ISubscriptionStore {
     return this.entries();
   }
 
+  /** @ignore */
   get [Symbol.toStringTag](): string {
-    return "SqlitePacketStore";
+    return "SqliteSubscriptionStore";
   }
 }
 
+/**
+ * Handles persistence boundaries for contextual client sessions metadata tracking.
+ */
 export class SQLiteClientSessionStore {
   private db: DatabaseSync;
 
   /**
-   * Persists client session data that is not retained in any of the other stores
-   * @param db The SQLite database instance containing the database connection
-   * @param entrie Optional initial entry to be saved immediately to the database.
+   * Persists client session data that is not retained in any of the other stores.
+   * @param db The SQLite database instance containing the database connection.
+   * @param sessionParameters Optional initial entry to be saved immediately to the database.
    */
   constructor(
     db: DatabaseSync,
@@ -472,6 +515,7 @@ export class SQLiteClientSessionStore {
     }
   }
 
+  /** Inserts metadata regarding a specific client's persistent connectivity state. */
   set(session: SessionParameters): this {
     this.db.prepare(
       "insert or replace into client_sessions(client_id, existing_session) values(?, ?)",
@@ -480,20 +524,23 @@ export class SQLiteClientSessionStore {
     return this;
   }
 
+  /** Retrieves structural validation attributes concerning structural active states. */
   get(clientId: ClientId): SessionParameters | null {
     const row = this.db.prepare(
-      "select existing_session from client_sessions where client_id = ?",
-    ).get(clientId);
+      "select client_id, existing_session from client_sessions where client_id = ?",
+    ).get(clientId) as
+      | { client_id: ClientId; existing_session: number }
+      | undefined;
     if (!row) {
       return null;
     }
-    const session = {
-      clientId: row["client_id"] as ClientId,
-      existingSession: !!row["existing_session"],
+    return {
+      clientId: row.client_id,
+      existingSession: !!row.existing_session,
     };
-    return session;
   }
 
+  /** Deletes tracking configurations mapped to the destination client context. */
   delete(clientId: ClientId): this {
     this.db.prepare(
       "delete from client_sessions where client_id = ?",
@@ -502,12 +549,15 @@ export class SQLiteClientSessionStore {
   }
 }
 
+/**
+ * Manages database retention and retrieval of published MQTT messages marked with a retain flag.
+ */
 export class SqliteRetainStore {
   private db: DatabaseSync;
 
   /**
-   * Persists retained messages
-   * @param db The SQLite database instance containing the database connection
+   * Persists retained messages.
+   * @param db The SQLite database instance containing the database connection.
    * @param entries Optional initial entries to be saved immediately to the database.
    */
   constructor(
@@ -523,18 +573,24 @@ export class SqliteRetainStore {
     }
   }
 
-  set(key: Topic, packet: PublishPacket) {
+  /** Saves a targeted Retained PublishPacket to the relational table. */
+  set(key: Topic, packet: PublishPacket): void {
     const serialized = serializePacket(packet);
     this.db.prepare(
       "insert or replace into retained(topic, packet, payload) values(?, ?, ?)",
     ).run(key, serialized.packet, serialized.payload);
-    return;
   }
 
-  delete(key: Topic) {
+  /** Clears structural references tied to an explicit destination topic. */
+  delete(key: Topic): void {
     this.db.prepare("delete from retained where topic = ?").run(key);
   }
 
+  /**
+   * Evaluates active retained messages yielding all instances matching the provided filter constraint.
+   * Uses optimization boundaries shifting evaluation logic based on presence of MQTT wildcards.
+   * @param topicFilter The target matching filter constraint pattern.
+   */
   *matches(
     topicFilter: TopicFilter,
   ): Generator<PublishPacket, void, unknown> {
@@ -587,13 +643,21 @@ export class SqliteRetainStore {
   }
 }
 
+/**
+ * Core SQLite structural implementation organizing all underlying database relational sub-stores.
+ */
 export class SQLiteStore implements IStore {
+  private lastPacketId = 0;
+  private db: DatabaseSync;
   clientId: ClientId;
   pendingIncoming: IPacketIdStore;
   pendingOutgoing: IPacketStore;
   pendingAckOutgoing: IPacketIdStore;
   subscriptions: ISubscriptionStore;
 
+  /**
+   * Coordinates internal initialization states of tracking tables under specified client references.
+   */
   constructor(
     db: DatabaseSync,
     clientId: ClientId,
@@ -602,6 +666,7 @@ export class SQLiteStore implements IStore {
     pendingAckOutgoing?: PacketId[],
     subscriptions?: Array<readonly [Topic, QoS]>,
   ) {
+    this.db = db;
     this.clientId = clientId;
     this.pendingIncoming = new SqlitePacketIdStore(
       db,
@@ -627,19 +692,32 @@ export class SQLiteStore implements IStore {
     );
   }
 
+  /**
+   * Generates sequential Packet Identifiers backed against persistent parameters.
+   * @returns An unassigned valid numerical packet signature token.
+   * @throws {Error} When no unused packet signatures can be parsed under active sequences constraints.
+   */
+
   nextId(): PacketId {
-    const currentId = this.pendingOutgoing.size > 0
-      ? Math.max(...this.pendingOutgoing.keys())
-      : 0;
-    let packetId = currentId;
+    let attempts = 0;
     do {
-      packetId = (packetId + 1) & maxPacketId;
-      if (packetId === 0) packetId = 1;
-    } while (
-      (this.pendingOutgoing.has(packetId) ||
-        this.pendingAckOutgoing.has(packetId)) && packetId !== currentId
-    );
-    assert(packetId !== currentId, "No unused packetId available");
-    return packetId;
+      // rollover to zero when we hit maxPacketId
+      this.lastPacketId = (this.lastPacketId % 65535) + 1;
+      attempts++;
+
+      // check if there any packets inFlight with this ID
+      const isBusy = this.db.prepare(`
+      SELECT 1 FROM pendingOutgoing WHERE id = ?
+      UNION ALL
+      SELECT 1 FROM pendingAckOutgoing WHERE id = ?
+      LIMIT 1
+    `).get(this.lastPacketId, this.lastPacketId);
+
+      if (!isBusy) {
+        return this.lastPacketId;
+      }
+    } while (attempts < 65535);
+
+    throw new Error("No unused packetId available");
   }
 }

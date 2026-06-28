@@ -1,3 +1,9 @@
+/**
+ * @module
+ * In-memory persistence implementations for MQTT clients, sessions, and subscriptions.
+ * Suitable for testing or non-persistent MQTT broker setups.
+ */
+
 import type {
   Client,
   ClientId,
@@ -21,11 +27,17 @@ import { maxPacketId } from "../mod.ts";
 import { Trie } from "../deps.ts";
 import { assert } from "../../utils/mod.ts";
 
+/**
+ * Represents a subscription mapped to a specific client with its QoS level.
+ */
 type ClientSubscription = {
   clientId: ClientId;
   qos: QoS;
 };
 
+/**
+ * An in-memory store implementation managing packet tracking and subscriptions for a single MQTT client.
+ */
 export class MemoryStore implements IStore {
   existingSession: boolean = false;
   clientId: ClientId;
@@ -35,6 +47,10 @@ export class MemoryStore implements IStore {
   pendingAckOutgoing: IPacketIdStore;
   subscriptions: ISubscriptionStore;
 
+  /**
+   * Creates a new instance of MemoryStore.
+   * @param clientId The unique identifier of the MQTT client.
+   */
   constructor(clientId: ClientId) {
     this.packetId = 0;
     this.pendingIncoming = new Set();
@@ -44,6 +60,12 @@ export class MemoryStore implements IStore {
     this.clientId = clientId;
   }
 
+  /**
+   * Generates the next available Packet Identifier for this client session.
+   * Ensures the generated ID is not currently in use by pending packets.
+   * @returns A valid unassigned Packet ID.
+   * @throws {Error} If no unused packet IDs are available.
+   */
   nextId(): PacketId {
     const currentId = this.packetId;
     do {
@@ -61,17 +83,30 @@ export class MemoryStore implements IStore {
   }
 }
 
+/**
+ * An in-memory persistence layer that coordinates all client sessions, subscriptions, and retained messages.
+ */
 export class MemoryPersistence implements IPersistence {
   clientList: Map<ClientId, Client>;
   retained: RetainStore;
   private trie: Trie<ClientSubscription>;
 
+  /**
+   * Initializes a new clean instance of MemoryPersistence.
+   */
   constructor() {
     this.clientList = new Map();
     this.retained = new Map();
     this.trie = new Trie(true);
   }
 
+  /**
+   * Registers or reinstates an MQTT client session within the memory persistence.
+   * @param clientId The unique identifier of the client.
+   * @param handler The message handler function used to route packets back to the client.
+   * @param clean Whether the client requested a clean session (wiping previous state).
+   * @returns An object containing the assigned store and a flag indicating if a session already existed.
+   */
   registerClient(
     clientId: ClientId,
     handler: Handler,
@@ -89,6 +124,10 @@ export class MemoryPersistence implements IPersistence {
     return { store, existingSession };
   }
 
+  /**
+   * Deregisters a client and cleans up all associated active memory subscriptions.
+   * @param clientId The unique identifier of the client to remove.
+   */
   deregisterClient(clientId: ClientId): void {
     const client = this.clientList.get(clientId);
     if (client) {
@@ -97,6 +136,12 @@ export class MemoryPersistence implements IPersistence {
     }
   }
 
+  /**
+   * Subscribes a client session store to a specific topic filter.
+   * @param store The client's active store instance.
+   * @param topicFilter The MQTT topic filter pattern (e.g., "sensor/+/temperature").
+   * @param qos The maximum Quality of Service level requested.
+   */
   subscribe(store: IStore, topicFilter: TopicFilter, qos: QoS): void {
     const clientId = store.clientId;
     if (!store.subscriptions.has(topicFilter)) {
@@ -105,6 +150,11 @@ export class MemoryPersistence implements IPersistence {
     }
   }
 
+  /**
+   * Unsubscribes a client session store from a specific topic filter.
+   * @param store The client's active store instance.
+   * @param topicFilter The MQTT topic filter pattern to remove.
+   */
   unsubscribe(store: IStore, topicFilter: TopicFilter): void {
     const clientId = store.clientId;
     const qos = store.subscriptions.get(topicFilter);
@@ -120,6 +170,11 @@ export class MemoryPersistence implements IPersistence {
     }
   }
 
+  /**
+   * Publishes an incoming packet to all matching subscribers, handling message retention if specified.
+   * @param topic The concrete topic name on which the packet was published.
+   * @param packet The publish packet data structure.
+   */
   publish(topic: Topic, packet: PublishPacket): void {
     if (packet.retain) {
       this.retained.set(packet.topic, packet);
@@ -148,6 +203,10 @@ export class MemoryPersistence implements IPersistence {
     }
   }
 
+  /**
+   * Matches and delivers all active retained messages that match the client's current subscriptions.
+   * @param clientId The identifier of the client that needs historical retained messages.
+   */
   handleRetained(clientId: ClientId): void {
     const retainedTrie: Trie<ClientId> = new Trie();
     const client = this.clientList.get(clientId);

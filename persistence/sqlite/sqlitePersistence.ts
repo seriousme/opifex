@@ -1,3 +1,9 @@
+/**
+ * @module
+ * SQLite-backed implementation of the persistent layer wrapper. Handles full multi-client lifecycle,
+ * schema initialization, connection routing, and complex transaction pruning.
+ */
+
 import sqlite from "node:sqlite";
 import type {
   Client,
@@ -16,15 +22,20 @@ import {
   SQLiteClientSessionStore,
   SqliteRetainStore,
   SQLiteStore,
-} from "./SQLiteStore.ts";
+} from "./sqliteStore.ts";
 
 const SQLITE_DATABASE_URL = ":memory:";
 
+/** Holds contextual routing parameters for active trie lookups. */
 type ClientSubscription = {
   clientId: ClientId;
   qos: QoS;
 };
 
+/**
+ * Instantiates the physical relational structures and schemas required by the persistence engine.
+ * @param filename Filepath location or memory target specifier.
+ */
 function initializeDatabase(filename: string): sqlite.DatabaseSync {
   const db = new sqlite.DatabaseSync(filename);
   db.exec(`
@@ -64,26 +75,34 @@ function initializeDatabase(filename: string): sqlite.DatabaseSync {
   return db;
 }
 
+/**
+ * Truncates and drops relational state assignments under targeted clients inside atomic scopes.
+ * @param db Connection reference context.
+ * @param clientId Specific target client ID tracking token.
+ */
 function deleteClientState(db: sqlite.DatabaseSync, clientId: ClientId): void {
   db.exec("begin;");
   db.prepare(
-    "delete from subscriptions where client_id = ?",
+    "delete from subscriptions where client_id = ?"
   ).run(clientId);
   db.prepare(
-    "delete from pending_incoming where client_id = ?",
+    "delete from pending_incoming where client_id = ?"
   ).run(clientId);
   db.prepare(
-    "delete from pending_outgoing where client_id = ?",
+    "delete from pending_outgoing where client_id = ?"
   ).run(clientId);
   db.prepare(
-    "delete from pending_ack_outgoing where client_id = ?",
+    "delete from pending_ack_outgoing where client_id = ?"
   ).run(clientId);
   db.prepare(
-    "delete from client_sessions where client_id = ?",
+    "delete from client_sessions where client_id = ?"
   ).run(clientId);
   db.exec("commit;");
 }
 
+/**
+ * An enterprise SQLite persistent storage implementation managing stateful broker processing boundaries.
+ */
 export class SQLitePersistence implements IPersistence {
   clientList: Map<ClientId, Client> = new Map();
   retained: SqliteRetainStore;
@@ -91,6 +110,10 @@ export class SQLitePersistence implements IPersistence {
   db: sqlite.DatabaseSync;
   sessionStore: SQLiteClientSessionStore;
 
+  /**
+   * Prepares and loads persistent SQLite database storage components.
+   * @param filename Configuration target string designating path constraints. Defaults to ':memory:'.
+   */
   constructor(filename = SQLITE_DATABASE_URL) {
     this.db = initializeDatabase(filename);
     this.trie = new Trie(true);
@@ -98,6 +121,12 @@ export class SQLitePersistence implements IPersistence {
     this.sessionStore = new SQLiteClientSessionStore(this.db);
   }
 
+  /**
+   * Registers a client connection against database rows, re-hydrating matching state structures if found.
+   * @param clientId Identified user client string.
+   * @param handler Message dispatch routing block.
+   * @param clean Directives dictating clean session processing.
+   */
   registerClient(
     clientId: ClientId,
     handler: Handler,
@@ -121,6 +150,7 @@ export class SQLitePersistence implements IPersistence {
     return { store, existingSession };
   }
 
+  /** Unbinds and clears states associated to the targeted deregistered client session. */
   deregisterClient(clientId: ClientId): void {
     const client = this.clientList.get(clientId);
     if (client) {
@@ -130,6 +160,7 @@ export class SQLitePersistence implements IPersistence {
     deleteClientState(this.db, clientId);
   }
 
+  /** Connects a subscription boundary path pattern with targeted tracking stores. */
   subscribe(store: IStore, topicFilter: TopicFilter, qos: QoS): void {
     const clientId = store.clientId;
     if (!store.subscriptions.has(topicFilter)) {
@@ -138,6 +169,7 @@ export class SQLitePersistence implements IPersistence {
     }
   }
 
+  /** Disconnects and breaks specific subscription configurations out of active scopes. */
   unsubscribe(store: IStore, topicFilter: TopicFilter): void {
     const clientId = store.clientId;
     const qos = store.subscriptions.get(topicFilter);
@@ -153,6 +185,11 @@ export class SQLitePersistence implements IPersistence {
     }
   }
 
+  /**
+   * Publishes messages matching criteria targets while matching trie references.
+   * @param topic Concrete targeted topic context.
+   * @param packet Structural parameters describing payload properties.
+   */
   publish(topic: Topic, packet: PublishPacket): void {
     if (packet.retain) {
       if (!packet.payload?.byteLength) {
@@ -179,6 +216,10 @@ export class SQLitePersistence implements IPersistence {
     }
   }
 
+  /**
+   * Dispatches matching historical retained states to newly bound client sessions.
+   * @param clientId Targeted destination identification token.
+   */
   handleRetained(clientId: ClientId): void {
     const client = this.clientList.get(clientId);
     if (!client?.handler) {
@@ -194,6 +235,7 @@ export class SQLitePersistence implements IPersistence {
     }
   }
 
+  /** Halts, flushes and shuts active internal database connection scopes safely. */
   close(): void {
     this.db.close();
   }
