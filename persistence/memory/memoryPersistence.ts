@@ -22,7 +22,7 @@ import type {
   TopicFilter,
 } from "../mod.ts";
 
-import { maxPacketId } from "../mod.ts";
+import { MAX_PACKET_ID } from "../mod.ts";
 
 import { Trie } from "../deps.ts";
 import { assert } from "../../utils/mod.ts";
@@ -70,7 +70,7 @@ export class MemoryStore implements IStore {
     const currentId = this.packetId;
     do {
       this.packetId++;
-      if (this.packetId > maxPacketId) {
+      if (this.packetId > MAX_PACKET_ID) {
         this.packetId = 0;
       }
     } while (
