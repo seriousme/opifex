@@ -71,35 +71,21 @@ function deserializePacket(
 }
 
 /**
- * Helper method to cast a standard IterableIterator into a MapIterator
+ * Helper method to cast a standard IterableIterator into a IterableIterator
  * by backing it with the correct Symbol properties to satisfy TypeScript.
  * @param rowIterator The basic iterable row cursor from SQLite.
  * @param mapFn Transformation function mapped over individual database rows.
  */
-function createMapIterator<TDbRow, TResult>(
+function createIterator<TDbRow, TResult>(
   rowIterator: IterableIterator<TDbRow>,
   mapFn: (row: TDbRow) => TResult,
-): MapIterator<TResult> {
+): IterableIterator<TResult> {
   const generator = function* () {
     for (const row of rowIterator) {
       yield mapFn(row);
     }
   };
-
-  const iteratorInstance = generator();
-  return Object.create(iteratorInstance, {
-    [Symbol.toStringTag]: {
-      value: "Map Iterator",
-      configurable: true,
-      enumerable: false,
-      writable: true,
-    },
-    next: {
-      value: () => iteratorInstance.next(),
-      configurable: true,
-      writable: true,
-    },
-  }) as MapIterator<TResult>;
+  return generator();
 }
 
 /**
@@ -285,43 +271,43 @@ export class SqlitePacketStore implements IPacketStore {
   }
 
   /**
-   * Returns a MapIterator of all packet IDs for this client.
+   * Returns a IterableIterator of all packet IDs for this client.
    */
-  keys(): MapIterator<PacketId> {
+  keys(): IterableIterator<PacketId> {
     const rowIterator = this.db.prepare(
       "select packet_id from pending_outgoing where client_id = ?",
     ).iterate(this.clientId) as IterableIterator<{ packet_id: PacketId }>;
 
-    return createMapIterator(rowIterator, (row) => row.packet_id);
+    return createIterator(rowIterator, (row) => row.packet_id);
   }
 
   /**
-   * Returns a MapIterator of all deserialized PublishPackets for this client.
+   * Returns a IterableIterator of all deserialized PublishPackets for this client.
    */
-  values(): MapIterator<PublishPacket> {
+  values(): IterableIterator<PublishPacket> {
     const rowIterator = this.db.prepare(
       "select packet, payload from pending_outgoing where client_id = ?",
     ).iterate(this.clientId) as IterableIterator<
       { packet: string; payload: Uint8Array | null }
     >;
 
-    return createMapIterator(
+    return createIterator(
       rowIterator,
       (row) => deserializePacket(row.packet, row.payload) as PublishPacket,
     );
   }
 
   /**
-   * Returns a MapIterator of [packetId, PublishPacket] pairs for this client.
+   * Returns a IterableIterator of [packetId, PublishPacket] pairs for this client.
    */
-  entries(): MapIterator<[PacketId, PublishPacket]> {
+  entries(): IterableIterator<[PacketId, PublishPacket]> {
     const rowIterator = this.db.prepare(
       "select packet_id, packet, payload from pending_outgoing where client_id = ?",
     ).iterate(this.clientId) as IterableIterator<
       { packet_id: PacketId; packet: string; payload: Uint8Array | null }
     >;
 
-    return createMapIterator(
+    return createIterator(
       rowIterator,
       (row) =>
         [row.packet_id, deserializePacket(row.packet, row.payload)] as [
@@ -329,18 +315,6 @@ export class SqlitePacketStore implements IPacketStore {
           PublishPacket,
         ],
     );
-  }
-
-  /**
-   * Default iterator implementation that yields entries.
-   */
-  [Symbol.iterator](): MapIterator<[PacketId, PublishPacket]> {
-    return this.entries();
-  }
-
-  /** @ignore */
-  get [Symbol.toStringTag](): string {
-    return "SqlitePacketStore";
   }
 }
 
@@ -443,53 +417,41 @@ class SqliteSubscriptionStore implements ISubscriptionStore {
   }
 
   /**
-   * Returns a MapIterator of all topicFilters for this client.
+   * Returns a IterableIterator of all topicFilters for this client.
    */
-  keys(): MapIterator<TopicFilter> {
+  keys(): IterableIterator<TopicFilter> {
     const rowIterator = this.db.prepare(
       "select topic from subscriptions where client_id = ?",
     ).iterate(this.clientId) as IterableIterator<{ topic: TopicFilter }>;
 
-    return createMapIterator(rowIterator, (row) => row.topic);
+    return createIterator(rowIterator, (row) => row.topic);
   }
 
   /**
-   * Returns a MapIterator of all QoS configurations for this client.
+   * Returns a IterableIterator of all QoS configurations for this client.
    */
-  values(): MapIterator<QoS> {
+  values(): IterableIterator<QoS> {
     const rowIterator = this.db.prepare(
       "select qos from subscriptions where client_id = ?",
     ).iterate(this.clientId) as IterableIterator<{ qos: QoS }>;
 
-    return createMapIterator(rowIterator, (row) => row.qos);
+    return createIterator(rowIterator, (row) => row.qos);
   }
 
   /**
-   * Returns a MapIterator of [TopicFilter, QoS] pairs for this client.
+   * Returns a IterableIterator of [TopicFilter, QoS] pairs for this client.
    */
-  entries(): MapIterator<[TopicFilter, QoS]> {
+  entries(): IterableIterator<[TopicFilter, QoS]> {
     const rowIterator = this.db.prepare(
       "select topic, qos from subscriptions where client_id = ?",
     ).iterate(this.clientId) as IterableIterator<
       { topic: TopicFilter; qos: QoS }
     >;
 
-    return createMapIterator(
+    return createIterator(
       rowIterator,
       (row) => [row.topic, row.qos] as [TopicFilter, QoS],
     );
-  }
-
-  /**
-   * Default iterator implementation that yields entries.
-   */
-  [Symbol.iterator](): MapIterator<[TopicFilter, QoS]> {
-    return this.entries();
-  }
-
-  /** @ignore */
-  get [Symbol.toStringTag](): string {
-    return "SqliteSubscriptionStore";
   }
 }
 
