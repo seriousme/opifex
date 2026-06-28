@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { SQLitePersistence } from "./sqlitePersistence.ts";
-import { SQLiteStore } from "./SQLiteStore.ts";
+import { SQLiteStore } from "./sqliteStore.ts";
 import { MQTTLevel, PacketType } from "../deps.ts";
 import type { PublishPacket } from "../deps.ts";
 
