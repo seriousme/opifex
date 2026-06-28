@@ -7,7 +7,7 @@ import type { PacketId } from "./deps.ts";
 
 import {
   type IStore,
-  maxPacketId,
+  MAX_PACKET_ID,
   type PacketStore,
   type PendingAckOutgoing,
   type pendingIncoming,
@@ -50,7 +50,7 @@ export class MemoryStore implements IStore {
     const currentId = this.packetId;
     do {
       this.packetId++;
-      if (this.packetId > maxPacketId) {
+      if (this.packetId > MAX_PACKET_ID) {
         this.packetId = 1;
       }
     } while (

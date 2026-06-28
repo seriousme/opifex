@@ -9,7 +9,7 @@ import type { IStore } from "./store.ts";
  * Maximum packet ID value for MQTT messages (0xffff/65535)
  * @constant {number}
  */
-export const maxPacketId = 0xffff;
+export const MAX_PACKET_ID = 0xffff;
 /**
  * Handler function type for processing publish packets
  * @callback Handler

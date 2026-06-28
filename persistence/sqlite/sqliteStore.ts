@@ -13,8 +13,7 @@ import type {
   Topic,
   TopicFilter,
 } from "../../mqttPacket/types.ts";
-import { assert } from "../../utils/assert.ts";
-import { maxPacketId } from "../persistence.ts";
+import { MAX_PACKET_ID } from "../persistence.ts";
 import type {
   IPacketIdStore,
   IPacketStore,
@@ -701,8 +700,8 @@ export class SQLiteStore implements IStore {
   nextId(): PacketId {
     let attempts = 0;
     do {
-      // rollover to zero when we hit maxPacketId
-      this.lastPacketId = (this.lastPacketId % 65535) + 1;
+      // rollover to zero when we hit MAX_PACKET_ID
+      this.lastPacketId = (this.lastPacketId % MAX_PACKET_ID) + 1;
       attempts++;
 
       // check if there any packets inFlight with this ID
@@ -716,7 +715,7 @@ export class SQLiteStore implements IStore {
       if (!isBusy) {
         return this.lastPacketId;
       }
-    } while (attempts < 65535);
+    } while (attempts < MAX_PACKET_ID);
 
     throw new Error("No unused packetId available");
   }
