@@ -94,29 +94,31 @@ export class Context {
     await this.mqttConn.send(packet);
   }
 
-  connect(clientId: string, clean: boolean): void {
+  // if we get here the client has already been validated
+  connect(clientId: string, clean: boolean): boolean {
     logger.debug("Connecting", clientId);
-    const existingSession = Context.clientList.get(clientId);
-    if (existingSession) {
-      logger.debug(
-        `Existing session with ${clientId} exists, closing existing session`,
-      );
-      existingSession.close(false);
-    }
-
     if (this.preconnectTimer) {
       this.preconnectTimer.clear();
     }
+    const existingActiveSession = Context.clientList.get(clientId);
+    if (existingActiveSession) {
+      logger.debug(
+        `Existing session with ${clientId} exists, closing existing session`,
+      );
+      existingActiveSession.close(false);
+    }
 
-    this.store = this.persistence.registerClient(
+    const { store, existingSession } = this.persistence.registerClient(
       clientId,
       this.doPublish.bind(this),
       clean,
     );
+    this.store = store;
     this.connected = true;
     Context.clientList.set(clientId, this);
     this.broadcast("$SYS/connect/clients", clientId);
     logger.debug("Connected", clientId);
+    return existingSession;
   }
 
   doPublish(packet: PublishPacket): void {

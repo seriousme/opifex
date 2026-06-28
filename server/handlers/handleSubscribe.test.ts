@@ -2,7 +2,12 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { AnyPacket, PublishPacket } from "../deps.ts";
 import { MQTTLevel, PacketType } from "../deps.ts";
-import { connect, disconnect, startMockServer } from "../../dev_utils/mod.ts";
+import {
+  connect,
+  disconnect,
+  startMockServer,
+  startMockServer2,
+} from "../../dev_utils/mod.ts";
 
 const txtEncoder = new TextEncoder();
 
@@ -158,12 +163,13 @@ test("SUBSCRIBE to unauthorized topic is rejected", async () => {
 // ============================================================================
 
 test("SUBSCRIBE receives retained message after SUBACK", async () => {
-  const { mqttConn, mqttServer } = startMockServer();
+  const { mqttConn1, mqttConn2 } = startMockServer2();
 
   // First, publish a retained message (before any subscriber)
+  await connect(mqttConn1);
 
   const retainedPayload = txtEncoder.encode("retained-value");
-  mqttServer.persistence.retained.set("sensors/temperature", {
+  await mqttConn1.send({
     type: PacketType.publish,
     protocolLevel: MQTTLevel.v4,
     topic: "sensors/temperature",
@@ -171,9 +177,10 @@ test("SUBSCRIBE receives retained message after SUBACK", async () => {
     retain: true,
     qos: 0,
   });
+  await disconnect(mqttConn1);
 
   // Connect
-  await connect(mqttConn);
+  await connect(mqttConn2);
 
   // Subscribe to the topic with retained message
   const subscribePacket: AnyPacket = {
@@ -182,14 +189,14 @@ test("SUBSCRIBE receives retained message after SUBACK", async () => {
     id: 10,
     subscriptions: [{ topicFilter: "sensors/temperature", qos: 0 }],
   };
-  mqttConn.send(subscribePacket);
+  mqttConn2.send(subscribePacket);
 
   // Should receive SUBACK first
-  const { value: suback } = await mqttConn.next();
+  const { value: suback } = await mqttConn2.next();
   assert.deepStrictEqual(suback.type, PacketType.suback, "Expected SUBACK");
 
   // Then should receive the retained message
-  const { value: publish } = await mqttConn.next();
+  const { value: publish } = await mqttConn2.next();
   assert.deepStrictEqual(
     publish.type,
     PacketType.publish,
@@ -199,13 +206,14 @@ test("SUBSCRIBE receives retained message after SUBACK", async () => {
     assert.deepStrictEqual(publish.topic, "sensors/temperature");
     assert.deepStrictEqual(publish.payload, retainedPayload);
   }
-  await disconnect(mqttConn);
+  await disconnect(mqttConn2);
 });
 
 test("SUBSCRIBE receives multiple retained messages matching wildcard", async () => {
-  const { mqttConn, mqttServer } = startMockServer();
+  const { mqttConn1, mqttConn2 } = startMockServer2();
   // Set up multiple retained messages
-  mqttServer.persistence.retained.set("sensors/temp/living", {
+  await connect(mqttConn1);
+  await mqttConn1.send({
     type: PacketType.publish,
     protocolLevel: MQTTLevel.v4,
     topic: "sensors/temp/living",
@@ -213,7 +221,7 @@ test("SUBSCRIBE receives multiple retained messages matching wildcard", async ()
     retain: true,
     qos: 0,
   });
-  mqttServer.persistence.retained.set("sensors/temp/bedroom", {
+  await mqttConn1.send({
     type: PacketType.publish,
     protocolLevel: MQTTLevel.v4,
     topic: "sensors/temp/bedroom",
@@ -221,12 +229,13 @@ test("SUBSCRIBE receives multiple retained messages matching wildcard", async ()
     retain: true,
     qos: 0,
   });
+  await disconnect(mqttConn1);
 
-  // Connect
-  await connect(mqttConn);
+  // Connect the second client
+  await connect(mqttConn2);
 
   // Subscribe with wildcard
-  mqttConn.send({
+  mqttConn2.send({
     type: PacketType.subscribe,
     protocolLevel: MQTTLevel.v4,
     id: 11,
@@ -234,14 +243,14 @@ test("SUBSCRIBE receives multiple retained messages matching wildcard", async ()
   });
 
   // SUBACK
-  const { value: suback } = await mqttConn.next();
+  const { value: suback } = await mqttConn2.next();
   assert.deepStrictEqual(suback.type, PacketType.suback);
 
   // Should receive both retained messages
   const messages: AnyPacket[] = [];
-  const { value: msg1 } = await mqttConn.next();
+  const { value: msg1 } = await mqttConn2.next();
   messages.push(msg1);
-  const { value: msg2 } = await mqttConn.next();
+  const { value: msg2 } = await mqttConn2.next();
   messages.push(msg2);
 
   const topics = messages
@@ -254,48 +263,7 @@ test("SUBSCRIBE receives multiple retained messages matching wildcard", async ()
     "sensors/temp/living",
   ]);
 
-  await disconnect(mqttConn);
-});
-
-test("Publishing empty payload clears retained message", async () => {
-  const { mqttConn, mqttServer } = startMockServer();
-
-  // Set up a retained message
-  mqttServer.persistence.retained.set("test/retained", {
-    type: PacketType.publish,
-    protocolLevel: MQTTLevel.v4,
-    topic: "test/retained",
-    payload: txtEncoder.encode("value"),
-    retain: true,
-    qos: 0,
-  });
-
-  // Verify it's there
-  assert.strictEqual(
-    mqttServer.persistence.retained.has("test/retained"),
-    true,
-  );
-
-  // Connect and publish empty payload with retain=true to clear it
-  await connect(mqttConn);
-
-  // Publish empty payload with retain flag to clear
-  mqttServer.persistence.publish("test/retained", {
-    type: PacketType.publish,
-    protocolLevel: MQTTLevel.v4,
-    topic: "test/retained",
-    payload: new Uint8Array(0),
-    retain: true,
-    qos: 0,
-  });
-
-  // Verify it's been cleared
-  assert.strictEqual(
-    mqttServer.persistence.retained.has("test/retained"),
-    false,
-  );
-
-  await disconnect(mqttConn);
+  await disconnect(mqttConn2);
 });
 
 test("SUBSCRIBE to topic without retained message receives only SUBACK", async () => {

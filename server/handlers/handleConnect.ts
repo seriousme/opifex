@@ -64,7 +64,10 @@ function processValidatedConnect(
       };
     }
 
-    ctx.connect(clientId, packet.clean || false);
+    const existingSession = ctx.connect(clientId, packet.clean || false);
+    logger.debug(
+      `Client has ${existingSession ? "an" : "no"} existing session`,
+    );
     ctx.protocolLevel = packet.protocolLevel;
     if (ctx.mqttConn) {
       logger.debug(`Setting protocolLevel to ${ctx.protocolLevel}`);
@@ -78,15 +81,7 @@ function processValidatedConnect(
         ctx.close();
       }, Math.floor(keepAlive * 1500));
     }
-    // is this a new session?
-    // either because its the first time for the client
-    // or it specifically asked for a clean one
-    const previousSession = ctx.store?.existingSession;
-    // client now has a history
-    if (!previousSession && ctx.store) {
-      ctx.store.existingSession = true;
-    }
-    return previousSession || false;
+    return existingSession;
   }
   return false;
 }
