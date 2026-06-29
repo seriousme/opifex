@@ -7,3 +7,4 @@ export { Deferred } from "./deferred.ts";
 export { Logger, logger, LogLevel } from "./logger.ts";
 export { BufferedAsyncIterable } from "./bufferedAsyncIterable.ts";
 export { topicFilterToRegExp } from "./topicFilter.ts";
+export { delay, noop } from "./utils.ts";
