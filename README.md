@@ -19,8 +19,17 @@ The following MQTT versions are supported:
 | Client         | ✅            | ✅              | ✅ partially  |
 | Server         | ❌            | ✅              | ❌            |
 
-Client and server currently only have memory based persistence, but one can
-provide its own persistence. (see [Architecture](#architecture))
+# Persistence
+
+Opifex offers plugable persistence, but one can provide its own persistence.
+(see [Architecture](#architecture))
+
+The following types are currently provided:
+
+|        | Plugable | Memeory | sqlLite |
+| ------ | -------- | ------- | ------- |
+| Client | ❌       | ✅      | ❌      |
+| Server | ✅       | ✅      | ✅      |
 
 ## Usage
 
@@ -59,8 +68,8 @@ for await (const conn of this.listener) {
 }
 ```
 
-A more elaborate example including client and server can be found in the
-[examples](/examples/) folder.
+A more elaborate example including client and server, TLS and sqlite can be
+found in the [examples](/examples/) folder.
 
 ## Architecture
 
@@ -88,8 +97,9 @@ A more elaborate example including client and server can be found in the
    keep track of its state and associated timers.
 
 5. Persistence of data is handled by a pluggable persistence module
-   ([persistence](persistence)) which currently only offers memory persistence
-   ([persistence/memory](persistence/memory)) but can be extended with database
+   ([persistence](persistence)) which currently offers memory and sqlite
+   persistence ([persistence/memory](persistence/memory))
+   ([persistence/sqlite](persistence/sqlite)) but can be extended with database
    backed persistence supported by third party modules.
 
 6. The demo server listens to a platform specific socket and runs the `serve()`
@@ -103,8 +113,9 @@ A more elaborate example including client and server can be found in the
 
 | Export                        | Description                                             |
 | ----------------------------- | ------------------------------------------------------- |
-| @seriousme/opifex/tcpClient   | Exports a MQTT over TCP client                          |
+| @seriousme/opifex/tcpClient   | Exports a MQTT over TCP/TLS client                      |
 | @seriousme/opifex/tcpServer   | Exports a MQTT over TCP server                          |
+| @seriousme/opifex/tlsServer   | Exports a MQTT over TLS server                          |
 | @seriousme/opifex/server      | Exports a transport agnostic MQTT server                |
 | @seriousme/opifex/client      | Exports a transport agnostic MQTT client                |
 | @seriousme/opifex/persistence | Exports an Typescript interface for storage persistence |
