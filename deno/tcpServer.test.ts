@@ -2,8 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { TcpClient } from "./tcpClient.ts";
 import { TcpServer } from "./tcpServer.ts";
-import { logger, LogLevel } from "../utils/mod.ts";
-import { delay } from "../dev_utils/mod.ts";
+import { delay, logger, LogLevel } from "../utils/mod.ts";
 import type { PublishPacket, QoS } from "../mqttPacket/mod.ts";
 
 logger.level(LogLevel.info);

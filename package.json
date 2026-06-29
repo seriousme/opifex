@@ -33,6 +33,7 @@
   "exports": {
     "./tcpClient": "./dist/node/tcpClient.js",
     "./tcpServer": "./dist/node/tcpServer.js",
+    "./tlsServer": "./dist/node/tlsServer.js",
     "./server": "./dist/server/mod.js",
     "./client": "./dist/client/mod.js",
     "./trie": "./dist/trie/trie.js",
@@ -45,6 +46,7 @@
     "exports": {
       "./tcpClient": "./deno/tcpClient.ts",
       "./tcpServer": "./deno/tcpServer.ts",
+      "./tlsServer": "./deno/tlsServer.ts",
       "./server": "./server/mod.ts",
       "./client": "./client/mod.ts",
       "./trie": "./trie/trie.ts",
