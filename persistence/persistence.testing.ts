@@ -30,20 +30,16 @@ function createPacket(
 function createReceiver(
   persistence: IPersistence,
   clientId: string,
+  clean = false,
 ): { store: IStore; received: PublishPacket[] } {
   const received: PublishPacket[] = [];
   const { store } = persistence.registerClient(
     clientId,
     (pkt) => received.push(pkt),
-    false,
+    clean,
   );
   return { store, received };
 }
-
-type PersistenceFactory = () => {
-  persistence: IPersistence;
-  cleanup: () => void;
-};
 
 export type PersistenceFactoryOptions = {
   name: string;
@@ -286,6 +282,27 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
     // === Session Persistence ===
 
+    test("reconnect with clean=false restores subscriptions", () => {
+      const { persistence, cleanup } = factory();
+
+      const { store: store1 } = persistence.registerClient(
+        "client1",
+        () => {},
+        false,
+      );
+      persistence.subscribe(store1, "test/topic", 1);
+
+      const { store: store2, existingSession } = persistence.registerClient(
+        "client1",
+        () => {},
+        false,
+      );
+
+      assert.strictEqual(existingSession, true);
+      assert.strictEqual(store2.subscriptions.size, 1);
+      cleanup();
+    });
+
     test("clean session discards previous subscriptions", () => {
       const { persistence, cleanup } = factory();
 
@@ -295,7 +312,6 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
         false,
       );
       persistence.subscribe(store1, "test/topic", 1);
-      persistence.deregisterClient("client1");
 
       const { store: store2, existingSession } = persistence.registerClient(
         "client1",
@@ -307,7 +323,6 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       assert.strictEqual(store2.subscriptions.size, 0);
       cleanup();
     });
-
     // === Edge Cases ===
 
     test("empty topic filter subscription", () => {

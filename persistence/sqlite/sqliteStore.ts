@@ -20,8 +20,7 @@ export {
 } from "./sqliteStoreUtils.ts";
 
 import type { DatabaseSync } from "node:sqlite";
-import type { PublishPacket } from "../../mqttPacket/publish.ts";
-import type { ClientId, PacketId, QoS, Topic } from "../../mqttPacket/types.ts";
+import type { ClientId, PacketId } from "../../mqttPacket/types.ts";
 import { MAX_PACKET_ID } from "../persistence.ts";
 import type {
   IPacketIdStore,
@@ -54,12 +53,11 @@ export class SqliteStore implements IStore {
     this.pendingIncoming = new SqlitePacketIdStore(
       db,
       clientId,
-      "pending_incoming"
+      "pending_incoming",
     );
     this.pendingOutgoing = new SqlitePacketStore(
       db,
       clientId,
-
     );
     this.pendingAckOutgoing = new SqlitePacketIdStore(
       db,

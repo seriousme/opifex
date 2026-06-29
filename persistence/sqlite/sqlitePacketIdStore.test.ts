@@ -7,7 +7,7 @@ test("SqlitePacketIdStore persists packet IDs for a client", () => {
   const db = initializeDatabase(":memory:");
   const store = new SqlitePacketIdStore(db, "client-a", "pending_incoming");
   store.add(1);
-  store.add(2)
+  store.add(2);
   assert.equal(store.size, 2);
   assert.equal(store.has(1), true);
   assert.equal(store.has(3), false);
