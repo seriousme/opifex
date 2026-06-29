@@ -113,7 +113,7 @@ export class SqlitePersistence implements IPersistence {
   }
 
   private unsubscribeAll(store: IStore): void {
-    for (const topicFilter of [...store.subscriptions.keys()]) {
+    for (const topicFilter of store.subscriptions.keys()) {
       this.unsubscribe(store, topicFilter);
     }
   }

@@ -14,16 +14,10 @@ export class SqlitePacketIdStore implements IPacketIdStore {
     db: DatabaseSync,
     clientId: ClientId,
     tableName: "pending_incoming" | "pending_ack_outgoing",
-    entries?: Iterable<PacketId>,
   ) {
     this.db = db;
     this.clientId = clientId;
     this.tableName = tableName;
-    if (entries) {
-      for (const packetId of entries) {
-        this.add(packetId);
-      }
-    }
   }
 
   add(value: PacketId): this {

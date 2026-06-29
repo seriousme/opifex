@@ -48,34 +48,27 @@ export class SqliteStore implements IStore {
   constructor(
     db: DatabaseSync,
     clientId: ClientId,
-    pendingIncoming?: PacketId[],
-    pendingOutgoing?: Array<readonly [PacketId, PublishPacket]>,
-    pendingAckOutgoing?: PacketId[],
-    subscriptions?: Array<readonly [Topic, QoS]>,
   ) {
     this.db = db;
     this.clientId = clientId;
     this.pendingIncoming = new SqlitePacketIdStore(
       db,
       clientId,
-      "pending_incoming",
-      pendingIncoming,
+      "pending_incoming"
     );
     this.pendingOutgoing = new SqlitePacketStore(
       db,
       clientId,
-      pendingOutgoing,
+
     );
     this.pendingAckOutgoing = new SqlitePacketIdStore(
       db,
       clientId,
       "pending_ack_outgoing",
-      pendingAckOutgoing,
     );
     this.subscriptions = new SqliteSubscriptionStore(
       db,
       clientId,
-      subscriptions,
     );
   }
 

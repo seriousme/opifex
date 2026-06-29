@@ -428,11 +428,9 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
     });
   });
 
+  // === Concurrency Tests ===
 
-// === Concurrency Tests ===
-
-describe("Concurrency Tests", () => {
-  
+  describe("Concurrency Tests", () => {
     test(`${name} - multiple clients publishing simultaneously`, async () => {
       const { persistence, cleanup } = factory();
       const allReceived: PublishPacket[][] = [];
@@ -525,12 +523,11 @@ describe("Concurrency Tests", () => {
       assert.strictEqual(persistence.clientList.size, 0);
       cleanup();
     });
-  }
-);
+  });
 
-// === Packet ID Edge Cases ===
+  // === Packet ID Edge Cases ===
 
-describe("Packet ID Edge Cases", () => {
+  describe("Packet ID Edge Cases", () => {
     test(`${name} - nextId returns IDs in valid range`, () => {
       const { persistence, cleanup } = factory();
       const { store } = persistence.registerClient("client1", () => {}, false);
@@ -567,12 +564,11 @@ describe("Packet ID Edge Cases", () => {
       assert.notStrictEqual(id1, id2);
       cleanup();
     });
-  }
-);
+  });
 
-// === Large Payload Tests ===
+  // === Large Payload Tests ===
 
-describe("Large Payload Tests", () => {
+  describe("Large Payload Tests", () => {
     test(`${name} - handles large payloads`, () => {
       const { persistence, cleanup } = factory();
       const { store, received } = createReceiver(persistence, "client1");
@@ -625,12 +621,11 @@ describe("Large Payload Tests", () => {
       assert.strictEqual(received[0]?.payload?.length, 100 * 1024);
       cleanup();
     });
-  
-});
+  });
 
-// === Wildcard Edge Cases ===
+  // === Wildcard Edge Cases ===
 
-describe("Wildcard Edge Cases", () => {
+  describe("Wildcard Edge Cases", () => {
     test(`${name} - # at root matches all topics`, () => {
       const { persistence, cleanup } = factory();
       const { store, received } = createReceiver(persistence, "client1");
@@ -673,6 +668,5 @@ describe("Wildcard Edge Cases", () => {
       assert.strictEqual(received[0].qos, 1);
       cleanup();
     });
-  }
-);
+  });
 }

@@ -5,16 +5,14 @@ import { initializeDatabase } from "./sqliteDatabase.ts";
 
 test("SqlitePacketIdStore persists packet IDs for a client", () => {
   const db = initializeDatabase(":memory:");
-  const store = new SqlitePacketIdStore(db, "client-a", "pending_incoming", [
-    1,
-    2,
-  ]);
-
+  const store = new SqlitePacketIdStore(db, "client-a", "pending_incoming");
+  store.add(1);
+  store.add(2)
   assert.equal(store.size, 2);
   assert.equal(store.has(1), true);
   assert.equal(store.has(3), false);
   assert.deepStrictEqual(
-    [...store.keys()].sort((left, right) => left - right),
+    [...store.keys()].sort(),
     [1, 2],
   );
 
