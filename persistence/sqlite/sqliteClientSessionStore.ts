@@ -10,11 +10,8 @@ export type { SessionParameters } from "./sqliteStoreUtils.ts";
 export class SqliteClientSessionStore {
   private db: DatabaseSync;
 
-  constructor(db: DatabaseSync, sessionParameters?: SessionParameters) {
+  constructor(db: DatabaseSync) {
     this.db = db;
-    if (sessionParameters) {
-      this.set(sessionParameters);
-    }
   }
 
   set(session: SessionParameters): this {

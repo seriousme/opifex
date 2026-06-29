@@ -38,13 +38,30 @@ test("Registering a client with clean should reset persisted state", () => {
     false,
   );
   persistence.subscribe(store1, "/topic", qos);
-  persistence.deregisterClient(clientId);
+  const { store: store2 } = persistence.registerClient(
+    clientId,
+    handler,
+    true,
+  );
+  assert.deepStrictEqual(store2.subscriptions.size, 0);
+});
+
+test("Registering a client with no-clean should reinstate persisted state", () => {
+  const persistence = new SqlitePersistence();
+  const clientId = "sqliteClient";
+  const handler = () => {};
+  const { store: store1 } = persistence.registerClient(
+    clientId,
+    handler,
+    false,
+  );
+  persistence.subscribe(store1, "/topic", qos);
   const { store: store2 } = persistence.registerClient(
     clientId,
     handler,
     false,
   );
-  assert.deepStrictEqual(store2.subscriptions.size, 0);
+  assert.deepStrictEqual(store2.subscriptions.size, 1);
 });
 
 test("publish should deliver retained and subscription messages", () => {
