@@ -1,21 +1,21 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { SQLitePersistence } from "./sqlitePersistence.ts";
-import { SQLiteStore } from "./sqliteStore.ts";
+import { SqlitePersistence } from "./sqlitePersistence.ts";
+import { SqliteStore } from "./sqliteStore.ts";
 import { MQTTLevel, PacketType } from "../deps.ts";
 import type { PublishPacket } from "../deps.ts";
 
 const payloadAny = new TextEncoder().encode("any");
 const qos = 1;
 
-test("new should create new SQLitePersistence object", () => {
-  const persistence = new SQLitePersistence();
+test("new should create new SqlitePersistence object", () => {
+  const persistence = new SqlitePersistence();
   assert.deepStrictEqual(typeof persistence, "object");
-  assert.deepStrictEqual(persistence instanceof SQLitePersistence, true);
+  assert.deepStrictEqual(persistence instanceof SqlitePersistence, true);
 });
 
-test("Registering a client should return a SQLiteStore object", () => {
-  const persistence = new SQLitePersistence();
+test("Registering a client should return a SqliteStore object", () => {
+  const persistence = new SqlitePersistence();
   const clientId = "sqliteClient";
   const { store, existingSession } = persistence.registerClient(
     clientId,
@@ -24,12 +24,12 @@ test("Registering a client should return a SQLiteStore object", () => {
   );
   assert.deepStrictEqual(persistence.clientList.has(clientId), true);
   assert.deepStrictEqual(typeof store, "object");
-  assert.deepStrictEqual(store instanceof SQLiteStore, true);
+  assert.deepStrictEqual(store instanceof SqliteStore, true);
   assert.deepStrictEqual(existingSession, false);
 });
 
 test("Registering a client with clean should reset persisted state", () => {
-  const persistence = new SQLitePersistence();
+  const persistence = new SqlitePersistence();
   const clientId = "sqliteClient";
   const handler = () => {};
   const { store: store1 } = persistence.registerClient(
@@ -48,7 +48,7 @@ test("Registering a client with clean should reset persisted state", () => {
 });
 
 test("publish should deliver retained and subscription messages", () => {
-  const persistence = new SQLitePersistence();
+  const persistence = new SqlitePersistence();
   const clientId = "sqliteClient";
   const topic = "/myTopic";
   const publishPacket: PublishPacket = {

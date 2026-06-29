@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { initializeDatabase } from "./sqliteDatabase.ts";
-import { SQLiteStore } from "./sqliteStore.ts";
+import { SqliteStore } from "./sqliteStore.ts";
 
-test("SQLiteStore generates unique packet IDs", () => {
+test("SqliteStore generates unique packet IDs", () => {
   const db = initializeDatabase(":memory:");
-  const store = new SQLiteStore(db, "client-a");
+  const store = new SqliteStore(db, "client-a");
 
   const first = store.nextId();
   const second = store.nextId();

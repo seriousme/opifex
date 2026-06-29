@@ -1,12 +1,12 @@
 /**
  * @module
- * SQLite-backed sub-stores managing persistent states for single client sessions,
+ * Sqlite-backed sub-stores managing persistent states for single client sessions,
  * including incoming/outgoing packets, active subscriptions, and retained messages.
  */
 
 export {
   type SessionParameters,
-  SQLiteClientSessionStore,
+  SqliteClientSessionStore,
 } from "./sqliteClientSessionStore.ts";
 export { SqlitePacketIdStore } from "./sqlitePacketIdStore.ts";
 export { SqlitePacketStore } from "./sqlitePacketStore.ts";
@@ -34,9 +34,9 @@ import { SqlitePacketStore } from "./sqlitePacketStore.ts";
 import { SqliteSubscriptionStore } from "./sqliteSubscriptionStore.ts";
 
 /**
- * Core SQLite structural implementation organizing all underlying database relational sub-stores.
+ * Core Sqlite structural implementation organizing all underlying database relational sub-stores.
  */
-export class SQLiteStore implements IStore {
+export class SqliteStore implements IStore {
   private lastPacketId = 0;
   private db: DatabaseSync;
   clientId: ClientId;

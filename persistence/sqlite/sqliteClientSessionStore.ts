@@ -7,7 +7,7 @@ export type { SessionParameters } from "./sqliteStoreUtils.ts";
 /**
  * Handles persistence boundaries for contextual client sessions metadata tracking.
  */
-export class SQLiteClientSessionStore {
+export class SqliteClientSessionStore {
   private db: DatabaseSync;
 
   constructor(db: DatabaseSync, sessionParameters?: SessionParameters) {
