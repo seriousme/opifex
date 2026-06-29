@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { initializeDatabase } from "./sqliteDatabase.ts";
-import { SQLiteStore } from "./sqliteStoreCore.ts";
+import { SQLiteStore } from "./sqliteStore.ts";
 
 test("SQLiteStore generates unique packet IDs", () => {
   const db = initializeDatabase(":memory:");
