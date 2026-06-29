@@ -10,7 +10,7 @@ import {
 
 /**
  * A database-backed Store that implements the Map interface.
- * It directly persists and retrieves MQTT packets from SQLite
+ * It directly persists and retrieves MQTT packets from Sqlite
  * without caching them in memory.
  */
 export class SqlitePacketStore implements IPacketStore {

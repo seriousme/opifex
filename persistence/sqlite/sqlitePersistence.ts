@@ -1,6 +1,6 @@
 /**
  * @module
- * SQLite-backed implementation of the persistent layer wrapper. Handles full multi-client lifecycle,
+ * Sqlite-backed implementation of the persistent layer wrapper. Handles full multi-client lifecycle,
  * schema initialization, connection routing, and complex transaction pruning.
  */
 
@@ -19,9 +19,9 @@ import type {
 } from "../mod.ts";
 import { Trie } from "../deps.ts";
 import {
-  SQLiteClientSessionStore,
+  SqliteClientSessionStore,
   SqliteRetainStore,
-  SQLiteStore,
+  SqliteStore,
 } from "./sqliteStore.ts";
 import { deleteClientState, initializeDatabase } from "./sqliteDatabase.ts";
 
@@ -34,24 +34,24 @@ type ClientSubscription = {
 };
 
 /**
- * An enterprise SQLite persistent storage implementation managing stateful broker processing boundaries.
+ * An enterprise Sqlite persistent storage implementation managing stateful broker processing boundaries.
  */
-export class SQLitePersistence implements IPersistence {
+export class SqlitePersistence implements IPersistence {
   clientList: Map<ClientId, Client> = new Map();
   retained: SqliteRetainStore;
   private trie: Trie<ClientSubscription>;
   db: sqlite.DatabaseSync;
-  sessionStore: SQLiteClientSessionStore;
+  sessionStore: SqliteClientSessionStore;
 
   /**
-   * Prepares and loads persistent SQLite database storage components.
+   * Prepares and loads persistent Sqlite database storage components.
    * @param filename Configuration target string designating path constraints. Defaults to ':memory:'.
    */
   constructor(filename = SQLITE_DATABASE_URL) {
     this.db = initializeDatabase(filename);
     this.trie = new Trie(true);
     this.retained = new SqliteRetainStore(this.db);
-    this.sessionStore = new SQLiteClientSessionStore(this.db);
+    this.sessionStore = new SqliteClientSessionStore(this.db);
   }
 
   /**
@@ -69,7 +69,7 @@ export class SQLitePersistence implements IPersistence {
       deleteClientState(this.db, clientId);
     }
     const existingSession = !!this.sessionStore.get(clientId);
-    const store = new SQLiteStore(this.db, clientId);
+    const store = new SqliteStore(this.db, clientId);
     if (!existingSession) {
       this.sessionStore.set({ clientId, existingSession: true });
     }

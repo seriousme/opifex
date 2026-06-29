@@ -1,5 +1,5 @@
 /**
- * Shared helpers for SQLite-backed stores.
+ * Shared helpers for Sqlite-backed stores.
  */
 
 import type { PublishPacket } from "../../mqttPacket/publish.ts";
