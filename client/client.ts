@@ -8,6 +8,7 @@ import {
 
 import type {
   ConnectPacket,
+  IStore,
   PublishPacket,
   SockConn,
   SubscribePacket,
@@ -116,8 +117,9 @@ export class Client {
   /**
    * Creates a new MQTT client instance
    */
-  constructor() {
-    this.ctx = new Context(new MemoryStore(), this);
+  constructor(store?: IStore) {
+    const cStore = store ? store : new MemoryStore();
+    this.ctx = new Context(cStore, this);
     this.clientId = generateClientId(this.clientIdPrefix);
     this.numberOfRetries = DEFAULT_RETRIES;
   }

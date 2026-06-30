@@ -65,4 +65,6 @@ export interface IStore {
     void,
     unknown
   >;
+
+  nextId(): PacketId;
 }

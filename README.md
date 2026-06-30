@@ -28,7 +28,7 @@ The following types are currently provided:
 
 |        | Plugable | Memeory | sqlLite |
 | ------ | -------- | ------- | ------- |
-| Client | ❌       | ✅      | ❌      |
+| Client | ✅       | ✅      | ❌      |
 | Server | ✅       | ✅      | ✅      |
 
 ## Usage
@@ -97,8 +97,8 @@ found in the [examples](/examples/) folder.
    keep track of its state and associated timers.
 
 5. Persistence of data is handled by a pluggable persistence module
-   ([persistence](persistence)) which currently offers memory and sqlite
-   persistence ([persistence/memory](persistence/memory))
+   ([persistence](persistence)) which currently offers memory persistence
+   ([persistence/memory](persistence/memory)) and sqlite persistence
    ([persistence/sqlite](persistence/sqlite)) but can be extended with database
    backed persistence supported by third party modules.
 
