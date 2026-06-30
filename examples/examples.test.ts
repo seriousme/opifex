@@ -6,7 +6,7 @@ import { TlsServer } from "@seriousme/opifex/tlsServer";
 import { SqlitePersistence } from "@seriousme/opifex/persistence";
 import { delay, logger, LogLevel } from "@seriousme/opifex/utils";
 import type { PublishPacket, QoS } from "@seriousme/opifex/mqttPacket";
-import { generateLocalhostCerts } from "../dev_utils/mod.ts";
+import { generateLocalhostCerts } from "../dev_utils/generateCert.ts";
 
 logger.level(LogLevel.info);
 
@@ -93,6 +93,7 @@ test("Test pubSub using TCP client and server using memoryPersistence", async fu
 test("Test pubSub using TLS client and server and sqlitePersistence", async function () {
   // the localhost certs generate here are great for testing but lack securiity
   // use something like LetsEncrypt for any serious server
+  // generateLocalhostCerts is a dev tool and relies on node-forge as a (dev)dependency
   const { key, cert, caCert } = generateLocalhostCerts();
   const dbFile = ":memory:";
   const persistence = new SqlitePersistence(dbFile);
@@ -107,8 +108,8 @@ test("Test pubSub using TLS client and server and sqlitePersistence", async func
   logger.info(
     `TLS server running on port: ${server.port}, address: ${server.address}`,
   );
-  // switch between IPv4 and IPv6
-  const hostname = server.address === "0.0.0.0" ? "127.0.0.1" : "::1";
+  // pick the correct hostname
+  const hostname = server.address === "0.0.0.0" ? "127.0.0.1" : server.address;
 
   const params = {
     url: new URL(`mqtts://${hostname}:${server.port}`),
@@ -232,7 +233,7 @@ test("Test subscription persistence after reconnect", async function () {
   // Verify message was received
   assert.equal(received.length, 1, "Should receive one message");
   assert.equal(
-    received[0].topic,
+    received[0]?.topic,
     testTopic,
     "Should receive message on subscribed topic",
   );
