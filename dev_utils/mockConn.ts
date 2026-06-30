@@ -1,5 +1,3 @@
-import type { BufferedAsyncIterable } from "../utils/mod.ts";
-
 class Uint8Writer implements WritableStreamDefaultWriter {
   private buff: Uint8Array;
   private pos: number;
@@ -23,26 +21,6 @@ class Uint8Writer implements WritableStreamDefaultWriter {
   }
 }
 
-class Uint8QueuedWriter implements WritableStreamDefaultWriter {
-  private queue: BufferedAsyncIterable<Uint8Array>;
-  closed = Promise.resolve(undefined);
-  close = () => Promise.resolve();
-  abort = () => Promise.resolve();
-  ready = Promise.resolve(undefined);
-  releaseLock = () => {};
-  desiredSize = 20;
-
-  constructor(
-    queue: BufferedAsyncIterable<Uint8Array>,
-  ) {
-    this.queue = queue;
-  }
-  write(chunk: Uint8Array): Promise<void> {
-    this.queue.push(chunk);
-    return Promise.resolve();
-  }
-}
-
 export function createMockSockConn(
   readerBuffs: Uint8Array[],
   writerBuf: Uint8Array,
@@ -50,20 +28,6 @@ export function createMockSockConn(
 ) {
   const readable = ReadableStream.from(readerBuffs);
   const writable = new WritableStream(new Uint8Writer(writerBuf));
-  return {
-    readable,
-    writable,
-    close,
-  };
-}
-
-export function createMockQueueSockConn(
-  r: BufferedAsyncIterable<Uint8Array>,
-  w: BufferedAsyncIterable<Uint8Array>,
-  close = () => {},
-) {
-  const readable = ReadableStream.from(r);
-  const writable = new WritableStream(new Uint8QueuedWriter(w));
   return {
     readable,
     writable,

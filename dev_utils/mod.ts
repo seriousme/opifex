@@ -1,4 +1,4 @@
-export { createMockQueueSockConn, createMockSockConn } from "./mockConn.ts";
+export { createMockSockConn } from "./mockConn.ts";
 export { createWebStreamPair } from "./webStreamPair.ts";
 export {
   delay,
