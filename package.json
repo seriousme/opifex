@@ -2,23 +2,36 @@
   "name": "@seriousme/opifex",
   "version": "1.11.3",
   "description": "MQTT client & server for Deno & NodeJS and Bun",
-  "type": "module",
-  "scripts": {
-    "test": "node --experimental-strip-types --test --test-skip-pattern='/^Deno/'",
-    "prebuild": "rm -rf dist",
-    "build": "npx -p typescript tsc --build",
-    "format": "deno fmt",
-    "coverage": "deno test -A . --coverage --clean --coverage-raw-data-only && deno coverage --exclude=.config --exclude=dev_utils --html",
-    "preversion": "npm run test"
+  "author": "Hans Klunder",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/seriousme/opifex.git"
   },
+  "bugs": {
+    "url": "https://github.com/seriousme/opifex/issues"
+  },
+  "homepage": "https://github.com/seriousme/opifex#readme",
   "keywords": [
     "MQTT",
     "typescript",
     "mqtt-broker"
   ],
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
   "bin": {
     "mqtt": "dist/bin/mqtt.js",
     "demoServer": "dist/bin/demoServer.js"
+  },
+  "scripts": {
+    "test": "node  --test --test-skip-pattern='/^Deno/'",
+    "prebuild": "rm -rf dist",
+    "build": "npx -p typescript tsc --build",
+    "format": "deno fmt",
+    "coverage": "deno test -A . --coverage --clean --coverage-raw-data-only && deno coverage --exclude=.config --exclude=dev_utils --html",
+    "preversion": "npm run test"
   },
   "files": [
     "package.json",
@@ -31,46 +44,49 @@
     "dist/**/*.d.ts.map"
   ],
   "exports": {
-    "./tcpClient": "./dist/node/tcpClient.js",
-    "./tcpServer": "./dist/node/tcpServer.js",
-    "./tlsServer": "./dist/node/tlsServer.js",
-    "./server": "./dist/server/mod.js",
-    "./client": "./dist/client/mod.js",
-    "./trie": "./dist/trie/trie.js",
-    "./persistence": "./dist/persistence/mod.js",
-    "./mqttConn": "./dist/mqttConn/mqttConn.js",
-    "./mqttPacket": "./dist/mqttPacket/mod.js",
-    "./utils": "./dist/utils/mod.js"
-  },
-  "deno": {
-    "exports": {
-      "./tcpClient": "./deno/tcpClient.ts",
-      "./tcpServer": "./deno/tcpServer.ts",
-      "./tlsServer": "./deno/tlsServer.ts",
-      "./server": "./server/mod.ts",
-      "./client": "./client/mod.ts",
-      "./trie": "./trie/trie.ts",
-      "./persistence": "./persistence/mod.ts",
-      "./mqttConn": "./mqttConn/mqttConn.ts",
-      "./mqttPacket": "./mqttPacket/mod.ts",
-      "./utils": "./utils/mod.ts"
+    "./tcpClient": {
+      "deno": "./deno/tcpClient.ts",
+      "default": "./dist/node/tcpClient.js"
     },
-    "exclude": [
-      "dist"
-    ]
+    "./tcpServer": {
+      "deno": "./deno/tcpServer.ts",
+      "default": "./dist/node/tcpServer.js"
+    },
+    "./tlsServer": {
+      "deno": "./deno/tlsServer.ts",
+      "default": "./dist/node/tlsServer.js"
+    },
+    "./server": {
+      "deno": "./server/mod.ts",
+      "default": "./dist/server/mod.js"
+    },
+    "./client": {
+      "deno": "./client/mod.ts",
+      "default": "./dist/client/mod.js"
+    },
+    "./trie": {
+      "deno": "./trie/trie.ts",
+      "default": "./dist/trie/trie.js"
+    },
+    "./persistence": {
+      "deno": "./persistence/mod.ts",
+      "default": "./dist/persistence/mod.js"
+    },
+    "./mqttConn": {
+      "deno": "./mqttConn/mqttConn.ts",
+      "default": "./dist/mqttConn/mqttConn.js"
+    },
+    "./mqttPacket": {
+      "deno": "./mqttPacket/mod.ts",
+      "default": "./dist/mqttPacket/mod.js"
+    },
+    "./utils": {
+      "deno": "./utils/mod.ts",
+      "default": "./dist/utils/mod.js"
+    }
   },
-  "author": "Hans Klunder",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/seriousme/opifex.git"
-  },
-  "bugs": {
-    "url": "https://github.com/seriousme/opifex/issues"
-  },
-  "homepage": "https://github.com/seriousme/opifex#readme",
   "devDependencies": {
-    "@types/node": "^24.12.4",
+    "@types/node": "^26.0.1",
     "@types/node-forge": "^1.3.14",
     "node-forge": "^1.4.0"
   }
