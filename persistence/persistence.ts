@@ -9,7 +9,7 @@ import type { IStore } from "./store.ts";
  * Maximum packet ID value for MQTT messages (0xffff/65535)
  * @constant {number}
  */
-export const maxPacketId = 0xffff;
+export const MAX_PACKET_ID = 0xffff;
 /**
  * Handler function type for processing publish packets
  * @callback Handler
@@ -30,6 +30,10 @@ export type RetainStore = Map<Topic, PublishPacket>;
  * @property {Handler} handler - The client's packet handler function
  */
 export type Client = { store: IStore; handler: Handler };
+export type ClientRegistrationResult = {
+  store: IStore;
+  existingSession: boolean;
+};
 
 /**
  * Interface for persistence implementations to store messages and subscriptions
@@ -43,19 +47,17 @@ export interface IPersistence {
   clientList: Map<ClientId, Client>;
 
   /**
-   * Map of retained messages by topic
-   * @type {RetainStore}
-   */
-  retained: RetainStore;
-
-  /**
    * Register a new client with the persistence layer
    * @param {ClientId} clientId - Unique identifier for the client
    * @param {Handler} handler - Packet handler function for the client
    * @param {boolean} clean - Whether to start with a clean session
    * @returns {IStore} The client's message store
    */
-  registerClient(clientId: ClientId, handler: Handler, clean: boolean): IStore;
+  registerClient(
+    clientId: ClientId,
+    handler: Handler,
+    clean: boolean,
+  ): ClientRegistrationResult;
 
   /**
    * Remove a client from the persistence layer

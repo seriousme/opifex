@@ -1,35 +1,57 @@
 import type { Topic, TopicFilter } from "./types.ts";
 
-// deno-lint-ignore no-control-regex
-const invalidUTF8regEx = new RegExp(/\x00|\uFFFD/);
-// deno-lint-ignore no-control-regex
-const invalidTopicRegEx = new RegExp(/^$|\+|#|\x00|\uFFFD/);
-// deno-lint-ignore no-control-regex
-const invalidTopicFilterRegEx = new RegExp(/^$|#.|[^\/]\+|\+[^\/]|\x00|\uFFFD/);
-
 /**
- * check for invalid UTF-8 characters
- * @param value string to test
- * @returns true if the string contains invalid UTF-8 characters
+ * Checks for invalid UTF-8 characters or null bytes.
+ * Utilizes the modern native `isWellFormed()` method for optimal performance.
+ *
+ * @param value - The string to validate.
+ * @returns `true` if the string contains invalid UTF-8 sequences or a null byte, otherwise `false`.
  */
 export function invalidUTF8(value: string): boolean {
-  return invalidUTF8regEx.test(value);
+  return value.includes("\x00") || !value.isWellFormed();
 }
 
 /**
- * check for invalid topic characters
- * @param value
- * @returns true if the topic is invalid
+ * Checks for invalid characters in an MQTT topic name.
+ * An MQTT topic name cannot be empty, cannot contain wildcards (+, #), and must be valid UTF-8.
+ *
+ * @param value - The topic name to validate.
+ * @returns `true` if the topic is invalid, otherwise `false`.
  */
 export function invalidTopic(value: Topic): boolean {
-  return invalidTopicRegEx.test(value);
+  if (value === "" || invalidUTF8(value)) {
+    return true;
+  }
+  // Native .includes() is significantly faster than regular expressions for basic character checks
+  return value.includes("+") || value.includes("#");
 }
 
 /**
- * check for invalid topic filter characters
- * @param value topic filter to test
- * @returns true if the topic filter is invalid
+ * Checks for invalid characters and malformed wildcards in an MQTT topic filter.
+ *
+ * Wildcard rules according to the MQTT specification:
+ * - '+' must occupy an entire level (e.g., 'a/+/b' is valid, 'a+/b' is invalid)
+ * - '#' must only appear at the very end of the string (e.g., 'a/#' is valid, 'a/#/b' is invalid)
+ *
+ * @param value - The topic filter to validate.
+ * @returns `true` if the topic filter is invalid, otherwise `false`.
  */
 export function invalidTopicFilter(value: TopicFilter): boolean {
-  return invalidTopicFilterRegEx.test(value);
+  if (value === "" || invalidUTF8(value)) {
+    return true;
+  }
+
+  // Rule 1: A '#' wildcard must NEVER be followed by any other character
+  if (/#./.test(value)) {
+    return true;
+  }
+
+  // Rule 2: A '+' wildcard must be isolated by slashes (or string boundaries).
+  // Modern lookbehind (?<=) and lookahead (?=) make this highly readable.
+  const malformedPlus = /(?<=[^\/])\+|\+(?=[^\/])/.test(value);
+  if (malformedPlus) {
+    return true;
+  }
+
+  return false;
 }

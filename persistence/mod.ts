@@ -3,10 +3,11 @@
  * @description Module for handling MQTT message persistence and client management
  */
 export type {
+  IBaseStore,
+  IPacketIdStore,
+  IPacketStore,
   IStore,
-  PacketIdStore,
-  PacketStore,
-  SubscriptionStore,
+  ISubscriptionStore,
 } from "./store.ts";
 export type {
   ClientId,
@@ -18,8 +19,10 @@ export type {
 } from "./deps.ts";
 export type {
   Client,
+  ClientRegistrationResult,
   Handler,
   IPersistence,
   RetainStore,
 } from "./persistence.ts";
-export { maxPacketId } from "./persistence.ts";
+export { MAX_PACKET_ID } from "./persistence.ts";
+export { SqlitePersistence } from "./sqlite/sqlitePersistence.ts";

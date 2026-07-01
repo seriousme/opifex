@@ -30,7 +30,7 @@
     "isolatedModules": true,
     "skipLibCheck": true
   },
-  "include": ["bin/*.ts"],
+  "include": ["bin/*.ts", "examples/*.ts"],
   "exclude": [
     "dist",
     "tools",

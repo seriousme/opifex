@@ -8,13 +8,14 @@ import {
 
 import type {
   ConnectPacket,
+  IStore,
   PublishPacket,
   SockConn,
   SubscribePacket,
   TAuthenticationResult,
 } from "./deps.ts";
 
-import { noop } from "../utils/utils.ts";
+import { noop } from "../utils/mod.ts";
 
 import { Context } from "./context.ts";
 import type { TConnectionState } from "./ConnectionState.ts";
@@ -102,7 +103,7 @@ export class Client {
 
   protected clientIdPrefix = CLIENTID_PREFIX;
   protected numberOfRetries = DEFAULT_RETRIES;
-  protected url: URL = new URL(DEFAULT_URL);
+  protected connectUrl: URL = new URL(DEFAULT_URL);
   protected keepAlive = DEFAULT_KEEPALIVE;
   protected protocolLevel = DEFAULT_PROTOCOLLEVEL;
   protected autoReconnect = true;
@@ -116,14 +117,19 @@ export class Client {
   /**
    * Creates a new MQTT client instance
    */
-  constructor() {
-    this.ctx = new Context(new MemoryStore(), this);
+  constructor(store?: IStore) {
+    const cStore = store ? store : new MemoryStore();
+    this.ctx = new Context(cStore, this);
     this.clientId = generateClientId(this.clientIdPrefix);
     this.numberOfRetries = DEFAULT_RETRIES;
   }
 
-  get connectionState(): TConnectionState {
+  public get connectionState(): TConnectionState {
     return this.ctx.connectionState;
+  }
+
+  public get url(): URL {
+    return this.connectUrl;
   }
 
   /**
@@ -166,9 +172,9 @@ export class Client {
       logger.debug(`${isReconnect ? "re" : ""}connecting, attempt ${attempt}`);
       try {
         const conn = await this.createConn(
-          this.url.protocol,
-          this.url.hostname,
-          Number(this.url.port) ?? undefined,
+          this.connectUrl.protocol,
+          this.connectUrl.hostname,
+          Number(this.connectUrl.port) ?? undefined,
           this.caCerts,
           this.cert,
           this.key,
@@ -213,7 +219,7 @@ export class Client {
    * @returns Promise resolving to authentication result
    */
   connect(params: ConnectParameters = {}): Promise<TAuthenticationResult> {
-    this.url = params?.url || this.url;
+    this.connectUrl = params?.url || this.connectUrl;
     this.numberOfRetries = params.numberOfRetries || this.numberOfRetries;
     this.caCerts = params?.caCerts;
     this.cert = params?.cert;

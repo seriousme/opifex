@@ -51,7 +51,14 @@ export class TcpClient extends Client {
     key?: string,
   ): Promise<Deno.TlsConn> {
     logger.debug({ hostname, port, caCerts, cert });
-    return await Deno.connectTls({ hostname, port, caCerts, cert, key });
+    const connectOpts = {
+      hostname,
+      port,
+      ...(caCerts !== undefined && { caCerts }),
+      ...(cert !== undefined && { cert }),
+      ...(key !== undefined && { key }),
+    };
+    return await Deno.connectTls(connectOpts);
   }
 
   protected override createConn(

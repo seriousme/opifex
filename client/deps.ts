@@ -39,3 +39,4 @@ export type { SockConn } from "../socket/socket.ts";
 export { Timer } from "../timer/timer.ts";
 export { BufferedAsyncIterable, Deferred, logger } from "../utils/mod.ts";
 export { MemoryStore } from "./store/memoryStore.ts";
+export type { IStore } from "./store/store.ts";

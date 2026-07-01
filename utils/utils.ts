@@ -3,4 +3,7 @@
  * deserve their own dedicated files.
  */
 
+import { setTimeout as delay } from "node:timers/promises";
+export { delay };
+
 export const noop = () => {};

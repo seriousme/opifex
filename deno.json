@@ -4,6 +4,7 @@
   "exports": {
     "./tcpClient": "./deno/tcpClient.ts",
     "./tcpServer": "./deno/tcpServer.ts",
+    "./tlsServer": "./deno/tlsServer.ts",
     "./server": "./server/mod.ts",
     "./client": "./client/mod.ts",
     "./trie": "./trie/trie.ts",

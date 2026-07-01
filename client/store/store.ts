@@ -12,7 +12,7 @@ import type {
 /**
  * Maximum value for MQTT packet IDs (65535)
  */
-export const maxPacketId = 0xffff;
+export const MAX_PACKET_ID = 0xffff;
 
 /**
  * Generic type for storing MQTT packets by their packet ID
@@ -65,4 +65,6 @@ export interface IStore {
     void,
     unknown
   >;
+
+  nextId(): PacketId;
 }
