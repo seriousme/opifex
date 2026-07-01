@@ -1,17 +1,18 @@
 # MQTT compatibility tests
 
-Measures Opifex's **actual** MQTT 5.0 and 3.1.1 protocol compatibility by running
-the vendor-neutral [Eclipse Paho interoperability suite][paho] against a broker
-booted from this repo, and reports an honest pass percentage. Wired into CI by
+Measures Opifex's **actual** MQTT 5.0 and 3.1.1 protocol compatibility by
+running the vendor-neutral [Eclipse Paho interoperability suite][paho] against a
+broker booted from this repo, and reports an honest pass percentage. Wired into
+CI by
 [`.github/workflows/mqtt-compat.yml`](../../.github/workflows/mqtt-compat.yml),
 which posts the result as a sticky PR comment and a job summary.
 
 ## Files
 
-| File            | Purpose                                                                                                           |
-| --------------- | ----------------------------------------------------------------------------------------------------------------- |
+| File            | Purpose                                                                                                            |
+| --------------- | ------------------------------------------------------------------------------------------------------------------ |
 | `broker.js`     | Boots Opifex on a plain-TCP port (`MQTT_PORT`, default 1883) with the v5 capabilities the suite exercises enabled. |
-| `run_compat.py` | Runs each Paho test in an isolated subprocess against the broker, emits `report.md` + `result.json`. Pure stdlib. |
+| `run_compat.py` | Runs each Paho test in an isolated subprocess against the broker, emits `report.md` + `result.json`. Pure stdlib.  |
 
 ## Running locally
 
@@ -69,8 +70,8 @@ reason string`. Pick the dict by what the
 failure _means_:
 
 - A genuine Opifex gap that should drag the score down → **`EXPECTED_GAPS`**. It
-  still runs and counts as a failure; when Opifex later implements it the harness
-  flags the 🎉 xpass so you remove the entry.
+  still runs and counts as a failure; when Opifex later implements it the
+  harness flags the 🎉 xpass so you remove the entry.
 - A test the harness can't fairly evaluate against _any_ broker →
   **`HARNESS_LIMITED`**. It is skipped before the gap logic and excluded from
   the denominator. A method must live in **exactly one** list (`HARNESS_LIMITED`
