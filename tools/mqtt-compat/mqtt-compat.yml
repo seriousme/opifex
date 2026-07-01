@@ -1,6 +1,6 @@
 name: MQTT Compatibility
 
-# Measures aedes's actual MQTT 5.0 + 3.1.1 compatibility by running the vendor-
+# Measures Opifex's actual MQTT 5.0 + 3.1.1 compatibility by running the vendor-
 # neutral Eclipse Paho interoperability suite against a broker booted from this
 # branch, then posts the pass-rate as a sticky PR comment and a job summary.
 
@@ -51,9 +51,9 @@ jobs:
           git clone --filter=blob:none --no-checkout https://github.com/eclipse-paho/paho.mqtt.testing paho
           git -C paho checkout "$PAHO_REF"
 
-      - name: Start aedes broker
+      - name: Start Opifex broker
         run: |
-          node tools/mqtt-compat/broker.js &
+          node tools/mqtt-compat/broker.ts &
           echo "BROKER_PID=$!" >> "$GITHUB_ENV"
           python - "$MQTT_PORT" <<'PY'
           import socket, sys, time
@@ -75,7 +75,7 @@ jobs:
             --timeout 45 \
             --out report.md --json result.json
 
-      - name: Stop aedes broker
+      - name: Stop Opifex broker
         if: always()
         run: kill "${BROKER_PID}" 2>/dev/null || true
 
