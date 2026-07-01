@@ -33,6 +33,7 @@
   "include": ["bin/*.ts"],
   "exclude": [
     "dist",
+    "tools",
     "deno",
     "node_modules"
   ]
