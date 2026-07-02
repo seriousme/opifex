@@ -19,7 +19,6 @@ import { noop } from "../utils/mod.ts";
 
 import { Context } from "./context.ts";
 import type { TConnectionState } from "./ConnectionState.ts";
-import { assert } from "../utils/assert.ts";
 import { BufferedAsyncIterable } from "./deps.ts";
 
 /**
@@ -85,6 +84,20 @@ export const DEFAULT_KEEPALIVE = 60; // 60 seconds
 const DEFAULT_RETRIES = 3; // on first connect
 const CLIENTID_PREFIX = "opifex"; // on first connect
 
+// convert an ErrorEvent into an Error
+// NodeJS does not know ErrorEvent
+function normalizeError(err: unknown): Error {
+  if (typeof ErrorEvent !== "undefined" && err instanceof ErrorEvent) {
+    return new Error(err.message);
+  }
+
+  if (err instanceof Error) {
+    return err;
+  }
+
+  throw err;
+}
+
 /**
  * The Client class provides an MQTT Client that can be used to connect to
  * a MQTT broker and publish/subscribe messages.
@@ -107,10 +120,10 @@ export class Client {
   protected keepAlive = DEFAULT_KEEPALIVE;
   protected protocolLevel = DEFAULT_PROTOCOLLEVEL;
   protected autoReconnect = true;
-  private caCerts?: string[] | undefined;
-  private cert?: string | undefined;
-  private key?: string | undefined;
-  private clientId: string;
+  protected caCerts?: string[] | undefined;
+  protected cert?: string | undefined;
+  protected key?: string | undefined;
+  protected clientId: string;
   private ctx: Context;
   private connectPacket?: ConnectPacket;
 
@@ -134,25 +147,12 @@ export class Client {
 
   /**
    * Creates a new connection to the MQTT broker
-   * @param protocol - The protocol to use (mqtt, mqtts, etc)
-   * @param _hostname - The hostname to connect to
-   * @param _port - The port to connect to
-   * @param _caCerts - Optional CA certificates
-   * @param _cert - Optional client certificate
-   * @param _key - Optional client key
    * @returns Promise resolving to a SockConn connection
    */
-  protected createConn(
-    protocol: string,
-    _hostname: string,
-    _port?: number,
-    _caCerts?: string[],
-    _cert?: string,
-    _key?: string,
-  ): Promise<SockConn> {
+  protected createConn(): Promise<SockConn> {
     // if you need to support alternative connection types just
     // overload this method in your subclass
-    throw new Error(`Unsupported protocol: ${protocol}`);
+    throw new Error(`Unsupported protocol: ${this.url.protocol}`);
   }
 
   /**
@@ -171,14 +171,7 @@ export class Client {
     while (tryConnect) {
       logger.debug(`${isReconnect ? "re" : ""}connecting, attempt ${attempt}`);
       try {
-        const conn = await this.createConn(
-          this.connectUrl.protocol,
-          this.connectUrl.hostname,
-          Number(this.connectUrl.port) ?? undefined,
-          this.caCerts,
-          this.cert,
-          this.key,
-        );
+        const conn = await this.createConn();
         // if we get this far we have a connection
         tryConnect =
           (await this.ctx.handleConnection(conn, this.connectPacket)) &&
@@ -188,12 +181,9 @@ export class Client {
         this.connectPacket.clean = false;
         this.ctx.close();
       } catch (err) {
-        assert(
-          err instanceof Error,
-          `Caught something that is not an instance of Error: ${err}`,
-        );
-        queueMicrotask(() => this.onError(err));
-        lastMessage = err;
+        const normalizedErr = normalizeError(err);
+        queueMicrotask(() => this.onError(normalizedErr));
+        lastMessage = normalizedErr;
         logger.debug({ lastMessage });
       }
 

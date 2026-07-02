@@ -1,44 +1,46 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { TcpClient } from "./tcpClient.ts";
-import { TlsServer } from "./tlsServer.ts";
-import { logger, LogLevel } from "../utils/mod.ts";
-import type { PublishPacket, QoS } from "../mqttPacket/mod.ts";
-import { delay, generateLocalhostCerts } from "../dev_utils/mod.ts";
+import { TcpClient } from "@seriousme/opifex/tcpClient";
+import { TlsServer } from "@seriousme/opifex/tlsServer";
+import { SqlitePersistence } from "@seriousme/opifex/persistence";
+import { delay, logger, LogLevel } from "@seriousme/opifex/utils";
+import type { PublishPacket, QoS } from "@seriousme/opifex/mqttPacket";
+import { generateLocalhostCerts } from "../dev_utils/generateCert.ts";
 
 logger.level(LogLevel.info);
 
-const { key, cert, caCert } = generateLocalhostCerts();
-
-test("Deno: Test pubSub using client and server", async () => {
-  const server = new TlsServer(
-    { hostname: "localhost", port: 0, key, cert },
-    {},
-  );
+test("Test pubSub using TLS client and server and sqlitePersistence", async function () {
+  // the localhost certs generate here are great for testing but lack securiity
+  // use something like LetsEncrypt for any serious server
+  // generateLocalhostCerts is a dev tool and relies on node-forge as a (dev)dependency
+  const { key, cert, caCert } = generateLocalhostCerts();
+  const dbFile = ":memory:";
+  const persistence = new SqlitePersistence(dbFile);
+  const server = new TlsServer({ port: 0, key, cert }, { persistence });
   server.start();
 
   assert.deepStrictEqual(
     server.port !== undefined,
     true,
-    "server runs a a random port",
+    "TLS server runs on a random port",
   );
-  logger.verbose("server running on: ", {
-    port: server.port,
-    address: server.address,
-  });
+  logger.info(
+    `TLS server running on port: ${server.port}, address: ${server.address}`,
+  );
+  // pick the correct hostname
+  const hostname = server.address === "0.0.0.0" ? "127.0.0.1" : server.address;
 
   const params = {
-    url: new URL(`mqtts://localhost:${server.port}`),
+    url: new URL(`mqtts://${hostname}:${server.port}`),
     numberOfRetries: 0,
+    // since we signed our server cert ourselves we need to add the caCert
+    // this is not required if you use a public Certificate Authority
     caCerts: [caCert],
   };
 
-  logger.verbose("client parameters: ", params);
-
   const client = new TcpClient();
-
   await client.connect(params);
-  assert(true, "Client connected to server");
+  logger.info(`Client connected to server at ${client.url}`);
 
   const publishSet: { topic: string; qos: QoS }[] = [
     { topic: "t0@q0", qos: 0 },
@@ -61,9 +63,9 @@ test("Deno: Test pubSub using client and server", async () => {
   });
 
   // the IIFE ensures message reception runs in parallel
-  logger.verbose(`Start receiving`);
+  logger.info(`Start receiving`);
   const received: PublishPacket[] = [];
-  (async () => {
+  (async function () {
     for await (const item of client.messages()) {
       logger.verbose(`Receiving: ${item.topic} -- ${item.qos}`);
       received.push(item);
@@ -80,10 +82,10 @@ test("Deno: Test pubSub using client and server", async () => {
   }
 
   await delay(100);
-  logger.verbose(`Disconnect client`);
+  logger.info(`Disconnect client`);
   await client.disconnect();
 
-  logger.verbose(`Check completeness`);
+  logger.info(`Check completeness`);
   for (const item of publishSet) {
     const found = received.find((f) =>
       f.topic == item.topic && f.qos === item.qos
@@ -92,6 +94,6 @@ test("Deno: Test pubSub using client and server", async () => {
     assert(found, `${item.topic} -- ${item.qos}`);
   }
 
-  logger.verbose(`Stop server`);
+  logger.info(`Stop server`);
   server.stop();
 });

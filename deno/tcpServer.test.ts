@@ -7,7 +7,7 @@ import type { PublishPacket, QoS } from "../mqttPacket/mod.ts";
 
 logger.level(LogLevel.info);
 
-test("Deno Test pubSub using client and server", async () => {
+test("Deno: Test pubSub using client and server", async () => {
   const server = new TcpServer({ port: 0 }, {});
   server.start();
 
@@ -84,7 +84,7 @@ test("Deno Test pubSub using client and server", async () => {
   server.stop();
 });
 
-test("Deno Test subscription persistence after reconnect", async () => {
+test("Deno: Test subscription persistence after reconnect", async () => {
   // Start server
   const server = new TcpServer({ port: 0 }, {});
   server.start();

@@ -56,20 +56,21 @@ but for historic reasons `/deno` still exists.
 
 ## Example
 
-A simple server example using Deno.
+A simple server example.
+
+import { TcpServer}
 
 ```typescript
-import { MqttServer } from "./server/mod.ts";
-
-const listener = Deno.listen();
-const mqttServer = new MqttServer(mqttOptions);
-for await (const conn of this.listener) {
-  mqttServer.serve(conn);
-}
+import { TcpServer } from "@seriousme/opifex/tcpServer";
+const server = new TcpServer({ port: 1883 }, {});
+server.start();
+console.log(
+  `MQTT server running on port: ${server.port}, address: ${server.address}`,
+);
 ```
 
-A more elaborate example including client and server, TLS and sqlite can be
-found in the [examples](/examples/) folder.
+More elaborate examples including client and server, TLS, Websockets and sqlite
+can be found in the [examples](/examples/) folder.
 
 ## Architecture
 
@@ -111,17 +112,24 @@ found in the [examples](/examples/) folder.
 
 ## Exports
 
-| Export                        | Description                                             |
-| ----------------------------- | ------------------------------------------------------- |
-| @seriousme/opifex/tcpClient   | Exports a MQTT over TCP/TLS client                      |
-| @seriousme/opifex/tcpServer   | Exports a MQTT over TCP server                          |
-| @seriousme/opifex/tlsServer   | Exports a MQTT over TLS server                          |
-| @seriousme/opifex/server      | Exports a transport agnostic MQTT server                |
-| @seriousme/opifex/client      | Exports a transport agnostic MQTT client                |
-| @seriousme/opifex/persistence | Exports an Typescript interface for storage persistence |
-| @seriousme/opifex/mqttConn    | Exports MQTT connection handling                        |
-| @seriousme/opifex/mqttPacket  | Exports MQTT packet handling                            |
-| @seriousme/opifex/utils       | Exports various utilities                               |
+| Export                        | Description                                                  |
+| ----------------------------- | ------------------------------------------------------------ |
+| @seriousme/opifex/tcpClient   | Exports a MQTT over TCP/TLS client                           |
+| @seriousme/opifex/tcpServer   | Exports a MQTT over TCP server                               |
+| @seriousme/opifex/tlsServer   | Exports a MQTT over TLS server                               |
+| @seriousme/opifex/wsClient    | Exports a MQTT over Websocket client (deno and browser only) |
+| @seriousme/opifex/wsServer    | Exports a MQTT over Websocket server (deno only)             |
+| @seriousme/opifex/server      | Exports a transport agnostic MQTT server                     |
+| @seriousme/opifex/client      | Exports a transport agnostic MQTT client                     |
+| @seriousme/opifex/persistence | Exports an Typescript interface for storage persistence      |
+| @seriousme/opifex/mqttConn    | Exports MQTT connection handling                             |
+| @seriousme/opifex/mqttPacket  | Exports MQTT packet handling                                 |
+| @seriousme/opifex/utils       | Exports various utilities                                    |
+
+## API docs
+
+The latest API documentation can be found at:
+https://jsr.io/@seriousme/opifex@latest/doc
 
 ## Naming
 
