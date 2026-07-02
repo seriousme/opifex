@@ -87,7 +87,7 @@ const CLIENTID_PREFIX = "opifex"; // on first connect
 // convert an ErrorEvent into an Error
 // NodeJS does not know ErrorEvent
 function normalizeError(err: unknown): Error {
-  if (typeof ErrorEvent !== undefined && err instanceof ErrorEvent) {
+  if (typeof ErrorEvent !== "undefined" && err instanceof ErrorEvent) {
     return new Error(err.message);
   }
 
