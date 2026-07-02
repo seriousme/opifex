@@ -1,8 +1,29 @@
 import type { Topic, TopicFilter } from "./types.ts";
 
+// to reduce the risk of Denial of Service
+export const DEFAULT_MAX_TOPIC_SEGMENTS = 10;
 /**
  * Checks for invalid UTF-8 characters or null bytes.
- * Utilizes the modern native `isWellFormed()` method for optimal performance.
+ *
+ * @param value - The string to validate.
+ * @returns `true` if the string contains more / signs than allowed`.
+ */
+export function invalidMaxTopicSegments(
+  value: string,
+  maxTopicSegments: number,
+): boolean {
+  let slashCount = 0;
+  for (const char of value) {
+    if (char === "/") {
+      slashCount++;
+      if (slashCount > maxTopicSegments) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Checks for invalid UTF-8 characters or null bytes.
  *
  * @param value - The string to validate.
  * @returns `true` if the string contains invalid UTF-8 sequences or a null byte, otherwise `false`.
@@ -37,10 +58,6 @@ export function invalidTopic(value: Topic): boolean {
  * @returns `true` if the topic filter is invalid, otherwise `false`.
  */
 export function invalidTopicFilter(value: TopicFilter): boolean {
-  if (value === "" || invalidUTF8(value)) {
-    return true;
-  }
-
   // Rule 1: A '#' wildcard must NEVER be followed by any other character
   if (/#./.test(value)) {
     return true;

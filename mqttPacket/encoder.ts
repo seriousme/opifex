@@ -24,7 +24,13 @@ import {
 } from "./Properties.ts";
 
 import { encodeLength } from "./length.ts";
-import { invalidTopic, invalidTopicFilter } from "./validators.ts";
+import {
+  DEFAULT_MAX_TOPIC_SEGMENTS,
+  invalidMaxTopicSegments,
+  invalidTopic,
+  invalidTopicFilter,
+  invalidUTF8,
+} from "./validators.ts";
 import { isValidReasonCode } from "./ReasonCode.ts";
 
 const utf8Encoder = new TextEncoder();
@@ -54,6 +60,12 @@ export class Encoder {
 
   /** marker to rewind to */
   private marker: number;
+
+  /**
+   * max number of segments in topics and topicFilters
+   * added as classmember so it can be reconfigured
+   */
+  maxTopicSegments = DEFAULT_MAX_TOPIC_SEGMENTS;
 
   /**
    * Creates a new Encoder instance
@@ -152,6 +164,9 @@ export class Encoder {
    * @returns The encoder instance for chaining
    */
   setUtf8String(value: string): this {
+    if (invalidUTF8(value)) {
+      throw new EncoderError("Invalid UTF8");
+    }
     this.setByteArray(utf8Encoder.encode(value));
     return this;
   }
@@ -174,9 +189,14 @@ export class Encoder {
    * @returns The encoder instance for chaining
    */
   setTopic(value: Topic): this {
+    if (invalidMaxTopicSegments(value, this.maxTopicSegments)) {
+      throw new EncoderError(
+        `Topic must contain a maximum of ${this.maxTopicSegments} segments`,
+      );
+    }
     if (invalidTopic(value)) {
       throw new EncoderError(
-        "Topic must contain valid UTF-8 and contain more than 1 byte and no wildcards",
+        "Topic must contain more than 1 byte and no wildcards",
       );
     }
     this.setUtf8String(value);
@@ -190,6 +210,11 @@ export class Encoder {
    * @returns The encoder instance for chaining
    */
   setTopicFilter(value: TopicFilter): this {
+    if (invalidMaxTopicSegments(value, this.maxTopicSegments)) {
+      throw new EncoderError(
+        `TopicFilter must contain a maximum of ${this.maxTopicSegments} segments`,
+      );
+    }
     if (invalidTopicFilter(value)) {
       throw new EncoderError(
         "Topicfilter must contain valid UTF-8 and contain more than 1 byte and valid wildcards",
