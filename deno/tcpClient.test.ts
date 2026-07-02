@@ -4,7 +4,7 @@ import { getFileData, TcpClient } from "./tcpClient.ts";
 
 // most client testing is already done in tcpServer.test.ts
 
-test("Deno Test getFileData - valid file, empty file and undefined", async () => {
+test("Deno: Test getFileData - valid file, empty file and undefined", async () => {
   // 1. Test with a valid file containing data
   const tempFile = await Deno.makeTempFile({
     prefix: "test_get_file_data_",
@@ -55,7 +55,7 @@ test("Deno Test getFileData - valid file, empty file and undefined", async () =>
 test("Test createConn - unsupported protocol", async () => {
   const client = new TcpClient();
 
-  // Use an unsupported protocol like 'ws://' to trigger the throw in createConn
+  // Use an unsupported protocol like 'ftp://' to trigger the throw in createConn
   const invalidParams = {
     url: new URL("ftp://localhost:1883"),
     numberOfRetries: 0,

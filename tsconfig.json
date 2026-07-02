@@ -10,8 +10,9 @@
     "noPropertyAccessFromIndexSignature": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
-    "types": ["node"],
-
+    "types": [
+      "node"
+    ],
     // Module
     "module": "nodenext",
     "noUncheckedSideEffectImports": true,
@@ -30,11 +31,18 @@
     "isolatedModules": true,
     "skipLibCheck": true
   },
-  "include": ["bin/*.ts", "examples/*.ts"],
+  "include": [
+    "bin/*.ts",
+    "examples/*.ts",
+    //  the WebSocket client is not Deno specific, it just does not run on NodeJS
+    "web/wsClient.test.ts"
+  ],
   "exclude": [
     "dist",
     "tools",
+    "node_modules",
+    // Typescript doesn't know Deno
     "deno",
-    "node_modules"
+    "examples/webSocket.test.ts"
   ]
 }

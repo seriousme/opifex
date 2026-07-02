@@ -45,8 +45,7 @@ export class TcpServer {
     if (this.listener.addr.transport === "tcp") {
       return this.listener.addr.hostname;
     }
-
     return undefined;
+    // deno-coverage-ignore-stop
   }
-  // deno-coverage-ignore-stop
 }

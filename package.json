@@ -26,9 +26,8 @@
     "demoServer": "dist/bin/demoServer.js"
   },
   "scripts": {
-    "test": "node  --test --test-skip-pattern='/^Deno/'",
-    "prebuild": "rm -rf dist",
-    "build": "npx -p typescript tsc --build",
+    "test": "node  --test --test-skip-pattern='^(?:Deno|Web):'",
+    "build": "rm -rf dist && npx -p typescript tsc --build",
     "format": "deno fmt",
     "coverage": "deno test -A . --coverage --clean --coverage-raw-data-only && deno coverage --exclude=.config --exclude=dev_utils --html",
     "preversion": "npm run test"
@@ -48,6 +47,11 @@
       "deno": "./deno/tcpClient.ts",
       "default": "./dist/node/tcpClient.js"
     },
+    "./wsClient": {
+      "deno": "./web/wsClient.ts",
+      "browser": "./dist/web/wsClient.ts",
+      "default": null
+    },
     "./tcpServer": {
       "deno": "./deno/tcpServer.ts",
       "default": "./dist/node/tcpServer.js"
@@ -55,6 +59,10 @@
     "./tlsServer": {
       "deno": "./deno/tlsServer.ts",
       "default": "./dist/node/tlsServer.js"
+    },
+    "./wsServer": {
+      "deno": "./deno/wsServer.ts",
+      "default": null
     },
     "./server": {
       "deno": "./server/mod.ts",

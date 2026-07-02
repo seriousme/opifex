@@ -62,5 +62,4 @@ Opifex is also available on [JSR.io](https://jsr.io/@seriousme/opifex).
 # Platform Native
 
 This folder also contains code to run the server using Deno sockets instead of
-NodeJS sockets. You can modify the import statements in the demoServer/client to
-use these instead.
+NodeJS sockets. It also contains an implementation that uses Websockets

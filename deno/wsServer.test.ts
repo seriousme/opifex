@@ -1,18 +1,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { TcpClient } from "./tcpClient.ts";
-import { TlsServer } from "./tlsServer.ts";
-import { logger, LogLevel } from "../utils/mod.ts";
+import { WsClient } from "../web/wsClient.ts";
+import { WsServer } from "./wsServer.ts";
+import { delay, logger, LogLevel } from "../utils/mod.ts";
 import type { PublishPacket, QoS } from "../mqttPacket/mod.ts";
-import { delay, generateLocalhostCerts } from "../dev_utils/mod.ts";
 
 logger.level(LogLevel.info);
 
-const { key, cert, caCert } = generateLocalhostCerts();
-
-test("Deno: Test pubSub using client and server", async () => {
-  const server = new TlsServer(
-    { hostname: "localhost", port: 0, key, cert },
+test("Deno: Test pubSub using client and server over webSockets", async () => {
+  const server = new WsServer(
+    { hostname: "localhost", port: 0 },
     {},
   );
   server.start();
@@ -20,7 +17,7 @@ test("Deno: Test pubSub using client and server", async () => {
   assert.deepStrictEqual(
     server.port !== undefined,
     true,
-    "server runs a a random port",
+    "Http server runs a a random port",
   );
   logger.verbose("server running on: ", {
     port: server.port,
@@ -28,17 +25,16 @@ test("Deno: Test pubSub using client and server", async () => {
   });
 
   const params = {
-    url: new URL(`mqtts://localhost:${server.port}`),
+    url: new URL(`ws://localhost:${server.port}`),
     numberOfRetries: 0,
-    caCerts: [caCert],
   };
 
   logger.verbose("client parameters: ", params);
 
-  const client = new TcpClient();
+  const client = new WsClient();
+  client.onConnected = () => logger.verbose("Client connected to server");
 
   await client.connect(params);
-  assert(true, "Client connected to server");
 
   const publishSet: { topic: string; qos: QoS }[] = [
     { topic: "t0@q0", qos: 0 },

@@ -1,44 +1,37 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { TcpClient } from "./tcpClient.ts";
-import { TlsServer } from "./tlsServer.ts";
-import { logger, LogLevel } from "../utils/mod.ts";
-import type { PublishPacket, QoS } from "../mqttPacket/mod.ts";
-import { delay, generateLocalhostCerts } from "../dev_utils/mod.ts";
+import { delay, logger, LogLevel } from "@seriousme/opifex/utils";
+import { WsClient } from "@seriousme/opifex/wsClient";
+import { WsServer } from "@seriousme/opifex/wsServer";
+import type { PublishPacket, QoS } from "@seriousme/opifex/mqttPacket";
 
 logger.level(LogLevel.info);
 
-const { key, cert, caCert } = generateLocalhostCerts();
+test("Deno: Test pubSub using WebSocket client and server and memoryPersistence", async function () {
+  // Nodejs does not natively support WebSockets so we only import Websocket client and server here
 
-test("Deno: Test pubSub using client and server", async () => {
-  const server = new TlsServer(
-    { hostname: "localhost", port: 0, key, cert },
-    {},
-  );
+  const server = new WsServer({ port: 0 }, {});
   server.start();
 
   assert.deepStrictEqual(
     server.port !== undefined,
     true,
-    "server runs a a random port",
+    "WebSocket server runs on a random port",
   );
-  logger.verbose("server running on: ", {
-    port: server.port,
-    address: server.address,
-  });
+  logger.info(
+    `WebSocket server running on port: ${server.port}, address: ${server.address}`,
+  );
+  // pick the correct hostname
+  const hostname = server.address === "0.0.0.0" ? "127.0.0.1" : server.address;
 
   const params = {
-    url: new URL(`mqtts://localhost:${server.port}`),
+    url: new URL(`ws://${hostname}:${server.port}`),
     numberOfRetries: 0,
-    caCerts: [caCert],
   };
 
-  logger.verbose("client parameters: ", params);
-
-  const client = new TcpClient();
-
+  const client = new WsClient();
   await client.connect(params);
-  assert(true, "Client connected to server");
+  logger.info(`Client connected to server at ${client.url}`);
 
   const publishSet: { topic: string; qos: QoS }[] = [
     { topic: "t0@q0", qos: 0 },
@@ -61,9 +54,9 @@ test("Deno: Test pubSub using client and server", async () => {
   });
 
   // the IIFE ensures message reception runs in parallel
-  logger.verbose(`Start receiving`);
+  logger.info(`Start receiving`);
   const received: PublishPacket[] = [];
-  (async () => {
+  (async function () {
     for await (const item of client.messages()) {
       logger.verbose(`Receiving: ${item.topic} -- ${item.qos}`);
       received.push(item);
@@ -80,10 +73,10 @@ test("Deno: Test pubSub using client and server", async () => {
   }
 
   await delay(100);
-  logger.verbose(`Disconnect client`);
+  logger.info(`Disconnect client`);
   await client.disconnect();
 
-  logger.verbose(`Check completeness`);
+  logger.info(`Check completeness`);
   for (const item of publishSet) {
     const found = received.find((f) =>
       f.topic == item.topic && f.qos === item.qos
@@ -92,6 +85,6 @@ test("Deno: Test pubSub using client and server", async () => {
     assert(found, `${item.topic} -- ${item.qos}`);
   }
 
-  logger.verbose(`Stop server`);
+  logger.info(`Stop server`);
   server.stop();
 });

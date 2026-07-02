@@ -61,16 +61,14 @@ export class TcpClient extends Client {
     return await Deno.connectTls(connectOpts);
   }
 
-  protected override createConn(
-    protocol: string,
-    hostname: string,
-    port?: number,
-    caCerts?: string[],
-    cert?: string,
-    key?: string,
-  ): Promise<SockConn> {
-    // if you need to support alternative connection types just
-    // overload this method in your subclass
+  // overload createConn from the base client class
+  protected override createConn(): Promise<SockConn> {
+    const { protocol, hostname, port: portStr } = this.connectUrl;
+    const port = Number(portStr);
+    const caCerts = this.caCerts;
+    const cert = this.cert;
+    const key = this.key;
+
     if (protocol === "mqtts:") {
       return this.connectMQTTS(hostname, port, caCerts, cert, key);
     }
