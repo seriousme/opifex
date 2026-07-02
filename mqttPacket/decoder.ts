@@ -6,7 +6,13 @@ import type {
   TReasonCode,
   UTF8StringPair,
 } from "./types.ts";
-import { invalidTopic, invalidTopicFilter } from "./validators.ts";
+import {
+  DEFAULT_MAX_TOPIC_SEGMENTS,
+  invalidMaxTopicSegments,
+  invalidTopic,
+  invalidTopicFilter,
+  invalidUTF8,
+} from "./validators.ts";
 import { isValidReasonCode } from "./ReasonCode.ts";
 import type {
   Mqttv5PropertyTypesNoUser,
@@ -77,6 +83,7 @@ export class Decoder {
   private buf: Uint8Array;
   private pos: number;
   private len: number;
+  maxTopicSegments = DEFAULT_MAX_TOPIC_SEGMENTS;
 
   /**
    * Creates a new Decoder instance
@@ -170,6 +177,11 @@ export class Decoder {
    */
   getUTF8String(): string {
     const str = utf8Decoder.decode(this.getByteArray());
+    if (invalidUTF8(str)) {
+      throw new DecoderError(
+        "String must contain valid UTF-8",
+      );
+    }
     return str;
   }
 
@@ -178,8 +190,8 @@ export class Decoder {
    * @returns The decoded UTF-8 pair as [name,value]
    */
   getUTF8StringPair(): UTF8StringPair {
-    const name = utf8Decoder.decode(this.getByteArray());
-    const value = utf8Decoder.decode(this.getByteArray());
+    const name = this.getUTF8String();
+    const value = this.getUTF8String();
     return [name, value];
   }
 
@@ -190,9 +202,14 @@ export class Decoder {
    */
   getTopic(): Topic {
     const topic = this.getUTF8String();
+    if (invalidMaxTopicSegments(topic, this.maxTopicSegments)) {
+      throw new DecoderError(
+        `Topicfilter must contain a maximum of ${this.maxTopicSegments} segments`,
+      );
+    }
     if (invalidTopic(topic)) {
       throw new DecoderError(
-        "Topic must contain valid UTF-8 and contain more than 1 byte and no wildcards",
+        "Topic must contain more than 1 byte and no wildcards",
       );
     }
     return topic;
@@ -205,9 +222,19 @@ export class Decoder {
    */
   getTopicFilter(): TopicFilter {
     const topicFilter = this.getUTF8String();
+    if (invalidUTF8(topicFilter)) {
+      throw new DecoderError(
+        "Topicfilter must contain valid UTF-8",
+      );
+    }
+    if (invalidMaxTopicSegments(topicFilter, this.maxTopicSegments)) {
+      throw new DecoderError(
+        `Topicfilter must contain a maximum of ${this.maxTopicSegments} segments`,
+      );
+    }
     if (invalidTopicFilter(topicFilter)) {
       throw new DecoderError(
-        "Topicfilter must contain valid UTF-8 and contain more than 1 byte and valid wildcards",
+        "Topicfilter must contain more than 1 byte and valid wildcards",
       );
     }
     return topicFilter;

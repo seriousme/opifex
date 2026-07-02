@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { Decoder } from "./decoder.ts";
+import { DEFAULT_MAX_TOPIC_SEGMENTS } from "./validators.ts";
 
 const utf8encoder = new TextEncoder();
 const packetType = 0;
@@ -94,7 +95,7 @@ test("Topic too short", () => {
   assert.throws(
     () => decoder.getTopic(),
     Error,
-    "Topic must contain valid UTF-8 and contain more than 1 byte and no wildcards",
+    "Topic must contain valid UTF-8",
   );
 });
 
@@ -110,9 +111,38 @@ test("Invalid topic", () => {
 test("Invalid topicFilter", () => {
   const decoder = new Decoder(packetType, Uint8Array.from([0x00, 0x01, 0x00]));
   assert.throws(
-    () => decoder.getTopic(),
+    () => decoder.getTopicFilter(),
     Error,
     "Topic must contain valid UTF-8 and contain more than 1 byte and no wildcards",
+  );
+});
+
+test("Invalid topicFilter, too many slashes", () => {
+  const longFilter = "subtopic/".repeat(11);
+  const byteArray = Uint8Array.from(longFilter);
+  const len = byteArray.length;
+  const decoder = new Decoder(
+    packetType,
+    Uint8Array.from([0x00, len, ...byteArray]),
+  );
+  assert.throws(
+    () => decoder.getTopicFilter(),
+    Error,
+    `Topicfilter must contain a maximum of ${DEFAULT_MAX_TOPIC_SEGMENTS} segments`,
+  );
+});
+
+test("Invalid topicFilter, empty segments", () => {
+  const byteArray = Uint8Array.from("//");
+  const len = byteArray.length;
+  const decoder = new Decoder(
+    packetType,
+    Uint8Array.from([0x00, len, ...byteArray]),
+  );
+  assert.throws(
+    () => decoder.getTopicFilter(),
+    Error,
+    "Topic must contain more than 1 byte and no wildcards",
   );
 });
 
