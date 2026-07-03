@@ -4,15 +4,20 @@
 
 ### Changed
 
-- feat: replace BYOD stream by Default stream
+- feat: replace BYOD stream by Default Readable/Writable stream
 - feat: close connection on unauthorized publish (was ignore)
 - feat: add preconnect timeout
-- feat: set default max incomming message size to 2Kb (was 2Mb)
-- chore: add TLS testing
+- feat: set default max incoming message size to 2Kb (was 2Mb)
+- feat: add TLS client and server
+- feat: add WebSocket client and server
+- feat: add sqlite based persistence
+- feat: add Eclipse paho compatibility testing
 - chore: add many more tests
 - chore: remove .vscode files from repo
+- chore: move benchmarks to tools folder
 - fix: fix empty payload to clear retained message
-- fix:remove password from demo logging and debug logging
+- fix: remove password from demo logging and debug logging
+- fix: limited max number of topic and topicFilter segments to 10
 
 ## [v1.11.3] 31-05-2026
 
