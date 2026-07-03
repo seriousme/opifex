@@ -3,7 +3,7 @@ import { importClientClass } from "./utils.ts";
 
 const { TcpClient } = await importClientClass();
 const client = new TcpClient();
-client.onError = (err) => {
+client.onError = (err: Error) => {
   console.log("client error", err);
   exit(1);
 };
