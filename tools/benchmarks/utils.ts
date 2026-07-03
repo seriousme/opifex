@@ -4,6 +4,6 @@ export async function importClientClass() {
   //             is meant to be used in both environments.
   const isDeno = typeof Deno !== "undefined";
   return isDeno
-    ? (await import("../deno/tcpClient.ts"))
-    : (await import("../node/tcpClient.ts"));
+    ? (await import("../../deno/tcpClient.ts"))
+    : (await import("../../node/tcpClient.ts"));
 }
