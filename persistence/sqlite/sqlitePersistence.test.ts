@@ -43,7 +43,7 @@ test("Registering a client with clean should reset persisted state", async () =>
     handler,
     true,
   );
-  assert.deepStrictEqual(store2.subscriptions.size, 0);
+  assert.deepStrictEqual(await store2.subscriptions.size(), 0);
 });
 
 test("Registering a client with no-clean should reinstate persisted state", async () => {
@@ -61,7 +61,7 @@ test("Registering a client with no-clean should reinstate persisted state", asyn
     handler,
     false,
   );
-  assert.deepStrictEqual(store2.subscriptions.size, 1);
+  assert.deepStrictEqual(await store2.subscriptions.size(), 1);
 });
 
 test("publish should deliver retained and subscription messages", async () => {

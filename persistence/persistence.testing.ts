@@ -33,13 +33,13 @@ async function createReceiver(
   clean = false,
 ): Promise<{ store: IStore; received: PublishPacket[] }> {
   const received: PublishPacket[] = [];
-  const result = await Promise.resolve(persistence.registerClient(
+  const result = await persistence.registerClient(
     clientId,
     (pkt) => {
       received.push(pkt);
     },
     clean,
-  ));
+  );
   const { store } = result;
   return { store, received };
 }
@@ -83,7 +83,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       await persistence.registerClient("client1", () => {}, false);
       assert.strictEqual(persistence.clientList.size, 1);
 
-      persistence.deregisterClient("client1");
+      await persistence.deregisterClient("client1");
       assert.strictEqual(persistence.clientList.size, 0);
       cleanup();
     });
@@ -98,10 +98,10 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
         false,
       );
 
-      persistence.subscribe(store, "test/topic", 1);
+      await persistence.subscribe(store, "test/topic", 1);
 
-      assert(store.subscriptions.has("test/topic"));
-      assert.strictEqual(store.subscriptions.get("test/topic"), 1);
+      assert(await store.subscriptions.has("test/topic"));
+      assert.strictEqual(await store.subscriptions.get("test/topic"), 1);
       cleanup();
     });
 
@@ -113,10 +113,10 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
         false,
       );
 
-      persistence.subscribe(store, "test/topic", 1);
-      persistence.unsubscribe(store, "test/topic");
+      await persistence.subscribe(store, "test/topic", 1);
+      await persistence.unsubscribe(store, "test/topic");
 
-      assert(!store.subscriptions.has("test/topic"));
+      assert(!(await store.subscriptions.has("test/topic")));
       cleanup();
     });
 
@@ -129,8 +129,8 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       );
 
       // Should not throw
-      persistence.unsubscribe(store, "nonexistent/topic");
-      assert.strictEqual(store.subscriptions.size, 0);
+      await persistence.unsubscribe(store, "nonexistent/topic");
+      assert.strictEqual(await store.subscriptions.size(), 0);
       cleanup();
     });
 
@@ -238,8 +238,8 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
         "client2",
       );
 
-      persistence.subscribe(store1, "test/topic", 0);
-      persistence.subscribe(store2, "test/topic", 1);
+      await persistence.subscribe(store1, "test/topic", 0);
+      await persistence.subscribe(store2, "test/topic", 1);
 
       await persistence.publish(
         "test/topic",
@@ -267,7 +267,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
         persistence,
         "client1",
       );
-      persistence.subscribe(store1, "test/topic", 0);
+      await persistence.subscribe(store1, "test/topic", 0);
       await persistence.handleRetained("client1");
       assert.strictEqual(received1.length, 1);
 
@@ -283,7 +283,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
         persistence,
         "client2",
       );
-      persistence.subscribe(store2, "test/topic", 0);
+      await persistence.subscribe(store2, "test/topic", 0);
       await persistence.handleRetained("client2");
       assert.strictEqual(received2.length, 0);
       cleanup();
@@ -333,7 +333,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
         );
 
       assert.strictEqual(existingSession, true);
-      assert.strictEqual(store2.subscriptions.size, 1);
+      assert.strictEqual(await store2.subscriptions.size(), 1);
       cleanup();
     });
 
@@ -355,7 +355,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
         );
 
       assert.strictEqual(existingSession, false);
-      assert.strictEqual(store2.subscriptions.size, 0);
+      assert.strictEqual(await store2.subscriptions.size(), 0);
       cleanup();
     });
     // === Edge Cases ===
@@ -370,7 +370,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
       // Empty topic - should not throw but may not match anything
       await persistence.subscribe(store, "", 0);
-      assert(store.subscriptions.has(""));
+      assert(await store.subscriptions.has(""));
       cleanup();
     });
 
@@ -414,7 +414,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
         await persistence.subscribe(store, `topic/${i}`, i % 3 as 0 | 1 | 2);
       }
 
-      assert.strictEqual(store.subscriptions.size, 100);
+      assert.strictEqual(await store.subscriptions.size(), 100);
       cleanup();
     });
 
@@ -431,7 +431,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
         await persistence.unsubscribe(store, "test/topic");
       }
 
-      assert.strictEqual(store.subscriptions.size, 0);
+      assert.strictEqual(await store.subscriptions.size(), 0);
       cleanup();
     });
 
@@ -468,11 +468,14 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const packet = createPacket("test", "data", { id: 1, qos: 1 });
       store.pendingOutgoing.set(1, packet);
 
-      assert(store.pendingOutgoing.has(1));
-      assert.deepStrictEqual(store.pendingOutgoing.get(1)?.topic, packet.topic);
+      assert(await store.pendingOutgoing.has(1));
+      assert.deepStrictEqual(
+        (await store.pendingOutgoing.get(1))?.topic,
+        packet.topic,
+      );
 
-      store.pendingOutgoing.delete(1);
-      assert(!store.pendingOutgoing.has(1));
+      await store.pendingOutgoing.delete(1);
+      assert(!(await store.pendingOutgoing.has(1)));
       cleanup();
     });
 
@@ -484,11 +487,11 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
         false,
       );
 
-      store.pendingIncoming.add(42);
-      assert(store.pendingIncoming.has(42));
+      await store.pendingIncoming.add(42);
+      assert(await store.pendingIncoming.has(42));
 
-      store.pendingIncoming.delete(42);
-      assert(!store.pendingIncoming.has(42));
+      await store.pendingIncoming.delete(42);
+      assert(!(await store.pendingIncoming.has(42)));
       cleanup();
     });
 
@@ -500,11 +503,11 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
         false,
       );
 
-      store.pendingAckOutgoing.add(99);
-      assert(store.pendingAckOutgoing.has(99));
+      await store.pendingAckOutgoing.add(99);
+      assert(await store.pendingAckOutgoing.has(99));
 
-      store.pendingAckOutgoing.delete(99);
-      assert(!store.pendingAckOutgoing.has(99));
+      await store.pendingAckOutgoing.delete(99);
+      assert(!(await store.pendingAckOutgoing.has(99)));
       cleanup();
     });
   });
@@ -577,7 +580,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
       // Some messages may have been received depending on timing
       // But no errors should occur
-      assert(store.subscriptions.size <= 20);
+      assert((await store.subscriptions.size()) <= 20);
       cleanup();
     });
 
@@ -668,7 +671,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
     test(`${name} - handles large payloads`, async () => {
       const { persistence, cleanup } = factory();
       const { store, received } = await createReceiver(persistence, "client1");
-      persistence.subscribe(store, "large", 0);
+      await persistence.subscribe(store, "large", 0);
 
       // 1MB payload
       const largePayload = new Uint8Array(1024 * 1024);
@@ -704,14 +707,14 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
         retain: true,
       };
 
-      persistence.publish("large/retained", packet);
+      await persistence.publish("large/retained", packet);
 
       const { store, received } = await createReceiver(
         persistence,
         "client1",
       );
-      persistence.subscribe(store, "large/retained", 0);
-      persistence.handleRetained("client1");
+      await persistence.subscribe(store, "large/retained", 0);
+      await persistence.handleRetained("client1");
       assert.strictEqual(received.length, 1);
 
       assert.strictEqual(received[0]?.payload?.length, 100 * 1024);

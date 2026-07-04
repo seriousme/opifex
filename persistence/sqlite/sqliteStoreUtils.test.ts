@@ -27,11 +27,10 @@ test("serializePacket and deserializePacket round-trip payloads", () => {
   assert.deepStrictEqual(restored.payload, packet.payload);
 });
 
-test("createIterator maps underlying rows", () => {
+test("createIterator maps underlying rows", async () => {
   const values = [1, 2, 3];
-  const mapped = [
-    ...createIterator(values[Symbol.iterator](), (value) => value * 2),
-  ];
+  const iterator = await createIterator(values.values(), (value) => value * 2);
+  const mapped = [...iterator];
 
   assert.deepStrictEqual(mapped, [2, 4, 6]);
 });

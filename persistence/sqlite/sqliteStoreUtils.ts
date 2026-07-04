@@ -41,11 +41,11 @@ export function deserializePacket(
 export function createIterator<TDbRow, TResult>(
   rowIterator: IterableIterator<TDbRow>,
   mapFn: (row: TDbRow) => TResult,
-): IterableIterator<TResult> {
+): Promise<IterableIterator<TResult>> {
   const generator = function* () {
     for (const row of rowIterator) {
       yield mapFn(row);
     }
   };
-  return generator();
+  return Promise.resolve(generator());
 }

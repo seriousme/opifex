@@ -68,15 +68,16 @@ export class SqlitePersistence implements IPersistence {
     if (clean) {
       deleteClientState(this.db, clientId);
     }
-    const existingSession = !!this.sessionStore.get(clientId);
+    const existingSession = !!(await this.sessionStore.get(clientId));
     const store = new SqliteStore(this.db, clientId);
     if (!existingSession) {
       this.sessionStore.set({ clientId, existingSession: true });
     }
     if (!clean && existingSession) {
       // reinstate subscriptions
-      for (const topicFilter of store.subscriptions.keys()) {
-        const qos = store.subscriptions.get(topicFilter);
+      const keys = await store.subscriptions.keys();
+      for (const topicFilter of keys) {
+        const qos = await store.subscriptions.get(topicFilter);
         if (qos !== undefined) {
           this.trie.add(topicFilter, { clientId, qos });
         }
@@ -87,37 +88,42 @@ export class SqlitePersistence implements IPersistence {
   }
 
   /** Unbinds and clears states associated to the targeted deregistered client session. */
-  deregisterClient(clientId: ClientId): void {
+  async deregisterClient(clientId: ClientId): Promise<void> {
     const client = this.clientList.get(clientId);
     if (client) {
-      this.unsubscribeAll(client.store);
+      await this.unsubscribeAll(client.store);
       this.clientList.delete(clientId);
     }
     deleteClientState(this.db, clientId);
   }
 
   /** Connects a subscription boundary path pattern with targeted tracking stores. */
-  subscribe(store: IStore, topicFilter: TopicFilter, qos: QoS): void {
+  async subscribe(
+    store: IStore,
+    topicFilter: TopicFilter,
+    qos: QoS,
+  ): Promise<void> {
     const clientId = store.clientId;
-    if (!store.subscriptions.has(topicFilter)) {
+    if (!await store.subscriptions.has(topicFilter)) {
       store.subscriptions.set(topicFilter, qos);
       this.trie.add(topicFilter, { clientId, qos });
     }
   }
 
   /** Disconnects and breaks specific subscription configurations out of active scopes. */
-  unsubscribe(store: IStore, topicFilter: TopicFilter): void {
+  async unsubscribe(store: IStore, topicFilter: TopicFilter): Promise<void> {
     const clientId = store.clientId;
-    const qos = store.subscriptions.get(topicFilter);
+    const qos = await store.subscriptions.get(topicFilter);
     if (qos !== undefined) {
-      store.subscriptions.delete(topicFilter);
+      await store.subscriptions.delete(topicFilter);
       this.trie.remove(topicFilter, { clientId, qos });
     }
   }
 
-  private unsubscribeAll(store: IStore): void {
-    for (const topicFilter of store.subscriptions.keys()) {
-      this.unsubscribe(store, topicFilter);
+  private async unsubscribeAll(store: IStore): Promise<void> {
+    const keys = await store.subscriptions.keys();
+    for (const topicFilter of keys) {
+      await this.unsubscribe(store, topicFilter);
     }
   }
 
@@ -149,7 +155,7 @@ export class SqlitePersistence implements IPersistence {
       newPacket.qos = qos;
       const client = this.clientList.get(clientId);
       if (client) {
-        await Promise.resolve(client.handler(newPacket));
+        await client.handler(newPacket);
       }
     }
   }
@@ -164,11 +170,12 @@ export class SqlitePersistence implements IPersistence {
       return;
     }
     const store = client?.store;
-    if (!store || store.subscriptions.size === 0) return;
+    if (!store || (await store.subscriptions.size()) === 0) return;
 
-    for (const topicFilter of store.subscriptions.keys()) {
+    const keys = await store.subscriptions.keys();
+    for (const topicFilter of keys) {
       for (const retainedPacket of this.retained.matches(topicFilter)) {
-        await Promise.resolve(client.handler(retainedPacket));
+        await client.handler(retainedPacket);
       }
     }
   }

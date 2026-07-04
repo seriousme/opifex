@@ -59,9 +59,9 @@ test("pub/sub should work", async () => {
 
   const { store } = await persistence.registerClient(clientId, handler, false);
 
-  persistence.subscribe(store, topic, qos);
+  await persistence.subscribe(store, topic, qos);
   assert.deepStrictEqual(
-    store.subscriptions.has(topic),
+    await store.subscriptions.has(topic),
     true,
     "topic is registered as subscription",
   );
@@ -97,15 +97,15 @@ test("publish of an empty retained message should clear previous retained messag
   }
 
   const { store } = await persistence.registerClient(clientId, handler, false);
-  persistence.publish(topic, makePacket(25));
+  await persistence.publish(topic, makePacket(25));
   assert.deepStrictEqual(
-    persistence.retained.has(topic),
+    await persistence.retained.has(topic),
     true,
     "message is registered as retained",
   );
-  persistence.subscribe(store, topic, qos);
+  await persistence.subscribe(store, topic, qos);
   assert.deepStrictEqual(
-    store.subscriptions.has(topic),
+    await store.subscriptions.has(topic),
     true,
     "topic is registered as subscription",
   );
@@ -114,7 +114,7 @@ test("publish of an empty retained message should clear previous retained messag
   persistence.publish(topic, updatePacket);
   await delay(10);
   assert.deepStrictEqual(
-    persistence.retained.has(topic),
+    await persistence.retained.has(topic),
     false,
     "message is no longer registered as retained",
   );
@@ -152,9 +152,9 @@ test("many packets should work", async () => {
 
   const { store } = await persistence.registerClient(clientId, handler, false);
 
-  persistence.subscribe(store, topic, qos);
+  await persistence.subscribe(store, topic, qos);
   assert.deepStrictEqual(
-    store.subscriptions.has(topic),
+    await store.subscriptions.has(topic),
     true,
     "topic is registered as subscription",
   );
@@ -196,7 +196,7 @@ test("unsubscribe should work", async () => {
   await persistence.unsubscribe(store, topic);
 
   assert.deepStrictEqual(
-    store.subscriptions.has(topic),
+    await store.subscriptions.has(topic),
     false,
     "topic is still registered as subscription after unsubscription",
   );

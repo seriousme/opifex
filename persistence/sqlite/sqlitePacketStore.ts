@@ -31,13 +31,6 @@ export class SqlitePacketStore implements IPacketStore {
     }
   }
 
-  get size(): number {
-    const row = this.db.prepare(
-      "select count(*) as count from pending_outgoing where client_id = ?",
-    ).get(this.clientId) as { count: number };
-    return row?.count ?? 0;
-  }
-
   set(key: PacketId, value: PublishPacket): this {
     const serialized = serializePacket(value);
     this.db.prepare(
@@ -45,39 +38,46 @@ export class SqlitePacketStore implements IPacketStore {
     ).run(this.clientId, key, serialized.packet, serialized.payload);
     return this;
   }
-
-  get(key: PacketId): PublishPacket | undefined {
+  get(key: PacketId): Promise<PublishPacket | undefined> {
     const row = this.db.prepare(
       "select packet, payload from pending_outgoing where client_id = ? and packet_id = ?",
     ).get(this.clientId, key) as
       | { packet: string; payload: Uint8Array | null }
       | undefined;
 
-    if (!row) return undefined;
-    return deserializePacket(row.packet, row.payload);
+    if (!row) return Promise.resolve(undefined);
+    return Promise.resolve(deserializePacket(row.packet, row.payload));
   }
 
-  has(key: PacketId): boolean {
+  has(key: PacketId): Promise<boolean> {
     const row = this.db.prepare(
       "select 1 from pending_outgoing where client_id = ? and packet_id = ? limit 1",
     ).get(this.clientId, key);
-    return !!row;
+    return Promise.resolve(!!row);
   }
 
-  delete(key: PacketId): boolean {
+  delete(key: PacketId): Promise<boolean> {
     const info = this.db.prepare(
       "delete from pending_outgoing where client_id = ? and packet_id = ?",
     ).run(this.clientId, key);
-    return info.changes > 0;
+    return Promise.resolve(info.changes > 0);
   }
 
-  clear(): void {
+  clear(): Promise<void> {
     this.db.prepare(
       "delete from pending_outgoing where client_id = ?",
     ).run(this.clientId);
+    return Promise.resolve();
   }
 
-  keys(): IterableIterator<PacketId> {
+  size(): Promise<number> {
+    const row = this.db.prepare(
+      "select count(*) as count from pending_outgoing where client_id = ?",
+    ).get(this.clientId) as { count: number };
+    return Promise.resolve(row?.count ?? 0);
+  }
+
+  keys(): Promise<IterableIterator<PacketId>> {
     const rowIterator = this.db.prepare(
       "select packet_id from pending_outgoing where client_id = ?",
     ).iterate(this.clientId) as IterableIterator<{ packet_id: PacketId }>;

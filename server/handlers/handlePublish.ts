@@ -69,9 +69,9 @@ Identifier as being a new publication.
 [MQTT-4.3.3-2].
     */
     if (ctx.store) {
-      if (!ctx.store.pendingIncoming.has(packet.id)) {
+      if (!(await ctx.store.pendingIncoming.has(packet.id))) {
         await ctx.persistence.publish(packet.topic, packet);
-        ctx.store.pendingIncoming.add(packet.id);
+        await ctx.store.pendingIncoming.add(packet.id);
       }
       await ctx.send({
         type: PacketType.pubrec,

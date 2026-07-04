@@ -45,30 +45,31 @@ export class MemoryPacketIdStore implements IPacketIdStore {
     this.store = new Set();
   }
 
-  add(value: PacketId): this {
+  add(value: PacketId): Promise<this> {
     this.store.add(value);
-    return this;
+    return Promise.resolve(this);
   }
 
-  delete(value: PacketId): boolean {
+  delete(value: PacketId): Promise<boolean> {
     const deleted = this.store.delete(value);
-    return deleted;
+    return Promise.resolve(deleted);
   }
 
-  clear(): void {
+  clear(): Promise<void> {
     this.store.clear();
+    return Promise.resolve();
   }
 
-  has(key: PacketId): boolean {
-    return this.store.has(key);
+  has(key: PacketId): Promise<boolean> {
+    return Promise.resolve(this.store.has(key));
   }
 
-  get size(): number {
-    return this.store.size;
+  size(): Promise<number> {
+    return Promise.resolve(this.store.size);
   }
 
-  keys(): IterableIterator<PacketId> {
-    return this.store.keys();
+  keys(): Promise<IterableIterator<PacketId>> {
+    return Promise.resolve(this.store.keys());
   }
 }
 
@@ -84,33 +85,33 @@ class MemoryBaseStore<K, V> {
     this.store = new Map();
   }
 
-  get size(): number {
-    return this.store.size;
-  }
-
   set(key: K, value: V): this {
     this.store.set(key, value);
     return this;
   }
-
-  get(key: K): V | undefined {
-    return this.store.get(key);
+  size(): Promise<number> {
+    return Promise.resolve(this.store.size);
   }
 
-  has(key: K): boolean {
-    return this.store.has(key);
+  get(key: K): Promise<V | undefined> {
+    return Promise.resolve(this.store.get(key));
   }
 
-  delete(key: K): boolean {
-    return this.store.delete(key);
+  has(key: K): Promise<boolean> {
+    return Promise.resolve(this.store.has(key));
   }
 
-  clear(): void {
+  delete(key: K): Promise<boolean> {
+    return Promise.resolve(this.store.delete(key));
+  }
+
+  clear(): Promise<void> {
     this.store.clear();
+    return Promise.resolve();
   }
 
-  keys(): IterableIterator<K> {
-    return this.store.keys();
+  keys(): Promise<IterableIterator<K>> {
+    return Promise.resolve(this.store.keys());
   }
 }
 
@@ -150,7 +151,7 @@ export class MemoryStore implements IStore {
    * @returns A valid unassigned Packet ID.
    * @throws {Error} If no unused packet IDs are available.
    */
-  nextId(): PacketId {
+  async nextId(): Promise<PacketId> {
     const currentId = this.packetId;
     do {
       this.packetId++;
@@ -158,8 +159,8 @@ export class MemoryStore implements IStore {
         this.packetId = 0;
       }
     } while (
-      (this.pendingOutgoing.has(this.packetId) ||
-        this.pendingAckOutgoing.has(this.packetId)) &&
+      ((await this.pendingOutgoing.has(this.packetId)) ||
+        (await this.pendingAckOutgoing.has(this.packetId))) &&
       this.packetId !== currentId
     );
     assert(this.packetId !== currentId, "No unused packetId available");
@@ -191,7 +192,7 @@ export class MemoryPersistence implements IPersistence {
    * @param clean Whether the client requested a clean session (wiping previous state).
    * @returns An object containing the assigned store and a flag indicating if a session already existed.
    */
-  async registerClient(
+  registerClient(
     clientId: ClientId,
     handler: Handler,
     clean: boolean,
@@ -205,17 +206,17 @@ export class MemoryPersistence implements IPersistence {
       ? existingClient.store
       : new MemoryStore(clientId);
     this.clientList.set(clientId, { store, handler });
-    return { store, existingSession };
+    return Promise.resolve({ store, existingSession });
   }
 
   /**
    * Deregisters a client and cleans up all associated active memory subscriptions.
    * @param clientId The unique identifier of the client to remove.
    */
-  deregisterClient(clientId: ClientId): void {
+  async deregisterClient(clientId: ClientId): Promise<void> {
     const client = this.clientList.get(clientId);
     if (client) {
-      this.unsubscribeAll(client.store);
+      await this.unsubscribeAll(client.store);
       this.clientList.delete(clientId);
     }
   }
@@ -226,9 +227,13 @@ export class MemoryPersistence implements IPersistence {
    * @param topicFilter The MQTT topic filter pattern (e.g., "sensor/+/temperature").
    * @param qos The maximum Quality of Service level requested.
    */
-  subscribe(store: IStore, topicFilter: TopicFilter, qos: QoS): void {
+  async subscribe(
+    store: IStore,
+    topicFilter: TopicFilter,
+    qos: QoS,
+  ): Promise<void> {
     const clientId = store.clientId;
-    if (!store.subscriptions.has(topicFilter)) {
+    if (!await store.subscriptions.has(topicFilter)) {
       store.subscriptions.set(topicFilter, qos);
       this.trie.add(topicFilter, { clientId, qos });
     }
@@ -239,18 +244,19 @@ export class MemoryPersistence implements IPersistence {
    * @param store The client's active store instance.
    * @param topicFilter The MQTT topic filter pattern to remove.
    */
-  unsubscribe(store: IStore, topicFilter: TopicFilter): void {
+  async unsubscribe(store: IStore, topicFilter: TopicFilter): Promise<void> {
     const clientId = store.clientId;
-    const qos = store.subscriptions.get(topicFilter);
+    const qos = await store.subscriptions.get(topicFilter);
     if (qos !== undefined) {
-      store.subscriptions.delete(topicFilter);
+      await store.subscriptions.delete(topicFilter);
       this.trie.remove(topicFilter, { clientId, qos });
     }
   }
 
-  private unsubscribeAll(store: IStore) {
-    for (const topicFilter of store.subscriptions.keys()) {
-      this.unsubscribe(store, topicFilter);
+  private async unsubscribeAll(store: IStore): Promise<void> {
+    const keys = await store.subscriptions.keys();
+    for (const topicFilter of keys) {
+      await this.unsubscribe(store, topicFilter);
     }
   }
 
@@ -284,7 +290,7 @@ export class MemoryPersistence implements IPersistence {
       //  logger.debug(`publish ${topic} to client ${clientId}`);
       const client = this.clientList.get(clientId);
       if (client) {
-        await Promise.resolve(client.handler(newPacket));
+        await client.handler(newPacket);
       }
     }
   }
@@ -298,14 +304,16 @@ export class MemoryPersistence implements IPersistence {
     const client = this.clientList.get(clientId);
     const store = client?.store;
     if (store) {
-      for (const topicFilter of store.subscriptions.keys()) {
+      const subKeys = await store.subscriptions.keys();
+      for (const topicFilter of subKeys) {
         retainedTrie.add(topicFilter, clientId);
       }
-      for (const topic of this.retained.keys()) {
+      const retainedKeys = await this.retained.keys();
+      for (const topic of retainedKeys) {
         if (retainedTrie.match(topic).length > 0) {
-          const packet = this.retained.get(topic);
+          const packet = await this.retained.get(topic);
           if (packet !== undefined) {
-            await Promise.resolve(client!.handler(packet));
+            await client.handler(packet);
           }
         }
       }

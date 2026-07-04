@@ -20,46 +20,46 @@ export class SqlitePacketIdStore implements IPacketIdStore {
     this.tableName = tableName;
   }
 
-  add(value: PacketId): this {
+  add(value: PacketId): Promise<this> {
     this.db.prepare(
       `insert or ignore into ${this.tableName}(client_id, packet_id) values(?, ?)`,
     ).run(this.clientId, value);
-    return this;
+    return Promise.resolve(this);
   }
-
-  delete(value: PacketId): boolean {
+  delete(value: PacketId): Promise<boolean> {
     const deleted = this.db.prepare(
       `delete from ${this.tableName} where client_id = ? and packet_id = ?`,
     ).run(this.clientId, value).changes > 0;
-    return deleted;
+    return Promise.resolve(deleted);
   }
 
-  clear(): void {
+  clear(): Promise<void> {
     this.db.prepare(
       `delete from ${this.tableName} where client_id = ?`,
     ).run(this.clientId);
+    return Promise.resolve();
   }
 
-  has(key: PacketId): boolean {
+  has(key: PacketId): Promise<boolean> {
     const row = this.db.prepare(
       `select 1 from ${this.tableName} where client_id = ? and packet_id = ? limit 1`,
     ).get(this.clientId, key);
 
-    return !!row;
+    return Promise.resolve(!!row);
   }
 
-  get size(): number {
+  size(): Promise<number> {
     const row = this.db.prepare(
       `select count(*) as count from ${this.tableName} where client_id = ?`,
     ).get(this.clientId) as { count: number };
 
-    return row?.count ?? 0;
+    return Promise.resolve(row?.count ?? 0);
   }
 
-  keys(): IterableIterator<PacketId> {
+  keys(): Promise<IterableIterator<PacketId>> {
     const rows = this.db.prepare(
       `select packet_id from ${this.tableName} where client_id = ?`,
     ).all(this.clientId) as Array<{ packet_id: PacketId }>;
-    return rows.map((r) => r.packet_id)[Symbol.iterator]();
+    return Promise.resolve(rows.map((r) => r.packet_id)[Symbol.iterator]());
   }
 }
