@@ -164,7 +164,7 @@ export class Context {
       await this.send(packet);
       return;
     }
-    packet.id = this.store.nextId();
+    packet.id = await this.store.nextId();
     this.store.pendingOutgoing.set(packet.id, packet);
     const deferred = new Deferred<void>();
     this.unresolvedPublish.set(packet.id, deferred);
@@ -173,7 +173,7 @@ export class Context {
   }
 
   async subscribe(packet: SubscribePacket): Promise<ReturnCodes> {
-    packet.id = this.store.nextId();
+    packet.id = await this.store.nextId();
     this.store.pendingOutgoing.set(packet.id, packet);
     const deferred = new Deferred<ReturnCodes>();
     this.unresolvedSubscribe.set(packet.id, deferred);
@@ -182,7 +182,7 @@ export class Context {
   }
 
   async unsubscribe(packet: UnsubscribePacket): Promise<void> {
-    packet.id = this.store.nextId();
+    packet.id = await this.store.nextId();
     this.store.pendingOutgoing.set(packet.id, packet);
     const deferred = new Deferred<void>();
     this.unresolvedUnSubscribe.set(packet.id, deferred);

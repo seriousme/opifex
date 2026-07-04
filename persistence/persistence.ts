@@ -15,7 +15,7 @@ export const MAX_PACKET_ID = 0xffff;
  * @callback Handler
  * @param {PublishPacket} packet - The MQTT publish packet to handle
  */
-export type Handler = (packet: PublishPacket) => void;
+export type Handler = (packet: PublishPacket) => void | Promise<void>;
 
 /**
  * Client type containing message store and packet handler
@@ -51,20 +51,20 @@ export interface IPersistence {
     clientId: ClientId,
     handler: Handler,
     clean: boolean,
-  ): ClientRegistrationResult;
+  ): Promise<ClientRegistrationResult>;
 
   /**
    * Remove a client from the persistence layer
    * @param {ClientId} clientId - ID of client to deregister
    */
-  deregisterClient(clientId: ClientId): void;
+  deregisterClient(clientId: ClientId): void | Promise<void>;
 
   /**
    * Publish a message to all subscribed clients
    * @param {Topic} topic - Topic to publish to
    * @param {PublishPacket} packet - Packet containing the message
    */
-  publish(topic: Topic, packet: PublishPacket): void;
+  publish(topic: Topic, packet: PublishPacket): void | Promise<void>;
 
   /**
    * Subscribe a client to a topic
@@ -72,18 +72,18 @@ export interface IPersistence {
    * @param {Topic} topic - Topic to subscribe to
    * @param {QoS} qos - Quality of Service level
    */
-  subscribe(store: IStore, topic: Topic, qos: QoS): void;
+  subscribe(store: IStore, topic: Topic, qos: QoS): void | Promise<void>;
 
   /**
    * Unsubscribe a client from a topic
    * @param {IStore} store - Client's message store
    * @param {Topic} topic - Topic to unsubscribe from
    */
-  unsubscribe(store: IStore, topic: Topic): void;
+  unsubscribe(store: IStore, topic: Topic): void | Promise<void>;
 
   /**
    * Send retained messages to a client
    * @param {ClientId} clientId - ID of client to send retained messages to
    */
-  handleRetained(clientId: ClientId): void;
+  handleRetained(clientId: ClientId): void | Promise<void>;
 }

@@ -20,10 +20,10 @@ test("new should create new Persistence object", () => {
 
 test(
   "Registering a client should register the client and return a Store Object",
-  () => {
+  async () => {
     const persistence = new Persistence();
     const clientId = "myClient";
-    const { store, existingSession } = persistence.registerClient(
+    const { store, existingSession } = await persistence.registerClient(
       clientId,
       () => {},
       false,
@@ -57,7 +57,7 @@ test("pub/sub should work", async () => {
     seen.add(packet.id);
   }
 
-  const { store } = persistence.registerClient(clientId, handler, false);
+  const { store } = await persistence.registerClient(clientId, handler, false);
 
   persistence.subscribe(store, topic, qos);
   assert.deepStrictEqual(
@@ -65,10 +65,10 @@ test("pub/sub should work", async () => {
     true,
     "topic is registered as subscription",
   );
-  persistence.publish(topic, makePacket(25));
-  persistence.publish(topic, makePacket(27));
-  persistence.publish(topic, makePacket(undefined));
-  persistence.publish("noTopic", makePacket(undefined));
+  await persistence.publish(topic, makePacket(25));
+  await persistence.publish(topic, makePacket(27));
+  await persistence.publish(topic, makePacket(undefined));
+  await persistence.publish("noTopic", makePacket(undefined));
   await delay(10);
   assert.deepStrictEqual(seen.size, 3, `received ${seen.size} messages`);
 });
@@ -96,7 +96,7 @@ test("publish of an empty retained message should clear previous retained messag
     seen.add(packet.id);
   }
 
-  const { store } = persistence.registerClient(clientId, handler, false);
+  const { store } = await persistence.registerClient(clientId, handler, false);
   persistence.publish(topic, makePacket(25));
   assert.deepStrictEqual(
     persistence.retained.has(topic),
@@ -150,7 +150,7 @@ test("many packets should work", async () => {
     seen.add(packet.id);
   }
 
-  const { store } = persistence.registerClient(clientId, handler, false);
+  const { store } = await persistence.registerClient(clientId, handler, false);
 
   persistence.subscribe(store, topic, qos);
   assert.deepStrictEqual(
@@ -159,7 +159,7 @@ test("many packets should work", async () => {
     "topic is registered as subscription",
   );
   for (let i = 0; i < numMessages; i++) {
-    persistence.publish(topic, makePacket(i));
+    await persistence.publish(topic, makePacket(i));
   }
   await delay(10);
   assert.deepStrictEqual(
@@ -169,7 +169,7 @@ test("many packets should work", async () => {
   );
 });
 
-test("unsubscribe should work", () => {
+test("unsubscribe should work", async () => {
   const persistence = new Persistence();
   const clientId = "myClient";
   const topic = "/myTopic";
@@ -191,15 +191,15 @@ test("unsubscribe should work", () => {
     seen.add(packet.id);
   }
 
-  const { store } = persistence.registerClient(clientId, handler, false);
-  persistence.subscribe(store, topic, qos);
-  persistence.unsubscribe(store, topic);
+  const { store } = await persistence.registerClient(clientId, handler, false);
+  await persistence.subscribe(store, topic, qos);
+  await persistence.unsubscribe(store, topic);
 
   assert.deepStrictEqual(
     store.subscriptions.has(topic),
     false,
     "topic is still registered as subscription after unsubscription",
   );
-  persistence.publish(topic, publishPacket);
+  await persistence.publish(topic, publishPacket);
   assert.deepStrictEqual(seen.size, 0);
 });

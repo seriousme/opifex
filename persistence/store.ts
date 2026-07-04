@@ -12,7 +12,7 @@ export interface IStore {
   pendingOutgoing: IPacketStore;
   pendingAckOutgoing: IPacketIdStore;
   subscriptions: ISubscriptionStore;
-  nextId(): PacketId;
+  nextId(): PacketId | Promise<PacketId>;
 }
 
 export type IPacketStore = IBaseStore<PacketId, PublishPacket>;

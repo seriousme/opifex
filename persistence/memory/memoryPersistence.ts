@@ -191,11 +191,11 @@ export class MemoryPersistence implements IPersistence {
    * @param clean Whether the client requested a clean session (wiping previous state).
    * @returns An object containing the assigned store and a flag indicating if a session already existed.
    */
-  registerClient(
+  async registerClient(
     clientId: ClientId,
     handler: Handler,
     clean: boolean,
-  ): ClientRegistrationResult {
+  ): Promise<ClientRegistrationResult> {
     if (clean) {
       this.clientList.delete(clientId);
     }
@@ -259,7 +259,7 @@ export class MemoryPersistence implements IPersistence {
    * @param topic The concrete topic name on which the packet was published.
    * @param packet The publish packet data structure.
    */
-  publish(topic: Topic, packet: PublishPacket): void {
+  async publish(topic: Topic, packet: PublishPacket): Promise<void> {
     if (packet.retain) {
       this.retained.set(packet.topic, packet);
       if (!packet.payload?.byteLength) {
@@ -283,7 +283,9 @@ export class MemoryPersistence implements IPersistence {
       newPacket.qos = qos;
       //  logger.debug(`publish ${topic} to client ${clientId}`);
       const client = this.clientList.get(clientId);
-      client?.handler(newPacket);
+      if (client) {
+        await Promise.resolve(client.handler(newPacket));
+      }
     }
   }
 
@@ -291,7 +293,7 @@ export class MemoryPersistence implements IPersistence {
    * Matches and delivers all active retained messages that match the client's current subscriptions.
    * @param clientId The identifier of the client that needs historical retained messages.
    */
-  handleRetained(clientId: ClientId): void {
+  async handleRetained(clientId: ClientId): Promise<void> {
     const retainedTrie: Trie<ClientId> = new Trie();
     const client = this.clientList.get(clientId);
     const store = client?.store;
@@ -303,7 +305,7 @@ export class MemoryPersistence implements IPersistence {
         if (retainedTrie.match(topic).length > 0) {
           const packet = this.retained.get(topic);
           if (packet !== undefined) {
-            client?.handler(packet);
+            await Promise.resolve(client!.handler(packet));
           }
         }
       }

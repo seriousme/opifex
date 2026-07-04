@@ -60,11 +60,11 @@ export class SqlitePersistence implements IPersistence {
    * @param handler Message dispatch routing block.
    * @param clean Directives dictating clean session processing.
    */
-  registerClient(
+  async registerClient(
     clientId: ClientId,
     handler: Handler,
     clean: boolean,
-  ): ClientRegistrationResult {
+  ): Promise<ClientRegistrationResult> {
     if (clean) {
       deleteClientState(this.db, clientId);
     }
@@ -126,7 +126,7 @@ export class SqlitePersistence implements IPersistence {
    * @param topic Concrete targeted topic context.
    * @param packet Structural parameters describing payload properties.
    */
-  publish(topic: Topic, packet: PublishPacket): void {
+  async publish(topic: Topic, packet: PublishPacket): Promise<void> {
     if (packet.retain) {
       if (!packet.payload?.byteLength) {
         this.retained.delete(packet.topic);
@@ -148,7 +148,9 @@ export class SqlitePersistence implements IPersistence {
       newPacket.retain = false;
       newPacket.qos = qos;
       const client = this.clientList.get(clientId);
-      client?.handler(newPacket);
+      if (client) {
+        await Promise.resolve(client.handler(newPacket));
+      }
     }
   }
 
@@ -156,7 +158,7 @@ export class SqlitePersistence implements IPersistence {
    * Dispatches matching historical retained states to newly bound client sessions.
    * @param clientId Targeted destination identification token.
    */
-  handleRetained(clientId: ClientId): void {
+  async handleRetained(clientId: ClientId): Promise<void> {
     const client = this.clientList.get(clientId);
     if (!client?.handler) {
       return;
@@ -166,7 +168,7 @@ export class SqlitePersistence implements IPersistence {
 
     for (const topicFilter of store.subscriptions.keys()) {
       for (const retainedPacket of this.retained.matches(topicFilter)) {
-        client.handler(retainedPacket);
+        await Promise.resolve(client.handler(retainedPacket));
       }
     }
   }

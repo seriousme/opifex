@@ -39,19 +39,20 @@ export async function handleSubscribe(
    * Topic Filters in the SUBSCRIBE Packet [MQTT-3.9.3-1].
    */
   const validSubscriptions: Subscription[] = [];
-  const returnCodes = packet.subscriptions.map((sub) => {
-    // deno-coverage-ignore
+  const returnCodes: number[] = [];
+  for (const sub of packet.subscriptions) {
     if (ctx.store) {
       if (!authorizedToSubscribe(ctx, sub.topicFilter)) {
-        return SubscriptionFailure;
+        returnCodes.push(SubscriptionFailure);
+        continue;
       }
-      ctx.persistence.subscribe(ctx.store, sub.topicFilter, sub.qos);
+      await ctx.persistence.subscribe(ctx.store, sub.topicFilter, sub.qos);
       validSubscriptions.push(sub);
-      return sub.qos;
-      // deno-coverage-ignore-start
+      returnCodes.push(sub.qos);
+    } else {
+      returnCodes.push(SubscriptionFailure);
     }
-    return SubscriptionFailure;
-  });
+  }
   // deno-coverage-ignore-stop
 
   await ctx.send({
@@ -65,6 +66,6 @@ export async function handleSubscribe(
    * send any retained messages that match these subscriptions
    */
   if (ctx.store) {
-    ctx.persistence.handleRetained(ctx.store.clientId);
+    await ctx.persistence.handleRetained(ctx.store.clientId);
   }
 }

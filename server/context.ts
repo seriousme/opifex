@@ -95,7 +95,7 @@ export class Context {
   }
 
   // if we get here the client has already been validated
-  connect(clientId: string, clean: boolean): boolean {
+  async connect(clientId: string, clean: boolean): Promise<boolean> {
     logger.debug("Connecting", clientId);
     if (this.preconnectTimer) {
       this.preconnectTimer.clear();
@@ -108,20 +108,21 @@ export class Context {
       existingActiveSession.close(false);
     }
 
-    const { store, existingSession } = this.persistence.registerClient(
+    const result = await this.persistence.registerClient(
       clientId,
       this.doPublish.bind(this),
       clean,
     );
+    const { store, existingSession } = result;
     this.store = store;
     this.connected = true;
     Context.clientList.set(clientId, this);
-    this.broadcast("$SYS/connect/clients", clientId);
+    await this.broadcast("$SYS/connect/clients", clientId);
     logger.debug("Connected", clientId);
     return existingSession;
   }
 
-  doPublish(packet: PublishPacket): void {
+  async doPublish(packet: PublishPacket): Promise<void> {
     const qos = packet.qos || 0;
     if (qos === 0) {
       packet.id = 0;
@@ -129,14 +130,14 @@ export class Context {
       return;
     }
     if (this.store) {
-      packet.id = this.store.nextId();
+      packet.id = await this.store.nextId();
       this.store.pendingOutgoing.set(packet.id, packet);
       this.send(packet);
     }
   }
 
-  clean(clientId: string) {
-    this.persistence.deregisterClient(clientId);
+  async clean(clientId: string) {
+    await this.persistence.deregisterClient(clientId);
   }
 
   close(executewill = true): void {
@@ -155,10 +156,10 @@ export class Context {
         this.timer.clear();
       }
       if (this.store) {
-        this.broadcast("$SYS/disconnect/clients", this.store.clientId);
+        void this.broadcast("$SYS/disconnect/clients", this.store.clientId);
       }
       if (executewill) {
-        this.handleWill();
+        void this.handleWill();
       }
     } else {
       logger.info(
@@ -172,19 +173,23 @@ export class Context {
     }
   }
 
-  private handleWill() {
+  private async handleWill() {
     if (this.will) {
       if (
         !this.will.topic.startsWith(SysPrefix) &&
         this.handlers.isAuthorizedToPublish &&
         this.handlers.isAuthorizedToPublish(this, this.will.topic)
       ) {
-        this.persistence.publish(this.will.topic, this.will);
+        await this.persistence.publish(this.will.topic, this.will);
       }
     }
   }
 
-  broadcast(topic: Topic, payload: string, retain = false): void {
+  async broadcast(
+    topic: Topic,
+    payload: string,
+    retain = false,
+  ): Promise<void> {
     const packet: PublishPacket = {
       type: PacketType.publish,
       protocolLevel: this.protocolLevel,
@@ -192,6 +197,6 @@ export class Context {
       retain,
       payload: utf8Encoder.encode(payload),
     };
-    this.persistence.publish(packet.topic, packet);
+    await this.persistence.publish(packet.topic, packet);
   }
 }

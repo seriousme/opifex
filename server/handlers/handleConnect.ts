@@ -46,12 +46,12 @@ function validateConnect(
  * @param ctx - The connection context
  * @param clientId - The client ID
  */
-function processValidatedConnect(
+async function processValidatedConnect(
   returnCode: TAuthenticationResult,
   packet: ConnectPacket,
   ctx: Context,
   clientId: string,
-): boolean {
+): Promise<boolean> {
   if (returnCode === AuthenticationResult.ok) {
     if (packet.will) {
       ctx.will = {
@@ -63,8 +63,7 @@ function processValidatedConnect(
         payload: packet.will.payload,
       };
     }
-
-    const existingSession = ctx.connect(clientId, packet.clean || false);
+    const existingSession = await ctx.connect(clientId, packet.clean || false);
     logger.debug(
       `Client has ${existingSession ? "an" : "no"} existing session`,
     );
@@ -91,16 +90,19 @@ function processValidatedConnect(
  * @param ctx - The connection context
  * @param packet - The MQTT CONNECT packet to handle
  */
-export function handleConnect(ctx: Context, packet: ConnectPacket): void {
+export async function handleConnect(
+  ctx: Context,
+  packet: ConnectPacket,
+): Promise<void> {
   const clientId = packet.clientId || `Opifex-${crypto.randomUUID()}`;
   const returnCode = validateConnect(ctx, packet);
-  const sessionPresent = processValidatedConnect(
+  const sessionPresent = await processValidatedConnect(
     returnCode,
     packet,
     ctx,
     clientId,
   );
-  ctx.send({
+  await ctx.send({
     type: PacketType.connack,
     protocolLevel: ctx.protocolLevel,
     sessionPresent,
