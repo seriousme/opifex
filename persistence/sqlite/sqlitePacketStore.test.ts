@@ -29,10 +29,6 @@ test("SqlitePacketStore round-trips packets and exposes iteration helpers", () =
 
   const keys = [...store.keys()];
   assert.deepStrictEqual(keys, [1]);
-  const entries = [...store.entries()];
-  assert.deepStrictEqual(entries.map(([packetId]) => packetId), [1]);
-  assert.deepStrictEqual(store.values().next().value?.topic, "/topic/1");
-
   store.clear();
   assert.equal(store.size, 0);
 });

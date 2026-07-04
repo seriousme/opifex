@@ -9,8 +9,7 @@ import {
 } from "./sqliteStoreUtils.ts";
 
 /**
- * A database-backed Store that implements the Map interface.
- * It directly persists and retrieves MQTT packets from Sqlite
+ * A database-backed Store that persists and retrieves MQTT packets from Sqlite
  * without caching them in memory.
  */
 export class SqlitePacketStore implements IPacketStore {
@@ -84,35 +83,5 @@ export class SqlitePacketStore implements IPacketStore {
     ).iterate(this.clientId) as IterableIterator<{ packet_id: PacketId }>;
 
     return createIterator(rowIterator, (row) => row.packet_id);
-  }
-
-  values(): IterableIterator<PublishPacket> {
-    const rowIterator = this.db.prepare(
-      "select packet, payload from pending_outgoing where client_id = ?",
-    ).iterate(this.clientId) as IterableIterator<
-      { packet: string; payload: Uint8Array | null }
-    >;
-
-    return createIterator(
-      rowIterator,
-      (row) => deserializePacket(row.packet, row.payload) as PublishPacket,
-    );
-  }
-
-  entries(): IterableIterator<[PacketId, PublishPacket]> {
-    const rowIterator = this.db.prepare(
-      "select packet_id, packet, payload from pending_outgoing where client_id = ?",
-    ).iterate(this.clientId) as IterableIterator<
-      { packet_id: PacketId; packet: string; payload: Uint8Array | null }
-    >;
-
-    return createIterator(
-      rowIterator,
-      (row) =>
-        [row.packet_id, deserializePacket(row.packet, row.payload)] as [
-          PacketId,
-          PublishPacket,
-        ],
-    );
   }
 }

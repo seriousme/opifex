@@ -17,7 +17,6 @@ import type {
   PacketId,
   PublishPacket,
   QoS,
-  RetainStore,
   Topic,
   TopicFilter,
 } from "../mod.ts";
@@ -36,6 +35,91 @@ type ClientSubscription = {
 };
 
 /**
+ * An in-memory Packet ID store that records acknowledgement IDs (such as QoS 2 tokens).
+ */
+
+export class MemoryPacketIdStore implements IPacketIdStore {
+  private store: Set<PacketId>;
+
+  constructor() {
+    this.store = new Set();
+  }
+
+  add(value: PacketId): this {
+    this.store.add(value);
+    return this;
+  }
+
+  delete(value: PacketId): boolean {
+    const deleted = this.store.delete(value);
+    return deleted;
+  }
+
+  clear(): void {
+    this.store.clear();
+  }
+
+  has(key: PacketId): boolean {
+    return this.store.has(key);
+  }
+
+  get size(): number {
+    return this.store.size;
+  }
+
+  keys(): IterableIterator<PacketId> {
+    return this.store.keys();
+  }
+}
+
+/**
+ * A memory backed Store that persists and retrieves key value pairs
+ * to be used to create the other stores
+ */
+
+class MemoryBaseStore<K, V> {
+  store: Map<K, V>;
+
+  constructor() {
+    this.store = new Map();
+  }
+
+  get size(): number {
+    return this.store.size;
+  }
+
+  set(key: K, value: V): this {
+    this.store.set(key, value);
+    return this;
+  }
+
+  get(key: K): V | undefined {
+    return this.store.get(key);
+  }
+
+  has(key: K): boolean {
+    return this.store.has(key);
+  }
+
+  delete(key: K): boolean {
+    return this.store.delete(key);
+  }
+
+  clear(): void {
+    this.store.clear();
+  }
+
+  keys(): IterableIterator<K> {
+    return this.store.keys();
+  }
+}
+
+export class MemoryPacketStore
+  extends MemoryBaseStore<PacketId, PublishPacket> {}
+export class MemoryRetainStore extends MemoryBaseStore<Topic, PublishPacket> {}
+export class MemorySubscriptionStore
+  extends MemoryBaseStore<TopicFilter, QoS> {}
+/**
  * An in-memory store implementation managing packet tracking and subscriptions for a single MQTT client.
  */
 export class MemoryStore implements IStore {
@@ -53,10 +137,10 @@ export class MemoryStore implements IStore {
    */
   constructor(clientId: ClientId) {
     this.packetId = 0;
-    this.pendingIncoming = new Set();
-    this.pendingOutgoing = new Map();
-    this.pendingAckOutgoing = new Set();
-    this.subscriptions = new Map();
+    this.pendingIncoming = new MemoryPacketIdStore();
+    this.pendingOutgoing = new MemoryPacketStore();
+    this.pendingAckOutgoing = new MemoryPacketIdStore();
+    this.subscriptions = new MemorySubscriptionStore();
     this.clientId = clientId;
   }
 
@@ -88,7 +172,7 @@ export class MemoryStore implements IStore {
  */
 export class MemoryPersistence implements IPersistence {
   clientList: Map<ClientId, Client>;
-  retained: RetainStore;
+  retained: MemoryRetainStore;
   private trie: Trie<ClientSubscription>;
 
   /**
@@ -96,7 +180,7 @@ export class MemoryPersistence implements IPersistence {
    */
   constructor() {
     this.clientList = new Map();
-    this.retained = new Map();
+    this.retained = new MemoryRetainStore();
     this.trie = new Trie(true);
   }
 
@@ -215,9 +299,12 @@ export class MemoryPersistence implements IPersistence {
       for (const topicFilter of store.subscriptions.keys()) {
         retainedTrie.add(topicFilter, clientId);
       }
-      for (const [topic, packet] of this.retained) {
+      for (const topic of this.retained.keys()) {
         if (retainedTrie.match(topic).length > 0) {
-          client?.handler(packet);
+          const packet = this.retained.get(topic);
+          if (packet !== undefined) {
+            client?.handler(packet);
+          }
         }
       }
     }

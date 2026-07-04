@@ -26,8 +26,6 @@ export interface IBaseStore<K, V> {
   delete(key: K): boolean;
   clear(): void;
   keys(): IterableIterator<K>;
-  values(): IterableIterator<V>;
-  entries(): IterableIterator<[K, V]>;
 }
 
 export interface IPacketIdStore {

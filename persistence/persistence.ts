@@ -18,12 +18,6 @@ export const MAX_PACKET_ID = 0xffff;
 export type Handler = (packet: PublishPacket) => void;
 
 /**
- * Store type for retained messages mapped by topic
- * @typedef {Map<Topic, PublishPacket>} RetainStore
- */
-export type RetainStore = Map<Topic, PublishPacket>;
-
-/**
  * Client type containing message store and packet handler
  * @typedef {Object} Client
  * @property {IStore} store - The client's message store

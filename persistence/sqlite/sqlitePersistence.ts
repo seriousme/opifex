@@ -75,8 +75,11 @@ export class SqlitePersistence implements IPersistence {
     }
     if (!clean && existingSession) {
       // reinstate subscriptions
-      for (const [topicFilter, qos] of store.subscriptions.entries()) {
-        this.trie.add(topicFilter, { clientId, qos });
+      for (const topicFilter of store.subscriptions.keys()) {
+        const qos = store.subscriptions.get(topicFilter);
+        if (qos !== undefined) {
+          this.trie.add(topicFilter, { clientId, qos });
+        }
       }
     }
     this.clientList.set(clientId, { store, handler });
