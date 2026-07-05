@@ -15,24 +15,24 @@ function makePacket(id: number): PublishPacket {
   };
 }
 
-test("SqlitePacketStore round-trips packets and exposes iteration helpers", () => {
+test("SqlitePacketStore round-trips packets", async () => {
   const db = initializeDatabase(":memory:");
-  const store = new SqlitePacketStore(db, "client-a", [[1, makePacket(1)]]);
+  const store = new SqlitePacketStore(db, "client-a");
 
+  store.set(1, makePacket(1));
   store.set(2, makePacket(2));
 
-  assert.equal(store.size, 2);
-  assert.deepStrictEqual(store.get(1)?.topic, "/topic/1");
-  assert.equal(store.has(2), true);
-  assert.equal(store.delete(2), true);
-  assert.equal(store.delete(2), false);
+  assert.equal(await store.size(), 2);
+  assert.deepStrictEqual((await store.get(1))?.topic, "/topic/1");
+  assert.equal(await store.has(2), true);
+  assert.equal(await store.delete(2), true);
+  assert.equal(await store.delete(2), false);
 
-  const keys = [...store.keys()];
+  const keys = [];
+  for await (const key of store.keys()) {
+    keys.push(key);
+  }
   assert.deepStrictEqual(keys, [1]);
-  const entries = [...store.entries()];
-  assert.deepStrictEqual(entries.map(([packetId]) => packetId), [1]);
-  assert.deepStrictEqual(store.values().next().value?.topic, "/topic/1");
-
-  store.clear();
-  assert.equal(store.size, 0);
+  await store.clear();
+  assert.equal(await store.size(), 0);
 });

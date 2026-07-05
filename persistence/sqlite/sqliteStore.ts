@@ -13,7 +13,6 @@ export { SqlitePacketStore } from "./sqlitePacketStore.ts";
 export { SqliteRetainStore } from "./sqliteRetainStore.ts";
 export { SqliteSubscriptionStore } from "./sqliteSubscriptionStore.ts";
 export {
-  createIterator,
   deserializePacket,
   type SerializedPacket,
   serializePacket,
@@ -22,12 +21,7 @@ export {
 import type { DatabaseSync } from "node:sqlite";
 import type { ClientId, PacketId } from "../../mqttPacket/types.ts";
 import { MAX_PACKET_ID } from "../persistence.ts";
-import type {
-  IPacketIdStore,
-  IPacketStore,
-  IStore,
-  ISubscriptionStore,
-} from "../store.ts";
+import type { IStore } from "../store.ts";
 import { SqlitePacketIdStore } from "./sqlitePacketIdStore.ts";
 import { SqlitePacketStore } from "./sqlitePacketStore.ts";
 import { SqliteSubscriptionStore } from "./sqliteSubscriptionStore.ts";
@@ -39,10 +33,10 @@ export class SqliteStore implements IStore {
   private lastPacketId = 0;
   private db: DatabaseSync;
   clientId: ClientId;
-  pendingIncoming: IPacketIdStore;
-  pendingOutgoing: IPacketStore;
-  pendingAckOutgoing: IPacketIdStore;
-  subscriptions: ISubscriptionStore;
+  pendingIncoming: SqlitePacketIdStore;
+  pendingOutgoing: SqlitePacketStore;
+  pendingAckOutgoing: SqlitePacketIdStore;
+  subscriptions: SqliteSubscriptionStore;
 
   constructor(
     db: DatabaseSync,

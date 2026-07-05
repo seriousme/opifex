@@ -77,17 +77,17 @@ test("subscriptions persist with clean=false", async () => {
   const client1 = mqttServer.persistence.clientList.get(clientId);
   assert(client1, "Expected client store for client-sub-persist");
   assert.strictEqual(
-    client1.store.subscriptions.size,
+    await client1.store.subscriptions.size(),
     2,
     "Expected 2 subscriptions after first connection",
   );
   assert.strictEqual(
-    client1.store.subscriptions.get("sensors/temperature"),
+    await client1.store.subscriptions.get("sensors/temperature"),
     1,
     "Expected sensors/temperature with QoS 1",
   );
   assert.strictEqual(
-    client1.store.subscriptions.get("sensors/humidity"),
+    await client1.store.subscriptions.get("sensors/humidity"),
     2,
     "Expected sensors/humidity with QoS 2",
   );
@@ -113,17 +113,17 @@ test("subscriptions persist with clean=false", async () => {
     "Expected client store present after reconnection",
   );
   assert.strictEqual(
-    client2.store.subscriptions.size,
+    await client2.store.subscriptions.size(),
     2,
     "Expected subscriptions to persist after reconnection",
   );
   assert.strictEqual(
-    client2.store.subscriptions.get("sensors/temperature"),
+    await client2.store.subscriptions.get("sensors/temperature"),
     1,
     "Expected sensors/temperature to persist",
   );
   assert.strictEqual(
-    client2.store.subscriptions.get("sensors/humidity"),
+    await client2.store.subscriptions.get("sensors/humidity"),
     2,
     "Expected sensors/humidity to persist",
   );
@@ -148,7 +148,7 @@ test("subscriptions cleared with clean=true", async () => {
   const client1 = mqttServer.persistence.clientList.get(clientId);
   assert(client1, "Expected client store for client-sub-persist");
   assert.strictEqual(
-    client1.store.subscriptions.size,
+    await client1.store.subscriptions.size(),
     1,
     "Expected 1 subscription after first connection",
   );
@@ -172,7 +172,7 @@ test("subscriptions cleared with clean=true", async () => {
     "Expected client store for client-clean after reconnection",
   );
   assert.strictEqual(
-    cleanClient.store.subscriptions.size,
+    await cleanClient.store.subscriptions.size(),
     0,
     "Expected subscriptions to be cleared with clean=true",
   );

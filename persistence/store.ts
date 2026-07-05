@@ -12,29 +12,27 @@ export interface IStore {
   pendingOutgoing: IPacketStore;
   pendingAckOutgoing: IPacketIdStore;
   subscriptions: ISubscriptionStore;
-  nextId(): PacketId;
+  nextId(): PacketId | Promise<PacketId>;
 }
 
 export type IPacketStore = IBaseStore<PacketId, PublishPacket>;
 export type ISubscriptionStore = IBaseStore<TopicFilter, QoS>;
 
 export interface IBaseStore<K, V> {
-  readonly size: number;
+  size(): Promise<number>;
   set(key: K, value: V): this;
-  get(key: K): V | undefined;
-  has(key: K): boolean;
-  delete(key: K): boolean;
-  clear(): void;
-  keys(): IterableIterator<K>;
-  values(): IterableIterator<V>;
-  entries(): IterableIterator<[K, V]>;
+  get(key: K): Promise<V | undefined>;
+  has(key: K): Promise<boolean>;
+  delete(key: K): Promise<boolean>;
+  clear(): Promise<void>;
+  keys(): AsyncIterableIterator<K>;
 }
 
 export interface IPacketIdStore {
-  readonly size: number;
-  add(key: PacketId): this;
-  has(key: PacketId): boolean;
-  delete(key: PacketId): boolean;
-  clear(): void;
-  keys(): IterableIterator<PacketId>;
+  size(): Promise<number>;
+  add(key: PacketId): Promise<this>;
+  has(key: PacketId): Promise<boolean>;
+  delete(key: PacketId): Promise<boolean>;
+  clear(): Promise<void>;
+  keys(): AsyncIterableIterator<PacketId>;
 }

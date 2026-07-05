@@ -14,7 +14,7 @@ export async function handleUnsubscribe(
 ): Promise<void> {
   for (const topic of packet.topicFilters) {
     if (ctx.store) {
-      ctx.persistence.unsubscribe(ctx.store, topic);
+      await ctx.persistence.unsubscribe(ctx.store, topic);
     }
   }
   await ctx.send({

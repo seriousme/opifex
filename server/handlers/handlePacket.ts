@@ -37,7 +37,7 @@ export async function handlePacket(
   logger.debug(JSON.stringify(packet, null, 2));
   if (!ctx.connected) {
     if (packet.type === PacketType.connect) {
-      handleConnect(ctx, packet);
+      await handleConnect(ctx, packet);
     } else {
       throw new Error(
         `Received ${PacketNameByType[packet.type]} packet before connect`,

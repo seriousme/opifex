@@ -17,7 +17,6 @@ import type {
   PacketId,
   PublishPacket,
   QoS,
-  RetainStore,
   Topic,
   TopicFilter,
 } from "../mod.ts";
@@ -36,6 +35,96 @@ type ClientSubscription = {
 };
 
 /**
+ * An in-memory Packet ID store that records acknowledgement IDs (such as QoS 2 tokens).
+ */
+
+export class MemoryPacketIdStore implements IPacketIdStore {
+  private store: Set<PacketId>;
+
+  constructor() {
+    this.store = new Set();
+  }
+
+  add(value: PacketId): Promise<this> {
+    this.store.add(value);
+    return Promise.resolve(this);
+  }
+
+  delete(value: PacketId): Promise<boolean> {
+    const deleted = this.store.delete(value);
+    return Promise.resolve(deleted);
+  }
+
+  clear(): Promise<void> {
+    this.store.clear();
+    return Promise.resolve();
+  }
+
+  has(key: PacketId): Promise<boolean> {
+    return Promise.resolve(this.store.has(key));
+  }
+
+  size(): Promise<number> {
+    return Promise.resolve(this.store.size);
+  }
+
+  async *keys(): AsyncIterableIterator<PacketId> {
+    for (const key of this.store.keys()) {
+      yield key;
+    }
+  }
+}
+
+/**
+ * A memory backed Store that persists and retrieves key value pairs
+ * to be used to create the other stores
+ */
+
+class MemoryBaseStore<K, V> {
+  store: Map<K, V>;
+
+  constructor() {
+    this.store = new Map();
+  }
+
+  set(key: K, value: V): this {
+    this.store.set(key, value);
+    return this;
+  }
+  size(): Promise<number> {
+    return Promise.resolve(this.store.size);
+  }
+
+  get(key: K): Promise<V | undefined> {
+    return Promise.resolve(this.store.get(key));
+  }
+
+  has(key: K): Promise<boolean> {
+    return Promise.resolve(this.store.has(key));
+  }
+
+  delete(key: K): Promise<boolean> {
+    return Promise.resolve(this.store.delete(key));
+  }
+
+  clear(): Promise<void> {
+    this.store.clear();
+    return Promise.resolve();
+  }
+
+  async *keys(): AsyncIterableIterator<K> {
+    for (const key of this.store.keys()) {
+      yield key;
+    }
+  }
+}
+
+export class MemoryPacketStore
+  extends MemoryBaseStore<PacketId, PublishPacket> {}
+export class MemoryRetainStore extends MemoryBaseStore<Topic, PublishPacket> {}
+export class MemorySubscriptionStore
+  extends MemoryBaseStore<TopicFilter, QoS> {}
+/**
  * An in-memory store implementation managing packet tracking and subscriptions for a single MQTT client.
  */
 export class MemoryStore implements IStore {
@@ -53,10 +142,10 @@ export class MemoryStore implements IStore {
    */
   constructor(clientId: ClientId) {
     this.packetId = 0;
-    this.pendingIncoming = new Set();
-    this.pendingOutgoing = new Map();
-    this.pendingAckOutgoing = new Set();
-    this.subscriptions = new Map();
+    this.pendingIncoming = new MemoryPacketIdStore();
+    this.pendingOutgoing = new MemoryPacketStore();
+    this.pendingAckOutgoing = new MemoryPacketIdStore();
+    this.subscriptions = new MemorySubscriptionStore();
     this.clientId = clientId;
   }
 
@@ -66,7 +155,7 @@ export class MemoryStore implements IStore {
    * @returns A valid unassigned Packet ID.
    * @throws {Error} If no unused packet IDs are available.
    */
-  nextId(): PacketId {
+  async nextId(): Promise<PacketId> {
     const currentId = this.packetId;
     do {
       this.packetId++;
@@ -74,8 +163,8 @@ export class MemoryStore implements IStore {
         this.packetId = 0;
       }
     } while (
-      (this.pendingOutgoing.has(this.packetId) ||
-        this.pendingAckOutgoing.has(this.packetId)) &&
+      ((await this.pendingOutgoing.has(this.packetId)) ||
+        (await this.pendingAckOutgoing.has(this.packetId))) &&
       this.packetId !== currentId
     );
     assert(this.packetId !== currentId, "No unused packetId available");
@@ -88,7 +177,7 @@ export class MemoryStore implements IStore {
  */
 export class MemoryPersistence implements IPersistence {
   clientList: Map<ClientId, Client>;
-  retained: RetainStore;
+  retained: MemoryRetainStore;
   private trie: Trie<ClientSubscription>;
 
   /**
@@ -96,7 +185,7 @@ export class MemoryPersistence implements IPersistence {
    */
   constructor() {
     this.clientList = new Map();
-    this.retained = new Map();
+    this.retained = new MemoryRetainStore();
     this.trie = new Trie(true);
   }
 
@@ -111,7 +200,7 @@ export class MemoryPersistence implements IPersistence {
     clientId: ClientId,
     handler: Handler,
     clean: boolean,
-  ): ClientRegistrationResult {
+  ): Promise<ClientRegistrationResult> {
     if (clean) {
       this.clientList.delete(clientId);
     }
@@ -121,17 +210,17 @@ export class MemoryPersistence implements IPersistence {
       ? existingClient.store
       : new MemoryStore(clientId);
     this.clientList.set(clientId, { store, handler });
-    return { store, existingSession };
+    return Promise.resolve({ store, existingSession });
   }
 
   /**
    * Deregisters a client and cleans up all associated active memory subscriptions.
    * @param clientId The unique identifier of the client to remove.
    */
-  deregisterClient(clientId: ClientId): void {
+  async deregisterClient(clientId: ClientId): Promise<void> {
     const client = this.clientList.get(clientId);
     if (client) {
-      this.unsubscribeAll(client.store);
+      await this.unsubscribeAll(client.store);
       this.clientList.delete(clientId);
     }
   }
@@ -142,9 +231,13 @@ export class MemoryPersistence implements IPersistence {
    * @param topicFilter The MQTT topic filter pattern (e.g., "sensor/+/temperature").
    * @param qos The maximum Quality of Service level requested.
    */
-  subscribe(store: IStore, topicFilter: TopicFilter, qos: QoS): void {
+  async subscribe(
+    store: IStore,
+    topicFilter: TopicFilter,
+    qos: QoS,
+  ): Promise<void> {
     const clientId = store.clientId;
-    if (!store.subscriptions.has(topicFilter)) {
+    if (!await store.subscriptions.has(topicFilter)) {
       store.subscriptions.set(topicFilter, qos);
       this.trie.add(topicFilter, { clientId, qos });
     }
@@ -155,18 +248,18 @@ export class MemoryPersistence implements IPersistence {
    * @param store The client's active store instance.
    * @param topicFilter The MQTT topic filter pattern to remove.
    */
-  unsubscribe(store: IStore, topicFilter: TopicFilter): void {
+  async unsubscribe(store: IStore, topicFilter: TopicFilter): Promise<void> {
     const clientId = store.clientId;
-    const qos = store.subscriptions.get(topicFilter);
+    const qos = await store.subscriptions.get(topicFilter);
     if (qos !== undefined) {
-      store.subscriptions.delete(topicFilter);
+      await store.subscriptions.delete(topicFilter);
       this.trie.remove(topicFilter, { clientId, qos });
     }
   }
 
-  private unsubscribeAll(store: IStore) {
-    for (const topicFilter of store.subscriptions.keys()) {
-      this.unsubscribe(store, topicFilter);
+  private async unsubscribeAll(store: IStore): Promise<void> {
+    for await (const topicFilter of store.subscriptions.keys()) {
+      await this.unsubscribe(store, topicFilter);
     }
   }
 
@@ -175,7 +268,7 @@ export class MemoryPersistence implements IPersistence {
    * @param topic The concrete topic name on which the packet was published.
    * @param packet The publish packet data structure.
    */
-  publish(topic: Topic, packet: PublishPacket): void {
+  async publish(topic: Topic, packet: PublishPacket): Promise<void> {
     if (packet.retain) {
       this.retained.set(packet.topic, packet);
       if (!packet.payload?.byteLength) {
@@ -199,7 +292,9 @@ export class MemoryPersistence implements IPersistence {
       newPacket.qos = qos;
       //  logger.debug(`publish ${topic} to client ${clientId}`);
       const client = this.clientList.get(clientId);
-      client?.handler(newPacket);
+      if (client) {
+        await client.handler(newPacket);
+      }
     }
   }
 
@@ -207,17 +302,20 @@ export class MemoryPersistence implements IPersistence {
    * Matches and delivers all active retained messages that match the client's current subscriptions.
    * @param clientId The identifier of the client that needs historical retained messages.
    */
-  handleRetained(clientId: ClientId): void {
+  async handleRetained(clientId: ClientId): Promise<void> {
     const retainedTrie: Trie<ClientId> = new Trie();
     const client = this.clientList.get(clientId);
     const store = client?.store;
     if (store) {
-      for (const topicFilter of store.subscriptions.keys()) {
+      for await (const topicFilter of store.subscriptions.keys()) {
         retainedTrie.add(topicFilter, clientId);
       }
-      for (const [topic, packet] of this.retained) {
+      for await (const topic of this.retained.keys()) {
         if (retainedTrie.match(topic).length > 0) {
-          client?.handler(packet);
+          const packet = await this.retained.get(topic);
+          if (packet !== undefined) {
+            await client.handler(packet);
+          }
         }
       }
     }
