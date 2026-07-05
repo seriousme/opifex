@@ -7,8 +7,9 @@ export class Timer {
   /** The delay duration in milliseconds before the timer expires. */
   readonly delay: number; // delay in microseconds
 
-  // deno-lint-ignore ban-types
+  
   /** The callback function to perform when the timer expires. */
+  // deno-lint-ignore ban-types
   private action: Function; // function to perform when timer expires
 
   /** The internal timeout identifier reference, if a timer is active. */
@@ -20,13 +21,14 @@ export class Timer {
   /** Indicates whether the timer is currently active and running. */
   private running = false;
 
-  // deno-lint-ignore ban-types
+  
   /**
    * Initializes a new instance of the Timer.
    * @param {Function} action - The callback function to execute upon expiration.
    * @param {number} delay - The delay duration in milliseconds.
    * @param {boolean} [wait=false] - If true, the timer will not start automatically until reset() is called.
    */
+  // deno-lint-ignore ban-types
   constructor(action: Function, delay: number, wait = false) {
     this.delay = delay;
     this.action = action;
