@@ -117,6 +117,12 @@ class MemoryBaseStore<K, V> {
       yield key;
     }
   }
+
+  async *values(): AsyncIterableIterator<V> {
+    for (const value of this.store.values()) {
+      yield value;
+    }
+  }
 }
 
 export class MemoryPacketStore

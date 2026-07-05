@@ -12,6 +12,7 @@ import type {
   IStore,
   ProtocolLevel,
   PublishPacket,
+  PubrelPacket,
   SockConn,
   TAuthenticationResult,
   Topic,
@@ -260,7 +261,6 @@ export class Context {
 
   /**
    * Evaluates authorization and triggers the distribution of the client's Will packet.
-   * @returns {Promise<void>}
    */
   private async handleWill() {
     if (this.will) {
@@ -294,5 +294,33 @@ export class Context {
       payload: utf8Encoder.encode(payload),
     };
     await this.persistence.publish(packet.topic, packet);
+  }
+
+  /**
+   * utility method to redeliver packets that were cached
+   * called from handleConnect()
+   */
+  async handleRedelivery() {
+    // redeliver inflight data
+    if (this.store) {
+      for await (const packet of this.store.pendingOutgoing.values()) {
+        if (!this.connected) {
+          break;
+        }
+        this.send(packet);
+      }
+      // we only need to resend PubRel acks
+      for await (const packetId of this.store.pendingAckOutgoing.keys()) {
+        if (!this.connected) {
+          break;
+        }
+        const pubrel: PubrelPacket = {
+          protocolLevel: this.protocolLevel,
+          type: PacketType.pubrel,
+          id: packetId,
+        };
+        this.send(pubrel);
+      }
+    }
   }
 }

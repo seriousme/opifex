@@ -111,5 +111,9 @@ export async function handleConnect(
   logger.debug("connect returnCode", returnCode);
   if (returnCode !== AuthenticationResult.ok) {
     ctx.close();
+    return;
+  }
+  if (sessionPresent) {
+    await ctx.handleRedelivery();
   }
 }

@@ -15,7 +15,9 @@ export interface IStore {
   nextId(): PacketId | Promise<PacketId>;
 }
 
-export type IPacketStore = IBaseStore<PacketId, PublishPacket>;
+export interface IPacketStore extends IBaseStore<PacketId, PublishPacket> {
+  values(): AsyncIterableIterator<PublishPacket>;
+}
 export type ISubscriptionStore = IBaseStore<TopicFilter, QoS>;
 
 export interface IBaseStore<K, V> {

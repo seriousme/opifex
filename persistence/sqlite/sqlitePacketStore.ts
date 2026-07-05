@@ -78,4 +78,17 @@ export class SqlitePacketStore implements IPacketStore {
       yield row.packet_id;
     }
   }
+
+  async *values(): AsyncIterableIterator<PublishPacket> {
+    const query = this.db.prepare(
+      "select packet, payload from pending_outgoing where client_id = ?",
+    );
+    for (
+      const row of query.iterate(this.clientId) as Iterable<
+        { packet: string; payload: Uint8Array | null }
+      >
+    ) {
+      yield deserializePacket(row.packet, row.payload);
+    }
+  }
 }
