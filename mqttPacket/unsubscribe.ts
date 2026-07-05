@@ -11,28 +11,60 @@ import { PacketType } from "./PacketType.ts";
 import { Encoder } from "./encoder.ts";
 import { Decoder, DecoderError } from "./decoder.ts";
 
+/**
+ * Represents an MQTT UNSUBSCRIBE packet conforming to MQTT version 3.1.1 (Protocol Level 4) or lower.
+ */
 export type UnsubscribePacketV4 = {
+  /** The type of the MQTT control packet. */
   type: TPacketType;
+  /** The protocol version level, restricted to non-v5 variants. */
   protocolLevel: ProtocolLevelNoV5;
+  /** The unique 16-bit packet identifier. */
   id: PacketId;
-  topicFilters: TopicFilter[];
-};
-
-export type UnsubscribePacketV5 = {
-  type: TPacketType;
-  protocolLevel: 5;
-  id: PacketId;
-  properties?: UnsubscribeProperties;
+  /** The list of topic filters from which the client intends to unsubscribe. */
   topicFilters: TopicFilter[];
 };
 
 /**
- * UnsubscribePacket is sent from client to server to unsubscribe from topics
+ * Represents an MQTT UNSUBSCRIBE packet conforming to MQTT version 5.0.
+ */
+export type UnsubscribePacketV5 = {
+  /** The type of the MQTT control packet. */
+  type: TPacketType;
+  /** The protocol version level, strictly set to 5. */
+  protocolLevel: 5;
+  /** The unique 16-bit packet identifier. */
+  id: PacketId;
+  /** Optional user and protocol properties introduced in MQTT v5. */
+  properties?: UnsubscribeProperties;
+  /** The list of topic filters from which the client intends to unsubscribe. */
+  topicFilters: TopicFilter[];
+};
+
+/**
+ * Represents a union of available MQTT UNSUBSCRIBE packets (v4 or v5) sent from client to server.
  */
 export type UnsubscribePacket = UnsubscribePacketV4 | UnsubscribePacketV5;
 
+/**
+ * Codec utility object responsible for encoding and decoding MQTT UNSUBSCRIBE control packets.
+ */
 export const unsubscribe: {
+  /**
+   * Serializes an UnsubscribePacket into an MQTT compliant binary buffer.
+   * @param {UnsubscribePacket} packet - The unsubscribe packet model to encode.
+   * @param {CodecOpts} codecOpts - The configuration options regulating serialization limits.
+   * @returns {Uint8Array} The fully encoded binary payload.
+   */
   encode(packet: UnsubscribePacket, codecOpts: CodecOpts): Uint8Array;
+  /**
+   * Deserializes a binary payload into a structured UnsubscribePacket instance.
+   * @param {Uint8Array} buffer - The binary buffer slice containing the packet.
+   * @param {number} flags - The exact configuration flags parsed from the fixed header.
+   * @param {CodecOpts} codecOpts - Configuration properties outlining the contextual protocol parser levels.
+   * @param {TPacketType} packetType - The explicit control packet identifier byte.
+   * @returns {UnsubscribePacket} A parsed instance of UnsubscribePacket V4 or V5.
+   */
   decode(
     buffer: Uint8Array,
     flags: number,
