@@ -8,11 +8,16 @@ test("SqlitePacketIdStore persists packet IDs for a client", async () => {
   const store = new SqlitePacketIdStore(db, "client-a", "pending_incoming");
   await store.add(1);
   await store.add(2);
+
+  const keys = [];
+  for await (const key of store.keys()) {
+    keys.push(key);
+  }
   assert.equal(await store.size(), 2);
   assert.equal(await store.has(1), true);
   assert.equal(await store.has(3), false);
   assert.deepStrictEqual(
-    [...(await store.keys())].sort(),
+    keys.sort(),
     [1, 2],
   );
 

@@ -10,14 +10,8 @@ import { deserializePacket, serializePacket } from "./sqliteStoreUtils.ts";
 export class SqliteRetainStore {
   private db: DatabaseSync;
 
-  constructor(db: DatabaseSync, entries?: Iterable<PublishPacket>) {
+  constructor(db: DatabaseSync) {
     this.db = db;
-
-    if (entries) {
-      for (const packet of entries) {
-        this.set(packet.topic, packet);
-      }
-    }
   }
 
   set(key: Topic, packet: PublishPacket): void {

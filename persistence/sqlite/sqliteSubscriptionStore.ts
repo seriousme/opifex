@@ -1,7 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import type { ClientId, QoS, TopicFilter } from "../../mqttPacket/types.ts";
 import type { ISubscriptionStore } from "../store.ts";
-import { createIterator } from "./sqliteStoreUtils.ts";
 
 /**
  * A database-backed Subscription store that tracks active topics and QoS constraints for a client.
@@ -13,16 +12,9 @@ export class SqliteSubscriptionStore implements ISubscriptionStore {
   constructor(
     db: DatabaseSync,
     clientId: ClientId,
-    entries?: Iterable<readonly [TopicFilter, QoS]>,
   ) {
     this.db = db;
     this.clientId = clientId;
-
-    if (entries) {
-      for (const [key, value] of entries) {
-        this.set(key, value);
-      }
-    }
   }
 
   size(): Promise<number> {
@@ -71,11 +63,31 @@ export class SqliteSubscriptionStore implements ISubscriptionStore {
     return Promise.resolve();
   }
 
-  keys(): Promise<IterableIterator<TopicFilter>> {
-    const rowIterator = this.db.prepare(
+  async *keys(): AsyncIterableIterator<TopicFilter> {
+    const query = this.db.prepare(
       "select topic from subscriptions where client_id = ?",
-    ).iterate(this.clientId) as IterableIterator<{ topic: TopicFilter }>;
+    );
 
-    return Promise.resolve(createIterator(rowIterator, (row) => row.topic));
+    for (
+      const row of query.iterate(this.clientId) as Iterable<
+        { topic: TopicFilter }
+      >
+    ) {
+      yield row.topic;
+    }
+  }
+
+  async *entries(): AsyncIterableIterator<[TopicFilter, QoS]> {
+    const query = this.db.prepare(
+      "select topic, qos from subscriptions where client_id = ?",
+    );
+
+    for (
+      const row of query.iterate(this.clientId) as Iterable<
+        { topic: TopicFilter; qos: QoS }
+      >
+    ) {
+      yield [row.topic, row.qos];
+    }
   }
 }

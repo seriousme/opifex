@@ -2,11 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { MQTTLevel, PacketType } from "../deps.ts";
 import type { PublishPacket } from "../deps.ts";
-import {
-  createIterator,
-  deserializePacket,
-  serializePacket,
-} from "./sqliteStoreUtils.ts";
+import { deserializePacket, serializePacket } from "./sqliteStoreUtils.ts";
 
 test("serializePacket and deserializePacket round-trip payloads", () => {
   const packet: PublishPacket = {
@@ -25,12 +21,4 @@ test("serializePacket and deserializePacket round-trip payloads", () => {
   assert.equal(restored.id, packet.id);
   assert.equal(restored.retain, packet.retain);
   assert.deepStrictEqual(restored.payload, packet.payload);
-});
-
-test("createIterator maps underlying rows", async () => {
-  const values = [1, 2, 3];
-  const iterator = await createIterator(values.values(), (value) => value * 2);
-  const mapped = [...iterator];
-
-  assert.deepStrictEqual(mapped, [2, 4, 6]);
 });

@@ -75,12 +75,8 @@ export class SqlitePersistence implements IPersistence {
     }
     if (!clean && existingSession) {
       // reinstate subscriptions
-      const keys = await store.subscriptions.keys();
-      for (const topicFilter of keys) {
-        const qos = await store.subscriptions.get(topicFilter);
-        if (qos !== undefined) {
-          this.trie.add(topicFilter, { clientId, qos });
-        }
+      for await (const [topicFilter, qos] of store.subscriptions.entries()) {
+        this.trie.add(topicFilter, { clientId, qos });
       }
     }
     this.clientList.set(clientId, { store, handler });
@@ -121,8 +117,7 @@ export class SqlitePersistence implements IPersistence {
   }
 
   private async unsubscribeAll(store: IStore): Promise<void> {
-    const keys = await store.subscriptions.keys();
-    for (const topicFilter of keys) {
+    for await (const topicFilter of store.subscriptions.keys()) {
       await this.unsubscribe(store, topicFilter);
     }
   }
@@ -172,8 +167,7 @@ export class SqlitePersistence implements IPersistence {
     const store = client?.store;
     if (!store || (await store.subscriptions.size()) === 0) return;
 
-    const keys = await store.subscriptions.keys();
-    for (const topicFilter of keys) {
+    for await (const topicFilter of store.subscriptions.keys()) {
       for (const retainedPacket of this.retained.matches(topicFilter)) {
         await client.handler(retainedPacket);
       }

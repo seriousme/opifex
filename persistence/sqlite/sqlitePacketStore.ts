@@ -2,11 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 import type { PublishPacket } from "../../mqttPacket/publish.ts";
 import type { ClientId, PacketId } from "../../mqttPacket/types.ts";
 import type { IPacketStore } from "../store.ts";
-import {
-  createIterator,
-  deserializePacket,
-  serializePacket,
-} from "./sqliteStoreUtils.ts";
+import { deserializePacket, serializePacket } from "./sqliteStoreUtils.ts";
 
 /**
  * A database-backed Store that persists and retrieves MQTT packets from Sqlite
@@ -19,16 +15,9 @@ export class SqlitePacketStore implements IPacketStore {
   constructor(
     db: DatabaseSync,
     clientId: ClientId,
-    entries?: Iterable<readonly [PacketId, PublishPacket]>,
   ) {
     this.db = db;
     this.clientId = clientId;
-
-    if (entries) {
-      for (const [key, value] of entries) {
-        this.set(key, value);
-      }
-    }
   }
 
   set(key: PacketId, value: PublishPacket): this {
@@ -77,11 +66,16 @@ export class SqlitePacketStore implements IPacketStore {
     return Promise.resolve(row?.count ?? 0);
   }
 
-  keys(): Promise<IterableIterator<PacketId>> {
-    const rowIterator = this.db.prepare(
+  async *keys(): AsyncIterableIterator<PacketId> {
+    const query = this.db.prepare(
       "select packet_id from pending_outgoing where client_id = ?",
-    ).iterate(this.clientId) as IterableIterator<{ packet_id: PacketId }>;
-
-    return createIterator(rowIterator, (row) => row.packet_id);
+    );
+    for (
+      const row of query.iterate(this.clientId) as Iterable<
+        { packet_id: PacketId }
+      >
+    ) {
+      yield row.packet_id;
+    }
   }
 }

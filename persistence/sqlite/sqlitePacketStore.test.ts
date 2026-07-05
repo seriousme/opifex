@@ -15,10 +15,11 @@ function makePacket(id: number): PublishPacket {
   };
 }
 
-test("SqlitePacketStore round-trips packets and exposes iteration helpers", async () => {
+test("SqlitePacketStore round-trips packets", async () => {
   const db = initializeDatabase(":memory:");
-  const store = new SqlitePacketStore(db, "client-a", [[1, makePacket(1)]]);
+  const store = new SqlitePacketStore(db, "client-a");
 
+  store.set(1, makePacket(1));
   store.set(2, makePacket(2));
 
   assert.equal(await store.size(), 2);
@@ -27,7 +28,10 @@ test("SqlitePacketStore round-trips packets and exposes iteration helpers", asyn
   assert.equal(await store.delete(2), true);
   assert.equal(await store.delete(2), false);
 
-  const keys = [...(await store.keys())];
+  const keys = [];
+  for await (const key of store.keys()) {
+    keys.push(key);
+  }
   assert.deepStrictEqual(keys, [1]);
   await store.clear();
   assert.equal(await store.size(), 0);

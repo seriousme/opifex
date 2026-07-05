@@ -68,8 +68,10 @@ export class MemoryPacketIdStore implements IPacketIdStore {
     return Promise.resolve(this.store.size);
   }
 
-  keys(): Promise<IterableIterator<PacketId>> {
-    return Promise.resolve(this.store.keys());
+  async *keys(): AsyncIterableIterator<PacketId> {
+    for (const key of this.store.keys()) {
+      yield key;
+    }
   }
 }
 
@@ -110,8 +112,10 @@ class MemoryBaseStore<K, V> {
     return Promise.resolve();
   }
 
-  keys(): Promise<IterableIterator<K>> {
-    return Promise.resolve(this.store.keys());
+  async *keys(): AsyncIterableIterator<K> {
+    for (const key of this.store.keys()) {
+      yield key;
+    }
   }
 }
 
@@ -254,8 +258,7 @@ export class MemoryPersistence implements IPersistence {
   }
 
   private async unsubscribeAll(store: IStore): Promise<void> {
-    const keys = await store.subscriptions.keys();
-    for (const topicFilter of keys) {
+    for await (const topicFilter of store.subscriptions.keys()) {
       await this.unsubscribe(store, topicFilter);
     }
   }
@@ -304,12 +307,10 @@ export class MemoryPersistence implements IPersistence {
     const client = this.clientList.get(clientId);
     const store = client?.store;
     if (store) {
-      const subKeys = await store.subscriptions.keys();
-      for (const topicFilter of subKeys) {
+      for await (const topicFilter of store.subscriptions.keys()) {
         retainedTrie.add(topicFilter, clientId);
       }
-      const retainedKeys = await this.retained.keys();
-      for (const topic of retainedKeys) {
+      for await (const topic of this.retained.keys()) {
         if (retainedTrie.match(topic).length > 0) {
           const packet = await this.retained.get(topic);
           if (packet !== undefined) {

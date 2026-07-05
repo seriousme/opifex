@@ -25,7 +25,7 @@ export interface IBaseStore<K, V> {
   has(key: K): Promise<boolean>;
   delete(key: K): Promise<boolean>;
   clear(): Promise<void>;
-  keys(): Promise<IterableIterator<K>>;
+  keys(): AsyncIterableIterator<K>;
 }
 
 export interface IPacketIdStore {
@@ -34,5 +34,5 @@ export interface IPacketIdStore {
   has(key: PacketId): Promise<boolean>;
   delete(key: PacketId): Promise<boolean>;
   clear(): Promise<void>;
-  keys(): Promise<IterableIterator<PacketId>>;
+  keys(): AsyncIterableIterator<PacketId>;
 }

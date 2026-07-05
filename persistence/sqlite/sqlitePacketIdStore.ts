@@ -56,10 +56,16 @@ export class SqlitePacketIdStore implements IPacketIdStore {
     return Promise.resolve(row?.count ?? 0);
   }
 
-  keys(): Promise<IterableIterator<PacketId>> {
-    const rows = this.db.prepare(
+  async *keys(): AsyncIterableIterator<PacketId> {
+    const query = this.db.prepare(
       `select packet_id from ${this.tableName} where client_id = ?`,
-    ).all(this.clientId) as Array<{ packet_id: PacketId }>;
-    return Promise.resolve(rows.map((r) => r.packet_id)[Symbol.iterator]());
+    );
+    for (
+      const row of query.iterate(this.clientId) as Iterable<
+        { packet_id: PacketId }
+      >
+    ) {
+      yield row.packet_id;
+    }
   }
 }

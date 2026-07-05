@@ -37,15 +37,3 @@ export function deserializePacket(
   }
   return data as PublishPacket;
 }
-
-export function createIterator<TDbRow, TResult>(
-  rowIterator: IterableIterator<TDbRow>,
-  mapFn: (row: TDbRow) => TResult,
-): Promise<IterableIterator<TResult>> {
-  const generator = function* () {
-    for (const row of rowIterator) {
-      yield mapFn(row);
-    }
-  };
-  return Promise.resolve(generator());
-}
