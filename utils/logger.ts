@@ -87,4 +87,4 @@ export class Logger {
  * logger.error("error message");
  * ```
  */
-export const logger:Logger = new Logger();
+export const logger: Logger = new Logger();
