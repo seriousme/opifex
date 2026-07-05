@@ -13,45 +13,90 @@ import { BitMask } from "./BitMask.ts";
 import { Encoder } from "./encoder.ts";
 import { booleanFlag, Decoder, DecoderError } from "./decoder.ts";
 
+/**
+ * Represents an MQTT SUBSCRIBE packet conforming to MQTT version 3.1.1 (Protocol Level 4) or lower.
+ */
 export type SubscribePacketV4 = {
+  /** The type of the MQTT control packet. */
   type: TPacketType;
+  /** The protocol version level, restricted to non-v5 variants. */
   protocolLevel: ProtocolLevelNoV5;
+  /** The unique 16-bit packet identifier. */
   id: PacketId;
+  /** The list of topic subscriptions associated with this packet. */
   subscriptions: Array<SubscriptionV4>;
 };
 
+/**
+ * Represents an MQTT SUBSCRIBE packet conforming to MQTT version 5.0.
+ */
 export type SubscribePacketV5 = {
+  /** The type of the MQTT control packet. */
   type: TPacketType;
+  /** The protocol version level, strictly set to 5. */
   protocolLevel: 5;
+  /** The unique 16-bit packet identifier. */
   id: PacketId;
+  /** Optional user and protocol properties introduced in MQTT v5. */
   properties?: SubscribeProperties;
+  /** The list of topic subscriptions including v5 option flags. */
   subscriptions: Array<SubscriptionV5>;
 };
 
 /**
- * SubscribePacket is sent from client to server to subscribe to topics
+ * Represents a union of available MQTT SUBSCRIBE packets (v4 or v5) sent from client to server.
  */
 export type SubscribePacket = SubscribePacketV4 | SubscribePacketV5;
+
 /**
- * The topic to subscribe to and the associated QoS
+ * Describes a topic subscription requirement for MQTT version 3.1.1.
  */
 export type SubscriptionV4 = {
+  /** The topic filter expression the client intends to subscribe to. */
   topicFilter: TopicFilter;
+  /** The maximum Quality of Service level authorized for this topic filter. */
   qos: QoS;
 };
 
+/**
+ * Describes a topic subscription requirement for MQTT version 5.0, including extended flags.
+ */
 export type SubscriptionV5 = {
+  /** The topic filter expression the client intends to subscribe to. */
   topicFilter: TopicFilter;
+  /** The maximum Quality of Service level authorized for this topic filter. */
   qos: QoS;
+  /** Optional flag indicating whether messages should not be forwarded back to the client that published them. */
   noLocal?: boolean;
+  /** Optional flag indicating whether messages forwarded under this subscription keep their original retain flag. */
   retainAsPublished?: boolean;
+  /** Optional setting declaring how retained messages are handled when the subscription is created. */
   retainHandling?: TRetainHandling;
 };
 
+/** * Represents a generic union of MQTT subscription configurations (v4 or v5).
+ */
 export type Subscription = SubscriptionV4 | SubscriptionV5;
 
+/**
+ * Codec utility object responsible for encoding and decoding MQTT SUBSCRIBE control packets.
+ */
 export const subscribe: {
+  /**
+   * Serializes a SubscribePacket into an MQTT compliant binary buffer.
+   * @param {SubscribePacket} packet - The subscribe packet model to encode.
+   * @param {CodecOpts} codecOpts - The configuration options regulating serialization limits.
+   * @returns {Uint8Array} The fully encoded binary payload.
+   */
   encode(packet: SubscribePacket, codecOpts: CodecOpts): Uint8Array;
+  /**
+   * Deserializes a binary payload into a structured SubscribePacket instance.
+   * @param {Uint8Array} buffer - The binary buffer slice containing the packet.
+   * @param {number} flags - The exact configuration flags parsed from the fixed header.
+   * @param {CodecOpts} codecOpts - Configuration properties outlining the contextual protocol parser levels.
+   * @param {TPacketType} packetType - The explicit control packet identifier byte.
+   * @returns {SubscribePacket} A parsed instance of SubscribePacket V4 or V5.
+   */
   decode(
     buffer: Uint8Array,
     flags: number,

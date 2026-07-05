@@ -1,19 +1,12 @@
-export type SockAddr = NetAddr | UnixAddr | VsockAddr;
-export interface NetAddr {
+export type NetAddr = {
   transport: "tcp" | "udp";
   hostname: string;
   port: number;
-}
-export interface UnixAddr {
-  transport: "unix" | "unixpacket";
-  path: string;
-}
-export interface VsockAddr {
-  transport: "vsock";
-  cid: number;
-  port: number;
-}
-
+};
+export type UnixAddr = { transport: "unix" | "unixpacket"; path: string };
+export type VsockAddr = { transport: "vsock"; cid: number; port: number };
+export type SockAddr = NetAddr | UnixAddr | VsockAddr;
+/** Socket connection descriptor. */
 export type SockConn = {
   readable: ReadableStream<Uint8Array>;
   writable: WritableStream<Uint8Array>;

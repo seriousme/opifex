@@ -65,6 +65,6 @@ export interface IStore {
     void,
     unknown
   >;
-
+  // generate the next packet ID, wrapping around at MAX_PACKET_ID
   nextId(): PacketId;
 }
