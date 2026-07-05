@@ -247,7 +247,7 @@ export class Context {
         void this.handleWill();
       }
     } else {
-      logger.info(
+      logger.debug(
         `closing connection from ${this.mqttConn.remoteAddress} because of "${
           this.mqttConn.reason || "normal disconnect"
         }"`,
