@@ -17,10 +17,11 @@ import type {
   Topic,
 } from "./deps.ts";
 
+/** Client identifier. */
 export type ClientId = string;
-
+/** System topic prefix. */
 export const SysPrefix = "$";
-
+/** UTF8 encoder used by server. */
 export const utf8Encoder = new TextEncoder();
 
 /**
@@ -42,15 +43,7 @@ export type Handlers = {
   isAuthorizedToSubscribe?(ctx: Context, topic: Topic): boolean;
 };
 
-/**
- * The Context class is used to maintain state of a MQTT connection
- * It handles:
- *  - connect/disconnect including broadcasting of these events
- *  - publish
- *  - persistence
- *  - the will
- */
-
+/** Per-connection server context. */
 export class Context {
   connected: boolean;
   protocolLevel: ProtocolLevel;
@@ -65,7 +58,11 @@ export class Context {
   preconnectTimer?: Timer;
   static preconnectTimeoutMs: number = 3000; // 3 seconds
 
-  constructor(persistence: IPersistence, conn: SockConn, handlers: Handlers) {
+  constructor(
+    persistence: IPersistence,
+    conn: SockConn,
+    handlers: Handlers,
+  ) {
     this.persistence = persistence;
     this.connected = false;
     this.conn = conn;

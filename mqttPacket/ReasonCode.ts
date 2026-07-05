@@ -58,7 +58,8 @@ export const ReasonCode = {
  */
 
 export type ReasonCodeByNumberType = InvertRecord<typeof ReasonCode>;
-export const ReasonCodeByNumber = Object
+/** Map of numeric reason codes to names. */
+export const ReasonCodeByNumber: ReasonCodeByNumberType = Object
   .fromEntries(
     Object.entries(ReasonCode).map(([k, v]) => [v, k]),
   ) as ReasonCodeByNumberType;

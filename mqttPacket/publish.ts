@@ -38,7 +38,7 @@ export type PublishPacketV5 = {
   id?: number | undefined;
   properties?: PublishProperties | undefined;
 };
-
+/** Publish packet (v4|v5). */
 export type PublishPacket = PublishPacketV4 | PublishPacketV5;
 
 export const publish: {

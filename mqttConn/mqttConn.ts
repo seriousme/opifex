@@ -185,6 +185,7 @@ export class MqttConn implements IMqttConn {
     return Promise.resolve(undefined);
   }
 
+  /** Return next packet. */
   async next(): Promise<IteratorResult<AnyPacket>> {
     const packet = await this.#receive();
 
@@ -195,6 +196,7 @@ export class MqttConn implements IMqttConn {
     return { value: undefined, done: true };
   }
 
+  /** Async iterator. */
   [Symbol.asyncIterator](): this {
     return this;
   }

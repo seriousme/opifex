@@ -36,6 +36,7 @@ export type MqttServerOptions = {
 export class MqttServer {
   handlers: Handlers;
   persistence: IPersistence;
+
   constructor({
     persistence,
     handlers,
@@ -50,6 +51,10 @@ export class MqttServer {
     };
   }
 
+  /*
+   * Serve a new client connection.
+   * @param {SockConn} conn - The socket connection to serve.
+   */
   async serve(conn: SockConn): Promise<void> {
     const ctx = new Context(this.persistence, conn, this.handlers);
     if (conn.remoteAddr?.transport === "tcp") {
@@ -68,6 +73,10 @@ export class MqttServer {
     }
   }
 
+  /*
+   * Close the server and all active client connections.
+   * @param {boolean} cleanUp - If true, clean up client sessions on close.
+   */
   close(cleanUp = false): void {
     logger.debug(`stopping mqttServer`);
     for (const [clientid, ctx] of Context.clientList) {

@@ -1,7 +1,6 @@
 /**
  * Create a promise that can be resolved/rejected later
  */
-
 export class Deferred<T> {
   promise: Promise<T>;
   resolve!: (val: T) => void;

@@ -32,6 +32,7 @@ export type SubscribePacketV5 = {
  * SubscribePacket is sent from client to server to subscribe to topics
  */
 export type SubscribePacket = SubscribePacketV4 | SubscribePacketV5;
+
 /**
  * The topic to subscribe to and the associated QoS
  */
@@ -48,6 +49,7 @@ export type SubscriptionV5 = {
   retainHandling?: TRetainHandling;
 };
 
+/** Subscription (v4|v5). */
 export type Subscription = SubscriptionV4 | SubscriptionV5;
 
 export const subscribe: {
