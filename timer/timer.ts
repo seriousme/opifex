@@ -7,7 +7,6 @@ export class Timer {
   /** The delay duration in milliseconds before the timer expires. */
   readonly delay: number; // delay in microseconds
 
-  
   /** The callback function to perform when the timer expires. */
   // deno-lint-ignore ban-types
   private action: Function; // function to perform when timer expires
@@ -21,7 +20,6 @@ export class Timer {
   /** Indicates whether the timer is currently active and running. */
   private running = false;
 
-  
   /**
    * Initializes a new instance of the Timer.
    * @param {Function} action - The callback function to execute upon expiration.
