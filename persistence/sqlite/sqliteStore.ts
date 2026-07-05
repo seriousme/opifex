@@ -21,12 +21,7 @@ export {
 import type { DatabaseSync } from "node:sqlite";
 import type { ClientId, PacketId } from "../../mqttPacket/types.ts";
 import { MAX_PACKET_ID } from "../persistence.ts";
-import type {
-  IPacketIdStore,
-  IPacketStore,
-  IStore,
-  ISubscriptionStore,
-} from "../store.ts";
+import type { IStore } from "../store.ts";
 import { SqlitePacketIdStore } from "./sqlitePacketIdStore.ts";
 import { SqlitePacketStore } from "./sqlitePacketStore.ts";
 import { SqliteSubscriptionStore } from "./sqliteSubscriptionStore.ts";
