@@ -47,8 +47,7 @@ EXPECTED_GAPS = {
             "Opifex advertises sharedSubscriptionAvailable=false "
             "(deferred for now)",
         "test_flow_control1":
-            "receiveMaximum is advertised but not yet enforced outbound "
-    
+            "receiveMaximum is advertised but not yet enforced outbound ",
         "test_server_topic_alias":
             "broker-assigned topic aliases are not implemented;"
             "spec-optional/MAY",

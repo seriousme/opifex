@@ -20,7 +20,7 @@ which posts the result as a sticky PR comment and a job summary.
 # 1. Fetch the Paho suite, pinned to the same commit CI uses so local results
 #    match. The pin (PAHO_REF) lives in .github/workflows/mqtt-compat.yml.
 git clone https://github.com/eclipse-paho/paho.mqtt.testing /tmp/paho
-git -C /tmp/paho checkout "$(grep -oP 'PAHO_REF:\s*\K\S+' ../../.github/workflows/mqtt-compat.yml)"
+git -C /tmp/paho checkout "$(grep -oP 'PAHO_REF:\s*\K\S+' ./mqtt-compat.yml)"
 
 # 2. Start the broker
 MQTT_PORT=1883 node ./broker.ts &
