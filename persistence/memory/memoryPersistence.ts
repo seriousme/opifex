@@ -286,6 +286,7 @@ export class MemoryPersistence implements IPersistence {
     const clients = new Map();
     for (const { clientId, qos } of this.trie.match(topic)) {
       const prevQos = clients.get(clientId);
+      // if subscriptions overlap then use the highest QoS
       if (!prevQos || prevQos < qos) {
         clients.set(clientId, qos);
       }
@@ -295,7 +296,10 @@ export class MemoryPersistence implements IPersistence {
     for (const [clientId, qos] of clients) {
       const newPacket = structuredClone(packet);
       newPacket.retain = false;
-      newPacket.qos = qos;
+      // subscription QoS is a maximum, not a minimum
+      // if the publishers Qos was lower, use that, else use the subscribers
+      const newQos = packet.qos || 0;
+      newPacket.qos = newQos < qos ? newQos : qos;
       //  logger.debug(`publish ${topic} to client ${clientId}`);
       const client = this.clientList.get(clientId);
       if (client) {

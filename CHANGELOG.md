@@ -17,7 +17,7 @@
 - chore: move benchmarks to tools folder
 - fix: fix empty payload to clear retained message
 - fix: remove password from demo logging and debug logging
-- fix: limited max number of topic and topicFilter segments to 10
+- fix: limit max number of topic and topicFilter levels to 50
 
 ## [v1.11.3] 31-05-2026
 

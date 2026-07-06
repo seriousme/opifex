@@ -5,8 +5,11 @@ import { MQTTLevel, PacketType } from "../deps.ts";
 import {
   connect,
   disconnect,
+  ping,
+  publish,
   startMockServer,
   startMockServer2,
+  subscribe,
 } from "../../dev_utils/mod.ts";
 
 const txtEncoder = new TextEncoder();
@@ -266,6 +269,57 @@ test("SUBSCRIBE receives multiple retained messages matching wildcard", async ()
   await disconnect(mqttConn2);
 });
 
+test("SUBSCRIBE receives multiple retained messages with different QoS", async () => {
+  const { mqttConn1, mqttConn2 } = startMockServer2();
+  // Set up multiple retained messages
+  await connect(mqttConn1);
+  await publish(mqttConn1, "retained/qos0", 0, {
+    retain: true,
+    id: undefined,
+  });
+  await publish(mqttConn1, "retained/qos1", 1, {
+    retain: true,
+    id: 10,
+  });
+  await publish(mqttConn1, "retained/qos2", 2, {
+    retain: true,
+    id: 11,
+  });
+  await disconnect(mqttConn1);
+
+  // Connect the second client
+  await connect(mqttConn2);
+
+  // Subscribe
+  await subscribe(mqttConn2, [
+    { topicFilter: "retained/qos0", qos: 0 },
+    { topicFilter: "retained/qos1", qos: 1 },
+    { topicFilter: "retained/qos2", qos: 2 },
+  ]);
+
+  // Should receive three retained messages
+  const messages: AnyPacket[] = [];
+  const { value: msg1 } = await mqttConn2.next();
+  messages.push(msg1);
+  const { value: msg2 } = await mqttConn2.next();
+  messages.push(msg2);
+  const { value: msg3 } = await mqttConn2.next();
+  messages.push(msg3);
+
+  const topics = messages
+    .filter((m): m is PublishPacket => m.type === PacketType.publish)
+    .map((m) => m.topic)
+    .sort();
+
+  assert.deepStrictEqual(topics, [
+    "retained/qos0",
+    "retained/qos1",
+    "retained/qos2",
+  ]);
+
+  await disconnect(mqttConn2);
+});
+
 test("SUBSCRIBE to topic without retained message receives only SUBACK", async () => {
   const { mqttConn } = startMockServer();
 
@@ -283,13 +337,6 @@ test("SUBSCRIBE to topic without retained message receives only SUBACK", async (
   assert.deepStrictEqual(suback.type, PacketType.suback);
 
   // No more messages should be pending - send a ping to verify
-  mqttConn.send({ type: PacketType.pingreq, protocolLevel: MQTTLevel.v4 });
-  const { value: pingres } = await mqttConn.next();
-  assert.deepStrictEqual(
-    pingres.type,
-    PacketType.pingres,
-    "Next packet should be PINGRES, not a retained message",
-  );
-
+  await ping(mqttConn);
   await disconnect(mqttConn);
 });

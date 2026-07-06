@@ -10,6 +10,7 @@
 import { TcpServer } from "../../node/tcpServer.ts";
 import type { Context, Topic } from "../../server/mod.ts";
 import { logger, LogLevel } from "../../utils/mod.ts";
+import { isAuthenticatedBroker as isAuthenticated } from "../../dev_utils/mod.ts";
 
 logger.level(LogLevel.info);
 
@@ -30,6 +31,7 @@ function isAuthorizedToSubscribe(ctx: Context, topic: Topic): boolean {
 
 const tcpServer = new TcpServer({ port }, {
   handlers: {
+    isAuthenticated,
     isAuthorizedToSubscribe,
   },
 });

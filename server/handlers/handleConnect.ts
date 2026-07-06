@@ -18,6 +18,7 @@ function isAuthenticated(
       packet.clientId || "",
       packet.username || "",
       packet.password || new Uint8Array(0),
+      packet,
     );
   }
   return AuthenticationResult.ok;

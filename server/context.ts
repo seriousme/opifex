@@ -1,13 +1,7 @@
-import {
-  logger,
-  MqttConn,
-  MQTTLevel,
-  PacketNameByType,
-  PacketType,
-  Timer,
-} from "./deps.ts";
+import { logger, MqttConn, MQTTLevel, PacketType, Timer } from "./deps.ts";
 import type {
   AnyPacket,
+  ConnectPacket,
   IPersistence,
   IStore,
   ProtocolLevel,
@@ -42,6 +36,7 @@ export type Handlers = {
    * @param {ClientId} clientId - The client identifier.
    * @param {string} username - The username provided by the client.
    * @param {Uint8Array} password - The password bytes provided by the client.
+   * @param {ConnectPacket} connectPacket - The raw connect packet
    * @returns {TAuthenticationResult} The result of the authentication attempt.
    */
   isAuthenticated?(
@@ -49,6 +44,7 @@ export type Handlers = {
     clientId: ClientId,
     username: string,
     password: Uint8Array,
+    connectPacket: ConnectPacket,
   ): TAuthenticationResult;
 
   /**
@@ -74,7 +70,10 @@ export type Handlers = {
  */
 export class Context {
   /** Indicates whether the client has successfully completed the MQTT CONNECT handshake. */
-  connected: boolean;
+  connected = false;
+
+  /** Indicates whether the client is considered a broker and allowed  to use $SYS topics etc */
+  isBroker = false;
 
   /** The MQTT protocol level version determined during the connection handshake. */
   protocolLevel: ProtocolLevel;
@@ -121,7 +120,6 @@ export class Context {
     handlers: Handlers,
   ) {
     this.persistence = persistence;
-    this.connected = false;
     this.conn = conn;
     this.mqttConn = new MqttConn({ conn });
     this.handlers = handlers;
@@ -152,8 +150,10 @@ export class Context {
    * @returns {Promise<void>} A promise that resolves when transmission completes.
    */
   async send(packet: AnyPacket): Promise<void> {
-    logger.debug("Sending", PacketNameByType[packet.type]);
-    logger.debug(JSON.stringify(packet, null, 2));
+    if (!this.connected) {
+      return;
+    }
+    logger.debug(`ctx.send: $JSON.stringify(packet, null, 2)`);
     await this.mqttConn.send(packet);
   }
 
@@ -177,12 +177,11 @@ export class Context {
       existingActiveSession.close(false);
     }
 
-    const result = await this.persistence.registerClient(
+    const { store, existingSession } = await this.persistence.registerClient(
       clientId,
       this.doPublish.bind(this),
       clean,
     );
-    const { store, existingSession } = result;
     this.store = store;
     this.connected = true;
     Context.clientList.set(clientId, this);

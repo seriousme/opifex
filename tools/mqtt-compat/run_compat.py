@@ -37,6 +37,10 @@ import unittest
 # Cases Opifex intentionally does not (yet) satisfy. Keyed by protocol -> test
 # name -> reason. These still count as failures in the raw %; they render with an
 # "expected" marker and the reason in the per-test table.
+# NOTE: test_flow_control2 is NOT listed here — it lives in HARNESS_LIMITED
+# below (skipped before the gap logic runs), so a duplicate entry here would
+# be unreachable. The receiveMaximum gap it probes is tracked via
+# test_flow_control1 above.
 EXPECTED_GAPS = {
     "v5": {
         "test_shared_subscriptions":
@@ -44,10 +48,7 @@ EXPECTED_GAPS = {
             "(deferred for now)",
         "test_flow_control1":
             "receiveMaximum is advertised but not yet enforced outbound "
-        # NOTE: test_flow_control2 is NOT listed here — it lives in HARNESS_LIMITED
-        # below (skipped before the gap logic runs), so a duplicate entry here would
-        # be unreachable. The receiveMaximum gap it probes is tracked via
-        # test_flow_control1 above.
+    
         "test_server_topic_alias":
             "broker-assigned topic aliases are not implemented;"
             "spec-optional/MAY",

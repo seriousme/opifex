@@ -7,8 +7,8 @@ import type {
   UTF8StringPair,
 } from "./types.ts";
 import {
-  DEFAULT_MAX_TOPIC_SEGMENTS,
-  invalidMaxTopicSegments,
+  DEFAULT_MAX_TOPIC_LEVELS,
+  invalidmaxTopicLevels,
   invalidTopic,
   invalidTopicFilter,
   invalidUTF8,
@@ -83,7 +83,7 @@ export class Decoder {
   private buf: Uint8Array;
   private pos: number;
   private len: number;
-  maxTopicSegments = DEFAULT_MAX_TOPIC_SEGMENTS;
+  maxTopicLevels = DEFAULT_MAX_TOPIC_LEVELS;
 
   /**
    * Creates a new Decoder instance
@@ -202,9 +202,9 @@ export class Decoder {
    */
   getTopic(): Topic {
     const topic = this.getUTF8String();
-    if (invalidMaxTopicSegments(topic, this.maxTopicSegments)) {
+    if (invalidmaxTopicLevels(topic, this.maxTopicLevels)) {
       throw new DecoderError(
-        `Topicfilter must contain a maximum of ${this.maxTopicSegments} segments`,
+        `Topicfilter must contain a maximum of ${this.maxTopicLevels} levels`,
       );
     }
     if (invalidTopic(topic)) {
@@ -227,9 +227,9 @@ export class Decoder {
         "Topicfilter must contain valid UTF-8",
       );
     }
-    if (invalidMaxTopicSegments(topicFilter, this.maxTopicSegments)) {
+    if (invalidmaxTopicLevels(topicFilter, this.maxTopicLevels)) {
       throw new DecoderError(
-        `Topicfilter must contain a maximum of ${this.maxTopicSegments} segments`,
+        `Topicfilter must contain a maximum of ${this.maxTopicLevels} levels`,
       );
     }
     if (invalidTopicFilter(topicFilter)) {

@@ -4,6 +4,7 @@
  */
 export { AuthenticationResult } from "./deps.ts";
 export type {
+  ConnectPacket,
   IPersistence,
   SockConn,
   TAuthenticationResult,

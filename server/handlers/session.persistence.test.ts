@@ -69,8 +69,10 @@ test("subscriptions persist with clean=false", async () => {
     clean: false,
   });
 
-  await subscribe(mqttConn1, "sensors/temperature", 1, 1);
-  await subscribe(mqttConn1, "sensors/humidity", 2, 2);
+  await subscribe(mqttConn1, [
+    { topicFilter: "sensors/temperature", qos: 1 },
+    { topicFilter: "sensors/humidity", qos: 2 },
+  ], 1);
   await disconnect(mqttConn1);
 
   // Verify subscriptions are stored
@@ -141,7 +143,7 @@ test("subscriptions cleared with clean=true", async () => {
     clean: false,
   });
 
-  await subscribe(mqttConn1, "device/status", 1, 1);
+  await subscribe(mqttConn1, [{ topicFilter: "device/status", qos: 0 }], 1);
   await disconnect(mqttConn1);
 
   // Verify subscriptions are stored

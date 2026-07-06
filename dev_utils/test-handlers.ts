@@ -16,7 +16,7 @@ function isAuthenticated(
 ): TAuthenticationResult {
   const pwd = utf8Decoder.decode(password);
   logger.debug(
-    `Verifying authentication of client '${clientId}' with username '${username}''`,
+    `Verifying authentication of client '${clientId}' with username '${username}'`,
   );
 
   if (!userTable.has(username)) {
@@ -56,3 +56,10 @@ export const handlers = {
   isAuthorizedToPublish,
   isAuthorizedToSubscribe,
 };
+
+export function isAuthenticatedBroker(
+  ctx: Context,
+): TAuthenticationResult {
+  ctx.isBroker = true;
+  return AuthenticationResult.ok;
+}
