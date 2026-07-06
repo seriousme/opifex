@@ -218,7 +218,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
       await persistence.publish(
         "test/topic",
-        createPacket("test/topic", "hello"),
+        createPacket("test/topic", "hello", { qos: 2 }),
       );
 
       // Should receive only once with highest QoS
@@ -243,7 +243,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
       await persistence.publish(
         "test/topic",
-        createPacket("test/topic", "hello"),
+        createPacket("test/topic", "hello", { qos: 1 }),
       );
 
       assert.strictEqual(received1.length, 1);
@@ -315,7 +315,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
     // === Session Persistence ===
 
-    test("reconnect with clean=false restores subscriptions", async () => {
+    test("reconnect with clean=false does not clear previous subscriptions", async () => {
       const { persistence, cleanup } = factory();
 
       const { store: store1 } = await persistence.registerClient(
@@ -760,7 +760,10 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       await persistence.subscribe(store, "a/#", 0);
       await persistence.subscribe(store, "a/b/#", 1);
 
-      await persistence.publish("a/b/c", createPacket("a/b/c", "data"));
+      await persistence.publish(
+        "a/b/c",
+        createPacket("a/b/c", "data", { qos: 1 }),
+      );
 
       // Should deduplicate and use highest QoS
       assert.strictEqual(received.length, 1);
