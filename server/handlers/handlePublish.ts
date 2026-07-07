@@ -38,7 +38,7 @@ export async function handlePublish(
 
   const qos = packet.qos || 0;
   if (qos === 0) {
-    await ctx.persistence.publish(packet.topic, packet);
+    await ctx.publish(packet);
     return;
   }
 
@@ -46,7 +46,7 @@ export async function handlePublish(
     // qos 1
     if (qos === 1) {
       const id = packet.id; // retain the id
-      await ctx.persistence.publish(packet.topic, packet);
+      await ctx.publish(packet);
       await ctx.send({
         type: PacketType.puback,
         protocolLevel: ctx.protocolLevel,
@@ -70,7 +70,7 @@ Identifier as being a new publication.
     */
     if (ctx.store) {
       if (!(await ctx.store.pendingIncoming.has(packet.id))) {
-        await ctx.persistence.publish(packet.topic, packet);
+        await ctx.publish(packet);
         await ctx.store.pendingIncoming.add(packet.id);
       }
       await ctx.send({

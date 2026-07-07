@@ -739,6 +739,24 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       cleanup();
     });
 
+    test(
+      `${name} - # at root does not match $`,
+      async () => {
+        const { persistence, cleanup } = factory();
+        const { store, received } = await createReceiver(
+          persistence,
+          "client1",
+        );
+
+        await persistence.subscribe(store, "+/+", 0);
+        await persistence.subscribe(store, "#", 0);
+
+        await persistence.publish("$topic", createPacket("a", "1"));
+        assert.strictEqual(received.length, 0);
+        cleanup();
+      },
+    );
+
     test(`${name} - + matches single level including empty`, async () => {
       const { persistence, cleanup } = factory();
       const { store, received } = await createReceiver(persistence, "client1");

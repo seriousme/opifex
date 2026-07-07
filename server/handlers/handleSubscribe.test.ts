@@ -285,25 +285,19 @@ test("SUBSCRIBE receives multiple retained messages with different QoS", async (
     retain: true,
     id: 11,
   });
-  await disconnect(mqttConn1);
-
-  // Connect the second client
-  await connect(mqttConn2);
 
   // Subscribe
-  await subscribe(mqttConn2, [
-    { topicFilter: "retained/qos0", qos: 0 },
-    { topicFilter: "retained/qos1", qos: 1 },
-    { topicFilter: "retained/qos2", qos: 2 },
+  await subscribe(mqttConn1, [
+    { topicFilter: "+/+", qos: 2 },
   ]);
 
   // Should receive three retained messages
   const messages: AnyPacket[] = [];
-  const { value: msg1 } = await mqttConn2.next();
+  const { value: msg1 } = await mqttConn1.next();
   messages.push(msg1);
-  const { value: msg2 } = await mqttConn2.next();
+  const { value: msg2 } = await mqttConn1.next();
   messages.push(msg2);
-  const { value: msg3 } = await mqttConn2.next();
+  const { value: msg3 } = await mqttConn1.next();
   messages.push(msg3);
 
   const topics = messages
@@ -316,7 +310,30 @@ test("SUBSCRIBE receives multiple retained messages with different QoS", async (
     "retained/qos1",
     "retained/qos2",
   ]);
-
+  await disconnect(mqttConn1);
+  await connect(mqttConn2);
+  // clear retained
+  await publish(mqttConn2, "retained/qos0", 0, {
+    payload: "",
+    retain: true,
+    id: undefined,
+  });
+  await publish(mqttConn2, "retained/qos1", 1, {
+    payload: "",
+    retain: true,
+    id: 10,
+  });
+  await publish(mqttConn2, "retained/qos2", 2, {
+    payload: "",
+    retain: true,
+    id: 11,
+  });
+  // Subscribe
+  await subscribe(mqttConn2, [
+    { topicFilter: "+/+", qos: 2 },
+  ]);
+  // should receive no messages, check with ping
+  await ping(mqttConn2);
   await disconnect(mqttConn2);
 });
 
@@ -326,15 +343,7 @@ test("SUBSCRIBE to topic without retained message receives only SUBACK", async (
   await connect(mqttConn);
 
   // Subscribe to topic with no retained message
-  mqttConn.send({
-    type: PacketType.subscribe,
-    protocolLevel: MQTTLevel.v4,
-    id: 12,
-    subscriptions: [{ topicFilter: "no/retained/here", qos: 0 }],
-  });
-
-  const { value: suback } = await mqttConn.next();
-  assert.deepStrictEqual(suback.type, PacketType.suback);
+  await subscribe(mqttConn, [{ topicFilter: "no/retained/here", qos: 0 }]);
 
   // No more messages should be pending - send a ping to verify
   await ping(mqttConn);

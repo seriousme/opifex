@@ -168,14 +168,17 @@ test("Redelivery on reconnect after failed delivery", async () => {
   await connect(mqttConn1, { clientId });
   // Subscribe to topic with no retained message
   await subscribe(mqttConn1, [{ topicFilter: topic, qos: 1 }]);
-  await publish(mqttConn1, topic, 0, {});
-  const { value: publishedPacket } = await mqttConn1.next();
+  // checkAcks=false as the first packet returned will be the publish, not the ack.
+  await publish(mqttConn1, topic, 1, {}, false);
+  // first reception on our subscription
+  const { value: publishPacket } = await mqttConn1.next();
   assert.deepStrictEqual(
-    publishedPacket.type,
+    publishPacket.type,
     PacketType.publish,
-    "received publish packet",
+    "received publish packet again",
   );
-  const publishId = publishedPacket.id;
+  const publishId = publishPacket.id;
+  await mqttConn1.next(); // the puback on the publish we sent out
   await disconnect(mqttConn1);
   assert.deepStrictEqual(
     mqttConn1.isClosed,

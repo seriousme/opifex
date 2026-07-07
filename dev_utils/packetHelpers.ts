@@ -90,17 +90,24 @@ export async function publish(
     payload = "payload",
     retain = false,
   },
+  checkAcks = true,
 ) {
+  const encodedPayload = payload !== ""
+    ? txtEncoder.encode(payload)
+    : new Uint8Array([]);
   publisher.send({
     type: PacketType.publish,
     protocolLevel: MQTTLevel.v4,
     id,
     topic: topic,
     qos,
-    payload: txtEncoder.encode(payload),
+    payload: encodedPayload,
     retain: retain,
   });
 
+  if (!checkAcks) {
+    return;
+  }
   if (qos === 0) return;
 
   const { value: ackPacket } = await publisher.next();

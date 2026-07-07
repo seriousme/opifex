@@ -150,10 +150,7 @@ export class Context {
    * @returns {Promise<void>} A promise that resolves when transmission completes.
    */
   async send(packet: AnyPacket): Promise<void> {
-    if (!this.connected) {
-      return;
-    }
-    logger.debug(`ctx.send: $JSON.stringify(packet, null, 2)`);
+    logger.debug(`ctx.send: ${JSON.stringify(packet, null, 2)}`);
     await this.mqttConn.send(packet);
   }
 
@@ -191,7 +188,19 @@ export class Context {
   }
 
   /**
-   * Processes outbound publication requests, allocating package IDs and storing
+   * Processes -inbound- publication requests
+   * @param {PublishPacket} packet - The publication packet to distribute.
+   * @returns {Promise<void>} A promise that resolves when the internal processing or send queue finishes.
+   */
+  async publish(packet: PublishPacket) {
+    logger.debug(
+      `ctx:publish processing incoming publish for topic "${packet.topic}"`,
+    );
+    await this.persistence.publish(packet.topic, packet);
+  }
+
+  /**
+   * Processes -outbound- publication requests, allocating package IDs and storing
    * unacknowledged QoS > 0 packets into the client persistence layer.
    * @param {PublishPacket} packet - The publication packet to distribute.
    * @returns {Promise<void>} A promise that resolves when the internal processing or send queue finishes.
