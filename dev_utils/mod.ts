@@ -8,6 +8,7 @@ export {
   withTimeout,
 } from "./timers.ts";
 export {
+  addMockClient,
   startMockServer,
   startMockServer2,
   startMockServer3,

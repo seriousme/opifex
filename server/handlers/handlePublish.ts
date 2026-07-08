@@ -10,7 +10,7 @@ import type { PublishPacket, Topic } from "../deps.ts";
  * @returns boolean indicating if client is authorized to publish
  */
 function authorizedToPublish(ctx: Context, topic: Topic) {
-  if (topic.startsWith(SysPrefix)) {
+  if (topic.startsWith(SysPrefix) && !ctx.isBroker) {
     return false;
   }
   if (ctx.handlers.isAuthorizedToPublish) {

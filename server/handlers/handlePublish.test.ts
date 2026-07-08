@@ -170,12 +170,13 @@ test("PUBLISH to $SYS topic is allowed for brokers", async () => {
     protocolLevel: MQTTLevel.v4,
     topic: "$SYS/broker/clients",
     payload: txtEncoder.encode("test"),
-    qos: 1,
+    qos: 0,
     retain: false,
     dup: false,
     id: 3,
   };
   mqttConn.send(publishPacket);
-  await mqttConn.next();
-  assert.equal(mqttConn.isClosed, true, "expect connection to be closed");
+  // connection should still be alive
+  await ping(mqttConn);
+  await disconnect(mqttConn);
 });

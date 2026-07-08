@@ -17,15 +17,20 @@ export function startMockServer(): {
   return { mqttConn, mqttServer };
 }
 
+export function addMockClient(mqttServer: MqttServer): MqttConn {
+  const { input, output } = createWebStreamPair();
+  const mqttConn = new MqttConn({ conn: output });
+  mqttServer.serve(input);
+  return mqttConn;
+}
+
 export function startMockServer2(): {
   mqttConn1: MqttConn;
   mqttConn2: MqttConn;
   mqttServer: MqttServer;
 } {
   const { mqttConn: mqttConn1, mqttServer } = startMockServer();
-  const { input: input2, output: output2 } = createWebStreamPair();
-  const mqttConn2 = new MqttConn({ conn: output2 });
-  mqttServer.serve(input2);
+  const mqttConn2 = addMockClient(mqttServer);
   return { mqttConn1, mqttConn2, mqttServer };
 }
 
@@ -36,8 +41,6 @@ export function startMockServer3(): {
   mqttServer: MqttServer;
 } {
   const { mqttConn1, mqttConn2, mqttServer } = startMockServer2();
-  const { input: input3, output: output3 } = createWebStreamPair();
-  const mqttConn3 = new MqttConn({ conn: output3 });
-  mqttServer.serve(input3);
+  const mqttConn3 = addMockClient(mqttServer);
   return { mqttConn1, mqttConn2, mqttConn3, mqttServer };
 }
