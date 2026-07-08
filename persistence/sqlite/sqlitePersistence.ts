@@ -94,7 +94,7 @@ export class SqlitePersistence implements IPersistence {
   }
 
   /** Connects a subscription boundary path pattern with targeted tracking stores. */
-  async subscribe(
+  subscribe(
     store: IStore,
     topicFilter: TopicFilter,
     qos: QoS,
@@ -102,6 +102,7 @@ export class SqlitePersistence implements IPersistence {
     const clientId = store.clientId;
     store.subscriptions.set(topicFilter, qos);
     this.trie.add(topicFilter, { clientId, qos });
+    return Promise.resolve();
   }
 
   /** Disconnects and breaks specific subscription configurations out of active scopes. */
