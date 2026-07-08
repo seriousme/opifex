@@ -20,11 +20,11 @@ export class SqlitePacketIdStore implements IPacketIdStore {
     this.tableName = tableName;
   }
 
-  add(value: PacketId): Promise<this> {
+  add(value: PacketId): Promise<void> {
     this.db.prepare(
       `insert or ignore into ${this.tableName}(client_id, packet_id) values(?, ?)`,
     ).run(this.clientId, value);
-    return Promise.resolve(this);
+    return Promise.resolve();
   }
   delete(value: PacketId): Promise<boolean> {
     const deleted = this.db.prepare(

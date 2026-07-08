@@ -22,7 +22,7 @@ export type ISubscriptionStore = IBaseStore<TopicFilter, QoS>;
 
 export interface IBaseStore<K, V> {
   size(): Promise<number>;
-  set(key: K, value: V): this;
+  set(key: K, value: V): Promise<void>;
   get(key: K): Promise<V | undefined>;
   has(key: K): Promise<boolean>;
   delete(key: K): Promise<boolean>;
@@ -32,7 +32,7 @@ export interface IBaseStore<K, V> {
 
 export interface IPacketIdStore {
   size(): Promise<number>;
-  add(key: PacketId): Promise<this>;
+  add(key: PacketId): Promise<void>;
   has(key: PacketId): Promise<boolean>;
   delete(key: PacketId): Promise<boolean>;
   clear(): Promise<void>;

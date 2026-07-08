@@ -20,13 +20,14 @@ export class SqlitePacketStore implements IPacketStore {
     this.clientId = clientId;
   }
 
-  set(key: PacketId, value: PublishPacket): this {
+  set(key: PacketId, value: PublishPacket): Promise<void> {
     const serialized = serializePacket(value);
     this.db.prepare(
       "insert or replace into pending_outgoing(client_id, packet_id, packet, payload) values(?, ?, ?, ?)",
     ).run(this.clientId, key, serialized.packet, serialized.payload);
-    return this;
+    return Promise.resolve();
   }
+
   get(key: PacketId): Promise<PublishPacket | undefined> {
     const row = this.db.prepare(
       "select packet, payload from pending_outgoing where client_id = ? and packet_id = ?",

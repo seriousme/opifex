@@ -12,7 +12,7 @@ import type { Context, Topic } from "../../server/mod.ts";
 import { logger, LogLevel } from "../../utils/mod.ts";
 import { isAuthenticatedBroker as isAuthenticated } from "../../dev_utils/mod.ts";
 
-logger.level(LogLevel.info);
+logger.level(LogLevel.error);
 
 const port = Number(process.env.MQTT_PORT) || 1883;
 

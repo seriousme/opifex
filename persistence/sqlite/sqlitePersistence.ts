@@ -100,10 +100,8 @@ export class SqlitePersistence implements IPersistence {
     qos: QoS,
   ): Promise<void> {
     const clientId = store.clientId;
-    if (!await store.subscriptions.has(topicFilter)) {
-      store.subscriptions.set(topicFilter, qos);
-      this.trie.add(topicFilter, { clientId, qos });
-    }
+    store.subscriptions.set(topicFilter, qos);
+    this.trie.add(topicFilter, { clientId, qos });
   }
 
   /** Disconnects and breaks specific subscription configurations out of active scopes. */

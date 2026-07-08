@@ -97,7 +97,7 @@ def set_globals(module, protocol, host, port):
     ``client_test5/`` topic prefix) so results match a direct
     ``python3 client_testN.py --hostname H --port P`` run.
 
-    This duplication is exactly what ``PAHO_REF`` (pinned in
+    This git pulluplication is exactly what ``PAHO_REF`` (pinned in
     ``.github/workflows/mqtt-compat.yml``) protects: a Paho bump that renames or
     adds a module global the tests read would surface here as a ``NameError`` ->
     "error" status. When bumping the pin, re-check each suite's ``__main__`` block

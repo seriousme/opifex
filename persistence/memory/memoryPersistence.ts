@@ -45,9 +45,9 @@ export class MemoryPacketIdStore implements IPacketIdStore {
     this.store = new Set();
   }
 
-  add(value: PacketId): Promise<this> {
+  add(value: PacketId): Promise<void> {
     this.store.add(value);
-    return Promise.resolve(this);
+    return Promise.resolve();
   }
 
   delete(value: PacketId): Promise<boolean> {
@@ -87,10 +87,11 @@ class MemoryBaseStore<K, V> {
     this.store = new Map();
   }
 
-  set(key: K, value: V): this {
+  set(key: K, value: V): Promise<void> {
     this.store.set(key, value);
-    return this;
+    return Promise.resolve();
   }
+
   size(): Promise<number> {
     return Promise.resolve(this.store.size);
   }
@@ -243,10 +244,8 @@ export class MemoryPersistence implements IPersistence {
     qos: QoS,
   ): Promise<void> {
     const clientId = store.clientId;
-    if (!await store.subscriptions.has(topicFilter)) {
-      store.subscriptions.set(topicFilter, qos);
-      this.trie.add(topicFilter, { clientId, qos });
-    }
+    await store.subscriptions.set(topicFilter, qos);
+    this.trie.add(topicFilter, { clientId, qos });
   }
 
   /**
@@ -276,9 +275,9 @@ export class MemoryPersistence implements IPersistence {
    */
   async publish(topic: Topic, packet: PublishPacket): Promise<void> {
     if (packet.retain) {
-      this.retained.set(packet.topic, packet);
+      await this.retained.set(packet.topic, packet);
       if (!packet.payload?.byteLength) {
-        this.retained.delete(packet.topic);
+        await this.retained.delete(packet.topic);
       }
     }
 
@@ -323,6 +322,7 @@ export class MemoryPersistence implements IPersistence {
       for await (const topic of this.retained.keys()) {
         if (retainedTrie.match(topic).length > 0) {
           const packet = await this.retained.get(topic);
+          console.log(`handleRetained ${topic} to client "${clientId}"`);
           if (packet !== undefined) {
             await client.handler(packet);
           }
