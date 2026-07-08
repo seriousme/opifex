@@ -279,7 +279,6 @@ export class MemoryPersistence implements IPersistence {
       this.retained.set(packet.topic, packet);
       if (!packet.payload?.byteLength) {
         this.retained.delete(packet.topic);
-        return;
       }
     }
 

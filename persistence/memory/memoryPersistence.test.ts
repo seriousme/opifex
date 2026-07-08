@@ -12,6 +12,12 @@ import { delay } from "../../dev_utils/mod.ts";
 const payloadAny = new TextEncoder().encode("any");
 const qos = 1;
 
+function makePacket(packet: PublishPacket, id: number | undefined) {
+  const newPacket = structuredClone(packet);
+  newPacket.id = id;
+  return newPacket;
+}
+
 test("new should create new Persistence object", () => {
   const persistence = new Persistence();
   assert.deepStrictEqual(typeof persistence, "object");
@@ -47,10 +53,6 @@ test("pub/sub should work", async () => {
     payload: payloadAny,
   };
 
-  function makePacket(id: number | undefined) {
-    publishPacket.id = id;
-    return publishPacket;
-  }
   const seen = new Set();
 
   function handler(packet: PublishPacket): void {
@@ -65,10 +67,10 @@ test("pub/sub should work", async () => {
     true,
     "topic is registered as subscription",
   );
-  await persistence.publish(topic, makePacket(25));
-  await persistence.publish(topic, makePacket(27));
-  await persistence.publish(topic, makePacket(undefined));
-  await persistence.publish("noTopic", makePacket(undefined));
+  await persistence.publish(topic, makePacket(publishPacket, 25));
+  await persistence.publish(topic, makePacket(publishPacket, 27));
+  await persistence.publish(topic, makePacket(publishPacket, undefined));
+  await persistence.publish("noTopic", makePacket(publishPacket, undefined));
   await delay(10);
   assert.deepStrictEqual(seen.size, 3, `received ${seen.size} messages`);
 });
@@ -86,10 +88,6 @@ test("publish of an empty retained message should clear previous retained messag
     retain: true,
   };
 
-  function makePacket(id: number | undefined) {
-    publishPacket.id = id;
-    return publishPacket;
-  }
   const seen = new Set();
 
   function handler(packet: PublishPacket): void {
@@ -97,7 +95,7 @@ test("publish of an empty retained message should clear previous retained messag
   }
 
   const { store } = await persistence.registerClient(clientId, handler, false);
-  await persistence.publish(topic, makePacket(25));
+  await persistence.publish(topic, makePacket(publishPacket, 25));
   assert.deepStrictEqual(
     await persistence.retained.has(topic),
     true,
@@ -109,9 +107,9 @@ test("publish of an empty retained message should clear previous retained messag
     true,
     "topic is registered as subscription",
   );
-  const updatePacket = makePacket(27);
+  const updatePacket = makePacket(publishPacket, 27);
   updatePacket.payload = new Uint8Array(0);
-  persistence.publish(topic, updatePacket);
+  await persistence.publish(topic, updatePacket);
   await delay(10);
   assert.deepStrictEqual(
     await persistence.retained.has(topic),
@@ -134,11 +132,6 @@ test("many packets should work", async () => {
     payload: payloadAny,
   };
 
-  function makePacket(id: number | undefined) {
-    const newPacket = structuredClone(publishPacket);
-    newPacket.id = id;
-    return newPacket;
-  }
   const seen = new Set();
 
   function handler(packet: PublishPacket): void {
@@ -159,7 +152,7 @@ test("many packets should work", async () => {
     "topic is registered as subscription",
   );
   for (let i = 0; i < numMessages; i++) {
-    await persistence.publish(topic, makePacket(i));
+    await persistence.publish(topic, makePacket(publishPacket, i));
   }
   await delay(10);
   assert.deepStrictEqual(
