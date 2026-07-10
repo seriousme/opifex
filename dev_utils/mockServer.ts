@@ -4,7 +4,7 @@ import { Context, MqttServer } from "../server/mod.ts";
 import { handlers } from "./test-handlers.ts";
 import type { IPersistence } from "../persistence/mod.ts";
 
-export function startMockServer(persistence?:IPersistence): {
+export function startMockServer(persistence?: IPersistence): {
   mqttConn: MqttConn;
   mqttServer: MqttServer;
 } {
@@ -25,7 +25,7 @@ export function addMockClient(mqttServer: MqttServer): MqttConn {
   return mqttConn;
 }
 
-export function startMockServer2(persistence?:IPersistence): {
+export function startMockServer2(persistence?: IPersistence): {
   mqttConn1: MqttConn;
   mqttConn2: MqttConn;
   mqttServer: MqttServer;
@@ -35,7 +35,7 @@ export function startMockServer2(persistence?:IPersistence): {
   return { mqttConn1, mqttConn2, mqttServer };
 }
 
-export function startMockServer3(persistence?:IPersistence): {
+export function startMockServer3(persistence?: IPersistence): {
   mqttConn1: MqttConn;
   mqttConn2: MqttConn;
   mqttConn3: MqttConn;
