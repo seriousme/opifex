@@ -6,7 +6,12 @@
  */
 import { parseArgs } from "node:util";
 import { TcpServer } from "../node/tcpServer.ts";
-import type { Context, TAuthenticationResult, Topic } from "../server/mod.ts";
+import type {
+  ConnectPacket,
+  Context,
+  TAuthenticationResult,
+  Topic,
+} from "../server/mod.ts";
 import { AuthenticationResult } from "../server/mod.ts";
 import { logger, LogLevel } from "../utils/mod.ts";
 
@@ -48,10 +53,14 @@ function isAuthenticated(
   clientId: string,
   username: string,
   password: Uint8Array,
+  connectPacket: ConnectPacket,
 ): TAuthenticationResult {
   const pwd = utf8Decoder.decode(password);
   logger.info(
     `Verifying authentication of client '${clientId}' with username '${username}'`,
+  );
+  logger.debug(
+    `Client '${clientId}' connecting with protocol level ${connectPacket.protocolLevel}`,
   );
 
   if (!checkUsername) {

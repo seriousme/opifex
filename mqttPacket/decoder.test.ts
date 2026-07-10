@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { Decoder } from "./decoder.ts";
-import { DEFAULT_MAX_TOPIC_SEGMENTS } from "./validators.ts";
+import { DEFAULT_MAX_TOPIC_LEVELS } from "./validators.ts";
 
 const utf8encoder = new TextEncoder();
 const packetType = 0;
@@ -128,11 +128,11 @@ test("Invalid topicFilter, too many slashes", () => {
   assert.throws(
     () => decoder.getTopicFilter(),
     Error,
-    `Topicfilter must contain a maximum of ${DEFAULT_MAX_TOPIC_SEGMENTS} segments`,
+    `Topicfilter must contain a maximum of ${DEFAULT_MAX_TOPIC_LEVELS} levels`,
   );
 });
 
-test("Invalid topicFilter, empty segments", () => {
+test("Invalid topicFilter, empty levels", () => {
   const byteArray = Uint8Array.from("//");
   const len = byteArray.length;
   const decoder = new Decoder(

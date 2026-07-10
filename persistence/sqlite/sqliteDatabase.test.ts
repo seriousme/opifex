@@ -30,8 +30,10 @@ test("deleteClientState removes persisted state for one client only", () => {
   ).run("client-a", 1);
   db.prepare("insert into subscriptions(client_id, topic, qos) values(?, ?, ?)")
     .run("client-a", "/a", 1);
-  db.prepare("insert into pending_incoming(client_id, packet_id) values(?, ?)")
-    .run("client-a", 42);
+  db.prepare(
+    "insert into pending_incoming(client_id, packet_id, packet, payload) values(?, ?, ?,?)",
+  )
+    .run("client-a", 43, "{}", null);
   db.prepare(
     "insert into pending_outgoing(client_id, packet_id, packet, payload) values(?, ?, ?, ?)",
   ).run("client-a", 43, "{}", null);

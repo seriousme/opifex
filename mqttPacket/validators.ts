@@ -1,22 +1,22 @@
 import type { Topic, TopicFilter } from "./types.ts";
 
 // to reduce the risk of Denial of Service
-export const DEFAULT_MAX_TOPIC_SEGMENTS = 10;
+export const DEFAULT_MAX_TOPIC_LEVELS = 50;
 /**
  * Checks for invalid UTF-8 characters or null bytes.
  *
  * @param value - The string to validate.
  * @returns `true` if the string contains more / signs than allowed`.
  */
-export function invalidMaxTopicSegments(
+export function invalidmaxTopicLevels(
   value: string,
-  maxTopicSegments: number,
+  maxTopicLevels: number,
 ): boolean {
   let slashCount = 0;
   for (const char of value) {
     if (char === "/") {
       slashCount++;
-      if (slashCount > maxTopicSegments) return true;
+      if (slashCount > maxTopicLevels) return true;
     }
   }
   return false;

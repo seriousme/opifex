@@ -5,8 +5,11 @@ import { MQTTLevel, PacketType } from "../deps.ts";
 import {
   connect,
   disconnect,
+  ping,
+  publish,
   startMockServer,
   startMockServer2,
+  subscribe,
 } from "../../dev_utils/mod.ts";
 
 const txtEncoder = new TextEncoder();
@@ -266,30 +269,83 @@ test("SUBSCRIBE receives multiple retained messages matching wildcard", async ()
   await disconnect(mqttConn2);
 });
 
+test("SUBSCRIBE receives multiple retained messages with different QoS", async () => {
+  const { mqttConn1, mqttConn2 } = startMockServer2();
+  // Set up multiple retained messages
+  await connect(mqttConn1);
+  await publish(mqttConn1, "retained/qos0", 0, {
+    retain: true,
+    id: undefined,
+  });
+  await publish(mqttConn1, "retained/qos1", 1, {
+    retain: true,
+    id: 10,
+  });
+  await publish(mqttConn1, "retained/qos2", 2, {
+    retain: true,
+    id: 11,
+  });
+
+  // Subscribe
+  await subscribe(mqttConn1, [
+    { topicFilter: "+/+", qos: 2 },
+  ]);
+
+  // Should receive three retained messages
+  const messages: AnyPacket[] = [];
+  const { value: msg1 } = await mqttConn1.next();
+  messages.push(msg1);
+  const { value: msg2 } = await mqttConn1.next();
+  messages.push(msg2);
+  const { value: msg3 } = await mqttConn1.next();
+  messages.push(msg3);
+
+  const topics = messages
+    .filter((m): m is PublishPacket => m.type === PacketType.publish)
+    .map((m) => m.topic)
+    .sort();
+
+  assert.deepStrictEqual(topics, [
+    "retained/qos0",
+    "retained/qos1",
+    "retained/qos2",
+  ]);
+  await disconnect(mqttConn1);
+  await connect(mqttConn2);
+  // clear retained
+  await publish(mqttConn2, "retained/qos0", 0, {
+    payload: "",
+    retain: true,
+    id: undefined,
+  });
+  await publish(mqttConn2, "retained/qos1", 1, {
+    payload: "",
+    retain: true,
+    id: 10,
+  });
+  await publish(mqttConn2, "retained/qos2", 2, {
+    payload: "",
+    retain: true,
+    id: 11,
+  });
+  // Subscribe
+  await subscribe(mqttConn2, [
+    { topicFilter: "+/+", qos: 2 },
+  ]);
+  // should receive no messages, check with ping
+  await ping(mqttConn2);
+  await disconnect(mqttConn2);
+});
+
 test("SUBSCRIBE to topic without retained message receives only SUBACK", async () => {
   const { mqttConn } = startMockServer();
 
   await connect(mqttConn);
 
   // Subscribe to topic with no retained message
-  mqttConn.send({
-    type: PacketType.subscribe,
-    protocolLevel: MQTTLevel.v4,
-    id: 12,
-    subscriptions: [{ topicFilter: "no/retained/here", qos: 0 }],
-  });
-
-  const { value: suback } = await mqttConn.next();
-  assert.deepStrictEqual(suback.type, PacketType.suback);
+  await subscribe(mqttConn, [{ topicFilter: "no/retained/here", qos: 0 }]);
 
   // No more messages should be pending - send a ping to verify
-  mqttConn.send({ type: PacketType.pingreq, protocolLevel: MQTTLevel.v4 });
-  const { value: pingres } = await mqttConn.next();
-  assert.deepStrictEqual(
-    pingres.type,
-    PacketType.pingres,
-    "Next packet should be PINGRES, not a retained message",
-  );
-
+  await ping(mqttConn);
   await disconnect(mqttConn);
 });

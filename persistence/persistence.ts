@@ -41,6 +41,11 @@ export interface IPersistence {
   clientList: Map<ClientId, Client>;
 
   /**
+   * initialize the persistence
+   * e.g. setting up the data store
+   */
+  initialize(): Promise<void>;
+  /**
    * Register a new client with the persistence layer
    * @param {ClientId} clientId - Unique identifier for the client
    * @param {Handler} handler - Packet handler function for the client
@@ -50,14 +55,13 @@ export interface IPersistence {
   registerClient(
     clientId: ClientId,
     handler: Handler,
-    clean: boolean,
   ): Promise<ClientRegistrationResult>;
 
   /**
    * Remove a client from the persistence layer
    * @param {ClientId} clientId - ID of client to deregister
    */
-  deregisterClient(clientId: ClientId): void | Promise<void>;
+  deregisterClient(clientId: ClientId): Promise<void>;
 
   /**
    * Publish a message to all subscribed clients

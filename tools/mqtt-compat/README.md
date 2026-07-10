@@ -20,21 +20,23 @@ which posts the result as a sticky PR comment and a job summary.
 # 1. Fetch the Paho suite, pinned to the same commit CI uses so local results
 #    match. The pin (PAHO_REF) lives in .github/workflows/mqtt-compat.yml.
 git clone https://github.com/eclipse-paho/paho.mqtt.testing /tmp/paho
-git -C /tmp/paho checkout "$(grep -oP 'PAHO_REF:\s*\K\S+' \
-  ../../.github/workflows/mqtt-compat.yml)"
+git -C /tmp/paho checkout "$(grep -oP 'PAHO_REF:\s*\K\S+' ./mqtt-compat.yml)"
 
 # 2. Start the broker
-MQTT_PORT=1883 node tools/mqtt-compat/broker.ts &
+node ./broker.ts &
 
 # 3. Run the suites
-python3 tools/mqtt-compat/run_compat.py \
-  --paho /tmp/paho/interoperability \
-  --host localhost --port 1883 \
-  --out report.md --json result.json
+python3 ./run_compat.py --paho /tmp/paho/interoperability --host localhost --port 1883 --out report.md --json result.json
 ```
 
 `--protocols v5,v3` selects the suites; `--timeout` bounds each test (default
 45s).
+
+### Individual test
+
+```bash
+python3 /tmp/paho/interoperability/client_test.py Test.test_retained_messages
+```
 
 ## How the score is computed
 

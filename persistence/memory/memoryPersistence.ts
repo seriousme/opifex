@@ -45,9 +45,9 @@ export class MemoryPacketIdStore implements IPacketIdStore {
     this.store = new Set();
   }
 
-  add(value: PacketId): Promise<this> {
+  add(value: PacketId): Promise<void> {
     this.store.add(value);
-    return Promise.resolve(this);
+    return Promise.resolve();
   }
 
   delete(value: PacketId): Promise<boolean> {
@@ -87,10 +87,11 @@ class MemoryBaseStore<K, V> {
     this.store = new Map();
   }
 
-  set(key: K, value: V): this {
+  set(key: K, value: V): Promise<void> {
     this.store.set(key, value);
-    return this;
+    return Promise.resolve();
   }
+
   size(): Promise<number> {
     return Promise.resolve(this.store.size);
   }
@@ -117,6 +118,12 @@ class MemoryBaseStore<K, V> {
       yield key;
     }
   }
+
+  async *values(): AsyncIterableIterator<V> {
+    for (const value of this.store.values()) {
+      yield value;
+    }
+  }
 }
 
 export class MemoryPacketStore
@@ -131,7 +138,7 @@ export class MemoryStore implements IStore {
   existingSession: boolean = false;
   clientId: ClientId;
   private packetId: PacketId;
-  pendingIncoming: IPacketIdStore;
+  pendingIncoming: IPacketStore;
   pendingOutgoing: IPacketStore;
   pendingAckOutgoing: IPacketIdStore;
   subscriptions: ISubscriptionStore;
@@ -142,7 +149,7 @@ export class MemoryStore implements IStore {
    */
   constructor(clientId: ClientId) {
     this.packetId = 0;
-    this.pendingIncoming = new MemoryPacketIdStore();
+    this.pendingIncoming = new MemoryPacketStore();
     this.pendingOutgoing = new MemoryPacketStore();
     this.pendingAckOutgoing = new MemoryPacketIdStore();
     this.subscriptions = new MemorySubscriptionStore();
@@ -190,25 +197,33 @@ export class MemoryPersistence implements IPersistence {
   }
 
   /**
+   * Nothing to reload from Storage
+   */
+  initialize(): Promise<void> {
+    return Promise.resolve();
+  }
+
+  /**
+   * Convenience method creation combining instance creation and initialization
+   */
+  static async start(): Promise<MemoryPersistence> {
+    const persistence = new MemoryPersistence();
+    await persistence.initialize();
+    return persistence;
+  }
+  /**
    * Registers or reinstates an MQTT client session within the memory persistence.
    * @param clientId The unique identifier of the client.
    * @param handler The message handler function used to route packets back to the client.
-   * @param clean Whether the client requested a clean session (wiping previous state).
    * @returns An object containing the assigned store and a flag indicating if a session already existed.
    */
   registerClient(
     clientId: ClientId,
     handler: Handler,
-    clean: boolean,
   ): Promise<ClientRegistrationResult> {
-    if (clean) {
-      this.clientList.delete(clientId);
-    }
     const existingClient = this.clientList.get(clientId);
     const existingSession = !!existingClient;
-    const store = !clean && existingClient
-      ? existingClient.store
-      : new MemoryStore(clientId);
+    const store = existingClient?.store ?? new MemoryStore(clientId);
     this.clientList.set(clientId, { store, handler });
     return Promise.resolve({ store, existingSession });
   }
@@ -237,10 +252,8 @@ export class MemoryPersistence implements IPersistence {
     qos: QoS,
   ): Promise<void> {
     const clientId = store.clientId;
-    if (!await store.subscriptions.has(topicFilter)) {
-      store.subscriptions.set(topicFilter, qos);
-      this.trie.add(topicFilter, { clientId, qos });
-    }
+    await store.subscriptions.set(topicFilter, qos);
+    this.trie.add(topicFilter, { clientId, qos });
   }
 
   /**
@@ -270,9 +283,10 @@ export class MemoryPersistence implements IPersistence {
    */
   async publish(topic: Topic, packet: PublishPacket): Promise<void> {
     if (packet.retain) {
-      this.retained.set(packet.topic, packet);
       if (!packet.payload?.byteLength) {
-        this.retained.delete(packet.topic);
+        await this.retained.delete(packet.topic);
+      } else {
+        await this.retained.set(packet.topic, packet);
       }
     }
 
@@ -280,6 +294,7 @@ export class MemoryPersistence implements IPersistence {
     const clients = new Map();
     for (const { clientId, qos } of this.trie.match(topic)) {
       const prevQos = clients.get(clientId);
+      // if subscriptions overlap then use the highest QoS
       if (!prevQos || prevQos < qos) {
         clients.set(clientId, qos);
       }
@@ -289,7 +304,10 @@ export class MemoryPersistence implements IPersistence {
     for (const [clientId, qos] of clients) {
       const newPacket = structuredClone(packet);
       newPacket.retain = false;
-      newPacket.qos = qos;
+      // subscription QoS is a maximum, not a minimum
+      // if the publishers Qos was lower, use that, else use the subscribers
+      const newQos = packet.qos || 0;
+      newPacket.qos = newQos < qos ? newQos : qos;
       //  logger.debug(`publish ${topic} to client ${clientId}`);
       const client = this.clientList.get(clientId);
       if (client) {
@@ -313,6 +331,7 @@ export class MemoryPersistence implements IPersistence {
       for await (const topic of this.retained.keys()) {
         if (retainedTrie.match(topic).length > 0) {
           const packet = await this.retained.get(topic);
+          console.log(`handleRetained ${topic} to client "${clientId}"`);
           if (packet !== undefined) {
             await client.handler(packet);
           }

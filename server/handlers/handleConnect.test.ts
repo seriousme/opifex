@@ -3,9 +3,14 @@ import { test } from "node:test";
 import type { AnyPacket } from "../deps.ts";
 import { AuthenticationResult, PacketType } from "../deps.ts";
 import {
+  connect,
   disconnect,
+  ping,
+  publish,
   startMockServer,
   startMockServer2,
+  startMockServer3,
+  subscribe,
 } from "../../dev_utils/mod.ts";
 
 const txtEncoder = new TextEncoder();
@@ -153,4 +158,92 @@ test("Second session with same client id closes the first", async () => {
     "Expected second connection not to be closed",
   );
   await disconnect(mqttConn2);
+});
+
+test("Redelivery on reconnect after failed delivery", async () => {
+  const clientId = "redeliveryClient";
+  const topic = "no/retained/here";
+  const { mqttConn1, mqttConn2 } = startMockServer2();
+  // start first client
+  await connect(mqttConn1, { clientId });
+  // Subscribe to topic with no retained message
+  await subscribe(mqttConn1, [{ topicFilter: topic, qos: 1 }]);
+  // checkAcks=false as the first packet returned will be the publish, not the ack.
+  await publish(mqttConn1, topic, 1, {}, false);
+  // first reception on our subscription
+  const { value: publishPacket } = await mqttConn1.next();
+  assert.deepStrictEqual(
+    publishPacket.type,
+    PacketType.publish,
+    "received publish packet again",
+  );
+  const publishId = publishPacket.id;
+  await mqttConn1.next(); // the puback on the publish we sent out
+  await disconnect(mqttConn1);
+  assert.deepStrictEqual(
+    mqttConn1.isClosed,
+    true,
+    "Expected first connection to be closed",
+  );
+  // connect again with same clientId
+  await connect(mqttConn2, { clientId, clean: false });
+  // expect published packet to be redelivered because we did not ack
+  const { value: packet } = await mqttConn2.next();
+  assert.deepStrictEqual(
+    packet.type,
+    PacketType.publish,
+    "received publish packet again",
+  );
+  assert.deepStrictEqual(
+    packet.id,
+    publishId,
+    "packetid is the same as on original delivery",
+  );
+  await disconnect(mqttConn2);
+});
+
+test("Delivery of messages with QoS 1 or QoS2 received while offline", async () => {
+  const clientId = "offlineClient";
+  const { mqttConn1, mqttConn2, mqttConn3 } = startMockServer3();
+  // start first client
+  await connect(mqttConn1, { clientId });
+  // Subscribe to topic with no retained message
+  await subscribe(mqttConn1, [{ topicFilter: "offline/+", qos: 1 }]);
+  // hangup
+  await disconnect(mqttConn1);
+
+  //  connect the publisher
+  await connect(mqttConn2, { clientId: "publisher" });
+  await publish(mqttConn2, "offline/q0", 0, { id: 10 });
+  await publish(mqttConn2, "offline/q1", 1, { id: 11 });
+  await publish(mqttConn2, "offline/q2", 2, { id: 12 });
+  await disconnect(mqttConn2);
+
+  // connect again with same clientId as the initial connect
+  await connect(mqttConn3, { clientId, clean: false });
+  // expect published packet that was delivered while offline
+  const { value: packetQos1 } = await mqttConn3.next();
+  assert.deepStrictEqual(
+    packetQos1.type,
+    PacketType.publish,
+    "received publish packet",
+  );
+  assert.deepStrictEqual(
+    packetQos1.topic,
+    "offline/q1",
+    "topic is expected",
+  );
+  const { value: packetQos2 } = await mqttConn3.next();
+  assert.deepStrictEqual(
+    packetQos2.type,
+    PacketType.publish,
+    "received publish packet",
+  );
+  assert.deepStrictEqual(
+    packetQos2.topic,
+    "offline/q2",
+    "topic is expected",
+  );
+  await ping(mqttConn3);
+  await disconnect(mqttConn3);
 });

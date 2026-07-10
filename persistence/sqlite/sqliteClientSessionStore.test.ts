@@ -13,6 +13,9 @@ test("SqliteClientSessionStore persists and deletes session metadata", () => {
     existingSession: true,
   });
 
+  const clients = Array.from(store.keys());
+  assert.deepStrictEqual(clients, ["client-a"]);
+
   store.delete("client-a");
   assert.equal(store.get("client-a"), null);
 });

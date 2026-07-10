@@ -17,7 +17,7 @@ function makePacket(id: number): PublishPacket {
 
 test("SqlitePacketStore round-trips packets", async () => {
   const db = initializeDatabase(":memory:");
-  const store = new SqlitePacketStore(db, "client-a");
+  const store = new SqlitePacketStore(db, "client-1", "pending_incoming");
 
   store.set(1, makePacket(1));
   store.set(2, makePacket(2));
@@ -32,7 +32,13 @@ test("SqlitePacketStore round-trips packets", async () => {
   for await (const key of store.keys()) {
     keys.push(key);
   }
+  const values = [];
+  for await (const value of store.values()) {
+    assert.deepStrictEqual(value.type, PacketType.publish, "publish packet");
+    values.push(value.id);
+  }
   assert.deepStrictEqual(keys, [1]);
+  assert.deepStrictEqual(values, [1]);
   await store.clear();
   assert.equal(await store.size(), 0);
 });

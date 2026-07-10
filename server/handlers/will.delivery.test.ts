@@ -20,7 +20,7 @@ test("MQTT-3.1.2.5: will message delivered on ungraceful disconnect", {
 
   // Subscriber connects
   await connect(subscriber, { clientId: "subscriber1" });
-  await subscribe(subscriber, willTopic, 0);
+  await subscribe(subscriber, [{ topicFilter: willTopic, qos: 0 }]);
 
   // Publisher connects
   await connect(publisher, {
@@ -70,7 +70,7 @@ test("MQTT-3.1.2.5: will message NOT delivered on graceful DISCONNECT", {
 
   // Subscriber connects
   await connect(subscriber, { clientId: "subscriber2" });
-  await subscribe(subscriber, willTopic, 0);
+  await subscribe(subscriber, [{ topicFilter: willTopic, qos: 0 }]);
 
   // Publisher connects
   await connect(publisher, {
@@ -101,7 +101,7 @@ test("MQTT-3.1.2.5: will message delivered with correct QoS", {
 
   // Subscriber connects
   await connect(subscriber, { clientId: "subscriber3" });
-  await subscribe(subscriber, willTopic, 1);
+  await subscribe(subscriber, [{ topicFilter: willTopic, qos: 1 }]);
 
   // Publisher connects with will message QoS 1
   await connect(publisher, {
@@ -166,7 +166,7 @@ test("MQTT-3.1.2.5: will message stored as retained when retain=true", {
   publisher.close();
 
   // Now subscribe to the topic - should receive the retained message
-  await subscribe(subscriber, willTopic, 0);
+  await subscribe(subscriber, [{ topicFilter: willTopic, qos: 0 }]);
 
   // Should receive the retained will message
   const { value: willMessage } = await subscriber.next();
@@ -200,7 +200,7 @@ test("MQTT-3.1.2.5: will message to $ topic is rejected", {
 
   // Subscriber connects
   await connect(subscriber, { clientId: "subscriber5" });
-  await subscribe(subscriber, willTopic, 0);
+  await subscribe(subscriber, [{ topicFilter: willTopic, qos: 0 }]);
 
   // Publisher connects with will message to system topic
   await connect(publisher, {

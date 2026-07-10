@@ -55,32 +55,48 @@ export class SqlitePersistence implements IPersistence {
   }
 
   /**
-   * Registers a client connection against database rows, re-hydrating matching state structures if found.
-   * @param clientId Identified user client string.
-   * @param handler Message dispatch routing block.
-   * @param clean Directives dictating clean session processing.
+   * Populate the client list
+   * and recreate the store objects
    */
-  async registerClient(
-    clientId: ClientId,
-    handler: Handler,
-    clean: boolean,
-  ): Promise<ClientRegistrationResult> {
-    if (clean) {
-      deleteClientState(this.db, clientId);
-    }
-    const existingSession = !!(await this.sessionStore.get(clientId));
-    const store = new SqliteStore(this.db, clientId);
-    if (!existingSession) {
-      this.sessionStore.set({ clientId, existingSession: true });
-    }
-    if (!clean && existingSession) {
-      // reinstate subscriptions
+  async initialize(): Promise<void> {
+    for (const clientId of this.sessionStore.keys()) {
+      // create the store objects
+      const store = new SqliteStore(this.db, clientId);
+      // register them
+      const handler = () => {};
+      this.clientList.set(clientId, { store, handler });
+      // reload subscriptions from storage back into the trie
       for await (const [topicFilter, qos] of store.subscriptions.entries()) {
         this.trie.add(topicFilter, { clientId, qos });
       }
     }
+  }
+
+  /**
+   * Convenience method creation combining instance creation and initialization
+   */
+  static async start(
+    filename = SQLITE_DATABASE_URL,
+  ): Promise<SqlitePersistence> {
+    const persistence = new SqlitePersistence(filename);
+    await persistence.initialize();
+    return persistence;
+  }
+
+  /**
+   * Registers a client connection against database rows.
+   * @param clientId Identified user client string.
+   * @param handler Message dispatch routing block.
+   */
+  registerClient(
+    clientId: ClientId,
+    handler: Handler,
+  ): Promise<ClientRegistrationResult> {
+    const existingClient = this.clientList.get(clientId);
+    const existingSession = !!existingClient;
+    const store = existingClient?.store ?? new SqliteStore(this.db, clientId);
     this.clientList.set(clientId, { store, handler });
-    return { store, existingSession };
+    return Promise.resolve({ store, existingSession });
   }
 
   /** Unbinds and clears states associated to the targeted deregistered client session. */
@@ -94,16 +110,15 @@ export class SqlitePersistence implements IPersistence {
   }
 
   /** Connects a subscription boundary path pattern with targeted tracking stores. */
-  async subscribe(
+  subscribe(
     store: IStore,
     topicFilter: TopicFilter,
     qos: QoS,
   ): Promise<void> {
     const clientId = store.clientId;
-    if (!await store.subscriptions.has(topicFilter)) {
-      store.subscriptions.set(topicFilter, qos);
-      this.trie.add(topicFilter, { clientId, qos });
-    }
+    store.subscriptions.set(topicFilter, qos);
+    this.trie.add(topicFilter, { clientId, qos });
+    return Promise.resolve();
   }
 
   /** Disconnects and breaks specific subscription configurations out of active scopes. */
@@ -138,6 +153,7 @@ export class SqlitePersistence implements IPersistence {
 
     const clients = new Map<ClientId, QoS>();
     for (const { clientId, qos } of this.trie.match(topic)) {
+      // if subscriptions overlap then use the highest QoS
       const prevQos = clients.get(clientId);
       if (!prevQos || prevQos < qos) {
         clients.set(clientId, qos);
@@ -147,7 +163,10 @@ export class SqlitePersistence implements IPersistence {
     for (const [clientId, qos] of clients) {
       const newPacket = structuredClone(packet);
       newPacket.retain = false;
-      newPacket.qos = qos;
+      // subscription QoS is a maximum, not a minimum
+      // if the publishers Qos was lower, use that, else use the subscribers
+      const newQos = packet.qos || 0;
+      newPacket.qos = newQos < qos ? newQos : qos;
       const client = this.clientList.get(clientId);
       if (client) {
         await client.handler(newPacket);

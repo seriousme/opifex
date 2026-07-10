@@ -24,11 +24,11 @@ export class SqliteSubscriptionStore implements ISubscriptionStore {
     return Promise.resolve(row?.count ?? 0);
   }
 
-  set(key: TopicFilter, value: QoS): this {
+  set(key: TopicFilter, value: QoS): Promise<void> {
     this.db.prepare(
       "insert or replace into subscriptions(client_id, topic, qos) values(?, ?, ?)",
     ).run(this.clientId, key, value);
-    return this;
+    return Promise.resolve();
   }
 
   get(key: TopicFilter): Promise<QoS | undefined> {

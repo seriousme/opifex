@@ -43,7 +43,7 @@ test("DISCONNECT clears will message", async () => {
   const { mqttConn1, mqttConn2 } = startMockServer2();
   // Connect subscriber to catch any will message
   await connect(mqttConn1);
-  await subscribe(mqttConn1, "will/topic", 0);
+  await subscribe(mqttConn1, [{ topicFilter: "will/topic", qos: 0 }]);
 
   // Connect with will message
   mqttConn2.send(connectWithWill);

@@ -43,4 +43,17 @@ export class SqliteClientSessionStore {
     ).run(clientId);
     return this;
   }
+
+  *keys(): IterableIterator<ClientId> {
+    const query = this.db.prepare(
+      `select client_id from client_sessions`,
+    );
+    for (
+      const row of query.iterate() as Iterable<
+        { client_id: ClientId }
+      >
+    ) {
+      yield row.client_id;
+    }
+  }
 }

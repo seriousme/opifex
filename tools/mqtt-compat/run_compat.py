@@ -37,17 +37,17 @@ import unittest
 # Cases Opifex intentionally does not (yet) satisfy. Keyed by protocol -> test
 # name -> reason. These still count as failures in the raw %; they render with an
 # "expected" marker and the reason in the per-test table.
+# NOTE: test_flow_control2 is NOT listed here — it lives in HARNESS_LIMITED
+# below (skipped before the gap logic runs), so a duplicate entry here would
+# be unreachable. The receiveMaximum gap it probes is tracked via
+# test_flow_control1 above.
 EXPECTED_GAPS = {
     "v5": {
         "test_shared_subscriptions":
             "Opifex advertises sharedSubscriptionAvailable=false "
             "(deferred for now)",
         "test_flow_control1":
-            "receiveMaximum is advertised but not yet enforced outbound "
-        # NOTE: test_flow_control2 is NOT listed here — it lives in HARNESS_LIMITED
-        # below (skipped before the gap logic runs), so a duplicate entry here would
-        # be unreachable. The receiveMaximum gap it probes is tracked via
-        # test_flow_control1 above.
+            "receiveMaximum is advertised but not yet enforced outbound ",
         "test_server_topic_alias":
             "broker-assigned topic aliases are not implemented;"
             "spec-optional/MAY",
@@ -97,7 +97,7 @@ def set_globals(module, protocol, host, port):
     ``client_test5/`` topic prefix) so results match a direct
     ``python3 client_testN.py --hostname H --port P`` run.
 
-    This duplication is exactly what ``PAHO_REF`` (pinned in
+    This git pulluplication is exactly what ``PAHO_REF`` (pinned in
     ``.github/workflows/mqtt-compat.yml``) protects: a Paho bump that renames or
     adds a module global the tests read would surface here as a ``NameError`` ->
     "error" status. When bumping the pin, re-check each suite's ``__main__`` block

@@ -5,6 +5,7 @@ import { MQTTLevel, PacketType } from "../deps.ts";
 import {
   connect,
   disconnect,
+  isAuthenticatedBroker,
   ping,
   startMockServer,
 } from "../../dev_utils/mod.ts";
@@ -155,4 +156,27 @@ test("PUBLISH to $SYS topic is rejected", async () => {
   mqttConn.send(publishPacket);
   await mqttConn.next();
   assert.equal(mqttConn.isClosed, true, "expect connection to be closed");
+});
+
+test("PUBLISH to $SYS topic is allowed for brokers", async () => {
+  const { mqttConn, mqttServer } = startMockServer();
+  // this will set the context.isBroker=true on authentication
+  mqttServer.handlers.isAuthenticated = isAuthenticatedBroker;
+
+  await connect(mqttConn, { clientId: "broker1" });
+  // Try to publish to $SYS topic
+  const publishPacket: AnyPacket = {
+    type: PacketType.publish,
+    protocolLevel: MQTTLevel.v4,
+    topic: "$SYS/broker/clients",
+    payload: txtEncoder.encode("test"),
+    qos: 0,
+    retain: false,
+    dup: false,
+    id: 3,
+  };
+  mqttConn.send(publishPacket);
+  // connection should still be alive
+  await ping(mqttConn);
+  await disconnect(mqttConn);
 });

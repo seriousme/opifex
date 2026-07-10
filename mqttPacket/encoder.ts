@@ -25,8 +25,8 @@ import {
 
 import { encodeLength } from "./length.ts";
 import {
-  DEFAULT_MAX_TOPIC_SEGMENTS,
-  invalidMaxTopicSegments,
+  DEFAULT_MAX_TOPIC_LEVELS,
+  invalidmaxTopicLevels,
   invalidTopic,
   invalidTopicFilter,
   invalidUTF8,
@@ -62,10 +62,10 @@ export class Encoder {
   private marker: number;
 
   /**
-   * max number of segments in topics and topicFilters
+   * max number of levels in topics and topicFilters
    * added as classmember so it can be reconfigured
    */
-  maxTopicSegments = DEFAULT_MAX_TOPIC_SEGMENTS;
+  maxTopicLevels = DEFAULT_MAX_TOPIC_LEVELS;
 
   /**
    * Creates a new Encoder instance
@@ -189,9 +189,9 @@ export class Encoder {
    * @returns The encoder instance for chaining
    */
   setTopic(value: Topic): this {
-    if (invalidMaxTopicSegments(value, this.maxTopicSegments)) {
+    if (invalidmaxTopicLevels(value, this.maxTopicLevels)) {
       throw new EncoderError(
-        `Topic must contain a maximum of ${this.maxTopicSegments} segments`,
+        `Topic must contain a maximum of ${this.maxTopicLevels} levels`,
       );
     }
     if (invalidTopic(value)) {
@@ -210,9 +210,9 @@ export class Encoder {
    * @returns The encoder instance for chaining
    */
   setTopicFilter(value: TopicFilter): this {
-    if (invalidMaxTopicSegments(value, this.maxTopicSegments)) {
+    if (invalidmaxTopicLevels(value, this.maxTopicLevels)) {
       throw new EncoderError(
-        `TopicFilter must contain a maximum of ${this.maxTopicSegments} segments`,
+        `TopicFilter must contain a maximum of ${this.maxTopicLevels} levels`,
       );
     }
     if (invalidTopicFilter(value)) {

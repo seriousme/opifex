@@ -1,0 +1,84 @@
+{
+  "protocols": [
+    {
+      "protocol": "v3",
+      "label": "MQTT 3.1.1",
+      "passed": 10,
+      "total": 10,
+      "skipped": 0,
+      "percentage": 100,
+      "results": [
+        {
+          "name": "testBasic",
+          "status": "pass",
+          "expected_gap": false,
+          "unexpected_pass": false,
+          "note": ""
+        },
+        {
+          "name": "test_dollar_topics",
+          "status": "pass",
+          "expected_gap": false,
+          "unexpected_pass": false,
+          "note": ""
+        },
+        {
+          "name": "test_keepalive",
+          "status": "pass",
+          "expected_gap": false,
+          "unexpected_pass": false,
+          "note": ""
+        },
+        {
+          "name": "test_offline_message_queueing",
+          "status": "pass",
+          "expected_gap": false,
+          "unexpected_pass": false,
+          "note": ""
+        },
+        {
+          "name": "test_overlapping_subscriptions",
+          "status": "pass",
+          "expected_gap": false,
+          "unexpected_pass": false,
+          "note": ""
+        },
+        {
+          "name": "test_redelivery_on_reconnect",
+          "status": "pass",
+          "expected_gap": false,
+          "unexpected_pass": false,
+          "note": ""
+        },
+        {
+          "name": "test_retained_messages",
+          "status": "pass",
+          "expected_gap": false,
+          "unexpected_pass": false,
+          "note": ""
+        },
+        {
+          "name": "test_subscribe_failure",
+          "status": "pass",
+          "expected_gap": false,
+          "unexpected_pass": false,
+          "note": ""
+        },
+        {
+          "name": "test_unsubscribe",
+          "status": "pass",
+          "expected_gap": false,
+          "unexpected_pass": false,
+          "note": ""
+        },
+        {
+          "name": "test_zero_length_clientid",
+          "status": "pass",
+          "expected_gap": false,
+          "unexpected_pass": false,
+          "note": ""
+        }
+      ]
+    }
+  ]
+}

@@ -11,25 +11,29 @@ import { deserializePacket, serializePacket } from "./sqliteStoreUtils.ts";
 export class SqlitePacketStore implements IPacketStore {
   private db: DatabaseSync;
   private clientId: ClientId;
+  private tableName: "pending_incoming" | "pending_outgoing";
 
   constructor(
     db: DatabaseSync,
     clientId: ClientId,
+    tableName: "pending_incoming" | "pending_outgoing",
   ) {
     this.db = db;
     this.clientId = clientId;
+    this.tableName = tableName;
   }
 
-  set(key: PacketId, value: PublishPacket): this {
+  set(key: PacketId, value: PublishPacket): Promise<void> {
     const serialized = serializePacket(value);
     this.db.prepare(
-      "insert or replace into pending_outgoing(client_id, packet_id, packet, payload) values(?, ?, ?, ?)",
+      `insert or replace into ${this.tableName}(client_id, packet_id, packet, payload) values(?, ?, ?, ?)`,
     ).run(this.clientId, key, serialized.packet, serialized.payload);
-    return this;
+    return Promise.resolve();
   }
+
   get(key: PacketId): Promise<PublishPacket | undefined> {
     const row = this.db.prepare(
-      "select packet, payload from pending_outgoing where client_id = ? and packet_id = ?",
+      `select packet, payload from ${this.tableName} where client_id = ? and packet_id = ?`,
     ).get(this.clientId, key) as
       | { packet: string; payload: Uint8Array | null }
       | undefined;
@@ -40,35 +44,35 @@ export class SqlitePacketStore implements IPacketStore {
 
   has(key: PacketId): Promise<boolean> {
     const row = this.db.prepare(
-      "select 1 from pending_outgoing where client_id = ? and packet_id = ? limit 1",
+      `select 1 from ${this.tableName} where client_id = ? and packet_id = ? limit 1`,
     ).get(this.clientId, key);
     return Promise.resolve(!!row);
   }
 
   delete(key: PacketId): Promise<boolean> {
     const info = this.db.prepare(
-      "delete from pending_outgoing where client_id = ? and packet_id = ?",
+      `delete from ${this.tableName} where client_id = ? and packet_id = ?`,
     ).run(this.clientId, key);
     return Promise.resolve(info.changes > 0);
   }
 
   clear(): Promise<void> {
     this.db.prepare(
-      "delete from pending_outgoing where client_id = ?",
+      `delete from ${this.tableName} where client_id = ?`,
     ).run(this.clientId);
     return Promise.resolve();
   }
 
   size(): Promise<number> {
     const row = this.db.prepare(
-      "select count(*) as count from pending_outgoing where client_id = ?",
+      `select count(*) as count from ${this.tableName} where client_id = ?`,
     ).get(this.clientId) as { count: number };
     return Promise.resolve(row?.count ?? 0);
   }
 
   async *keys(): AsyncIterableIterator<PacketId> {
     const query = this.db.prepare(
-      "select packet_id from pending_outgoing where client_id = ?",
+      `select packet_id from ${this.tableName} where client_id = ?`,
     );
     for (
       const row of query.iterate(this.clientId) as Iterable<
@@ -76,6 +80,19 @@ export class SqlitePacketStore implements IPacketStore {
       >
     ) {
       yield row.packet_id;
+    }
+  }
+
+  async *values(): AsyncIterableIterator<PublishPacket> {
+    const query = this.db.prepare(
+      `select packet, payload from ${this.tableName} where client_id = ?`,
+    );
+    for (
+      const row of query.iterate(this.clientId) as Iterable<
+        { packet: string; payload: Uint8Array | null }
+      >
+    ) {
+      yield deserializePacket(row.packet, row.payload);
     }
   }
 }

@@ -8,10 +8,12 @@ import {
 } from "./deps.ts";
 import type {
   AnyPacket,
+  ConnectPacket,
   IPersistence,
   IStore,
   ProtocolLevel,
   PublishPacket,
+  PubrelPacket,
   SockConn,
   TAuthenticationResult,
   Topic,
@@ -41,6 +43,7 @@ export type Handlers = {
    * @param {ClientId} clientId - The client identifier.
    * @param {string} username - The username provided by the client.
    * @param {Uint8Array} password - The password bytes provided by the client.
+   * @param {ConnectPacket} connectPacket - The raw connect packet
    * @returns {TAuthenticationResult} The result of the authentication attempt.
    */
   isAuthenticated?(
@@ -48,6 +51,7 @@ export type Handlers = {
     clientId: ClientId,
     username: string,
     password: Uint8Array,
+    connectPacket: ConnectPacket,
   ): TAuthenticationResult;
 
   /**
@@ -73,7 +77,10 @@ export type Handlers = {
  */
 export class Context {
   /** Indicates whether the client has successfully completed the MQTT CONNECT handshake. */
-  connected: boolean;
+  connected = false;
+
+  /** Indicates whether the client is considered a broker and allowed  to use $SYS topics etc */
+  isBroker = false;
 
   /** The MQTT protocol level version determined during the connection handshake. */
   protocolLevel: ProtocolLevel;
@@ -120,7 +127,6 @@ export class Context {
     handlers: Handlers,
   ) {
     this.persistence = persistence;
-    this.connected = false;
     this.conn = conn;
     this.mqttConn = new MqttConn({ conn });
     this.handlers = handlers;
@@ -151,8 +157,12 @@ export class Context {
    * @returns {Promise<void>} A promise that resolves when transmission completes.
    */
   async send(packet: AnyPacket): Promise<void> {
-    logger.debug("Sending", PacketNameByType[packet.type]);
-    logger.debug(JSON.stringify(packet, null, 2));
+    logger.verbose(
+      `ctx.send: Sending packet of type ${
+        PacketNameByType[packet.type]
+      } to client ${this.store?.clientId}`,
+    );
+    logger.debug(`ctx.send: ${JSON.stringify(packet, null, 2)}`);
     await this.mqttConn.send(packet);
   }
 
@@ -164,34 +174,51 @@ export class Context {
    * @returns {Promise<boolean>} Resolves to true if an existing session was taken over, false otherwise.
    */
   async connect(clientId: string, clean: boolean): Promise<boolean> {
-    logger.debug("Connecting", clientId);
+    logger.verbose("ctx:connect connecting", clientId);
     if (this.preconnectTimer) {
       this.preconnectTimer.clear();
     }
     const existingActiveSession = Context.clientList.get(clientId);
     if (existingActiveSession) {
-      logger.debug(
-        `Existing session with ${clientId} exists, closing existing session`,
+      logger.verbose(
+        `ctx:connect: Existing session with ${clientId} exists, closing existing session`,
       );
       existingActiveSession.close(false);
     }
-
-    const result = await this.persistence.registerClient(
+    if (clean) {
+      logger.verbose(
+        `ctx:connect: Clean session requested for ${clientId}, deregistering existing state`,
+      );
+      await this.persistence.deregisterClient(clientId);
+    }
+    logger.verbose("ctx:connect: Registering client", clientId);
+    const { store, existingSession } = await this.persistence.registerClient(
       clientId,
       this.doPublish.bind(this),
-      clean,
     );
-    const { store, existingSession } = result;
     this.store = store;
     this.connected = true;
     Context.clientList.set(clientId, this);
+    logger.verbose("ctx:connect: Broadcasting client connection", clientId);
     await this.broadcast("$SYS/connect/clients", clientId);
     logger.debug("Connected", clientId);
     return existingSession;
   }
 
   /**
-   * Processes outbound publication requests, allocating package IDs and storing
+   * Processes -inbound- publication requests
+   * @param {PublishPacket} packet - The publication packet to distribute.
+   * @returns {Promise<void>} A promise that resolves when the internal processing or send queue finishes.
+   */
+  async publish(packet: PublishPacket) {
+    logger.verbose(
+      `ctx:publish processing incoming publish for topic "${packet.topic}"`,
+    );
+    await this.persistence.publish(packet.topic, packet);
+  }
+
+  /**
+   * Processes -outbound- publication requests, allocating package IDs and storing
    * unacknowledged QoS > 0 packets into the client persistence layer.
    * @param {PublishPacket} packet - The publication packet to distribute.
    * @returns {Promise<void>} A promise that resolves when the internal processing or send queue finishes.
@@ -260,7 +287,6 @@ export class Context {
 
   /**
    * Evaluates authorization and triggers the distribution of the client's Will packet.
-   * @returns {Promise<void>}
    */
   private async handleWill() {
     if (this.will) {
@@ -293,6 +319,38 @@ export class Context {
       retain,
       payload: utf8Encoder.encode(payload),
     };
-    await this.persistence.publish(packet.topic, packet);
+    await this.publish(packet);
+  }
+
+  /**
+   * utility method to redeliver packets that were cached
+   * called from handleConnect()
+   */
+  async handleRedelivery() {
+    // redeliver inflight data
+    if (this.store) {
+      logger.debug(
+        `ctx:handleRedelivery for ${this.store.clientId} of ${await this.store
+          .pendingOutgoing.size()} packets`,
+      );
+      for await (const packet of this.store.pendingOutgoing.values()) {
+        if (!this.connected) {
+          break;
+        }
+        this.send(packet);
+      }
+      // we only need to resend PubRel acks
+      for await (const packetId of this.store.pendingAckOutgoing.keys()) {
+        if (!this.connected) {
+          break;
+        }
+        const pubrel: PubrelPacket = {
+          protocolLevel: this.protocolLevel,
+          type: PacketType.pubrel,
+          id: packetId,
+        };
+        this.send(pubrel);
+      }
+    }
   }
 }

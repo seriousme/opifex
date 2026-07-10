@@ -21,6 +21,8 @@ export function initializeDatabase(filename: string): sqlite.DatabaseSync {
       create table if not exists pending_incoming (
         client_id text not null,
         packet_id integer not null,
+        packet text not null,
+        payload blob,
         primary key(client_id, packet_id)
       );
       create table if not exists pending_outgoing (

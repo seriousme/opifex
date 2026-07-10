@@ -6,6 +6,6 @@ import type { Context } from "../context.ts";
  * @returns {void}
  */
 export function handleDisconnect(ctx: Context): void {
-  ctx.will = undefined;
-  ctx.close();
+  // close the context without sending the will
+  ctx.close(false);
 }

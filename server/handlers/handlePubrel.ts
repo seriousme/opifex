@@ -19,8 +19,14 @@ export async function handlePubrel(
   packet: PubrelPacket,
 ): Promise<void> {
   const id = packet.id;
-  if (ctx.store && (await ctx.store.pendingIncoming.has(id))) {
-    await ctx.store.pendingIncoming.delete(id);
+  if (ctx.store) {
+    const packet = await ctx.store.pendingIncoming.get(id);
+    if (packet) {
+      // packet is in store
+      // publish the packet
+      await ctx.publish(packet);
+      await ctx.store.pendingIncoming.delete(id);
+    }
   }
   await ctx.send({
     type: PacketType.pubcomp,
