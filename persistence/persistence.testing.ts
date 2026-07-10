@@ -455,7 +455,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
       // QoS must be 1 or 2 for pending outgoing (QoS 0 doesn't need persistence)
       const packet = createPacket("test", "data", { id: 1, qos: 1 });
-      store.pendingOutgoing.set(1, packet);
+      await store.pendingOutgoing.set(1, packet);
 
       assert(await store.pendingOutgoing.has(1));
       assert.deepStrictEqual(
@@ -480,11 +480,23 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
         () => {},
       );
 
-      await store.pendingIncoming.add(42);
-      assert(await store.pendingIncoming.has(42));
+      // QoS must be 1 or 2 for pending outgoing (QoS 0 doesn't need persistence)
+      const packet = createPacket("test", "data", { id: 1, qos: 1 });
+      await store.pendingIncoming.set(1, packet);
 
-      await store.pendingIncoming.delete(42);
-      assert(!(await store.pendingIncoming.has(42)));
+      assert(await store.pendingIncoming.has(1));
+      assert.deepStrictEqual(
+        (await store.pendingIncoming.get(1))?.topic,
+        packet.topic,
+      );
+      assert.strictEqual(await store.pendingIncoming.size(), 1);
+      assert.deepStrictEqual(
+        await Array.fromAsync(store.pendingIncoming.values()),
+        [packet],
+      );
+
+      await store.pendingIncoming.delete(1);
+      assert(!(await store.pendingIncoming.has(1)));
       cleanup();
     });
 

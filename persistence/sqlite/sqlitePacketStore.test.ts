@@ -17,7 +17,7 @@ function makePacket(id: number): PublishPacket {
 
 test("SqlitePacketStore round-trips packets", async () => {
   const db = initializeDatabase(":memory:");
-  const store = new SqlitePacketStore(db, "client-a");
+  const store = new SqlitePacketStore(db, "client-1", "pending_incoming");
 
   store.set(1, makePacket(1));
   store.set(2, makePacket(2));

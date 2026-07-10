@@ -8,7 +8,7 @@ import type {
 
 export interface IStore {
   clientId: ClientId;
-  pendingIncoming: IPacketIdStore;
+  pendingIncoming: IPacketStore;
   pendingOutgoing: IPacketStore;
   pendingAckOutgoing: IPacketIdStore;
   subscriptions: ISubscriptionStore;

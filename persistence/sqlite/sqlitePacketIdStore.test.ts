@@ -5,7 +5,7 @@ import { initializeDatabase } from "./sqliteDatabase.ts";
 
 test("SqlitePacketIdStore persists packet IDs for a client", async () => {
   const db = initializeDatabase(":memory:");
-  const store = new SqlitePacketIdStore(db, "client-a", "pending_incoming");
+  const store = new SqlitePacketIdStore(db, "client-a");
   await store.add(1);
   await store.add(2);
 

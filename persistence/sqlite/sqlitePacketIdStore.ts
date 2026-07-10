@@ -8,16 +8,14 @@ import type { IPacketIdStore } from "../store.ts";
 export class SqlitePacketIdStore implements IPacketIdStore {
   private db: DatabaseSync;
   private clientId: ClientId;
-  private tableName: "pending_incoming" | "pending_ack_outgoing";
+  private tableName = "pending_ack_outgoing";
 
   constructor(
     db: DatabaseSync,
     clientId: ClientId,
-    tableName: "pending_incoming" | "pending_ack_outgoing",
   ) {
     this.db = db;
     this.clientId = clientId;
-    this.tableName = tableName;
   }
 
   add(value: PacketId): Promise<void> {

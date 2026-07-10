@@ -33,7 +33,7 @@ export class SqliteStore implements IStore {
   private lastPacketId = 0;
   private db: DatabaseSync;
   clientId: ClientId;
-  pendingIncoming: SqlitePacketIdStore;
+  pendingIncoming: SqlitePacketStore;
   pendingOutgoing: SqlitePacketStore;
   pendingAckOutgoing: SqlitePacketIdStore;
   subscriptions: SqliteSubscriptionStore;
@@ -44,7 +44,7 @@ export class SqliteStore implements IStore {
   ) {
     this.db = db;
     this.clientId = clientId;
-    this.pendingIncoming = new SqlitePacketIdStore(
+    this.pendingIncoming = new SqlitePacketStore(
       db,
       clientId,
       "pending_incoming",
@@ -52,11 +52,11 @@ export class SqliteStore implements IStore {
     this.pendingOutgoing = new SqlitePacketStore(
       db,
       clientId,
+      "pending_outgoing",
     );
     this.pendingAckOutgoing = new SqlitePacketIdStore(
       db,
       clientId,
-      "pending_ack_outgoing",
     );
     this.subscriptions = new SqliteSubscriptionStore(
       db,

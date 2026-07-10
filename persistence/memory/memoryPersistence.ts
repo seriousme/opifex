@@ -138,7 +138,7 @@ export class MemoryStore implements IStore {
   existingSession: boolean = false;
   clientId: ClientId;
   private packetId: PacketId;
-  pendingIncoming: IPacketIdStore;
+  pendingIncoming: IPacketStore;
   pendingOutgoing: IPacketStore;
   pendingAckOutgoing: IPacketIdStore;
   subscriptions: ISubscriptionStore;
@@ -149,7 +149,7 @@ export class MemoryStore implements IStore {
    */
   constructor(clientId: ClientId) {
     this.packetId = 0;
-    this.pendingIncoming = new MemoryPacketIdStore();
+    this.pendingIncoming = new MemoryPacketStore();
     this.pendingOutgoing = new MemoryPacketStore();
     this.pendingAckOutgoing = new MemoryPacketIdStore();
     this.subscriptions = new MemorySubscriptionStore();
