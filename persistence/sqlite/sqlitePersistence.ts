@@ -73,6 +73,17 @@ export class SqlitePersistence implements IPersistence {
   }
 
   /**
+   * Convenience method creation combining instance creation and initialization
+   */
+  static async start(
+    filename = SQLITE_DATABASE_URL,
+  ): Promise<SqlitePersistence> {
+    const persistence = new SqlitePersistence(filename);
+    await persistence.initialize();
+    return persistence;
+  }
+
+  /**
    * Registers a client connection against database rows.
    * @param clientId Identified user client string.
    * @param handler Message dispatch routing block.

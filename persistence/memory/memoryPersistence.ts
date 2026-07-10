@@ -204,6 +204,14 @@ export class MemoryPersistence implements IPersistence {
   }
 
   /**
+   * Convenience method creation combining instance creation and initialization
+   */
+  static async start(): Promise<MemoryPersistence> {
+    const persistence = new MemoryPersistence();
+    await persistence.initialize();
+    return persistence;
+  }
+  /**
    * Registers or reinstates an MQTT client session within the memory persistence.
    * @param clientId The unique identifier of the client.
    * @param handler The message handler function used to route packets back to the client.

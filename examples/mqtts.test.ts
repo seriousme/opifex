@@ -15,7 +15,8 @@ test("Test pubSub using TLS client and server and sqlitePersistence", async func
   // generateLocalhostCerts is a dev tool and relies on node-forge as a (dev)dependency
   const { key, cert, caCert } = generateLocalhostCerts();
   const dbFile = ":memory:";
-  const persistence = new SqlitePersistence(dbFile);
+  // .start() combines instance creation and async initialization
+  const persistence = await SqlitePersistence.start(dbFile);
   const server = new TlsServer({ port: 0, key, cert }, { persistence });
   server.start();
 

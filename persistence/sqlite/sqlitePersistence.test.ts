@@ -88,7 +88,7 @@ test("Initialize should reload clients and subscriptions from storage", async ()
   const clientId = "persistedClient";
   const topic = "/restoredTopic";
   const qos = 1;
-  const numSubs= 10;
+  const numSubs = 10;
   const handler = () => {};
 
   // Register a client and create a subscription
@@ -118,7 +118,7 @@ test("Initialize should reload clients and subscriptions from storage", async ()
   for (const { topicFilter, qos } of subs) {
     await newStore.subscriptions.set(topicFilter, qos!);
   }
-  newPersistence.sessionStore.set({clientId,existingSession:true})
+  newPersistence.sessionStore.set({ clientId, existingSession: true });
 
   // Verify that the new instance is empty before initialization
   assert.deepStrictEqual(newPersistence.clientList.has(clientId), false);
@@ -131,7 +131,10 @@ test("Initialize should reload clients and subscriptions from storage", async ()
 
   const restoredClient = newPersistence.clientList.get(clientId);
   assert.ok(restoredClient);
-  assert.deepStrictEqual(await restoredClient.store.subscriptions.size(), numSubs);
+  assert.deepStrictEqual(
+    await restoredClient.store.subscriptions.size(),
+    numSubs,
+  );
 
   // Verify that the trie correctly matches the restored subscription during a publish
   const seen = new Set<number | undefined>();

@@ -73,15 +73,6 @@ export class MqttServer {
   }
 
   /**
-   * A convenience method that creates an instance and waits for perssitence to initialize
-   */
-  static async create(opts: MqttServerOptions): Promise<MqttServer> {
-    const server = new MqttServer(opts);
-    await server.persistence.initialize();
-    return server;
-  }
-
-  /**
    * Serve a new client connection.
    * @param {SockConn} conn - The socket connection to serve.
    * @returns {Promise<void>} A promise that resolves when the connection is closed.
