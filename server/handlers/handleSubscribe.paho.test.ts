@@ -130,7 +130,7 @@ test("SUBSCRIBE receives retained messages and clearing works", async () => {
 test("SUBSCRIBE redelivery on reconnect (uncompleted QoS 1/2 exchanges)", async () => {
   const sqlitePersistence = new SqlitePersistence();
   const { mqttConn: subscriber, mqttServer } = startMockServer(
-    sqlitePersistence
+    sqlitePersistence,
   );
   const clientId = "myclient";
   const topic1 = "TopicA/B";
