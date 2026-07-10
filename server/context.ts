@@ -1,4 +1,11 @@
-import { logger, MqttConn, MQTTLevel, PacketType, Timer } from "./deps.ts";
+import {
+  logger,
+  MqttConn,
+  MQTTLevel,
+  PacketNameByType,
+  PacketType,
+  Timer,
+} from "./deps.ts";
 import type {
   AnyPacket,
   ConnectPacket,
@@ -150,6 +157,11 @@ export class Context {
    * @returns {Promise<void>} A promise that resolves when transmission completes.
    */
   async send(packet: AnyPacket): Promise<void> {
+    logger.verbose(
+      `ctx.send: Sending packet of type ${
+        PacketNameByType[packet.type]
+      } to client ${this.store?.clientId}`,
+    );
     logger.debug(`ctx.send: ${JSON.stringify(packet, null, 2)}`);
     await this.mqttConn.send(packet);
   }
@@ -162,26 +174,32 @@ export class Context {
    * @returns {Promise<boolean>} Resolves to true if an existing session was taken over, false otherwise.
    */
   async connect(clientId: string, clean: boolean): Promise<boolean> {
-    logger.debug("Connecting", clientId);
+    logger.verbose("ctx:connect connecting", clientId);
     if (this.preconnectTimer) {
       this.preconnectTimer.clear();
     }
     const existingActiveSession = Context.clientList.get(clientId);
     if (existingActiveSession) {
-      logger.debug(
-        `Existing session with ${clientId} exists, closing existing session`,
+      logger.verbose(
+        `ctx:connect: Existing session with ${clientId} exists, closing existing session`,
       );
       existingActiveSession.close(false);
     }
-
+    if (clean) {
+      logger.verbose(
+        `ctx:connect: Clean session requested for ${clientId}, deregistering existing state`,
+      );
+      await this.persistence.deregisterClient(clientId);
+    }
+    logger.verbose("ctx:connect: Registering client", clientId);
     const { store, existingSession } = await this.persistence.registerClient(
       clientId,
       this.doPublish.bind(this),
-      clean,
     );
     this.store = store;
     this.connected = true;
     Context.clientList.set(clientId, this);
+    logger.verbose("ctx:connect: Broadcasting client connection", clientId);
     await this.broadcast("$SYS/connect/clients", clientId);
     logger.debug("Connected", clientId);
     return existingSession;
@@ -193,7 +211,7 @@ export class Context {
    * @returns {Promise<void>} A promise that resolves when the internal processing or send queue finishes.
    */
   async publish(packet: PublishPacket) {
-    logger.debug(
+    logger.verbose(
       `ctx:publish processing incoming publish for topic "${packet.topic}"`,
     );
     await this.persistence.publish(packet.topic, packet);
@@ -301,7 +319,7 @@ export class Context {
       retain,
       payload: utf8Encoder.encode(payload),
     };
-    await this.persistence.publish(packet.topic, packet);
+    await this.publish(packet);
   }
 
   /**
@@ -311,6 +329,10 @@ export class Context {
   async handleRedelivery() {
     // redeliver inflight data
     if (this.store) {
+      logger.debug(
+        `ctx:handleRedelivery for ${this.store.clientId} of ${await this.store
+          .pendingOutgoing.size()} packets`,
+      );
       for await (const packet of this.store.pendingOutgoing.values()) {
         if (!this.connected) {
           break;

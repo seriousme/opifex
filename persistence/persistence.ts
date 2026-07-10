@@ -50,7 +50,6 @@ export interface IPersistence {
   registerClient(
     clientId: ClientId,
     handler: Handler,
-    clean: boolean,
   ): Promise<ClientRegistrationResult>;
 
   /**

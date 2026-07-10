@@ -23,7 +23,7 @@ git clone https://github.com/eclipse-paho/paho.mqtt.testing /tmp/paho
 git -C /tmp/paho checkout "$(grep -oP 'PAHO_REF:\s*\K\S+' ./mqtt-compat.yml)"
 
 # 2. Start the broker
-MQTT_PORT=1883 node ./broker.ts &
+node ./broker.ts &
 
 # 3. Run the suites
 python3 ./run_compat.py --paho /tmp/paho/interoperability --host localhost --port 1883 --out report.md --json result.json
@@ -31,6 +31,12 @@ python3 ./run_compat.py --paho /tmp/paho/interoperability --host localhost --por
 
 `--protocols v5,v3` selects the suites; `--timeout` bounds each test (default
 45s).
+
+### Individual test
+
+```bash
+python3 /tmp/paho/interoperability/client_test.py Test.test_retained_messages
+```
 
 ## How the score is computed
 

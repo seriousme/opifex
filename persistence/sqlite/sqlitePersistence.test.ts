@@ -20,7 +20,6 @@ test("Registering a client should return a SqliteStore object", async () => {
   const { store, existingSession } = await persistence.registerClient(
     clientId,
     () => {},
-    false,
   );
   assert.deepStrictEqual(persistence.clientList.has(clientId), true);
   assert.deepStrictEqual(typeof store, "object");
@@ -35,31 +34,28 @@ test("Registering a client with clean should reset persisted state", async () =>
   const { store: store1 } = await persistence.registerClient(
     clientId,
     handler,
-    false,
   );
   await persistence.subscribe(store1, "/topic", qos);
+  await persistence.deregisterClient(clientId);
   const { store: store2 } = await persistence.registerClient(
     clientId,
     handler,
-    true,
   );
   assert.deepStrictEqual(await store2.subscriptions.size(), 0);
 });
 
-test("Registering a client with no-clean should reinstate persisted state", async () => {
+test("Registering a client with no-clean should keep persisted state", async () => {
   const persistence = new SqlitePersistence();
   const clientId = "sqliteClient";
   const handler = () => {};
   const { store: store1 } = await persistence.registerClient(
     clientId,
     handler,
-    false,
   );
   await persistence.subscribe(store1, "/topic", qos);
   const { store: store2 } = await persistence.registerClient(
     clientId,
     handler,
-    false,
   );
   assert.deepStrictEqual(await store2.subscriptions.size(), 1);
 });
@@ -81,7 +77,7 @@ test("publish should deliver retained and subscription messages", async () => {
     seen.add(packet.id);
   }
 
-  const { store } = await persistence.registerClient(clientId, handler, false);
+  const { store } = await persistence.registerClient(clientId, handler);
   await persistence.subscribe(store, topic, qos);
   await persistence.publish(topic, publishPacket);
   assert.deepStrictEqual(seen.has(1), true);

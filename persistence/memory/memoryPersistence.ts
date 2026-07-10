@@ -200,22 +200,15 @@ export class MemoryPersistence implements IPersistence {
    * Registers or reinstates an MQTT client session within the memory persistence.
    * @param clientId The unique identifier of the client.
    * @param handler The message handler function used to route packets back to the client.
-   * @param clean Whether the client requested a clean session (wiping previous state).
    * @returns An object containing the assigned store and a flag indicating if a session already existed.
    */
   registerClient(
     clientId: ClientId,
     handler: Handler,
-    clean: boolean,
   ): Promise<ClientRegistrationResult> {
-    if (clean) {
-      this.clientList.delete(clientId);
-    }
     const existingClient = this.clientList.get(clientId);
     const existingSession = !!existingClient;
-    const store = !clean && existingClient
-      ? existingClient.store
-      : new MemoryStore(clientId);
+    const store = existingClient?.store ?? new MemoryStore(clientId);
     this.clientList.set(clientId, { store, handler });
     return Promise.resolve({ store, existingSession });
   }
@@ -275,9 +268,10 @@ export class MemoryPersistence implements IPersistence {
    */
   async publish(topic: Topic, packet: PublishPacket): Promise<void> {
     if (packet.retain) {
-      await this.retained.set(packet.topic, packet);
       if (!packet.payload?.byteLength) {
         await this.retained.delete(packet.topic);
+      } else {
+        await this.retained.set(packet.topic, packet);
       }
     }
 

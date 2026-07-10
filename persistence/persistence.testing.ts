@@ -32,13 +32,15 @@ async function createReceiver(
   clientId: string,
   clean = false,
 ): Promise<{ store: IStore; received: PublishPacket[] }> {
+  if (clean) {
+    await persistence.deregisterClient(clientId);
+  }
   const received: PublishPacket[] = [];
   const result = await persistence.registerClient(
     clientId,
     (pkt) => {
       received.push(pkt);
     },
-    clean,
   );
   const { store } = result;
   return { store, received };
@@ -68,7 +70,6 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { store, existingSession } = await persistence.registerClient(
         "client1",
         () => {},
-        false,
       );
 
       assert.strictEqual(persistence.clientList.size, 1);
@@ -80,7 +81,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
     test("deregisterClient removes client from list", async () => {
       const { persistence, cleanup } = factory();
-      await persistence.registerClient("client1", () => {}, false);
+      await persistence.registerClient("client1", () => {});
       assert.strictEqual(persistence.clientList.size, 1);
 
       await persistence.deregisterClient("client1");
@@ -95,7 +96,6 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { store } = await persistence.registerClient(
         "client1",
         () => {},
-        false,
       );
 
       await persistence.subscribe(store, "test/topic", 1);
@@ -110,7 +110,6 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { store } = await persistence.registerClient(
         "client1",
         () => {},
-        false,
       );
 
       await persistence.subscribe(store, "test/topic", 1);
@@ -125,7 +124,6 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { store } = await persistence.registerClient(
         "client1",
         () => {},
-        false,
       );
 
       // Should not throw
@@ -321,7 +319,6 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { store: store1 } = await persistence.registerClient(
         "client1",
         () => {},
-        false,
       );
       await persistence.subscribe(store1, "test/topic", 1);
 
@@ -329,7 +326,6 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
         .registerClient(
           "client1",
           () => {},
-          false,
         );
 
       assert.strictEqual(existingSession, true);
@@ -343,15 +339,13 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { store: store1 } = await persistence.registerClient(
         "client1",
         () => {},
-        false,
       );
       await persistence.subscribe(store1, "test/topic", 1);
-
+      await persistence.deregisterClient("client1");
       const { store: store2, existingSession } = await persistence
         .registerClient(
           "client1",
           () => {},
-          true,
         );
 
       assert.strictEqual(existingSession, false);
@@ -365,7 +359,6 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { store } = await persistence.registerClient(
         "client1",
         () => {},
-        false,
       );
 
       // Empty topic - should not throw but may not match anything
@@ -407,7 +400,6 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { store } = await persistence.registerClient(
         "client1",
         () => {},
-        false,
       );
 
       for (let i = 0; i < 100; i++) {
@@ -423,7 +415,6 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { store } = await persistence.registerClient(
         "client1",
         () => {},
-        false,
       );
 
       for (let i = 0; i < 50; i++) {
@@ -442,7 +433,6 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { store } = await persistence.registerClient(
         "client1",
         () => {},
-        false,
       );
 
       const id1 = await store.nextId();
@@ -461,7 +451,6 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { store } = await persistence.registerClient(
         "client1",
         () => {},
-        false,
       );
 
       // QoS must be 1 or 2 for pending outgoing (QoS 0 doesn't need persistence)
@@ -472,6 +461,11 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       assert.deepStrictEqual(
         (await store.pendingOutgoing.get(1))?.topic,
         packet.topic,
+      );
+      assert.strictEqual(await store.pendingOutgoing.size(), 1);
+      assert.deepStrictEqual(
+        await Array.fromAsync(store.pendingOutgoing.values()),
+        [packet],
       );
 
       await store.pendingOutgoing.delete(1);
@@ -484,7 +478,6 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { store } = await persistence.registerClient(
         "client1",
         () => {},
-        false,
       );
 
       await store.pendingIncoming.add(42);
@@ -500,14 +493,18 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { store } = await persistence.registerClient(
         "client1",
         () => {},
-        false,
       );
 
       await store.pendingAckOutgoing.add(99);
       assert(await store.pendingAckOutgoing.has(99));
-
+      assert.strictEqual(await store.pendingAckOutgoing.size(), 1);
+      assert.deepStrictEqual(
+        await Array.fromAsync(store.pendingAckOutgoing.keys()),
+        [99],
+      );
       await store.pendingAckOutgoing.delete(99);
       assert(!(await store.pendingAckOutgoing.has(99)));
+      assert.strictEqual(await store.pendingAckOutgoing.size(), 0);
       cleanup();
     });
   });
@@ -595,7 +592,6 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
               const { store } = await persistence.registerClient(
                 `client-${cycle}-${i}`,
                 () => {},
-                false,
               );
               await persistence.subscribe(store, "test/#", 0);
               await persistence.deregisterClient(`client-${cycle}-${i}`);
@@ -620,7 +616,6 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { store } = await persistence.registerClient(
         "client1",
         () => {},
-        false,
       );
 
       // Generate several IDs and verify they're all in valid range
@@ -636,7 +631,6 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { store } = await persistence.registerClient(
         "client1",
         () => {},
-        false,
       );
 
       const ids = new Set<number>();
@@ -653,7 +647,6 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { store } = await persistence.registerClient(
         "client1",
         () => {},
-        false,
       );
 
       const id1 = await store.nextId();

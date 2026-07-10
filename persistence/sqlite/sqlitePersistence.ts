@@ -58,29 +58,16 @@ export class SqlitePersistence implements IPersistence {
    * Registers a client connection against database rows, re-hydrating matching state structures if found.
    * @param clientId Identified user client string.
    * @param handler Message dispatch routing block.
-   * @param clean Directives dictating clean session processing.
    */
-  async registerClient(
+  registerClient(
     clientId: ClientId,
     handler: Handler,
-    clean: boolean,
   ): Promise<ClientRegistrationResult> {
-    if (clean) {
-      deleteClientState(this.db, clientId);
-    }
-    const existingSession = !!(await this.sessionStore.get(clientId));
-    const store = new SqliteStore(this.db, clientId);
-    if (!existingSession) {
-      this.sessionStore.set({ clientId, existingSession: true });
-    }
-    if (!clean && existingSession) {
-      // reinstate subscriptions
-      for await (const [topicFilter, qos] of store.subscriptions.entries()) {
-        this.trie.add(topicFilter, { clientId, qos });
-      }
-    }
+    const existingClient = this.clientList.get(clientId);
+    const existingSession = !!existingClient;
+    const store = existingClient?.store ?? new SqliteStore(this.db, clientId);
     this.clientList.set(clientId, { store, handler });
-    return { store, existingSession };
+    return Promise.resolve({ store, existingSession });
   }
 
   /** Unbinds and clears states associated to the targeted deregistered client session. */

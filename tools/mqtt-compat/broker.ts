@@ -11,10 +11,12 @@ import { TcpServer } from "../../node/tcpServer.ts";
 import type { Context, Topic } from "../../server/mod.ts";
 import { logger, LogLevel } from "../../utils/mod.ts";
 import { isAuthenticatedBroker as isAuthenticated } from "../../dev_utils/mod.ts";
+import { SqlitePersistence } from "../../persistence/sqlite/sqlitePersistence.ts";
 
-logger.level(LogLevel.error);
+logger.level(LogLevel.debug);
 
 const port = Number(process.env.MQTT_PORT) || 1883;
+const persistence = new SqlitePersistence();
 
 // The Paho `test_subscribe_failure` (v3.1.1 and v5) subscribes to a topic that is
 // "not allowed to be subscribed to" and asserts the broker answers with SUBACK
@@ -30,6 +32,7 @@ function isAuthorizedToSubscribe(ctx: Context, topic: Topic): boolean {
 }
 
 const tcpServer = new TcpServer({ port }, {
+  persistence,
   handlers: {
     isAuthenticated,
     isAuthorizedToSubscribe,

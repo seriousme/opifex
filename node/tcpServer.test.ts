@@ -4,7 +4,7 @@ import { TcpClient } from "./tcpClient.ts";
 import { TcpServer } from "./tcpServer.ts";
 import { logger, LogLevel } from "../utils/mod.ts";
 import { delay } from "../dev_utils/mod.ts";
-import type { PublishPacket, QoS } from "../mqttPacket/mod.ts";
+import type { ProtocolLevel, PublishPacket, QoS } from "../mqttPacket/mod.ts";
 
 logger.level(LogLevel.info);
 
@@ -93,6 +93,10 @@ test("Test subscription persistence after reconnect", async () => {
   const params = {
     url: new URL(`mqtt://${server.address}:${server.port}`),
     numberOfRetries: 0,
+    options: {
+      protocolLevel: 4 as ProtocolLevel,
+      clean: false,
+    },
   };
 
   logger.verbose("client parameters: ", params);
