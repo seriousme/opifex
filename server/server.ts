@@ -72,6 +72,9 @@ export class MqttServer {
     };
   }
 
+  /**
+   * A convenience method that creates an instance and waits for perssitence to initialize
+   */
   static async create(opts: MqttServerOptions): Promise<MqttServer> {
     const server = new MqttServer(opts);
     await server.persistence.initialize();
