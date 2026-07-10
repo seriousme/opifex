@@ -16,7 +16,7 @@ export type SessionParameters = {
 };
 
 export function serializePacket(packet: PublishPacket): SerializedPacket {
-  const payload = packet.payload?.byteLength ? packet.payload : null;
+  const payload = packet.payload === undefined ? null : packet.payload;
   const packetData = {
     ...packet,
     payload: undefined,
@@ -32,8 +32,6 @@ export function deserializePacket(
   payload: Uint8Array | null,
 ): PublishPacket {
   const data = JSON.parse(packet);
-  if (payload !== null) {
-    data.payload = payload;
-  }
+  data.payload = payload ?? new Uint8Array(0);
   return data as PublishPacket;
 }
