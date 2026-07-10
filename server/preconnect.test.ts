@@ -11,7 +11,7 @@ test(
   "Preconnect timer: connection closes if CONNECT not received within 3 seconds",
   { concurrency: false },
   async () => {
-    const { mqttConn } = startMockServer();
+    const { mqttConn } = await startMockServer();
 
     // Wait 3.5 seconds without sending CONNECT packet
     await delay(3500);
@@ -32,7 +32,7 @@ test(
   "Preconnect timer: connection succeeds if CONNECT received before timeout",
   { concurrency: false },
   async () => {
-    const { mqttConn } = startMockServer();
+    const { mqttConn } = await startMockServer();
 
     // Wait 2 seconds (before timeout)
     await delay(2000);
@@ -56,7 +56,7 @@ test(
   "Preconnect timer: connection succeeds with immediate CONNECT",
   { concurrency: false },
   async () => {
-    const { mqttConn } = startMockServer();
+    const { mqttConn } = await startMockServer();
 
     // Send CONNECT immediately
     await connect(mqttConn, { clientId: "preconnectTestImmediate" });
@@ -77,7 +77,7 @@ test(
   "Preconnect timer: closes connection at exactly 3 second mark",
   { concurrency: false },
   async () => {
-    const { mqttConn } = startMockServer();
+    const { mqttConn } = await startMockServer();
 
     // Wait just under 3 seconds - should still be connected
     await delay(2900);
@@ -108,7 +108,7 @@ test(
   "Preconnect timer: timer does not fire after successful connection",
   { concurrency: false },
   async () => {
-    const { mqttConn } = startMockServer();
+    const { mqttConn } = await startMockServer();
 
     // Connect early (at ~2 seconds)
     await delay(2000);

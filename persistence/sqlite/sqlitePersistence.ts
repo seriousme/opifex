@@ -55,7 +55,25 @@ export class SqlitePersistence implements IPersistence {
   }
 
   /**
-   * Registers a client connection against database rows, re-hydrating matching state structures if found.
+   * Populate the client list
+   * and recreate the store objects
+   */
+  async initialize(): Promise<void> {
+    for (const clientId of this.sessionStore.keys()) {
+      // create the store objects
+      const store = new SqliteStore(this.db, clientId);
+      // register them
+      const handler = () => {};
+      this.clientList.set(clientId, { store, handler });
+      // reload subscriptions from storage back into the trie
+      for await (const [topicFilter, qos] of store.subscriptions.entries()) {
+        this.trie.add(topicFilter, { clientId, qos });
+      }
+    }
+  }
+
+  /**
+   * Registers a client connection against database rows.
    * @param clientId Identified user client string.
    * @param handler Message dispatch routing block.
    */

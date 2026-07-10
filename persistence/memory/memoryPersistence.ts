@@ -197,6 +197,13 @@ export class MemoryPersistence implements IPersistence {
   }
 
   /**
+   * Nothing to reload from Storage
+   */
+  initialize(): Promise<void> {
+    return Promise.resolve();
+  }
+
+  /**
    * Registers or reinstates an MQTT client session within the memory persistence.
    * @param clientId The unique identifier of the client.
    * @param handler The message handler function used to route packets back to the client.

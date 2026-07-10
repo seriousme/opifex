@@ -72,6 +72,12 @@ export class MqttServer {
     };
   }
 
+  static async create(opts: MqttServerOptions): Promise<MqttServer> {
+    const server = new MqttServer(opts);
+    await server.persistence.initialize();
+    return server;
+  }
+
   /**
    * Serve a new client connection.
    * @param {SockConn} conn - The socket connection to serve.
