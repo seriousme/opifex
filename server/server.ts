@@ -104,7 +104,7 @@ export class MqttServer {
       logger.debug(`closing session for clientid: ${clientid}`);
       ctx.close();
       if (cleanUp) {
-        ctx.clean(clientid);
+        ctx.clean();
       }
     }
   }
