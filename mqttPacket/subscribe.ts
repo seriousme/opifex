@@ -81,146 +81,125 @@ export type Subscription = SubscriptionV4 | SubscriptionV5;
 /**
  * Codec utility object responsible for encoding and decoding MQTT SUBSCRIBE control packets.
  */
-export const subscribe: {
-  /**
-   * Serializes a SubscribePacket into an MQTT compliant binary buffer.
-   * @param {SubscribePacket} packet - The subscribe packet model to encode.
-   * @param {CodecOpts} codecOpts - The configuration options regulating serialization limits.
-   * @returns {Uint8Array} The fully encoded binary payload.
-   */
-  encode(packet: SubscribePacket, codecOpts: CodecOpts): Uint8Array;
-  /**
-   * Deserializes a binary payload into a structured SubscribePacket instance.
-   * @param {Uint8Array} buffer - The binary buffer slice containing the packet.
-   * @param {number} flags - The exact configuration flags parsed from the fixed header.
-   * @param {CodecOpts} codecOpts - Configuration properties outlining the contextual protocol parser levels.
-   * @param {TPacketType} packetType - The explicit control packet identifier byte.
-   * @returns {SubscribePacket} A parsed instance of SubscribePacket V4 or V5.
-   */
-  decode(
-    buffer: Uint8Array,
-    flags: number,
-    codecOpts: CodecOpts,
-    packetType: TPacketType,
-  ): SubscribePacket;
-} = {
-  encode(packet: SubscribePacket, codecOpts: CodecOpts): Uint8Array {
-    // Bits 3,2,1 and 0 of the fixed header of the SUBSCRIBE Control Packet are reserved and
-    // MUST be set to 0,0,1 and 0 respectively. The Server MUST treat any other value as
-    // malformed and close the Network Connection [MQTT-3.8.1-1].
-    const flags = 0b0010;
+export function encode(
+  packet: SubscribePacket,
+  codecOpts: CodecOpts,
+): Uint8Array {
+  // Bits 3,2,1 and 0 of the fixed header of the SUBSCRIBE Control Packet are reserved and
+  // MUST be set to 0,0,1 and 0 respectively. The Server MUST treat any other value as
+  // malformed and close the Network Connection [MQTT-3.8.1-1].
+  const flags = 0b0010;
 
-    const encoder = new Encoder(packet.type);
-    encoder.setInt16(packet.id);
+  const encoder = new Encoder(packet.type);
+  encoder.setInt16(packet.id);
+  if (packet.protocolLevel === 5) {
+    encoder.setProperties(
+      packet.properties || {},
+      packet.type,
+      codecOpts.maxOutgoingPacketSize,
+    );
+  }
+  for (const sub of packet.subscriptions) {
+    encoder.setTopicFilter(sub.topicFilter);
     if (packet.protocolLevel === 5) {
-      encoder.setProperties(
-        packet.properties || {},
-        packet.type,
-        codecOpts.maxOutgoingPacketSize,
-      );
+      const {
+        qos,
+        noLocal = false,
+        retainAsPublished = false,
+        retainHandling = 0,
+      } = sub as SubscriptionV5;
+      const option = (qos & 1 ? BitMask.bit0 : 0) +
+        (qos & 2 ? BitMask.bit1 : 0) +
+        (noLocal ? BitMask.bit2 : 0) +
+        (retainAsPublished ? BitMask.bit3 : 0) +
+        ((retainHandling as number) & 1 ? BitMask.bit4 : 0) +
+        ((retainHandling as number) & 2 ? BitMask.bit5 : 0);
+      encoder.setByte(option);
+    } else {
+      encoder.setByte(sub.qos);
     }
-    for (const sub of packet.subscriptions) {
-      encoder.setTopicFilter(sub.topicFilter);
-      if (packet.protocolLevel === 5) {
-        const {
-          qos,
-          noLocal = false,
-          retainAsPublished = false,
-          retainHandling = 0,
-        } = sub as SubscriptionV5;
-        const option = (qos & 1 ? BitMask.bit0 : 0) +
-          (qos & 2 ? BitMask.bit1 : 0) +
-          (noLocal ? BitMask.bit2 : 0) +
-          (retainAsPublished ? BitMask.bit3 : 0) +
-          ((retainHandling as number) & 1 ? BitMask.bit4 : 0) +
-          ((retainHandling as number) & 2 ? BitMask.bit5 : 0);
-        encoder.setByte(option);
-      } else {
-        encoder.setByte(sub.qos);
-      }
-    }
-    return encoder.done(flags);
-  },
+  }
+  return encoder.done(flags);
+}
 
-  decode(
-    buffer: Uint8Array,
-    flags: number,
-    codecOpts: CodecOpts,
-    packetType: TPacketType,
-  ): SubscribePacket {
-    // Bits 3,2,1 and 0 of the fixed header of the SUBSCRIBE Control Packet are reserved and
-    // MUST be set to 0,0,1 and 0 respectively. The Server MUST treat any other value as
-    // malformed and close the Network Connection [MQTT-3.8.1-1].
-    if (flags !== 0b0010) {
-      throw new DecoderError("Invalid header");
-    }
-    const decoder = new Decoder(packetType, buffer);
-    const id = decoder.getInt16();
-    let properties = {};
-    if (codecOpts.protocolLevel === 5) {
-      properties = decoder.getProperties(PacketType.subscribe);
-    }
+export function decode(
+  buffer: Uint8Array,
+  flags: number,
+  codecOpts: CodecOpts,
+  packetType: TPacketType,
+): SubscribePacket {
+  // Bits 3,2,1 and 0 of the fixed header of the SUBSCRIBE Control Packet are reserved and
+  // MUST be set to 0,0,1 and 0 respectively. The Server MUST treat any other value as
+  // malformed and close the Network Connection [MQTT-3.8.1-1].
+  if (flags !== 0b0010) {
+    throw new DecoderError("Invalid header");
+  }
+  const decoder = new Decoder(packetType, buffer);
+  const id = decoder.getInt16();
+  let properties = {};
+  if (codecOpts.protocolLevel === 5) {
+    properties = decoder.getProperties(PacketType.subscribe);
+  }
 
-    const subscriptions: Subscription[] = [];
-    // The payload of a SUBSCRIBE packet MUST contain at least one Topic Filter / Option pair.
-    // A SUBSCRIBE packet with no payload is a protocol violation [MQTT-3.8.3-3].
-    do {
-      const topicFilter = decoder.getTopicFilter();
-      const option = decoder.getByte();
-      const qos = option & 0b11;
-      if (qos !== 0 && qos !== 1 && qos !== 2) {
+  const subscriptions: Subscription[] = [];
+  // The payload of a SUBSCRIBE packet MUST contain at least one Topic Filter / Option pair.
+  // A SUBSCRIBE packet with no payload is a protocol violation [MQTT-3.8.3-3].
+  do {
+    const topicFilter = decoder.getTopicFilter();
+    const option = decoder.getByte();
+    const qos = option & 0b11;
+    if (qos !== 0 && qos !== 1 && qos !== 2) {
+      throw new DecoderError("Invalid qos");
+    }
+    if (qos > 0 && id === 0) {
+      throw new DecoderError("Invalid packet identifier");
+    }
+    if (codecOpts.protocolLevel !== 5) {
+      if (option !== qos) {
         throw new DecoderError("Invalid qos");
       }
-      if (qos > 0 && id === 0) {
-        throw new DecoderError("Invalid packet identifier");
+      subscriptions.push({
+        topicFilter: topicFilter,
+        qos,
+      } as SubscriptionV4);
+    } else {
+      // Bits 6 and 7 of the Subscription Options byte are reserved for future use.
+      // The Server MUST treat a SUBSCRIBE packet as malformed if any of
+      // Reserved bits in the Payload are non-zero [MQTT-3.8.3-5].
+      if (option > 0b111111) {
+        throw new DecoderError("Invalid subscription options");
       }
-      if (codecOpts.protocolLevel !== 5) {
-        if (option !== qos) {
-          throw new DecoderError("Invalid qos");
-        }
-        subscriptions.push({
-          topicFilter: topicFilter,
-          qos,
-        } as SubscriptionV4);
-      } else {
-        // Bits 6 and 7 of the Subscription Options byte are reserved for future use.
-        // The Server MUST treat a SUBSCRIBE packet as malformed if any of
-        // Reserved bits in the Payload are non-zero [MQTT-3.8.3-5].
-        if (option > 0b111111) {
-          throw new DecoderError("Invalid subscription options");
-        }
-        const noLocal = booleanFlag(option, BitMask.bit2);
-        const retainAsPublished = booleanFlag(option, BitMask.bit3);
-        const retainHandling = (option & 0b110000) >> 4;
-        if (
-          retainHandling !== 0 && retainHandling !== 1 && retainHandling !== 2
-        ) {
-          throw new DecoderError("Invalid retain handling");
-        }
-        subscriptions.push({
-          topicFilter: topicFilter,
-          qos,
-          noLocal,
-          retainAsPublished,
-          retainHandling,
-        } as SubscriptionV5);
+      const noLocal = booleanFlag(option, BitMask.bit2);
+      const retainAsPublished = booleanFlag(option, BitMask.bit3);
+      const retainHandling = (option & 0b110000) >> 4;
+      if (
+        retainHandling !== 0 && retainHandling !== 1 && retainHandling !== 2
+      ) {
+        throw new DecoderError("Invalid retain handling");
       }
-    } while (!decoder.atEnd());
-    decoder.done();
-    if (codecOpts.protocolLevel !== 5) {
-      return {
-        type: PacketType.subscribe,
-        protocolLevel: codecOpts.protocolLevel,
-        id,
-        subscriptions: subscriptions as Array<SubscriptionV4>,
-      };
+      subscriptions.push({
+        topicFilter: topicFilter,
+        qos,
+        noLocal,
+        retainAsPublished,
+        retainHandling,
+      } as SubscriptionV5);
     }
+  } while (!decoder.atEnd());
+  decoder.done();
+  if (codecOpts.protocolLevel !== 5) {
     return {
       type: PacketType.subscribe,
-      protocolLevel: 5,
+      protocolLevel: codecOpts.protocolLevel,
       id,
-      properties,
-      subscriptions: subscriptions as Array<SubscriptionV5>,
+      subscriptions: subscriptions as Array<SubscriptionV4>,
     };
-  },
-};
+  }
+  return {
+    type: PacketType.subscribe,
+    protocolLevel: 5,
+    id,
+    properties,
+    subscriptions: subscriptions as Array<SubscriptionV5>,
+  };
+}

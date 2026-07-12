@@ -12,30 +12,23 @@ export type PingreqPacket = {
 
 const PINGRES_PACKET = new Uint8Array([PacketType.pingreq << 4, 0]);
 
-export const pingreq: {
-  encode(_packet: PingreqPacket, _codecOpts: CodecOpts): Uint8Array;
-  decode(
-    buffer: Uint8Array,
-    flags: number,
-    codecOpts: CodecOpts,
-    _packetType: TPacketType,
-  ): PingreqPacket;
-} = {
-  encode(_packet: PingreqPacket, _codecOpts: CodecOpts): Uint8Array {
-    return PINGRES_PACKET;
-  },
+export function encode(
+  _packet: PingreqPacket,
+  _codecOpts: CodecOpts,
+): Uint8Array {
+  return PINGRES_PACKET;
+}
 
-  decode(
-    buffer: Uint8Array,
-    flags: number,
-    codecOpts: CodecOpts,
-    _packetType: TPacketType,
-  ): PingreqPacket {
-    hasEmptyFlags(flags);
-    isEmptyBuf(buffer);
-    return {
-      type: PacketType.pingreq,
-      protocolLevel: codecOpts.protocolLevel,
-    };
-  },
-};
+export function decode(
+  buffer: Uint8Array,
+  flags: number,
+  codecOpts: CodecOpts,
+  _packetType: TPacketType,
+): PingreqPacket {
+  hasEmptyFlags(flags);
+  isEmptyBuf(buffer);
+  return {
+    type: PacketType.pingreq,
+    protocolLevel: codecOpts.protocolLevel,
+  };
+}

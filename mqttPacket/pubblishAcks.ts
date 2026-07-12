@@ -55,74 +55,64 @@ export type AnyAckPacket =
   | PubrelPacket
   | PubcompPacket;
 
-export const anyAck: {
-  encode(packet: AnyAckPacket, codecOpts: CodecOpts): Uint8Array;
-  decode(
-    buffer: Uint8Array,
-    flags: number,
-    codecOpts: CodecOpts,
-    packetType: TPacketType,
-  ): AnyAckPacket;
-} = {
-  encode(packet: AnyAckPacket, codecOpts: CodecOpts): Uint8Array {
-    const flags = packet.type === PacketType.pubrel ? 2 : 0;
-    const encoder = new Encoder(packet.type);
-    encoder.setInt16(packet.id);
-    if (packet.protocolLevel === 5) {
-      const reasonCode = packet.reasonCode || ReasonCode.success;
-      // if remaining length is less than 1 the value of 0x00 (success) is used.
-      if (
-        reasonCode === ReasonCode.success &&
-        Object.keys(packet.properties || {}).length === 0
-      ) {
-        return encoder.done(flags);
-      }
-      encoder.setReasonCode(reasonCode);
-      encoder.setProperties(
-        packet.properties || {},
-        packet.type,
-        codecOpts.maxOutgoingPacketSize,
-      );
+export function encode(packet: AnyAckPacket, codecOpts: CodecOpts): Uint8Array {
+  const flags = packet.type === PacketType.pubrel ? 2 : 0;
+  const encoder = new Encoder(packet.type);
+  encoder.setInt16(packet.id);
+  if (packet.protocolLevel === 5) {
+    const reasonCode = packet.reasonCode || ReasonCode.success;
+    // if remaining length is less than 1 the value of 0x00 (success) is used.
+    if (
+      reasonCode === ReasonCode.success &&
+      Object.keys(packet.properties || {}).length === 0
+    ) {
+      return encoder.done(flags);
     }
-    return encoder.done(flags);
-  },
+    encoder.setReasonCode(reasonCode);
+    encoder.setProperties(
+      packet.properties || {},
+      packet.type,
+      codecOpts.maxOutgoingPacketSize,
+    );
+  }
+  return encoder.done(flags);
+}
 
-  decode(
-    buffer: Uint8Array,
-    flags: number,
-    codecOpts: CodecOpts,
-    packetType: TPacketType,
-  ): AnyAckPacket {
-    const expectedFlags = packetType === PacketType.pubrel ? 2 : 0;
-    if (flags !== expectedFlags) {
-      throw new DecoderError("Invalid flags");
-    }
-    const decoder = new Decoder(packetType, buffer);
-    const id = decoder.getInt16();
-    if (codecOpts.protocolLevel !== 5) {
-      decoder.done();
-      return {
-        type: packetType as AnyAckPacket["type"],
-        protocolLevel: codecOpts.protocolLevel,
-        id,
-      } as AnyAckPacket;
-    }
-    if (decoder.atEnd()) {
-      return {
-        type: packetType as AnyAckPacket["type"],
-        protocolLevel: 5,
-        id,
-        reasonCode: 0,
-      } as AnyAckPacket;
-    }
-    const reasonCode = decoder.getReasonCode();
-    const properties = decoder.getProperties(packetType);
+export function decode(
+  buffer: Uint8Array,
+  flags: number,
+  codecOpts: CodecOpts,
+  packetType: TPacketType,
+): AnyAckPacket {
+  const expectedFlags = packetType === PacketType.pubrel ? 2 : 0;
+  if (flags !== expectedFlags) {
+    throw new DecoderError("Invalid flags");
+  }
+  const decoder = new Decoder(packetType, buffer);
+  const id = decoder.getInt16();
+  if (codecOpts.protocolLevel !== 5) {
+    decoder.done();
+    return {
+      type: packetType as AnyAckPacket["type"],
+      protocolLevel: codecOpts.protocolLevel,
+      id,
+    } as AnyAckPacket;
+  }
+  if (decoder.atEnd()) {
     return {
       type: packetType as AnyAckPacket["type"],
       protocolLevel: 5,
       id,
-      reasonCode,
-      properties,
+      reasonCode: 0,
     } as AnyAckPacket;
-  },
-};
+  }
+  const reasonCode = decoder.getReasonCode();
+  const properties = decoder.getProperties(packetType);
+  return {
+    type: packetType as AnyAckPacket["type"],
+    protocolLevel: 5,
+    id,
+    reasonCode,
+    properties,
+  } as AnyAckPacket;
+}
