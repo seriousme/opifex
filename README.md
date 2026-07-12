@@ -13,11 +13,14 @@ built in modules.
 
 The following MQTT versions are supported:
 
-|                | MQTT 3.1 (v3) | MQTT 3.1.1 (v4) | MQTT 5.0 (v5) |
-| -------------- | ------------- | --------------- | ------------- |
-| Packet/encoder | ✅            | ✅              | ✅            |
-| Client         | ✅            | ✅              | ✅ partially  |
-| Server         | ❌            | ✅              | ❌            |
+|                | MQTT 3.1 (v3) | MQTT 3.1.1 (v4) | MQTT 5.0 (v5)   |
+| -------------- | ------------- | --------------- | --------------- |
+| Packet/encoder | ✅            | ✅              | ✅              |
+| Client         | ✅            | ✅              | ✅ <sup>1</sup> |
+| Server         | ❌            | ✅              | ❌              |
+
+<sup>1</sup> The client api fully supports MQTTv5, the CLI only supports a
+subset
 
 # Persistence
 
@@ -99,9 +102,9 @@ can be found in the [examples](/examples/) folder.
 
 5. Persistence of data is handled by a pluggable persistence module
    ([persistence](persistence)) which currently offers memory persistence
-   ([persistence/memory](persistence/memory)) and sqlite persistence
-   ([persistence/sqlite](persistence/sqlite)) but can be extended with database
-   backed persistence supported by third party modules.
+   ([persistence/memory](persistence/memory)) and a platform specific sqlite
+   persistence ([persistence/sqlite](persistence/sqlite)) but can be extended
+   with other database backed persistence supported by third party modules.
 
 6. The demo server listens to a platform specific socket and runs the `serve()`
    method from the server module on the platform independent streams of every
