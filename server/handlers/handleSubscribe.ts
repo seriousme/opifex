@@ -41,19 +41,14 @@ export async function handleSubscribe(
   const validSubscriptions: Subscription[] = [];
   const returnCodes: number[] = [];
   for (const sub of packet.subscriptions) {
-    if (ctx.store) {
-      if (!authorizedToSubscribe(ctx, sub.topicFilter)) {
-        returnCodes.push(SubscriptionFailure);
-        continue;
-      }
-      await ctx.persistence.subscribe(ctx.store, sub.topicFilter, sub.qos);
-      validSubscriptions.push(sub);
-      returnCodes.push(sub.qos);
-    } else {
+    if (!authorizedToSubscribe(ctx, sub.topicFilter)) {
       returnCodes.push(SubscriptionFailure);
+      continue;
     }
+    await ctx.persistence.subscribe(ctx.clientId!, sub.topicFilter, sub.qos);
+    validSubscriptions.push(sub);
+    returnCodes.push(sub.qos);
   }
-  // deno-coverage-ignore-stop
 
   await ctx.send({
     type: PacketType.suback,
@@ -65,7 +60,5 @@ export async function handleSubscribe(
   /*
    * send any retained messages that match these subscriptions
    */
-  if (ctx.store) {
-    await ctx.persistence.handleRetained(ctx.store.clientId);
-  }
+  await ctx.persistence.handleRetained(ctx.clientId!);
 }

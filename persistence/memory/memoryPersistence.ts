@@ -3,17 +3,11 @@
  * In-memory persistence implementations for MQTT clients, sessions, and subscriptions.
  * Suitable for testing or non-persistent MQTT broker setups.
  */
-
 import type {
-  Client,
   ClientId,
   ClientRegistrationResult,
   Handler,
-  IPacketIdStore,
-  IPacketStore,
   IPersistence,
-  IStore,
-  ISubscriptionStore,
   PacketId,
   PublishPacket,
   QoS,
@@ -22,9 +16,7 @@ import type {
 } from "../mod.ts";
 
 import { MAX_PACKET_ID } from "../mod.ts";
-
-import { Trie } from "../deps.ts";
-import { assert } from "../../utils/mod.ts";
+import { assert, Trie } from "../deps.ts";
 
 /**
  * Represents a subscription mapped to a specific client with its QoS level.
@@ -34,175 +26,34 @@ type ClientSubscription = {
   qos: QoS;
 };
 
-/**
- * An in-memory Packet ID store that records acknowledgement IDs (such as QoS 2 tokens).
- */
-
-export class MemoryPacketIdStore implements IPacketIdStore {
-  private store: Set<PacketId>;
-
-  constructor() {
-    this.store = new Set();
-  }
-
-  add(value: PacketId): Promise<void> {
-    this.store.add(value);
-    return Promise.resolve();
-  }
-
-  delete(value: PacketId): Promise<boolean> {
-    const deleted = this.store.delete(value);
-    return Promise.resolve(deleted);
-  }
-
-  clear(): Promise<void> {
-    this.store.clear();
-    return Promise.resolve();
-  }
-
-  has(key: PacketId): Promise<boolean> {
-    return Promise.resolve(this.store.has(key));
-  }
-
-  size(): Promise<number> {
-    return Promise.resolve(this.store.size);
-  }
-
-  async *keys(): AsyncIterableIterator<PacketId> {
-    for (const key of this.store.keys()) {
-      yield key;
-    }
-  }
-}
-
-/**
- * A memory backed Store that persists and retrieves key value pairs
- * to be used to create the other stores
- */
-
-class MemoryBaseStore<K, V> {
-  store: Map<K, V>;
-
-  constructor() {
-    this.store = new Map();
-  }
-
-  set(key: K, value: V): Promise<void> {
-    this.store.set(key, value);
-    return Promise.resolve();
-  }
-
-  size(): Promise<number> {
-    return Promise.resolve(this.store.size);
-  }
-
-  get(key: K): Promise<V | undefined> {
-    return Promise.resolve(this.store.get(key));
-  }
-
-  has(key: K): Promise<boolean> {
-    return Promise.resolve(this.store.has(key));
-  }
-
-  delete(key: K): Promise<boolean> {
-    return Promise.resolve(this.store.delete(key));
-  }
-
-  clear(): Promise<void> {
-    this.store.clear();
-    return Promise.resolve();
-  }
-
-  async *keys(): AsyncIterableIterator<K> {
-    for (const key of this.store.keys()) {
-      yield key;
-    }
-  }
-
-  async *values(): AsyncIterableIterator<V> {
-    for (const value of this.store.values()) {
-      yield value;
-    }
-  }
-}
-
-export class MemoryPacketStore
-  extends MemoryBaseStore<PacketId, PublishPacket> {}
-export class MemoryRetainStore extends MemoryBaseStore<Topic, PublishPacket> {}
-export class MemorySubscriptionStore
-  extends MemoryBaseStore<TopicFilter, QoS> {}
-/**
- * An in-memory store implementation managing packet tracking and subscriptions for a single MQTT client.
- */
-export class MemoryStore implements IStore {
-  existingSession: boolean = false;
-  clientId: ClientId;
-  private packetId: PacketId;
-  pendingIncoming: IPacketStore;
-  pendingOutgoing: IPacketStore;
-  pendingAckOutgoing: IPacketIdStore;
-  subscriptions: ISubscriptionStore;
-
-  /**
-   * Creates a new instance of MemoryStore.
-   * @param clientId The unique identifier of the MQTT client.
-   */
-  constructor(clientId: ClientId) {
-    this.packetId = 0;
-    this.pendingIncoming = new MemoryPacketStore();
-    this.pendingOutgoing = new MemoryPacketStore();
-    this.pendingAckOutgoing = new MemoryPacketIdStore();
-    this.subscriptions = new MemorySubscriptionStore();
-    this.clientId = clientId;
-  }
-
-  /**
-   * Generates the next available Packet Identifier for this client session.
-   * Ensures the generated ID is not currently in use by pending packets.
-   * @returns A valid unassigned Packet ID.
-   * @throws {Error} If no unused packet IDs are available.
-   */
-  async nextId(): Promise<PacketId> {
-    const currentId = this.packetId;
-    do {
-      this.packetId++;
-      if (this.packetId > MAX_PACKET_ID) {
-        this.packetId = 0;
-      }
-    } while (
-      ((await this.pendingOutgoing.has(this.packetId)) ||
-        (await this.pendingAckOutgoing.has(this.packetId))) &&
-      this.packetId !== currentId
-    );
-    assert(this.packetId !== currentId, "No unused packetId available");
-    return this.packetId;
-  }
-}
-
-/**
- * An in-memory persistence layer that coordinates all client sessions, subscriptions, and retained messages.
- */
 export class MemoryPersistence implements IPersistence {
-  clientList: Map<ClientId, Client>;
-  retained: MemoryRetainStore;
-  private trie: Trie<ClientSubscription>;
+  // active network connections
+  public clientHandlerList = new Map<ClientId, Handler>();
 
-  /**
-   * Initializes a new clean instance of MemoryPersistence.
-   */
-  constructor() {
-    this.clientList = new Map();
-    this.retained = new MemoryRetainStore();
-    this.trie = new Trie(true);
-  }
+  // In-memory "tables",
+  private sessionTable = new Map<ClientId, { existingSession: boolean }>();
+  private subscriptionTable = new Map<ClientId, Map<TopicFilter, QoS>>();
+  private trie = new Trie<ClientSubscription>();
+  private pendingIncomingTable = new Map<
+    ClientId,
+    Map<PacketId, PublishPacket>
+  >();
+  private pendingOutgoingTable = new Map<
+    ClientId,
+    Map<PacketId, PublishPacket>
+  >();
+  private pendingAckOutgoingTable = new Map<ClientId, Set<PacketId>>();
 
-  /**
-   * Nothing to reload from Storage
-   */
+  // Globale retained messages (not client specific)
+  private retainedTable = new Map<Topic, PublishPacket>();
+
+  // Packet ID generator per client
+  private packetIdCounters = new Map<ClientId, number>();
+
   initialize(): Promise<void> {
+    // In-memory doesn't need setup or initialization
     return Promise.resolve();
   }
-
   /**
    * Convenience method creation combining instance creation and initialization
    */
@@ -211,82 +62,221 @@ export class MemoryPersistence implements IPersistence {
     await persistence.initialize();
     return persistence;
   }
-  /**
-   * Registers or reinstates an MQTT client session within the memory persistence.
-   * @param clientId The unique identifier of the client.
-   * @param handler The message handler function used to route packets back to the client.
-   * @returns An object containing the assigned store and a flag indicating if a session already existed.
-   */
+
   registerClient(
     clientId: ClientId,
     handler: Handler,
   ): Promise<ClientRegistrationResult> {
-    const existingClient = this.clientList.get(clientId);
-    const existingSession = !!existingClient;
-    const store = existingClient?.store ?? new MemoryStore(clientId);
-    this.clientList.set(clientId, { store, handler });
-    return Promise.resolve({ store, existingSession });
-  }
+    this.clientHandlerList.set(clientId, handler);
 
-  /**
-   * Deregisters a client and cleans up all associated active memory subscriptions.
-   * @param clientId The unique identifier of the client to remove.
-   */
-  async deregisterClient(clientId: ClientId): Promise<void> {
-    const client = this.clientList.get(clientId);
-    if (client) {
-      await this.unsubscribeAll(client.store);
-      this.clientList.delete(clientId);
+    const session = this.sessionTable.get(clientId);
+    if (session) {
+      session.existingSession = true;
+      return Promise.resolve({ existingSession: true });
     }
+
+    this.sessionTable.set(clientId, { existingSession: false });
+    // Initialize empty collections for this client
+    this.subscriptionTable.set(clientId, new Map());
+    this.pendingIncomingTable.set(clientId, new Map());
+    this.pendingOutgoingTable.set(clientId, new Map());
+    this.pendingAckOutgoingTable.set(clientId, new Set());
+    this.packetIdCounters.set(clientId, 0);
+    return Promise.resolve({ existingSession: false });
   }
 
-  /**
-   * Subscribes a client session store to a specific topic filter.
-   * @param store The client's active store instance.
-   * @param topicFilter The MQTT topic filter pattern (e.g., "sensor/+/temperature").
-   * @param qos The maximum Quality of Service level requested.
-   */
-  async subscribe(
-    store: IStore,
+  async deregisterClient(clientId: ClientId): Promise<void> {
+    this.clientHandlerList.delete(clientId);
+    this.sessionTable.delete(clientId);
+    this.pendingIncomingTable.delete(clientId);
+    this.pendingOutgoingTable.delete(clientId);
+    this.pendingAckOutgoingTable.delete(clientId);
+    this.packetIdCounters.delete(clientId);
+    // make sure the subscriptions are removed from the trie
+    const subs = await Array.fromAsync(this.getSubscriptions(clientId));
+    for (const { topicFilter } of subs) {
+      this.unsubscribe(clientId, topicFilter);
+    }
+    this.subscriptionTable.delete(clientId);
+
+    return Promise.resolve();
+  }
+
+  // --- Subscriptions ---
+  subscribe(
+    clientId: ClientId,
     topicFilter: TopicFilter,
     qos: QoS,
   ): Promise<void> {
-    const clientId = store.clientId;
-    await store.subscriptions.set(topicFilter, qos);
-    this.trie.add(topicFilter, { clientId, qos });
+    const clientSubs = this.subscriptionTable.get(clientId);
+    if (clientSubs) {
+      clientSubs.set(topicFilter, qos);
+      this.trie.add(topicFilter, { clientId, qos });
+    }
+    return Promise.resolve();
   }
 
-  /**
-   * Unsubscribes a client session store from a specific topic filter.
-   * @param store The client's active store instance.
-   * @param topicFilter The MQTT topic filter pattern to remove.
-   */
-  async unsubscribe(store: IStore, topicFilter: TopicFilter): Promise<void> {
-    const clientId = store.clientId;
-    const qos = await store.subscriptions.get(topicFilter);
-    if (qos !== undefined) {
-      await store.subscriptions.delete(topicFilter);
-      this.trie.remove(topicFilter, { clientId, qos });
+  unsubscribe(clientId: ClientId, topicFilter: TopicFilter): Promise<void> {
+    const clientSubs = this.subscriptionTable.get(clientId);
+    if (clientSubs) {
+      const qos = clientSubs.get(topicFilter);
+      if (qos !== undefined) {
+        this.trie.remove(topicFilter, { clientId, qos });
+        clientSubs.delete(topicFilter);
+      }
+    }
+    return Promise.resolve();
+  }
+
+  async *getSubscriptions(
+    clientId: ClientId,
+  ): AsyncIterableIterator<{ topicFilter: TopicFilter; qos: QoS }> {
+    const clientSubs = this.subscriptionTable.get(clientId);
+    if (clientSubs) {
+      for (const [topicFilter, qos] of clientSubs.entries()) {
+        yield { topicFilter, qos };
+      }
     }
   }
 
-  private async unsubscribeAll(store: IStore): Promise<void> {
-    for await (const topicFilter of store.subscriptions.keys()) {
-      await this.unsubscribe(store, topicFilter);
+  // --- Packet Management Incoming ---
+  addPendingIncomingPacket(
+    clientId: ClientId,
+    packet: PublishPacket,
+  ): Promise<void> {
+    if (packet.id) {
+      this.pendingIncomingTable.get(clientId)?.set(packet.id, packet);
+    }
+    return Promise.resolve();
+  }
+
+  getPendingIncomingPacket(
+    clientId: ClientId,
+    packetId: PacketId,
+  ): Promise<PublishPacket | null> {
+    const clientPackets = this.pendingIncomingTable.get(clientId);
+    if (clientPackets) {
+      const packet = clientPackets.get(packetId);
+      return Promise.resolve(packet ?? null);
+    }
+    return Promise.resolve(null);
+  }
+
+  async *listPendingIncomingPackets(
+    clientId: ClientId,
+  ): AsyncIterableIterator<PublishPacket> {
+    const clientPackets = this.pendingIncomingTable.get(clientId);
+    if (clientPackets) {
+      for (const packet of clientPackets.values()) {
+        yield packet;
+      }
     }
   }
 
+  deletePendingIncomingPacket(
+    clientId: ClientId,
+    packetId: PacketId,
+  ): Promise<boolean> {
+    return Promise.resolve(
+      this.pendingIncomingTable.get(clientId)?.delete(packetId) ?? false,
+    );
+  }
+
+  // --- Packet Management Outgoing ---
+  addPendingOutgoingPacket(
+    clientId: ClientId,
+    packet: PublishPacket,
+  ): Promise<void> {
+    if (packet.id) {
+      this.pendingOutgoingTable.get(clientId)?.set(packet.id, packet);
+    }
+    return Promise.resolve();
+  }
+
+  async *listPendingOutgoingPackets(
+    clientId: ClientId,
+  ): AsyncIterableIterator<PublishPacket> {
+    const clientPackets = this.pendingOutgoingTable.get(clientId);
+    if (clientPackets) {
+      for (const packet of clientPackets.values()) {
+        yield packet;
+      }
+    }
+  }
+
+  deletePendingOutgoingPacket(
+    clientId: ClientId,
+    packetId: PacketId,
+  ): Promise<boolean> {
+    return Promise.resolve(
+      this.pendingOutgoingTable.get(clientId)?.delete(packetId) ?? false,
+    );
+  }
+
+  // --- ACKs ---
+  addPendingAck(clientId: ClientId, packetId: PacketId): Promise<void> {
+    this.pendingAckOutgoingTable.get(clientId)?.add(packetId);
+    return Promise.resolve();
+  }
+
+  hasPendingAck(clientId: ClientId, packetId: PacketId): Promise<boolean> {
+    return Promise.resolve(
+      this.pendingAckOutgoingTable.get(clientId)?.has(packetId) ?? false,
+    );
+  }
+
+  async *listPendingAcks(
+    clientId: ClientId,
+  ): AsyncIterableIterator<PacketId> {
+    const clientPacketIds = this.pendingAckOutgoingTable.get(clientId);
+    if (clientPacketIds) {
+      for (const packet of clientPacketIds.keys()) {
+        yield packet;
+      }
+    }
+  }
+
+  deletePendingAck(clientId: ClientId, packetId: PacketId): Promise<boolean> {
+    return Promise.resolve(
+      this.pendingAckOutgoingTable.get(clientId)?.delete(packetId) ?? false,
+    );
+  }
+
   /**
-   * Publishes an incoming packet to all matching subscribers, handling message retention if specified.
-   * @param topic The concrete topic name on which the packet was published.
-   * @param packet The publish packet data structure.
+   * Generates the next available Packet Identifier forthe client's session.
+   * Ensures the generated ID is not currently in use by pending packets.
    */
-  async publish(topic: Topic, packet: PublishPacket): Promise<void> {
+  async nextPacketId(clientId: ClientId): Promise<PacketId> {
+    const currentId = this.packetIdCounters.get(clientId);
+    const pendingOutgoing = this.pendingOutgoingTable.get(clientId);
+    const pendingAckOutgoing = this.pendingAckOutgoingTable.get(clientId);
+    let nextId = currentId!;
+    do {
+      nextId++;
+      if (nextId! > MAX_PACKET_ID) {
+        nextId = 0;
+      }
+    } while (
+      ((await pendingOutgoing!.has(nextId)) ||
+        (await pendingAckOutgoing!.has(nextId))) &&
+      nextId !== currentId
+    );
+    assert(nextId !== currentId, "No unused packetId available");
+    this.packetIdCounters.set(clientId, nextId);
+    return nextId;
+  }
+
+  // --- Business Logic (Publish & Retained) ---
+  async publish(
+    _clientId: ClientId,
+    topic: Topic,
+    packet: PublishPacket,
+  ): Promise<void> {
     if (packet.retain) {
       if (!packet.payload?.byteLength) {
-        await this.retained.delete(packet.topic);
+        this.retainedTable.delete(packet.topic);
       } else {
-        await this.retained.set(packet.topic, packet);
+        this.retainedTable.set(topic, packet);
       }
     }
 
@@ -308,11 +298,29 @@ export class MemoryPersistence implements IPersistence {
       // if the publishers Qos was lower, use that, else use the subscribers
       const newQos = packet.qos || 0;
       newPacket.qos = newQos < qos ? newQos : qos;
-      //  logger.debug(`publish ${topic} to client ${clientId}`);
-      const client = this.clientList.get(clientId);
-      if (client) {
-        await client.handler(newPacket);
+      await this.dispatch(clientId, newPacket);
+    }
+  }
+
+  /**
+   * Processes -outbound- publication requests, allocating package IDs and storing
+   * unacknowledged QoS > 0 packets into the database.
+   */
+  async dispatch(clientId: ClientId, packet: PublishPacket): Promise<void> {
+    const handler = this.clientHandlerList.get(clientId);
+    const qos = packet.qos || 0;
+    if (qos === 0) {
+      packet.id = 0;
+      if (handler) {
+        handler(packet);
       }
+      return;
+    }
+
+    packet.id = await this.nextPacketId(clientId);
+    this.addPendingOutgoingPacket(clientId, packet);
+    if (handler) {
+      handler(packet);
     }
   }
 
@@ -321,21 +329,19 @@ export class MemoryPersistence implements IPersistence {
    * @param clientId The identifier of the client that needs historical retained messages.
    */
   async handleRetained(clientId: ClientId): Promise<void> {
+    const handler = this.clientHandlerList.get(clientId);
+    const clientSubs = this.subscriptionTable.get(clientId);
+
+    if (!handler || !clientSubs) return;
+
     const retainedTrie: Trie<ClientId> = new Trie();
-    const client = this.clientList.get(clientId);
-    const store = client?.store;
-    if (store) {
-      for await (const topicFilter of store.subscriptions.keys()) {
-        retainedTrie.add(topicFilter, clientId);
-      }
-      for await (const topic of this.retained.keys()) {
-        if (retainedTrie.match(topic).length > 0) {
-          const packet = await this.retained.get(topic);
-          console.log(`handleRetained ${topic} to client "${clientId}"`);
-          if (packet !== undefined) {
-            await client.handler(packet);
-          }
-        }
+    for (const [topicFilter] of clientSubs) {
+      retainedTrie.add(topicFilter, clientId);
+    }
+
+    for (const [topic, packet] of this.retainedTable.entries()) {
+      if (retainedTrie.match(topic).length > 0) {
+        await handler(packet);
       }
     }
   }

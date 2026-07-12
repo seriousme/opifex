@@ -1,155 +1,49 @@
-import assert from "node:assert/strict";
 import { test } from "node:test";
+import { initializeDatabase } from "./sqliteDatabase.ts";
 import { SqlitePersistence } from "./sqlitePersistence.ts";
-import { SqliteStore } from "./sqliteStore.ts";
-import { MQTTLevel, PacketType } from "../deps.ts";
-import type { PublishPacket } from "../deps.ts";
+import type { ClientSubscription } from "./sqlitePersistence.ts";
+import assert from "node:assert/strict";
 
-const payloadAny = new TextEncoder().encode("any");
-const qos = 1;
+test("SqlitePersistence - Trie is correctly rebuilt (restored) from the database", () => {
+  // 1. Manually create an in-memory (:memory:) database and set up the tables
+  const sharedDb = initializeDatabase(":memory:");
 
-test("new should create new SqlitePersistence object", () => {
-  const persistence = new SqlitePersistence();
-  assert.deepStrictEqual(typeof persistence, "object");
-  assert.deepStrictEqual(persistence instanceof SqlitePersistence, true);
-});
-
-test("Registering a client should return a SqliteStore object", async () => {
-  const persistence = new SqlitePersistence();
-  const clientId = "sqliteClient";
-  const { store, existingSession } = await persistence.registerClient(
-    clientId,
-    () => {},
+  // 2. Simulate an existing state by directly injecting data into the subscriptions table
+  const insertStmt = sharedDb.prepare(
+    "INSERT INTO subscriptions (client_id, topic, qos) VALUES (?, ?, ?)",
   );
-  assert.deepStrictEqual(persistence.clientList.has(clientId), true);
-  assert.deepStrictEqual(typeof store, "object");
-  assert.deepStrictEqual(store instanceof SqliteStore, true);
-  assert.deepStrictEqual(existingSession, false);
-});
+  insertStmt.run("client_A", "sensor/temperature", 1);
+  insertStmt.run("client_B", "sensor/#", 2);
 
-test("Registering a client with clean should reset persisted state", async () => {
-  const persistence = new SqlitePersistence();
-  const clientId = "sqliteClient";
-  const handler = () => {};
-  const { store: store1 } = await persistence.registerClient(
-    clientId,
-    handler,
-  );
-  await persistence.subscribe(store1, "/topic", qos);
-  await persistence.deregisterClient(clientId);
-  const { store: store2 } = await persistence.registerClient(
-    clientId,
-    handler,
-  );
-  assert.deepStrictEqual(await store2.subscriptions.size(), 0);
-});
+  // 3. Instantiate SqlitePersistence and pass the pre-populated database.
+  // The constructor will internally call `this.rebuildTrie()` immediately.
+  const persistence = new SqlitePersistence(sharedDb);
 
-test("Registering a client with no-clean should keep persisted state", async () => {
-  const persistence = new SqlitePersistence();
-  const clientId = "sqliteClient";
-  const handler = () => {};
-  const { store: store1 } = await persistence.registerClient(
-    clientId,
-    handler,
-  );
-  await persistence.subscribe(store1, "/topic", qos);
-  const { store: store2 } = await persistence.registerClient(
-    clientId,
-    handler,
-  );
-  assert.deepStrictEqual(await store2.subscriptions.size(), 1);
-});
+  // Since 'trie' is private, we can test the behavior via the public 'publish'
+  // or 'getSubscriptions' method, or temporarily inspect the trie using type casting:
+  // deno-lint-ignore no-explicit-any
+  const trie = (persistence as any).trie;
 
-test("Publish should deliver retained and subscription messages", async () => {
-  const persistence = new SqlitePersistence();
-  const clientId = "sqliteClient";
-  const topic = "/myTopic";
-  const publishPacket: PublishPacket = {
-    type: PacketType.publish,
-    protocolLevel: MQTTLevel.v4,
-    id: 1,
-    topic,
-    payload: payloadAny,
-  };
-
-  const seen = new Set<number | undefined>();
-  function handler(packet: PublishPacket): void {
-    seen.add(packet.id);
-  }
-
-  const { store } = await persistence.registerClient(clientId, handler);
-  await persistence.subscribe(store, topic, qos);
-  await persistence.publish(topic, publishPacket);
-  assert.deepStrictEqual(seen.has(1), true);
-});
-
-test("Initialize should reload clients and subscriptions from storage", async () => {
-  const persistence = new SqlitePersistence();
-  const clientId = "persistedClient";
-  const topic = "/restoredTopic";
-  const qos = 1;
-  const numSubs = 10;
-  const handler = () => {};
-
-  // Register a client and create a subscription
-  const { store: originalStore } = await persistence.registerClient(
-    clientId,
-    handler,
+  // Test matching for "sensor/temperature"
+  const matches: ClientSubscription[] = Array.from(
+    trie.match("sensor/temperature"),
   );
 
-  for (let index = 0; index < numSubs; index++) {
-    await persistence.subscribe(originalStore, `${topic}-${index}`, qos);
-  }
+  // There should be 2 matches: client_A (exact match) and client_B (via wildcard #)
+  assert.strictEqual(matches.length, 2);
 
-  assert.deepStrictEqual(await originalStore.subscriptions.size(), numSubs);
-  const subs = [];
-  for await (const topicFilter of originalStore.subscriptions.keys()) {
-    const qos = await originalStore.subscriptions.get(topicFilter);
-    subs.push({ topicFilter, qos });
-  }
-  // Close the database connection cleanly
+  const clientA = matches.find((m: ClientSubscription) =>
+    m.clientId === "client_A"
+  );
+  const clientB = matches.find((m: ClientSubscription) =>
+    m.clientId === "client_B"
+  );
+
+  assert.ok(clientA, "client_A should have been matched");
+  assert.strictEqual(clientA.qos, 1);
+
+  assert.ok(clientB, "client_B should have been matched via wildcard");
+  assert.strictEqual(clientB.qos, 2);
+
   persistence.close();
-
-  // Create a new persistence instance targeting the same database state.
-  // Since ":memory:" is unique per instance when using the default string,
-  // we simulate the restart by saving the records to the new instance's sessionStore.
-  const newPersistence = new SqlitePersistence();
-  const newStore = new SqliteStore(newPersistence.db, clientId);
-  for (const { topicFilter, qos } of subs) {
-    await newStore.subscriptions.set(topicFilter, qos!);
-  }
-  newPersistence.sessionStore.set({ clientId, existingSession: true });
-
-  // Verify that the new instance is empty before initialization
-  assert.deepStrictEqual(newPersistence.clientList.has(clientId), false);
-
-  // Initialize the new persistence layer
-  await newPersistence.initialize();
-
-  // Verify that the client and its subscriptions have been restored
-  assert.deepStrictEqual(newPersistence.clientList.has(clientId), true);
-
-  const restoredClient = newPersistence.clientList.get(clientId);
-  assert.ok(restoredClient);
-  assert.deepStrictEqual(
-    await restoredClient.store.subscriptions.size(),
-    numSubs,
-  );
-
-  // Verify that the trie correctly matches the restored subscription during a publish
-  const seen = new Set<number | undefined>();
-  restoredClient.handler = (packet: PublishPacket) => {
-    seen.add(packet.id);
-  };
-
-  const publishPacket: PublishPacket = {
-    type: PacketType.publish,
-    protocolLevel: MQTTLevel.v4,
-    id: 99,
-    topic: `${topic}-1`,
-    payload: payloadAny,
-  };
-
-  await newPersistence.publish(`${topic}-1`, publishPacket);
-  assert.deepStrictEqual(seen.has(99), true);
 });

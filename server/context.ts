@@ -10,7 +10,6 @@ import type {
   AnyPacket,
   ConnectPacket,
   IPersistence,
-  IStore,
   ProtocolLevel,
   PublishPacket,
   PubrelPacket,
@@ -103,9 +102,6 @@ export class Context {
   /** Global registry mapping active client identifiers to their respective connection context. */
   static clientList: Map<ClientId, Context> = new Map();
 
-  /** The client-specific persistence store instance. Set after a successful connect. */
-  store?: IStore;
-
   /** The optional Will packet configured by the client to be published if disconnected unexpectedly. */
   will?: PublishPacket | undefined;
 
@@ -157,8 +153,9 @@ export class Context {
     logger.verbose(
       `ctx.send: Sending packet of type ${
         PacketNameByType[packet.type]
-      } to client ${this.store?.clientId}`,
+      } to client ${this.clientId!}`,
     );
+
     logger.debug(`ctx.send: ${JSON.stringify(packet, null, 2)}`);
     await this.mqttConn.send(packet);
   }
@@ -187,11 +184,10 @@ export class Context {
       await this.persistence.deregisterClient(clientId);
     }
     logger.verbose("ctx:connect: Registering client", clientId);
-    const { store, existingSession } = await this.persistence.registerClient(
+    const { existingSession } = await this.persistence.registerClient(
       clientId,
-      this.doPublish.bind(this),
+      this.send.bind(this),
     );
-    this.store = store;
     this.connected = true;
     Context.clientList.set(clientId, this);
     logger.verbose("ctx:connect: Broadcasting client connection", clientId);
@@ -207,27 +203,7 @@ export class Context {
     logger.verbose(
       `ctx:publish processing incoming publish for topic "${packet.topic}"`,
     );
-    await this.persistence.publish(packet.topic, packet);
-  }
-
-  /**
-   * Processes -outbound- publication requests, allocating package IDs and storing
-   * unacknowledged QoS > 0 packets into the client persistence layer.
-   * @param {PublishPacket} packet - The publication packet to distribute.
-   * @returns {Promise<void>} A promise that resolves when the internal processing or send queue finishes.
-   */
-  async doPublish(packet: PublishPacket): Promise<void> {
-    const qos = packet.qos || 0;
-    if (qos === 0) {
-      packet.id = 0;
-      this.send(packet);
-      return;
-    }
-    if (this.store) {
-      packet.id = await this.store.nextId();
-      this.store.pendingOutgoing.set(packet.id, packet);
-      this.send(packet);
-    }
+    await this.persistence.publish(this.clientId!, packet.topic, packet);
   }
 
   /**
@@ -253,7 +229,7 @@ export class Context {
     }
     if (this.connected) {
       logger.info(
-        `Closing ${this.store?.clientId} while mqttConn is ${
+        `Closing ${this.clientId} while mqttConn is ${
           this.mqttConn.isClosed ? "" : "not "
         }closed because of "${this.mqttConn.reason || "normal disconnect"}"`,
       );
@@ -261,8 +237,8 @@ export class Context {
       if (typeof this.timer === "object") {
         this.timer.clear();
       }
-      if (this.store) {
-        void this.broadcast("$SYS/disconnect/clients", this.store.clientId);
+      if (this.clientId) {
+        void this.broadcast("$SYS/disconnect/clients", this.clientId);
       }
       if (executewill) {
         void this.handleWill();
@@ -318,29 +294,27 @@ export class Context {
    */
   async handleRedelivery() {
     // redeliver inflight data
-    if (this.store) {
-      logger.debug(
-        `ctx:handleRedelivery for ${this.store.clientId} of ${await this.store
-          .pendingOutgoing.size()} packets`,
-      );
-      for await (const packet of this.store.pendingOutgoing.values()) {
-        if (!this.connected) {
-          break;
-        }
-        this.send(packet);
+    const clientId = this.clientId!;
+    const p = this.persistence;
+
+    logger.verbose(`ctx:handleRedelivery for ${this.clientId}`);
+    for await (const packet of p.listPendingOutgoingPackets(clientId)) {
+      if (!this.connected) {
+        break;
       }
-      // we only need to resend PubRel acks
-      for await (const packetId of this.store.pendingAckOutgoing.keys()) {
-        if (!this.connected) {
-          break;
-        }
-        const pubrel: PubrelPacket = {
-          protocolLevel: this.protocolLevel,
-          type: PacketType.pubrel,
-          id: packetId,
-        };
-        this.send(pubrel);
+      this.send(packet);
+    }
+    // we only need to resend QoS2 PubRel acks
+    for await (const packetId of p.listPendingAcks(clientId)) {
+      if (!this.connected) {
+        break;
       }
+      const pubrel: PubrelPacket = {
+        protocolLevel: this.protocolLevel,
+        type: PacketType.pubrel,
+        id: packetId,
+      };
+      this.send(pubrel);
     }
   }
 }

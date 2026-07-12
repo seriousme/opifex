@@ -18,7 +18,6 @@ export type {
   TopicFilter,
 } from "./deps.ts";
 export type {
-  Client,
   ClientRegistrationResult,
   Handler,
   IPersistence,
