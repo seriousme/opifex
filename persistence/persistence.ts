@@ -45,7 +45,7 @@ export interface IPersistence {
   // subscription management
   subscribe(clientId: ClientId, topic: TopicFilter, qos: QoS): Promise<void>;
   unsubscribe(clientId: ClientId, topic: TopicFilter): Promise<void>;
-  getSubscriptions(
+  listSubscriptions(
     clientId: ClientId,
   ): AsyncIterableIterator<{ topicFilter: TopicFilter; qos: QoS }>;
 

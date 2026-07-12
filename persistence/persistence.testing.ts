@@ -96,7 +96,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       await persistence.subscribe("client1", "test/topic", 1);
 
       const subs = await Array.fromAsync(
-        persistence.getSubscriptions("client1"),
+        persistence.listSubscriptions("client1"),
       );
       const match = subs.find((s) => s.topicFilter === "test/topic");
 
@@ -113,7 +113,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       await persistence.unsubscribe("client1", "test/topic");
 
       const subs = await Array.fromAsync(
-        persistence.getSubscriptions("client1"),
+        persistence.listSubscriptions("client1"),
       );
       const match = subs.find((s) => s.topicFilter === "test/topic");
       assert(match === undefined);
@@ -127,7 +127,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       // Should not throw
       await persistence.unsubscribe("client1", "nonexistent/topic");
       const subs = await Array.fromAsync(
-        persistence.getSubscriptions("client1"),
+        persistence.listSubscriptions("client1"),
       );
       assert.strictEqual(subs.length, 0);
       cleanup();
@@ -365,7 +365,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
       assert.strictEqual(existingSession, true);
       const subs = await Array.fromAsync(
-        persistence.getSubscriptions("client1"),
+        persistence.listSubscriptions("client1"),
       );
       assert.strictEqual(subs.length, 1);
       assert.strictEqual(subs[0].topicFilter, "test/topic");
@@ -415,7 +415,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
       assert.strictEqual(existingSession, false);
       const subs = await Array.fromAsync(
-        persistence.getSubscriptions("client1"),
+        persistence.listSubscriptions("client1"),
       );
       assert.strictEqual(subs.length, 0);
       const inPkts = await Array.fromAsync(
@@ -441,7 +441,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
       await persistence.subscribe("client1", "", 0);
       const subs = await Array.fromAsync(
-        persistence.getSubscriptions("client1"),
+        persistence.listSubscriptions("client1"),
       );
       const match = subs.find((s) => s.topicFilter === "");
       assert(match !== undefined);
@@ -493,7 +493,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       }
 
       const subs = await Array.fromAsync(
-        persistence.getSubscriptions("client1"),
+        persistence.listSubscriptions("client1"),
       );
       assert.strictEqual(subs.length, 100);
       cleanup();
@@ -509,7 +509,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       }
 
       const subs = await Array.fromAsync(
-        persistence.getSubscriptions("client1"),
+        persistence.listSubscriptions("client1"),
       );
       assert.strictEqual(subs.length, 0);
       cleanup();
@@ -664,7 +664,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       await Promise.all(operations);
 
       const subs = await Array.fromAsync(
-        persistence.getSubscriptions("client1"),
+        persistence.listSubscriptions("client1"),
       );
       assert(subs.length <= 20);
       cleanup();
