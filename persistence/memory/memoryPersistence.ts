@@ -31,10 +31,7 @@ type ClientSubscription = {
 
 export class MemoryPersistence implements IPersistence {
   // active network connections
-  public clientHandlerList: Map<ClientId, Handler> = new Map<
-    ClientId,
-    Handler
-  >();
+  public clientHandlerList: Map<ClientId, Handler> = new Map();
 
   // In-memory "tables",
   private sessionTable = new Map<ClientId, { existingSession: boolean }>();

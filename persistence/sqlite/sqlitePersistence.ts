@@ -61,10 +61,7 @@ function deserializePacket(
 
 export class SqlitePersistence implements IPersistence {
   // active network connections
-  public clientHandlerList: Map<ClientId, Handler> = new Map<
-    ClientId,
-    Handler
-  >();
+  public clientHandlerList: Map<ClientId, Handler> = new Map();
 
   private db: sqlite.DatabaseSync;
 
