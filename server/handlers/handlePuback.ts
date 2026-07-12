@@ -10,10 +10,11 @@ import type { PubackPacket } from "../deps.ts";
  * This function removes the original PUBLISH packet from the pending outgoing messages store
  * once acknowledgment is received.
  */
-export function handlePuback(ctx: Context, packet: PubackPacket) {
+export async function handlePuback(
+  ctx: Context,
+  packet: PubackPacket,
+): Promise<void> {
   // qos 1 only
   const id = packet.id;
-  if (ctx.store?.pendingOutgoing.has(id)) {
-    ctx.store.pendingOutgoing.delete(id);
-  }
+  await ctx.persistence.deletePendingOutgoingPacket(ctx.clientId!, id);
 }

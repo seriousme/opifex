@@ -90,21 +90,22 @@ export class MqttServer {
     } catch (err) {
       logger.debug(`Error while serving:${err}`);
     } finally {
-      logger.debug(`done serving for ${ctx.store?.clientId}`);
+      logger.debug(`done serving for ${ctx.clientId}`);
       ctx.close();
     }
   }
 
-  /** * Close the server and all active client connections.
+  /**
+   * Close the server and all active client connections.
    * @param {boolean} cleanUp - If true, clean up client sessions on close.
    */
-  close(cleanUp = false): void {
+  close(cleanUp: boolean = false): void {
     logger.debug(`stopping mqttServer`);
     for (const [clientid, ctx] of Context.clientList) {
       logger.debug(`closing session for clientid: ${clientid}`);
       ctx.close();
       if (cleanUp) {
-        ctx.clean(clientid);
+        ctx.clean();
       }
     }
   }

@@ -1,5 +1,5 @@
-import { SqlitePersistence } from "./sqlite/sqlitePersistence.ts";
 import { MemoryPersistence } from "./memory/memoryPersistence.ts";
+import { SqlitePersistence } from "./sqlite/sqlitePersistence.ts";
 import { runPersistenceTestSuite } from "./persistence.testing.ts";
 
 // Run for Memory

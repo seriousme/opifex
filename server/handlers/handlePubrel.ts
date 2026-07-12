@@ -19,15 +19,19 @@ export async function handlePubrel(
   packet: PubrelPacket,
 ): Promise<void> {
   const id = packet.id;
-  if (ctx.store) {
-    const packet = await ctx.store.pendingIncoming.get(id);
-    if (packet) {
-      // packet is in store
-      // publish the packet
-      await ctx.publish(packet);
-      await ctx.store.pendingIncoming.delete(id);
-    }
+
+  const storedPacket = await ctx.persistence.getPendingIncomingPacket(
+    ctx.clientId!,
+    id,
+  );
+
+  if (storedPacket) {
+    // packet is in store
+    // publish the packet
+    await ctx.publish(storedPacket);
+    await ctx.persistence.deletePendingIncomingPacket(ctx.clientId!, id);
   }
+
   await ctx.send({
     type: PacketType.pubcomp,
     protocolLevel: ctx.protocolLevel,

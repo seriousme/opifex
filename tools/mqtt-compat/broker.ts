@@ -26,7 +26,7 @@ const NO_SUBSCRIBE_TOPIC = "test/nosubscribe";
 
 function isAuthorizedToSubscribe(ctx: Context, topic: Topic): boolean {
   logger.debug(
-    `Checking authorization of client '${ctx.store?.clientId}' to subscribe to topic '${topic}'`,
+    `Checking authorization of client '${ctx.clientId}' to subscribe to topic '${topic}'`,
   );
   return topic !== NO_SUBSCRIBE_TOPIC;
 }

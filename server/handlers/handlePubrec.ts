@@ -18,9 +18,8 @@ export async function handlePubrec(
   packet: PubrecPacket,
 ): Promise<void> {
   const id = packet.id;
-  if (ctx.store && (await ctx.store.pendingOutgoing.has(id))) {
-    await ctx.store.pendingOutgoing.delete(id);
-    await ctx.store.pendingAckOutgoing.add(id);
+  if (await ctx.persistence.deletePendingOutgoingPacket(ctx.clientId!, id)) {
+    await ctx.persistence.addPendingAck(ctx.clientId!, id);
     await ctx.send({
       type: PacketType.pubrel,
       protocolLevel: ctx.protocolLevel,

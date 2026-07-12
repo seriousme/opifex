@@ -6,9 +6,8 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { MQTTLevel, PacketType } from "./deps.ts";
-import type { PublishPacket } from "./deps.ts";
+import type { PublishPacket, QoS } from "./deps.ts";
 import type { IPersistence } from "./persistence.ts";
-import type { IStore } from "./store.ts";
 
 const utf8Encoder = new TextEncoder();
 
@@ -31,19 +30,19 @@ async function createReceiver(
   persistence: IPersistence,
   clientId: string,
   clean = false,
-): Promise<{ store: IStore; received: PublishPacket[] }> {
+): Promise<{ received: PublishPacket[] }> {
   if (clean) {
     await persistence.deregisterClient(clientId);
   }
   const received: PublishPacket[] = [];
-  const result = await persistence.registerClient(
+  await persistence.registerClient(
     clientId,
     (pkt) => {
       received.push(pkt);
+      return Promise.resolve();
     },
   );
-  const { store } = result;
-  return { store, received };
+  return { received };
 }
 
 export type PersistenceFactoryOptions = {
@@ -61,74 +60,76 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
     test("initializes with empty client list", () => {
       const { persistence, cleanup } = factory();
-      assert.strictEqual(persistence.clientList.size, 0);
+      assert.strictEqual(persistence.clientHandlerList.size, 0);
       cleanup();
     });
 
-    test("registerClient creates client and returns store", async () => {
+    test("registerClient creates client", async () => {
       const { persistence, cleanup } = factory();
-      const { store, existingSession } = await persistence.registerClient(
+      const { existingSession } = await persistence.registerClient(
         "client1",
-        () => {},
+        () => Promise.resolve(),
       );
 
-      assert.strictEqual(persistence.clientList.size, 1);
-      assert(persistence.clientList.has("client1"));
-      assert.strictEqual(store.clientId, "client1");
+      assert.strictEqual(persistence.clientHandlerList.size, 1);
+      assert(persistence.clientHandlerList.has("client1"));
       assert.strictEqual(existingSession, false);
       cleanup();
     });
 
     test("deregisterClient removes client from list", async () => {
       const { persistence, cleanup } = factory();
-      await persistence.registerClient("client1", () => {});
-      assert.strictEqual(persistence.clientList.size, 1);
+      await persistence.registerClient("client1", () => Promise.resolve());
+      assert.strictEqual(persistence.clientHandlerList.size, 1);
 
       await persistence.deregisterClient("client1");
-      assert.strictEqual(persistence.clientList.size, 0);
+      assert.strictEqual(persistence.clientHandlerList.size, 0);
       cleanup();
     });
 
     // === Subscription Tests ===
 
-    test("subscribe adds topic to store subscriptions", async () => {
+    test("subscribe adds topic to subscriptions", async () => {
       const { persistence, cleanup } = factory();
-      const { store } = await persistence.registerClient(
-        "client1",
-        () => {},
+      await persistence.registerClient("client1", () => Promise.resolve());
+
+      await persistence.subscribe("client1", "test/topic", 1);
+
+      const subs = await Array.fromAsync(
+        persistence.getSubscriptions("client1"),
       );
+      const match = subs.find((s) => s.topicFilter === "test/topic");
 
-      await persistence.subscribe(store, "test/topic", 1);
-
-      assert(await store.subscriptions.has("test/topic"));
-      assert.strictEqual(await store.subscriptions.get("test/topic"), 1);
+      assert(match !== undefined);
+      assert.strictEqual(match.qos, 1);
       cleanup();
     });
 
-    test("unsubscribe removes topic from store subscriptions", async () => {
+    test("unsubscribe removes topic from subscriptions", async () => {
       const { persistence, cleanup } = factory();
-      const { store } = await persistence.registerClient(
-        "client1",
-        () => {},
+      await persistence.registerClient("client1", () => Promise.resolve());
+
+      await persistence.subscribe("client1", "test/topic", 1);
+      await persistence.unsubscribe("client1", "test/topic");
+
+      const subs = await Array.fromAsync(
+        persistence.getSubscriptions("client1"),
       );
-
-      await persistence.subscribe(store, "test/topic", 1);
-      await persistence.unsubscribe(store, "test/topic");
-
-      assert(!(await store.subscriptions.has("test/topic")));
+      const match = subs.find((s) => s.topicFilter === "test/topic");
+      assert(match === undefined);
       cleanup();
     });
 
     test("unsubscribe on non-existent topic is a no-op", async () => {
       const { persistence, cleanup } = factory();
-      const { store } = await persistence.registerClient(
-        "client1",
-        () => {},
-      );
+      await persistence.registerClient("client1", () => Promise.resolve());
 
       // Should not throw
-      await persistence.unsubscribe(store, "nonexistent/topic");
-      assert.strictEqual(await store.subscriptions.size(), 0);
+      await persistence.unsubscribe("client1", "nonexistent/topic");
+      const subs = await Array.fromAsync(
+        persistence.getSubscriptions("client1"),
+      );
+      assert.strictEqual(subs.length, 0);
       cleanup();
     });
 
@@ -136,10 +137,11 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
     test("publish routes to exact topic subscriber", async () => {
       const { persistence, cleanup } = factory();
-      const { store, received } = await createReceiver(persistence, "client1");
+      const { received } = await createReceiver(persistence, "client1");
 
-      await persistence.subscribe(store, "test/topic", 0);
+      await persistence.subscribe("client1", "test/topic", 0);
       await persistence.publish(
+        "client1",
         "test/topic",
         createPacket("test/topic", "hello"),
       );
@@ -154,6 +156,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { received } = await createReceiver(persistence, "client1");
 
       await persistence.publish(
+        "client1",
         "test/topic",
         createPacket("test/topic", "hello"),
       );
@@ -164,18 +167,21 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
     test("publish routes to + wildcard subscriber", async () => {
       const { persistence, cleanup } = factory();
-      const { store, received } = await createReceiver(persistence, "client1");
+      const { received } = await createReceiver(persistence, "client1");
 
-      await persistence.subscribe(store, "sensors/+/temp", 0);
+      await persistence.subscribe("client1", "sensors/+/temp", 0);
       await persistence.publish(
+        "client1",
         "sensors/room1/temp",
         createPacket("sensors/room1/temp", "22"),
       );
       await persistence.publish(
+        "client1",
         "sensors/room2/temp",
         createPacket("sensors/room2/temp", "24"),
       );
       await persistence.publish(
+        "client1",
         "sensors/room1/humidity",
         createPacket("sensors/room1/humidity", "50"),
       );
@@ -186,18 +192,21 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
     test("publish routes to # wildcard subscriber", async () => {
       const { persistence, cleanup } = factory();
-      const { store, received } = await createReceiver(persistence, "client1");
+      const { received } = await createReceiver(persistence, "client1");
 
-      await persistence.subscribe(store, "sensors/#", 0);
+      await persistence.subscribe("client1", "sensors/#", 0);
       await persistence.publish(
+        "client1",
         "sensors/temp",
         createPacket("sensors/temp", "22"),
       );
       await persistence.publish(
+        "client1",
         "sensors/room1/temp",
         createPacket("sensors/room1/temp", "24"),
       );
       await persistence.publish(
+        "client1",
         "other/topic",
         createPacket("other/topic", "data"),
       );
@@ -208,13 +217,14 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
     test("publish deduplicates when client matches multiple subscriptions", async () => {
       const { persistence, cleanup } = factory();
-      const { store, received } = await createReceiver(persistence, "client1");
+      const { received } = await createReceiver(persistence, "client1");
 
-      await persistence.subscribe(store, "test/+", 1);
-      await persistence.subscribe(store, "test/#", 2);
-      await persistence.subscribe(store, "test/topic", 0);
+      await persistence.subscribe("client1", "test/+", 1);
+      await persistence.subscribe("client1", "test/#", 2);
+      await persistence.subscribe("client1", "test/topic", 0);
 
       await persistence.publish(
+        "client1",
         "test/topic",
         createPacket("test/topic", "hello", { qos: 2 }),
       );
@@ -227,19 +237,20 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
     test("publish routes to multiple clients", async () => {
       const { persistence, cleanup } = factory();
-      const { store: store1, received: received1 } = await createReceiver(
+      const { received: received1 } = await createReceiver(
         persistence,
         "client1",
       );
-      const { store: store2, received: received2 } = await createReceiver(
+      const { received: received2 } = await createReceiver(
         persistence,
         "client2",
       );
 
-      await persistence.subscribe(store1, "test/topic", 0);
-      await persistence.subscribe(store2, "test/topic", 1);
+      await persistence.subscribe("client1", "test/topic", 0);
+      await persistence.subscribe("client2", "test/topic", 1);
 
       await persistence.publish(
+        "some-publisher",
         "test/topic",
         createPacket("test/topic", "hello", { qos: 1 }),
       );
@@ -257,19 +268,20 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { persistence, cleanup } = factory();
 
       await persistence.publish(
+        "publisher",
         "test/topic",
         createPacket("test/topic", "retained", { retain: true }),
       );
 
-      const { store: store1, received: received1 } = await createReceiver(
+      const { received: received1 } = await createReceiver(
         persistence,
         "client1",
       );
-      await persistence.subscribe(store1, "test/topic", 0);
+      await persistence.subscribe("client1", "test/topic", 0);
       await persistence.handleRetained("client1");
       assert.strictEqual(received1.length, 1);
 
-      await persistence.publish("test/topic", {
+      await persistence.publish("publisher", "test/topic", {
         type: PacketType.publish,
         protocolLevel: MQTTLevel.v4,
         topic: "test/topic",
@@ -277,11 +289,11 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
         retain: true,
       });
 
-      const { store: store2, received: received2 } = await createReceiver(
+      const { received: received2 } = await createReceiver(
         persistence,
         "client2",
       );
-      await persistence.subscribe(store2, "test/topic", 0);
+      await persistence.subscribe("client2", "test/topic", 0);
       await persistence.handleRetained("client2");
       assert.strictEqual(received2.length, 0);
       cleanup();
@@ -291,20 +303,23 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { persistence, cleanup } = factory();
 
       await persistence.publish(
+        "publisher",
         "sensor/temp",
         createPacket("sensor/temp", "22", { retain: true }),
       );
       await persistence.publish(
+        "publisher",
         "sensor/humidity",
         createPacket("sensor/humidity", "50", { retain: true }),
       );
       await persistence.publish(
+        "publisher",
         "other/topic",
         createPacket("other/topic", "data", { retain: true }),
       );
 
-      const { store, received } = await createReceiver(persistence, "client1");
-      await persistence.subscribe(store, "sensor/+", 0);
+      const { received } = await createReceiver(persistence, "client1");
+      await persistence.subscribe("client1", "sensor/+", 0);
       await persistence.handleRetained("client1");
 
       assert.strictEqual(received.length, 2);
@@ -313,68 +328,134 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
     // === Session Persistence ===
 
-    test("reconnect with clean=false does not clear previous subscriptions", async () => {
+    test("reconnect without deregistration retains client state", async () => {
       const { persistence, cleanup } = factory();
 
-      const { store: store1 } = await persistence.registerClient(
-        "client1",
-        () => {},
-      );
-      await persistence.subscribe(store1, "test/topic", 1);
+      const qos0opts = { qos: 0 as QoS, retain: false };
 
-      const { store: store2, existingSession } = await persistence
-        .registerClient(
-          "client1",
-          () => {},
-        );
+      // QoS 0 packets must not be retained
+      const incomingQoS0pkt = createPacket("incoming/data", "data", qos0opts);
+      const outgoingQoS0pkt = createPacket("outgoing/data", "data", qos0opts);
+      // Qos > 0 must be retained
+      const incomingQoS1Pkt = createPacket("incoming/data", "data", {
+        qos: 1,
+        id: 12,
+        retain: false,
+      });
+
+      const outgoingQoS2Pkt = createPacket("outgoing/data", "data", {
+        qos: 2,
+        id: 13,
+        retain: false,
+      });
+      const outgoingAckId = 33;
+
+      await persistence.registerClient("client1", () => Promise.resolve());
+      await persistence.subscribe("client1", "test/topic", 1);
+      await persistence.addPendingIncomingPacket("client1", incomingQoS0pkt);
+      await persistence.addPendingIncomingPacket("client1", incomingQoS1Pkt);
+      await persistence.addPendingOutgoingPacket("client1", outgoingQoS0pkt);
+      await persistence.addPendingOutgoingPacket("client1", outgoingQoS2Pkt);
+      await persistence.addPendingAck("client1", outgoingAckId);
+
+      const { existingSession } = await persistence.registerClient(
+        "client1",
+        () => Promise.resolve(),
+      );
 
       assert.strictEqual(existingSession, true);
-      assert.strictEqual(await store2.subscriptions.size(), 1);
+      const subs = await Array.fromAsync(
+        persistence.getSubscriptions("client1"),
+      );
+      assert.strictEqual(subs.length, 1);
+      assert.strictEqual(subs[0].topicFilter, "test/topic");
+      assert.strictEqual(subs[0].qos, 1);
+      const inPkts = await Array.fromAsync(
+        persistence.listPendingIncomingPackets("client1"),
+      );
+      assert.strictEqual(inPkts.length, 1);
+      assert.strictEqual(inPkts[0].topic, incomingQoS1Pkt.topic);
+      const outPkts = await Array.fromAsync(
+        persistence.listPendingOutgoingPackets("client1"),
+      );
+      assert.strictEqual(outPkts.length, 1);
+      assert.strictEqual(outPkts[0].topic, outgoingQoS2Pkt.topic);
+      const acks = await Array.fromAsync(
+        persistence.listPendingAcks("client1"),
+      );
+      assert.strictEqual(acks.length, 1);
+      assert.strictEqual(acks[0], outgoingAckId);
       cleanup();
     });
 
-    test("clean session discards previous subscriptions", async () => {
+    test("client deregistration discards previous subscriptions ", async () => {
       const { persistence, cleanup } = factory();
-
-      const { store: store1 } = await persistence.registerClient(
-        "client1",
-        () => {},
-      );
-      await persistence.subscribe(store1, "test/topic", 1);
+      const incomingPacket = createPacket("incoming/data", "data", {
+        qos: 1,
+        id: 12,
+        retain: false,
+      });
+      const outgoingPacket = createPacket("outgoing/data", "data", {
+        qos: 2,
+        id: 13,
+        retain: false,
+      });
+      const outgoingAckId = 33;
+      await persistence.registerClient("client1", () => Promise.resolve());
+      await persistence.subscribe("client1", "test/topic", 1);
+      await persistence.addPendingIncomingPacket("client1", incomingPacket);
+      await persistence.addPendingOutgoingPacket("client1", outgoingPacket);
+      await persistence.addPendingAck("client1", outgoingAckId);
       await persistence.deregisterClient("client1");
-      const { store: store2, existingSession } = await persistence
-        .registerClient(
-          "client1",
-          () => {},
-        );
+
+      const { existingSession } = await persistence.registerClient(
+        "client1",
+        () => Promise.resolve(),
+      );
 
       assert.strictEqual(existingSession, false);
-      assert.strictEqual(await store2.subscriptions.size(), 0);
+      const subs = await Array.fromAsync(
+        persistence.getSubscriptions("client1"),
+      );
+      assert.strictEqual(subs.length, 0);
+      const inPkts = await Array.fromAsync(
+        persistence.listPendingIncomingPackets("client1"),
+      );
+      assert.strictEqual(inPkts.length, 0);
+      const outPkts = await Array.fromAsync(
+        persistence.listPendingOutgoingPackets("client1"),
+      );
+      assert.strictEqual(outPkts.length, 0);
+      const acks = await Array.fromAsync(
+        persistence.listPendingAcks("client1"),
+      );
+      assert.strictEqual(acks.length, 0);
       cleanup();
     });
+
     // === Edge Cases ===
 
     test("empty topic filter subscription", async () => {
       const { persistence, cleanup } = factory();
-      const { store } = await persistence.registerClient(
-        "client1",
-        () => {},
-      );
+      await persistence.registerClient("client1", () => Promise.resolve());
 
-      // Empty topic - should not throw but may not match anything
-      await persistence.subscribe(store, "", 0);
-      assert(await store.subscriptions.has(""));
+      await persistence.subscribe("client1", "", 0);
+      const subs = await Array.fromAsync(
+        persistence.getSubscriptions("client1"),
+      );
+      const match = subs.find((s) => s.topicFilter === "");
+      assert(match !== undefined);
       cleanup();
     });
 
     test("special characters in topic", async () => {
       const { persistence, cleanup } = factory();
-
-      const { store, received } = await createReceiver(persistence, "client1");
+      const { received } = await createReceiver(persistence, "client1");
 
       const specialTopic = "test/日本語/émoji/🔥";
-      await persistence.subscribe(store, specialTopic, 0);
+      await persistence.subscribe("client1", specialTopic, 0);
       await persistence.publish(
+        "client1",
         specialTopic,
         createPacket(specialTopic, "data"),
       );
@@ -385,11 +466,15 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
     test("very long topic name", async () => {
       const { persistence, cleanup } = factory();
-      const { store, received } = await createReceiver(persistence, "client1");
+      const { received } = await createReceiver(persistence, "client1");
 
       const longTopic = "a/".repeat(100) + "end";
-      await persistence.subscribe(store, longTopic, 0);
-      await persistence.publish(longTopic, createPacket(longTopic, "data"));
+      await persistence.subscribe("client1", longTopic, 0);
+      await persistence.publish(
+        "client1",
+        longTopic,
+        createPacket(longTopic, "data"),
+      );
 
       assert.strictEqual(received.length, 1);
       cleanup();
@@ -397,47 +482,48 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
     test("many subscriptions per client", async () => {
       const { persistence, cleanup } = factory();
-      const { store } = await persistence.registerClient(
-        "client1",
-        () => {},
-      );
+      await persistence.registerClient("client1", () => Promise.resolve());
 
       for (let i = 0; i < 100; i++) {
-        await persistence.subscribe(store, `topic/${i}`, i % 3 as 0 | 1 | 2);
+        await persistence.subscribe(
+          "client1",
+          `topic/${i}`,
+          i % 3 as 0 | 1 | 2,
+        );
       }
 
-      assert.strictEqual(await store.subscriptions.size(), 100);
+      const subs = await Array.fromAsync(
+        persistence.getSubscriptions("client1"),
+      );
+      assert.strictEqual(subs.length, 100);
       cleanup();
     });
 
     test("rapid subscribe/unsubscribe cycles", async () => {
       const { persistence, cleanup } = factory();
-      const { store } = await persistence.registerClient(
-        "client1",
-        () => {},
-      );
+      await persistence.registerClient("client1", () => Promise.resolve());
 
       for (let i = 0; i < 50; i++) {
-        await persistence.subscribe(store, "test/topic", 1);
-        await persistence.unsubscribe(store, "test/topic");
+        await persistence.subscribe("client1", "test/topic", 1);
+        await persistence.unsubscribe("client1", "test/topic");
       }
 
-      assert.strictEqual(await store.subscriptions.size(), 0);
+      const subs = await Array.fromAsync(
+        persistence.getSubscriptions("client1"),
+      );
+      assert.strictEqual(subs.length, 0);
       cleanup();
     });
 
-    // === Store Tests ===
+    // === Low-Level Packet & Ack Stores (Voorheen IStore functionaliteiten) ===
 
-    test("store.nextId returns incrementing IDs", async () => {
+    test("nextPacketId returns incrementing IDs", async () => {
       const { persistence, cleanup } = factory();
-      const { store } = await persistence.registerClient(
-        "client1",
-        () => {},
-      );
+      await persistence.registerClient("client1", () => Promise.resolve());
 
-      const id1 = await store.nextId();
-      const id2 = await store.nextId();
-      const id3 = await store.nextId();
+      const id1 = await persistence.nextPacketId("client1");
+      const id2 = await persistence.nextPacketId("client1");
+      const id3 = await persistence.nextPacketId("client1");
 
       assert(id1 >= 1 && id1 <= 65535);
       assert(id2 >= 1 && id2 <= 65535);
@@ -446,77 +532,73 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       cleanup();
     });
 
-    test("store.pendingOutgoing operations", async () => {
+    test("pendingOutgoing operations", async () => {
       const { persistence, cleanup } = factory();
-      const { store } = await persistence.registerClient(
-        "client1",
-        () => {},
-      );
+      await persistence.registerClient("client1", () => Promise.resolve());
 
-      // QoS must be 1 or 2 for pending outgoing (QoS 0 doesn't need persistence)
       const packet = createPacket("test", "data", { id: 1, qos: 1 });
-      await store.pendingOutgoing.set(1, packet);
+      await persistence.addPendingOutgoingPacket("client1", packet);
 
-      assert(await store.pendingOutgoing.has(1));
-      assert.deepStrictEqual(
-        (await store.pendingOutgoing.get(1))?.topic,
-        packet.topic,
+      const packets = await Array.fromAsync(
+        persistence.listPendingOutgoingPackets("client1"),
       );
-      assert.strictEqual(await store.pendingOutgoing.size(), 1);
-      assert.deepStrictEqual(
-        await Array.fromAsync(store.pendingOutgoing.values()),
-        [packet],
-      );
+      assert.strictEqual(packets.length, 1);
+      assert.deepStrictEqual(packets[0].topic, packet.topic);
 
-      await store.pendingOutgoing.delete(1);
-      assert(!(await store.pendingOutgoing.has(1)));
+      const deleted = await persistence.deletePendingOutgoingPacket(
+        "client1",
+        1,
+      );
+      assert(deleted);
+
+      const packetsPostDelete = await Array.fromAsync(
+        persistence.listPendingOutgoingPackets("client1"),
+      );
+      assert.strictEqual(packetsPostDelete.length, 0);
       cleanup();
     });
 
-    test("store.pendingIncoming operations", async () => {
+    test("pendingIncoming operations", async () => {
       const { persistence, cleanup } = factory();
-      const { store } = await persistence.registerClient(
-        "client1",
-        () => {},
-      );
+      await persistence.registerClient("client1", () => Promise.resolve());
 
-      // QoS must be 1 or 2 for pending outgoing (QoS 0 doesn't need persistence)
       const packet = createPacket("test", "data", { id: 1, qos: 1 });
-      await store.pendingIncoming.set(1, packet);
+      await persistence.addPendingIncomingPacket("client1", packet);
 
-      assert(await store.pendingIncoming.has(1));
-      assert.deepStrictEqual(
-        (await store.pendingIncoming.get(1))?.topic,
-        packet.topic,
+      const packets = await Array.fromAsync(
+        persistence.listPendingIncomingPackets("client1"),
       );
-      assert.strictEqual(await store.pendingIncoming.size(), 1);
-      assert.deepStrictEqual(
-        await Array.fromAsync(store.pendingIncoming.values()),
-        [packet],
-      );
+      assert.strictEqual(packets.length, 1);
+      assert.deepStrictEqual(packets[0].topic, packet.topic);
 
-      await store.pendingIncoming.delete(1);
-      assert(!(await store.pendingIncoming.has(1)));
+      const deleted = await persistence.deletePendingIncomingPacket(
+        "client1",
+        1,
+      );
+      assert(deleted);
+
+      const packetsPostDelete = await Array.fromAsync(
+        persistence.listPendingIncomingPackets("client1"),
+      );
+      assert.strictEqual(packetsPostDelete.length, 0);
       cleanup();
     });
 
-    test("store.pendingAckOutgoing operations", async () => {
+    test("pendingAckOutgoing operations", async () => {
       const { persistence, cleanup } = factory();
-      const { store } = await persistence.registerClient(
-        "client1",
-        () => {},
-      );
+      await persistence.registerClient("client1", () => Promise.resolve());
 
-      await store.pendingAckOutgoing.add(99);
-      assert(await store.pendingAckOutgoing.has(99));
-      assert.strictEqual(await store.pendingAckOutgoing.size(), 1);
-      assert.deepStrictEqual(
-        await Array.fromAsync(store.pendingAckOutgoing.keys()),
-        [99],
+      await persistence.addPendingAck("client1", 99);
+      assert(await persistence.hasPendingAck("client1", 99));
+
+      const acks = await Array.fromAsync(
+        persistence.listPendingAcks("client1"),
       );
-      await store.pendingAckOutgoing.delete(99);
-      assert(!(await store.pendingAckOutgoing.has(99)));
-      assert.strictEqual(await store.pendingAckOutgoing.size(), 0);
+      assert.deepStrictEqual(acks, [99]);
+
+      const deleted = await persistence.deletePendingAck("client1", 99);
+      assert(deleted);
+      assert(!(await persistence.hasPendingAck("client1", 99)));
       cleanup();
     });
   });
@@ -529,33 +611,30 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const allReceived: PublishPacket[][] = [];
 
       // Create 10 clients
-      const stores: IStore[] = [];
       for (let i = 0; i < 10; i++) {
-        const { store, received } = await createReceiver(
+        const { received } = await createReceiver(
           persistence,
           `client${i}`,
         );
         allReceived.push(received);
-        stores.push(store);
-        persistence.subscribe(store, "broadcast", 0);
+        await persistence.subscribe(`client${i}`, "broadcast", 0);
       }
 
       // Publish 10 messages
       const publishPromises: Promise<void>[] = [];
       for (let i = 0; i < 10; i++) {
         publishPromises.push(
-          Promise.resolve().then(() =>
-            persistence.publish(
-              "broadcast",
-              createPacket("broadcast", `msg-${i}`),
-            )
+          persistence.publish(
+            "sender",
+            "broadcast",
+            createPacket("broadcast", `msg-${i}`),
           ),
         );
       }
 
       await Promise.all(publishPromises);
 
-      // Each client should receive all 100 messages
+      // Each client should receive all 10 messages
       for (const received of allReceived) {
         assert.strictEqual(received.length, 10);
       }
@@ -564,32 +643,30 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
     test(`${name} - concurrent subscribe and publish`, async () => {
       const { persistence, cleanup } = factory();
-      const { store } = await createReceiver(persistence, "client1");
+      await persistence.registerClient("client1", () => Promise.resolve());
 
       const operations: Promise<void>[] = [];
 
       // Interleave subscribes and publishes
       for (let i = 0; i < 20; i++) {
         operations.push(
-          Promise.resolve().then(() => {
-            persistence.subscribe(store, `topic/${i}`, 0);
-          }),
+          persistence.subscribe("client1", `topic/${i}`, 0),
         );
         operations.push(
-          Promise.resolve().then(() =>
-            persistence.publish(
-              `topic/${i}`,
-              createPacket(`topic/${i}`, `data${i}`),
-            )
+          persistence.publish(
+            "client1",
+            `topic/${i}`,
+            createPacket(`topic/${i}`, `data${i}`),
           ),
         );
       }
 
       await Promise.all(operations);
 
-      // Some messages may have been received depending on timing
-      // But no errors should occur
-      assert((await store.subscriptions.size()) <= 20);
+      const subs = await Array.fromAsync(
+        persistence.getSubscriptions("client1"),
+      );
+      assert(subs.length <= 20);
       cleanup();
     });
 
@@ -600,22 +677,22 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       for (let cycle = 0; cycle < 5; cycle++) {
         for (let i = 0; i < 10; i++) {
           operations.push(
-            Promise.resolve().then(async () => {
-              const { store } = await persistence.registerClient(
+            (async () => {
+              await persistence.registerClient(
                 `client-${cycle}-${i}`,
-                () => {},
+                () => Promise.resolve(),
               );
-              await persistence.subscribe(store, "test/#", 0);
+              await persistence.subscribe(`client-${cycle}-${i}`, "test/#", 0);
               await persistence.deregisterClient(`client-${cycle}-${i}`);
-            }),
+            })(),
           );
         }
       }
 
       await Promise.all(operations);
 
-      // All clients should be deregistered
-      assert.strictEqual(persistence.clientList.size, 0);
+      // All active clients should be deregistered
+      assert.strictEqual(persistence.clientHandlerList.size, 0);
       cleanup();
     });
   });
@@ -623,49 +700,89 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
   // === Packet ID Edge Cases ===
 
   describe("Packet ID Edge Cases", () => {
-    test(`${name} - nextId returns IDs in valid range`, async () => {
+    test(`${name} - nextPacketId returns IDs in valid range`, async () => {
       const { persistence, cleanup } = factory();
-      const { store } = await persistence.registerClient(
-        "client1",
-        () => {},
-      );
+      await persistence.registerClient("client1", () => Promise.resolve());
 
       // Generate several IDs and verify they're all in valid range
       for (let i = 0; i < 10; i++) {
-        const id = await store.nextId();
+        const id = await persistence.nextPacketId("client1");
         assert(id >= 1 && id <= 65535, `ID ${id} should be in range 1-65535`);
       }
       cleanup();
     });
 
-    test(`${name} - nextId returns unique IDs when pending stores are empty`, async () => {
+    test(`${name} - nextPacketId returns unique IDs`, async () => {
       const { persistence, cleanup } = factory();
-      const { store } = await persistence.registerClient(
-        "client1",
-        () => {},
-      );
+      await persistence.registerClient("client1", () => Promise.resolve());
 
       const ids = new Set<number>();
       for (let i = 0; i < 100; i++) {
-        const id = await store.nextId();
+        const id = await persistence.nextPacketId("client1");
         assert(!ids.has(id), `ID ${id} should be unique`);
         ids.add(id);
       }
       cleanup();
     });
 
-    test(`${name} - nextId skips IDs in pendingAckOutgoing`, async () => {
+    test(`${name} - nextPacketId skips IDs in pendingAckOutgoing`, async () => {
       const { persistence, cleanup } = factory();
-      const { store } = await persistence.registerClient(
-        "client1",
-        () => {},
+      await persistence.registerClient("client1", () => Promise.resolve());
+
+      // get 2 ids to figure out what the next one will be
+      await persistence.nextPacketId("client1");
+      const targetSkippedId = await persistence.nextPacketId("client1");
+
+      // 2. Registreer de 'targetSkippedId' kunstmatig in de pending ACK tabel
+      await persistence.addPendingAck("client1", targetSkippedId);
+
+      // simulate session reset, the ack should still be there
+      await persistence.registerClient("client1", () => Promise.resolve());
+
+      // generate a bunch of idś the target should be skipped
+      const generatedIds = new Set<number>();
+      for (let i = 0; i < 5; i++) {
+        const id = await persistence.nextPacketId("client1");
+        generatedIds.add(id);
+      }
+
+      assert.strictEqual(
+        generatedIds.has(targetSkippedId),
+        false,
+        `Packet-ID ${targetSkippedId} had overgeslagen moeten worden omdat deze in pendingAckOutgoing staat`,
       );
+      cleanup();
+    });
 
-      const id1 = await store.nextId();
-      store.pendingAckOutgoing.add(id1);
+    test(`${name} - nextPacketId skips IDs in pendingOutgoingPackets`, async () => {
+      const { persistence, cleanup } = factory();
+      await persistence.registerClient("client1", () => Promise.resolve());
 
-      const id2 = await store.nextId();
-      assert.notStrictEqual(id1, id2);
+      // generate an id
+      const nextId = await persistence.nextPacketId("client1");
+
+      // put a packet wih this id in the pendingOutgoingPackets queue
+      const blockedPacket = createPacket("test/topic", "payload", {
+        id: nextId,
+        qos: 1,
+      });
+      await persistence.addPendingOutgoingPacket("client1", blockedPacket);
+
+      // Simulate a client-reconnect which might incorrectly reset the id counter
+      await persistence.registerClient("client1", () => Promise.resolve());
+
+      // requiest a new set of id's it should not reuse previous id's
+      const generatedIds = new Set<number>();
+      for (let i = 0; i < 5; i++) {
+        const id = await persistence.nextPacketId("client1");
+        generatedIds.add(id);
+      }
+
+      assert.strictEqual(
+        generatedIds.has(nextId),
+        false,
+        `Packet-ID ${nextId} should have been sikpped because it is still in pendingOutgoingPackets`,
+      );
       cleanup();
     });
   });
@@ -675,8 +792,8 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
   describe("Large Payload Tests", () => {
     test(`${name} - handles large payloads`, async () => {
       const { persistence, cleanup } = factory();
-      const { store, received } = await createReceiver(persistence, "client1");
-      await persistence.subscribe(store, "large", 0);
+      const { received } = await createReceiver(persistence, "client1");
+      await persistence.subscribe("client1", "large", 0);
 
       // 1MB payload
       const largePayload = new Uint8Array(1024 * 1024);
@@ -692,7 +809,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
         qos: 0,
       };
 
-      await persistence.publish("large", packet);
+      await persistence.publish("sender", "large", packet);
 
       assert.strictEqual(received.length, 1);
       assert.strictEqual(received[0].payload?.length, 1024 * 1024);
@@ -712,13 +829,13 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
         retain: true,
       };
 
-      await persistence.publish("large/retained", packet);
+      await persistence.publish("sender", "large/retained", packet);
 
-      const { store, received } = await createReceiver(
+      const { received } = await createReceiver(
         persistence,
         "client1",
       );
-      await persistence.subscribe(store, "large/retained", 0);
+      await persistence.subscribe("client1", "large/retained", 0);
       await persistence.handleRetained("client1");
       assert.strictEqual(received.length, 1);
 
@@ -732,13 +849,13 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
   describe("Wildcard Edge Cases", () => {
     test(`${name} - # at root matches all topics`, async () => {
       const { persistence, cleanup } = factory();
-      const { store, received } = await createReceiver(persistence, "client1");
+      const { received } = await createReceiver(persistence, "client1");
 
-      await persistence.subscribe(store, "#", 0);
+      await persistence.subscribe("client1", "#", 0);
 
-      await persistence.publish("a", createPacket("a", "1"));
-      await persistence.publish("a/b", createPacket("a/b", "2"));
-      await persistence.publish("a/b/c", createPacket("a/b/c", "3"));
+      await persistence.publish("sender", "a", createPacket("a", "1"));
+      await persistence.publish("sender", "a/b", createPacket("a/b", "2"));
+      await persistence.publish("sender", "a/b/c", createPacket("a/b/c", "3"));
 
       assert.strictEqual(received.length, 3);
       cleanup();
@@ -748,15 +865,15 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       `${name} - # at root does not match $`,
       async () => {
         const { persistence, cleanup } = factory();
-        const { store, received } = await createReceiver(
+        const { received } = await createReceiver(
           persistence,
           "client1",
         );
 
-        await persistence.subscribe(store, "+/+", 0);
-        await persistence.subscribe(store, "#", 0);
+        await persistence.subscribe("client1", "+/+", 0);
+        await persistence.subscribe("client1", "#", 0);
 
-        await persistence.publish("$topic", createPacket("a", "1"));
+        await persistence.publish("sender", "$topic", createPacket("a", "1"));
         assert.strictEqual(received.length, 0);
         cleanup();
       },
@@ -764,12 +881,12 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
     test(`${name} - + matches single level including empty`, async () => {
       const { persistence, cleanup } = factory();
-      const { store, received } = await createReceiver(persistence, "client1");
+      const { received } = await createReceiver(persistence, "client1");
 
-      await persistence.subscribe(store, "a/+/c", 0);
+      await persistence.subscribe("client1", "a/+/c", 0);
 
-      await persistence.publish("a/b/c", createPacket("a/b/c", "1"));
-      await persistence.publish("a//c", createPacket("a//c", "2")); // Empty middle level - still matches
+      await persistence.publish("sender", "a/b/c", createPacket("a/b/c", "1"));
+      await persistence.publish("sender", "a//c", createPacket("a//c", "2")); // Empty middle level - still matches
 
       // Both should match: + matches any single level (including empty string)
       assert.strictEqual(received.length, 2);
@@ -778,12 +895,13 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
     test(`${name} - multiple # subscriptions from same client`, async () => {
       const { persistence, cleanup } = factory();
-      const { store, received } = await createReceiver(persistence, "client1");
+      const { received } = await createReceiver(persistence, "client1");
 
-      await persistence.subscribe(store, "a/#", 0);
-      await persistence.subscribe(store, "a/b/#", 1);
+      await persistence.subscribe("client1", "a/#", 0);
+      await persistence.subscribe("client1", "a/b/#", 1);
 
       await persistence.publish(
+        "sender",
         "a/b/c",
         createPacket("a/b/c", "data", { qos: 1 }),
       );

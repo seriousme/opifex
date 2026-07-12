@@ -9,9 +9,10 @@ import type { PubcompPacket } from "../deps.ts";
  * This is the fourth and final packet of the QoS 2 protocol exchange.
  * When received, it removes the message from the pendingAckOutgoing store.
  */
-export function handlePubcomp(ctx: Context, packet: PubcompPacket): void {
+export async function handlePubcomp(
+  ctx: Context,
+  packet: PubcompPacket,
+): Promise<void> {
   const id = packet.id;
-  if (ctx.store?.pendingAckOutgoing.has(id)) {
-    ctx.store.pendingAckOutgoing.delete(id);
-  }
+  await ctx.persistence.deletePendingAck(ctx.clientId!, id);
 }

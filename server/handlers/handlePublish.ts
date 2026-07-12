@@ -42,16 +42,12 @@ export async function handlePublish(
     return;
   }
 
-  if (packet.id !== undefined && ctx.store) {
+  if (packet.id !== undefined) {
     // qos 1
     if (qos === 1) {
       const id = packet.id; // retain the id
-      // store the packet so we can recover if required
-      await ctx.store.pendingIncoming.set(packet.id, packet);
       // publish the packet
       await ctx.publish(packet);
-      // remove the packet from the incoming store
-      await ctx.store.pendingIncoming.delete(packet.id);
       // send the pubAck
       await ctx.send({
         type: PacketType.puback,
@@ -75,10 +71,8 @@ Identifier as being a new publication.
 [MQTT-4.3.3-2].
     */
 
-    if (!(await ctx.store.pendingIncoming.has(packet.id))) {
-      // we take responsibility for the packet
-      await ctx.store.pendingIncoming.set(packet.id, packet);
-    }
+    // we take responsibility for the packet
+    await ctx.persistence.addPendingIncomingPacket(ctx.clientId!, packet);
     await ctx.send({
       type: PacketType.pubrec,
       protocolLevel: ctx.protocolLevel,

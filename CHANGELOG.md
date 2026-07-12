@@ -10,7 +10,7 @@
 - feat: set default max incoming message size to 2Kb (was 2Mb)
 - feat: add TLS client and server
 - feat: add WebSocket client and server
-- feat: add sqlite based persistence
+- feat: refactor server persistence and add sqlite based persistence
 - feat: add Eclipse paho compatibility testing
 - chore: add many more tests
 - chore: remove .vscode files from repo

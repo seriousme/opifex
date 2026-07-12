@@ -10,7 +10,6 @@ import type {
   AnyPacket,
   ConnectPacket,
   IPersistence,
-  IStore,
   ProtocolLevel,
   PublishPacket,
   PubrelPacket,
@@ -76,6 +75,9 @@ export type Handlers = {
  * timers, and persistence interactions for an individual client connection.
  */
 export class Context {
+  /** the client id is set after succesful connect */
+  clientId: ClientId | null = null;
+
   /** Indicates whether the client has successfully completed the MQTT CONNECT handshake. */
   connected = false;
 
@@ -100,9 +102,6 @@ export class Context {
   /** Global registry mapping active client identifiers to their respective connection context. */
   static clientList: Map<ClientId, Context> = new Map();
 
-  /** The client-specific persistence store instance. Set after a successful connect. */
-  store?: IStore;
-
   /** The optional Will packet configured by the client to be published if disconnected unexpectedly. */
   will?: PublishPacket | undefined;
 
@@ -117,14 +116,11 @@ export class Context {
 
   /**
    * Initializes a new instance of the connection Context.
-   * @param {IPersistence} persistence - The server persistence layer implementation.
-   * @param {SockConn} conn - The underlying socket connection.
-   * @param {Handlers} handlers - The hooks to influence server behavior.
    */
   constructor(
-    persistence: IPersistence,
-    conn: SockConn,
-    handlers: Handlers,
+    persistence: IPersistence, // The server persistence layer implementation.
+    conn: SockConn, // The underlying socket connection.
+    handlers: Handlers, // The validation handlers
   ) {
     this.persistence = persistence;
     this.conn = conn;
@@ -136,7 +132,6 @@ export class Context {
 
   /**
    * Configures and starts the preconnect timer to enforce connection deadlines.
-   * @param {number} preconnectTimeoutMs - The timeout limit in milliseconds.
    */
   private initializePreconnectTimer(preconnectTimeoutMs: number): void {
     this.preconnectTimer = new Timer(() => {
@@ -152,16 +147,15 @@ export class Context {
   }
 
   /**
-   * Serializes and transmits an MQTT packet over the connection.
-   * @param {AnyPacket} packet - The packet to be sent.
-   * @returns {Promise<void>} A promise that resolves when transmission completes.
+   * Transmits an MQTT packet to the client.
    */
   async send(packet: AnyPacket): Promise<void> {
     logger.verbose(
       `ctx.send: Sending packet of type ${
         PacketNameByType[packet.type]
-      } to client ${this.store?.clientId}`,
+      } to client ${this.clientId!}`,
     );
+
     logger.debug(`ctx.send: ${JSON.stringify(packet, null, 2)}`);
     await this.mqttConn.send(packet);
   }
@@ -169,12 +163,10 @@ export class Context {
   /**
    * Finalizes the client connection state, registers the client in persistence,
    * kicks out existing duplicate sessions, and broadcasts the client connection event.
-   * @param {string} clientId - The unique identifier of the connecting client.
-   * @param {boolean} clean - Indicates whether a clean session is requested.
-   * @returns {Promise<boolean>} Resolves to true if an existing session was taken over, false otherwise.
    */
   async connect(clientId: string, clean: boolean): Promise<boolean> {
     logger.verbose("ctx:connect connecting", clientId);
+    this.clientId = clientId;
     if (this.preconnectTimer) {
       this.preconnectTimer.clear();
     }
@@ -192,11 +184,10 @@ export class Context {
       await this.persistence.deregisterClient(clientId);
     }
     logger.verbose("ctx:connect: Registering client", clientId);
-    const { store, existingSession } = await this.persistence.registerClient(
+    const { existingSession } = await this.persistence.registerClient(
       clientId,
-      this.doPublish.bind(this),
+      this.send.bind(this),
     );
-    this.store = store;
     this.connected = true;
     Context.clientList.set(clientId, this);
     logger.verbose("ctx:connect: Broadcasting client connection", clientId);
@@ -207,50 +198,29 @@ export class Context {
 
   /**
    * Processes -inbound- publication requests
-   * @param {PublishPacket} packet - The publication packet to distribute.
-   * @returns {Promise<void>} A promise that resolves when the internal processing or send queue finishes.
    */
   async publish(packet: PublishPacket) {
     logger.verbose(
       `ctx:publish processing incoming publish for topic "${packet.topic}"`,
     );
-    await this.persistence.publish(packet.topic, packet);
-  }
-
-  /**
-   * Processes -outbound- publication requests, allocating package IDs and storing
-   * unacknowledged QoS > 0 packets into the client persistence layer.
-   * @param {PublishPacket} packet - The publication packet to distribute.
-   * @returns {Promise<void>} A promise that resolves when the internal processing or send queue finishes.
-   */
-  async doPublish(packet: PublishPacket): Promise<void> {
-    const qos = packet.qos || 0;
-    if (qos === 0) {
-      packet.id = 0;
-      this.send(packet);
-      return;
-    }
-    if (this.store) {
-      packet.id = await this.store.nextId();
-      this.store.pendingOutgoing.set(packet.id, packet);
-      this.send(packet);
-    }
+    await this.persistence.publish(this.clientId!, packet.topic, packet);
   }
 
   /**
    * Explicitly removes a client session and its stored state from the persistence layer.
-   * @param {string} clientId - The identifier of the client to clean up.
-   * @returns {Promise<void>}
    */
-  async clean(clientId: string) {
-    await this.persistence.deregisterClient(clientId);
+  async clean() {
+    if (this.clientId) {
+      await this.persistence.deregisterClient(this.clientId);
+    }
+    this.close(false);
   }
 
   /**
    * Tears down the connection context, terminates the underlying socket,
    * clears internal timers, triggers the Will packet execution if requested,
    * and announces the client disconnection.
-   * @param {boolean} [executewill=true] - If true, triggers the registered Will packet logic.
+   * If executewill=true triggers the registered Will packet logic.
    */
   close(executewill = true): void {
     logger.debug(`server closing context ${this.connected}`);
@@ -259,7 +229,7 @@ export class Context {
     }
     if (this.connected) {
       logger.info(
-        `Closing ${this.store?.clientId} while mqttConn is ${
+        `Closing ${this.clientId} while mqttConn is ${
           this.mqttConn.isClosed ? "" : "not "
         }closed because of "${this.mqttConn.reason || "normal disconnect"}"`,
       );
@@ -267,8 +237,8 @@ export class Context {
       if (typeof this.timer === "object") {
         this.timer.clear();
       }
-      if (this.store) {
-        void this.broadcast("$SYS/disconnect/clients", this.store.clientId);
+      if (this.clientId) {
+        void this.broadcast("$SYS/disconnect/clients", this.clientId);
       }
       if (executewill) {
         void this.handleWill();
@@ -295,22 +265,18 @@ export class Context {
         this.handlers.isAuthorizedToPublish &&
         this.handlers.isAuthorizedToPublish(this, this.will.topic)
       ) {
-        await this.persistence.publish(this.will.topic, this.will);
+        await this.publish(this.will);
       }
     }
   }
 
   /**
    * Utility method to generate and publish an internal system message payload to the persistence engine.
-   * @param {Topic} topic - The topic filter string to publish to.
-   * @param {string} payload - The plain-text message string to encode.
-   * @param {boolean} [retain=false] - Specifies if the message should be retained.
-   * @returns {Promise<void>}
    */
   async broadcast(
-    topic: Topic,
-    payload: string,
-    retain = false,
+    topic: Topic, // The topic filter string to publish to.
+    payload: string, // The plain-text message string to encode.
+    retain = false, // Specifies if the message should be retained.
   ): Promise<void> {
     const packet: PublishPacket = {
       type: PacketType.publish,
@@ -328,29 +294,27 @@ export class Context {
    */
   async handleRedelivery() {
     // redeliver inflight data
-    if (this.store) {
-      logger.debug(
-        `ctx:handleRedelivery for ${this.store.clientId} of ${await this.store
-          .pendingOutgoing.size()} packets`,
-      );
-      for await (const packet of this.store.pendingOutgoing.values()) {
-        if (!this.connected) {
-          break;
-        }
-        this.send(packet);
+    const clientId = this.clientId!;
+    const p = this.persistence;
+
+    logger.verbose(`ctx:handleRedelivery for ${this.clientId}`);
+    for await (const packet of p.listPendingOutgoingPackets(clientId)) {
+      if (!this.connected) {
+        break;
       }
-      // we only need to resend PubRel acks
-      for await (const packetId of this.store.pendingAckOutgoing.keys()) {
-        if (!this.connected) {
-          break;
-        }
-        const pubrel: PubrelPacket = {
-          protocolLevel: this.protocolLevel,
-          type: PacketType.pubrel,
-          id: packetId,
-        };
-        this.send(pubrel);
+      this.send(packet);
+    }
+    // we only need to resend QoS2 PubRel acks
+    for await (const packetId of p.listPendingAcks(clientId)) {
+      if (!this.connected) {
+        break;
       }
+      const pubrel: PubrelPacket = {
+        protocolLevel: this.protocolLevel,
+        type: PacketType.pubrel,
+        id: packetId,
+      };
+      this.send(pubrel);
     }
   }
 }

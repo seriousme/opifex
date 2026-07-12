@@ -89,7 +89,7 @@ function isAuthenticated(
  */
 function isAuthorizedToPublish(ctx: Context, topic: Topic): boolean {
   logger.debug(
-    `Checking authorization of client '${ctx.store?.clientId}' to publish on topic '${topic}'`,
+    `Checking authorization of client '${ctx.clientId}' to publish on topic '${topic}'`,
   );
   return true;
 }
@@ -102,7 +102,7 @@ function isAuthorizedToPublish(ctx: Context, topic: Topic): boolean {
  */
 function isAuthorizedToSubscribe(ctx: Context, topic: Topic): boolean {
   logger.debug(
-    `Checking authorization of client '${ctx.store?.clientId}' to subscribe to topic '${topic}'`,
+    `Checking authorization of client '${ctx.clientId}' to subscribe to topic '${topic}'`,
   );
   return true;
 }
