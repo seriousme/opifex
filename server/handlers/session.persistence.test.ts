@@ -86,7 +86,7 @@ test("subscriptions persist with clean=false", async () => {
   const client1 = mqttServer.persistence.clientHandlerList.get(clientId);
   assert(client1, "Expected client store for client-sub-persist");
   const client1Subs = await Array.fromAsync(
-    mqttServer.persistence.getSubscriptions(clientId),
+    mqttServer.persistence.listSubscriptions(clientId),
   );
   assert.strictEqual(
     client1Subs.length,
@@ -126,7 +126,7 @@ test("subscriptions persist with clean=false", async () => {
     "Expected client store present after reconnection",
   );
   const client2Subs = await Array.fromAsync(
-    mqttServer.persistence.getSubscriptions(clientId),
+    mqttServer.persistence.listSubscriptions(clientId),
   );
   assert.strictEqual(
     client1Subs.length,
@@ -165,7 +165,7 @@ test("subscriptions cleared with clean=true", async () => {
   const client1 = mqttServer.persistence.clientHandlerList.get(clientId);
   assert(client1, "Expected client store for client-sub-persist");
   const storedSubs = await Array.fromAsync(
-    mqttServer.persistence.getSubscriptions(clientId),
+    mqttServer.persistence.listSubscriptions(clientId),
   );
   assert.strictEqual(
     storedSubs.length,
@@ -192,7 +192,7 @@ test("subscriptions cleared with clean=true", async () => {
     "Expected client handler for client-clean after reconnection",
   );
   const cleanedSubs = await Array.fromAsync(
-    mqttServer.persistence.getSubscriptions(clientId),
+    mqttServer.persistence.listSubscriptions(clientId),
   );
   assert.strictEqual(
     cleanedSubs.length,

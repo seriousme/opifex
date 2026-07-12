@@ -96,7 +96,7 @@ export class MemoryPersistence implements IPersistence {
     this.pendingAckOutgoingTable.delete(clientId);
     this.packetIdCounters.delete(clientId);
     // make sure the subscriptions are removed from the trie
-    const subs = await Array.fromAsync(this.getSubscriptions(clientId));
+    const subs = await Array.fromAsync(this.listSubscriptions(clientId));
     for (const { topicFilter } of subs) {
       this.unsubscribe(clientId, topicFilter);
     }
@@ -131,7 +131,7 @@ export class MemoryPersistence implements IPersistence {
     return Promise.resolve();
   }
 
-  async *getSubscriptions(
+  async *listSubscriptions(
     clientId: ClientId,
   ): AsyncIterableIterator<{ topicFilter: TopicFilter; qos: QoS }> {
     const clientSubs = this.subscriptionTable.get(clientId);

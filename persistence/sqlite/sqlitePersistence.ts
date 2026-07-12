@@ -151,7 +151,7 @@ export class SqlitePersistence implements IPersistence {
     this.clientHandlerList.delete(clientId);
 
     // Explicitly remove subscriptions from the in-memory trie first
-    for await (const { topicFilter } of this.getSubscriptions(clientId)) {
+    for await (const { topicFilter } of this.listSubscriptions(clientId)) {
       const stmt = this.db.prepare(
         "select qos from subscriptions where client_id = ? and topic = ?",
       );
@@ -207,7 +207,7 @@ export class SqlitePersistence implements IPersistence {
     return Promise.resolve();
   }
 
-  async *getSubscriptions(
+  async *listSubscriptions(
     clientId: ClientId,
   ): AsyncIterableIterator<{ topicFilter: TopicFilter; qos: QoS }> {
     const stmt = this.db.prepare(
@@ -479,7 +479,7 @@ export class SqlitePersistence implements IPersistence {
       return;
     }
 
-    for await (const { topicFilter } of this.getSubscriptions(clientId)) {
+    for await (const { topicFilter } of this.listSubscriptions(clientId)) {
       for (const retainedPacket of this.retainedMatches(topicFilter)) {
         await handler(retainedPacket);
       }
