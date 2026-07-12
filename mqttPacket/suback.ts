@@ -33,68 +33,58 @@ export type SubackPacketV5 = {
  */
 export type SubackPacket = SubackPacketV4 | SubackPacketV5;
 
-export const suback: {
-  encode(packet: SubackPacket, _codecOpts: CodecOpts): Uint8Array;
-  decode(
-    buffer: Uint8Array,
-    flags: number,
-    codecOpts: CodecOpts,
-    packetType: TPacketType,
-  ): SubackPacket;
-} = {
-  encode(packet: SubackPacket, codecOpts: CodecOpts): Uint8Array {
-    const flags = 0;
-    const encoder = new Encoder(packet.type);
-    encoder.setInt16(packet.id);
-    if (packet.protocolLevel !== 5) {
-      for (const code of packet.returnCodes) {
-        if (!validReturnCodes.includes(code)) {
-          throw new Error("Invalid return code");
-        }
+export function encode(packet: SubackPacket, codecOpts: CodecOpts): Uint8Array {
+  const flags = 0;
+  const encoder = new Encoder(packet.type);
+  encoder.setInt16(packet.id);
+  if (packet.protocolLevel !== 5) {
+    for (const code of packet.returnCodes) {
+      if (!validReturnCodes.includes(code)) {
+        throw new Error("Invalid return code");
       }
-      encoder.setRemainder(packet.returnCodes);
-      return encoder.done(flags);
     }
-    encoder.setProperties(
-      packet.properties || {},
-      packet.type,
-      codecOpts.maxOutgoingPacketSize,
-    );
-    for (const code of packet.reasonCodes) {
-      encoder.setReasonCode(code);
-    }
+    encoder.setRemainder(packet.returnCodes);
     return encoder.done(flags);
-  },
+  }
+  encoder.setProperties(
+    packet.properties || {},
+    packet.type,
+    codecOpts.maxOutgoingPacketSize,
+  );
+  for (const code of packet.reasonCodes) {
+    encoder.setReasonCode(code);
+  }
+  return encoder.done(flags);
+}
 
-  decode(
-    buffer: Uint8Array,
-    _flags: number,
-    codecOpts: CodecOpts,
-    packetType: TPacketType,
-  ): SubackPacket {
-    const packet = {} as SubackPacket;
-    const decoder = new Decoder(packetType, buffer);
-    packet.type = PacketType.suback;
-    packet.id = decoder.getInt16();
-    packet.protocolLevel = codecOpts.protocolLevel;
+export function decode(
+  buffer: Uint8Array,
+  _flags: number,
+  codecOpts: CodecOpts,
+  packetType: TPacketType,
+): SubackPacket {
+  const packet = {} as SubackPacket;
+  const decoder = new Decoder(packetType, buffer);
+  packet.type = PacketType.suback;
+  packet.id = decoder.getInt16();
+  packet.protocolLevel = codecOpts.protocolLevel;
 
-    if (packet.protocolLevel !== 5) {
-      const payload = decoder.getRemainder();
-      packet.returnCodes = [];
-      for (const code of payload) {
-        if (!validReturnCodes.includes(code)) {
-          throw new DecoderError("Invalid return code");
-        }
-        packet.returnCodes.push(code);
+  if (packet.protocolLevel !== 5) {
+    const payload = decoder.getRemainder();
+    packet.returnCodes = [];
+    for (const code of payload) {
+      if (!validReturnCodes.includes(code)) {
+        throw new DecoderError("Invalid return code");
       }
-      return packet;
-    }
-    packet.properties = decoder.getProperties(PacketType.suback);
-    packet.reasonCodes = [];
-    while (!decoder.atEnd()) {
-      const code = decoder.getReasonCode();
-      packet.reasonCodes.push(code);
+      packet.returnCodes.push(code);
     }
     return packet;
-  },
-};
+  }
+  packet.properties = decoder.getProperties(PacketType.suback);
+  packet.reasonCodes = [];
+  while (!decoder.atEnd()) {
+    const code = decoder.getReasonCode();
+    packet.reasonCodes.push(code);
+  }
+  return packet;
+}

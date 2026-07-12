@@ -5,19 +5,20 @@
 ### Changed
 
 - feat: replace BYOD stream by Default Readable/Writable stream
-- feat: close connection on unauthorized publish (was ignore)
-- feat: add preconnect timeout
-- feat: set default max incoming message size to 2Kb (was 2Mb)
-- feat: add TLS client and server
-- feat: add WebSocket client and server
-- feat: refactor server persistence and add sqlite based persistence
-- feat: add Eclipse paho compatibility testing
+- feat(server): close connection on unauthorized publish (was ignore)
+- feat(server): add preconnect timeout
+- feat(server): set default max incoming message size to 2Kb (was 2Mb)
+- feat: limit max number of topic and topicFilter levels to 50
+- feat(server): add TLS client and server
+- feat(server): add WebSocket client and server
+- feat(server): refactor server persistence and add sqlite based persistence
+- feat(server): add Eclipse paho compatibility testing
 - chore: add many more tests
 - chore: remove .vscode files from repo
 - chore: move benchmarks to tools folder
-- fix: fix empty payload to clear retained message
+- chore: simplify mqttPacket encoder/decoder exports
+- fix(server): fix empty payload to clear retained message
 - fix: remove password from demo logging and debug logging
-- fix: limit max number of topic and topicFilter levels to 50
 
 ## [v1.11.3] 31-05-2026
 

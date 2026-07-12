@@ -29,22 +29,22 @@ export { ReasonCode, ReasonCodeByNumber } from "./ReasonCode.ts";
 import { PacketNameByType, PacketType } from "./PacketType.ts";
 import { invalidTopic, invalidTopicFilter, invalidUTF8 } from "./validators.ts";
 import { decodeLength, encodeLength } from "./length.ts";
-import { connect } from "./connect.ts";
-import { connack } from "./connack.ts";
+import * as connect from "./connect.ts";
+import * as connack from "./connack.ts";
 import {
   AuthenticationResult,
   AuthenticationResultByNumber,
 } from "./AuthenticationResult.ts";
-import { publish } from "./publish.ts";
-import { anyAck } from "./pubblishAcks.ts";
-import { subscribe } from "./subscribe.ts";
-import { suback } from "./suback.ts";
-import { unsubscribe } from "./unsubscribe.ts";
-import { unsuback } from "./unsuback.ts";
-import { pingreq } from "./pingreq.ts";
-import { pingres } from "./pingres.ts";
-import { disconnect } from "./disconnect.ts";
-import { auth } from "./auth.ts";
+import * as publish from "./publish.ts";
+import * as anyAck from "./pubblishAcks.ts";
+import * as subscribe from "./subscribe.ts";
+import * as suback from "./suback.ts";
+import * as unsubscribe from "./unsubscribe.ts";
+import * as unsuback from "./unsuback.ts";
+import * as pingreq from "./pingreq.ts";
+import * as pingres from "./pingres.ts";
+import * as disconnect from "./disconnect.ts";
+import * as auth from "./auth.ts";
 import { DecoderError } from "./decoder.ts";
 
 import type { ConnectPacket } from "./connect.ts";
