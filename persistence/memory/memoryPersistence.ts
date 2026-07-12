@@ -5,15 +5,18 @@
  */
 import type {
   ClientId,
-  ClientRegistrationResult,
-  Handler,
-  IPersistence,
   PacketId,
   PublishPacket,
   QoS,
   Topic,
   TopicFilter,
-} from "../mod.ts";
+} from "../deps.ts";
+
+import type {
+  ClientRegistrationResult,
+  Handler,
+  IPersistence,
+} from "../persistence.ts";
 
 import { MAX_PACKET_ID } from "../mod.ts";
 import { assert, Trie } from "../deps.ts";
@@ -28,7 +31,10 @@ type ClientSubscription = {
 
 export class MemoryPersistence implements IPersistence {
   // active network connections
-  public clientHandlerList = new Map<ClientId, Handler>();
+  public clientHandlerList: Map<ClientId, Handler> = new Map<
+    ClientId,
+    Handler
+  >();
 
   // In-memory "tables",
   private sessionTable = new Map<ClientId, { existingSession: boolean }>();

@@ -6,15 +6,18 @@
 import type sqlite from "node:sqlite";
 import type {
   ClientId,
-  ClientRegistrationResult,
-  Handler,
-  IPersistence,
   PacketId,
   PublishPacket,
   QoS,
   Topic,
   TopicFilter,
-} from "../mod.ts";
+} from "../deps.ts";
+
+import type {
+  ClientRegistrationResult,
+  Handler,
+  IPersistence,
+} from "../persistence.ts";
 
 import { MAX_PACKET_ID } from "../mod.ts";
 import { assert, topicFilterToRegExp, Trie } from "../deps.ts";
@@ -58,7 +61,10 @@ function deserializePacket(
 
 export class SqlitePersistence implements IPersistence {
   // active network connections
-  public clientHandlerList = new Map<ClientId, Handler>();
+  public clientHandlerList: Map<ClientId, Handler> = new Map<
+    ClientId,
+    Handler
+  >();
 
   private db: sqlite.DatabaseSync;
 
