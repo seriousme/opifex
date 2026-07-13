@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { PacketType } from "../deps.ts";
 import {
+  addMockClient,
   connect,
   disconnect,
   startMockServer,
-  startMockServer2,
   subscribe,
 } from "../../dev_utils/mod.ts";
 
@@ -27,7 +27,7 @@ test("sessionPresent is false for new client", async () => {
 });
 
 test("sessionPresent is true when reconnecting with same clientId and clean=false", async () => {
-  const { mqttConn1, mqttConn2 } = startMockServer2();
+  const { mqttConn: mqttConn1, mqttServer } = startMockServer();
 
   const clientId = "persist-client";
   // First connection
@@ -46,6 +46,7 @@ test("sessionPresent is true when reconnecting with same clientId and clean=fals
   await disconnect(mqttConn1);
 
   // Second connection with same clientId and clean=false
+  const mqttConn2 = addMockClient(mqttServer);
   const connack2 = await connect(mqttConn2, {
     clientId,
     clean: false,
@@ -67,7 +68,7 @@ test("subscriptions persist with clean=false", async () => {
     }
     return result;
   }
-  const { mqttConn1, mqttConn2, mqttServer } = startMockServer2();
+  const { mqttConn: mqttConn1, mqttServer } = startMockServer();
   const clientId = "subscription-persist-client";
 
   // First connection
@@ -83,8 +84,6 @@ test("subscriptions persist with clean=false", async () => {
   await disconnect(mqttConn1);
 
   // Verify subscriptions are stored
-  const client1 = mqttServer.persistence.clientHandlerList.get(clientId);
-  assert(client1, "Expected client store for client-sub-persist");
   const client1Subs = await Array.fromAsync(
     mqttServer.persistence.listSubscriptions(clientId),
   );
@@ -106,6 +105,7 @@ test("subscriptions persist with clean=false", async () => {
   );
 
   // Second connection with clean=false
+  const mqttConn2 = addMockClient(mqttServer);
   const connack2 = await connect(mqttConn2, {
     clientId,
     clean: false,
@@ -120,11 +120,6 @@ test("subscriptions persist with clean=false", async () => {
   }
 
   // Verify subscriptions are restored
-  const client2 = mqttServer.persistence.clientHandlerList.get(clientId);
-  assert(
-    client2,
-    "Expected client store present after reconnection",
-  );
   const client2Subs = await Array.fromAsync(
     mqttServer.persistence.listSubscriptions(clientId),
   );
@@ -149,7 +144,7 @@ test("subscriptions persist with clean=false", async () => {
 });
 
 test("subscriptions cleared with clean=true", async () => {
-  const { mqttConn1, mqttConn2, mqttServer } = startMockServer2();
+  const { mqttConn: mqttConn1, mqttServer } = startMockServer();
   const clientId = "clean-client";
 
   // First connection - subscribe to topics
@@ -162,8 +157,6 @@ test("subscriptions cleared with clean=true", async () => {
   await disconnect(mqttConn1);
 
   // Verify subscriptions are stored
-  const client1 = mqttServer.persistence.clientHandlerList.get(clientId);
-  assert(client1, "Expected client store for client-sub-persist");
   const storedSubs = await Array.fromAsync(
     mqttServer.persistence.listSubscriptions(clientId),
   );
@@ -174,6 +167,7 @@ test("subscriptions cleared with clean=true", async () => {
   );
 
   // Second connection with clean=true
+  const mqttConn2 = addMockClient(mqttServer);
   const connack2 = await connect(mqttConn2, {
     clientId,
     clean: true,
@@ -185,12 +179,6 @@ test("subscriptions cleared with clean=true", async () => {
     "Expected sessionPresent=false when clean=true",
   );
 
-  // Verify subscriptions are cleared
-  const cleanClient = mqttServer.persistence.clientHandlerList.get(clientId);
-  assert(
-    cleanClient,
-    "Expected client handler for client-clean after reconnection",
-  );
   const cleanedSubs = await Array.fromAsync(
     mqttServer.persistence.listSubscriptions(clientId),
   );

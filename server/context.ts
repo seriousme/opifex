@@ -31,11 +31,23 @@ export const utf8Encoder = new TextEncoder();
  * Handlers are hooks that the server will call
  * and let you influence the servers behaviour.
  * The following handlers can be configured:
+ * - preconnect()
  * - isAuthenticated()
  * - isAuthorizedToPublish()
  * - isAuthorizedToSubscribe()
  */
 export type Handlers = {
+  /**
+   * Default preconnect handler that unconditionally permits all connections.
+   * @param {SockConn} conn - The connection context.
+   * @param {SockAddr} localAddress- The local adress
+   * @param {SockAddr} remoteAddress- The remote adress
+   * @returns {boolean} fakse will close the connection
+   */
+  preconnect?(
+    conn: SockConn,
+  ): boolean | Promise<boolean>;
+
   /**
    * Hook to authenticate a client connection attempt.
    * @param {Context} ctx - The connection context.
@@ -51,7 +63,7 @@ export type Handlers = {
     username: string,
     password: Uint8Array,
     connectPacket: ConnectPacket,
-  ): TAuthenticationResult;
+  ): TAuthenticationResult | Promise<TAuthenticationResult>;
 
   /**
    * Hook to authorize a message publication to a specific topic.
@@ -59,7 +71,10 @@ export type Handlers = {
    * @param {Topic} topic - The topic the client wants to publish to.
    * @returns {boolean} True if the client is authorized to publish, false otherwise.
    */
-  isAuthorizedToPublish?(ctx: Context, topic: Topic): boolean;
+  isAuthorizedToPublish?(
+    ctx: Context,
+    topic: Topic,
+  ): boolean | Promise<boolean>;
 
   /**
    * Hook to authorize a subscription request to a specific topic.
@@ -67,7 +82,10 @@ export type Handlers = {
    * @param {Topic} topic - The topic filter the client wants to subscribe to.
    * @returns {boolean} True if the client is authorized to subscribe, false otherwise.
    */
-  isAuthorizedToSubscribe?(ctx: Context, topic: Topic): boolean;
+  isAuthorizedToSubscribe?(
+    ctx: Context,
+    topic: Topic,
+  ): boolean | Promise<boolean>;
 };
 
 /**
@@ -155,9 +173,13 @@ export class Context {
         PacketNameByType[packet.type]
       } to client ${this.clientId!}`,
     );
-
-    logger.debug(`ctx.send: ${JSON.stringify(packet, null, 2)}`);
-    await this.mqttConn.send(packet);
+    if ((!this.mqttConn.isClosed)) {
+      logger.debug(`ctx.send: ${JSON.stringify(packet, null, 2)}`);
+      await this.mqttConn.send(packet);
+      if (this.mqttConn.isClosed) {
+        await this.close();
+      }
+    }
   }
 
   /**
@@ -175,7 +197,7 @@ export class Context {
       logger.verbose(
         `ctx:connect: Existing session with ${clientId} exists, closing existing session`,
       );
-      existingActiveSession.close(false);
+      await existingActiveSession.close(false);
     }
     if (clean) {
       logger.verbose(
@@ -213,7 +235,7 @@ export class Context {
     if (this.clientId) {
       await this.persistence.deregisterClient(this.clientId);
     }
-    this.close(false);
+    await this.close(false);
   }
 
   /**
@@ -222,7 +244,7 @@ export class Context {
    * and announces the client disconnection.
    * If executewill=true triggers the registered Will packet logic.
    */
-  close(executewill = true): void {
+  async close(executewill = true): Promise<void> {
     logger.debug(`server closing context ${this.connected}`);
     if (this.preconnectTimer) {
       this.preconnectTimer.clear();
@@ -237,11 +259,13 @@ export class Context {
       if (typeof this.timer === "object") {
         this.timer.clear();
       }
-      if (this.clientId) {
-        void this.broadcast("$SYS/disconnect/clients", this.clientId);
-      }
       if (executewill) {
-        void this.handleWill();
+        await this.handleWill();
+      }
+      if (this.clientId) {
+        await this.persistence.disconnectClient(this.clientId);
+        void this.broadcast("$SYS/disconnect/clients", this.clientId);
+        Context.clientList.delete(this.clientId);
       }
     } else {
       logger.debug(
@@ -263,7 +287,7 @@ export class Context {
       if (
         !this.will.topic.startsWith(SysPrefix) &&
         this.handlers.isAuthorizedToPublish &&
-        this.handlers.isAuthorizedToPublish(this, this.will.topic)
+        await this.handlers.isAuthorizedToPublish(this, this.will.topic)
       ) {
         await this.publish(this.will);
       }

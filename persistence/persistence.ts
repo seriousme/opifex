@@ -28,9 +28,6 @@ export type ClientRegistrationResult = {
  * Interface for persistence implementations to store messages and subscriptions
  */
 export interface IPersistence {
-  // Map of client handlers
-  clientHandlerList: Map<ClientId, Handler>;
-
   // initialize the persistence
   // e.g. setting up the data store
   initialize(): Promise<void>;
@@ -41,6 +38,8 @@ export interface IPersistence {
     handler: Handler,
   ): Promise<ClientRegistrationResult>;
   deregisterClient(clientId: ClientId): Promise<void>;
+
+  disconnectClient(clientId: ClientId): Promise<void>;
 
   // subscription management
   subscribe(clientId: ClientId, topic: TopicFilter, qos: QoS): Promise<void>;

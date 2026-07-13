@@ -3,13 +3,12 @@ import { test } from "node:test";
 import type { AnyPacket } from "../deps.ts";
 import { AuthenticationResult, PacketType } from "../deps.ts";
 import {
+  addMockClient,
   connect,
   disconnect,
   ping,
   publish,
   startMockServer,
-  startMockServer2,
-  startMockServer3,
   subscribe,
 } from "../../dev_utils/mod.ts";
 
@@ -128,7 +127,7 @@ test("Two connect messages on same connection closes connection", async () => {
 
 test("Second session with same client id closes the first", async () => {
   const connectPacket = structuredClone(baseConnectPacket);
-  const { mqttConn1, mqttConn2 } = startMockServer2();
+  const { mqttConn: mqttConn1, mqttServer } = startMockServer();
   // start first client
   await mqttConn1.send(connectPacket);
   const { value: connack1 } = await mqttConn1.next();
@@ -138,6 +137,7 @@ test("Second session with same client id closes the first", async () => {
     "Expected first Connack packet",
   );
   // start second client with same id
+  const mqttConn2 = addMockClient(mqttServer);
   await mqttConn2.send(connectPacket);
   const { value: connack2 } = await mqttConn2.next();
   assert.deepStrictEqual(
@@ -163,7 +163,7 @@ test("Second session with same client id closes the first", async () => {
 test("Redelivery on reconnect after failed delivery", async () => {
   const clientId = "redeliveryClient";
   const topic = "no/retained/here";
-  const { mqttConn1, mqttConn2 } = startMockServer2();
+  const { mqttConn: mqttConn1, mqttServer } = startMockServer();
   // start first client
   await connect(mqttConn1, { clientId });
   // Subscribe to topic with no retained message
@@ -186,6 +186,7 @@ test("Redelivery on reconnect after failed delivery", async () => {
     "Expected first connection to be closed",
   );
   // connect again with same clientId
+  const mqttConn2 = addMockClient(mqttServer);
   await connect(mqttConn2, { clientId, clean: false });
   // expect published packet to be redelivered because we did not ack
   const { value: packet } = await mqttConn2.next();
@@ -204,7 +205,7 @@ test("Redelivery on reconnect after failed delivery", async () => {
 
 test("Delivery of messages with QoS 1 or QoS2 received while offline", async () => {
   const clientId = "offlineClient";
-  const { mqttConn1, mqttConn2, mqttConn3 } = startMockServer3();
+  const { mqttConn: mqttConn1, mqttServer } = startMockServer();
   // start first client
   await connect(mqttConn1, { clientId });
   // Subscribe to topic with no retained message
@@ -213,6 +214,7 @@ test("Delivery of messages with QoS 1 or QoS2 received while offline", async () 
   await disconnect(mqttConn1);
 
   //  connect the publisher
+  const mqttConn2 = addMockClient(mqttServer);
   await connect(mqttConn2, { clientId: "publisher" });
   await publish(mqttConn2, "offline/q0", 0, { id: 10 });
   await publish(mqttConn2, "offline/q1", 1, { id: 11 });
@@ -220,6 +222,7 @@ test("Delivery of messages with QoS 1 or QoS2 received while offline", async () 
   await disconnect(mqttConn2);
 
   // connect again with same clientId as the initial connect
+  const mqttConn3 = addMockClient(mqttServer);
   await connect(mqttConn3, { clientId, clean: false });
   // expect published packet that was delivered while offline
   const { value: packetQos1 } = await mqttConn3.next();

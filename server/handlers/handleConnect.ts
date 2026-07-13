@@ -8,12 +8,12 @@ import type { ConnectPacket, TAuthenticationResult } from "../deps.ts";
  * @param packet - The MQTT CONNECT packet
  * @returns Authentication result indicating if the client is authenticated
  */
-function isAuthenticated(
+async function isAuthenticated(
   ctx: Context,
   packet: ConnectPacket,
-): TAuthenticationResult {
+): Promise<TAuthenticationResult> {
   if (ctx.handlers.isAuthenticated) {
-    return ctx.handlers.isAuthenticated(
+    return await ctx.handlers.isAuthenticated(
       ctx,
       packet.clientId || "",
       packet.username || "",
@@ -30,15 +30,16 @@ function isAuthenticated(
  * @param packet - The MQTT CONNECT packet to validate
  * @returns Authentication result indicating if the CONNECT packet is valid
  */
-function validateConnect(
+
+async function validateConnect(
   ctx: Context,
   packet: ConnectPacket,
-): TAuthenticationResult {
+): Promise<TAuthenticationResult> {
   if (packet.protocolLevel !== 4) {
     return AuthenticationResult.unacceptableProtocol;
   }
 
-  return isAuthenticated(ctx, packet);
+  return await isAuthenticated(ctx, packet);
 }
 
 /**
@@ -96,7 +97,7 @@ export async function handleConnect(
   packet: ConnectPacket,
 ): Promise<void> {
   const clientId = packet.clientId || `Opifex-${crypto.randomUUID()}`;
-  const returnCode = validateConnect(ctx, packet);
+  const returnCode = await validateConnect(ctx, packet);
   const sessionPresent = await processValidatedConnect(
     returnCode,
     packet,
@@ -111,7 +112,7 @@ export async function handleConnect(
   });
   logger.debug("connect returnCode", returnCode);
   if (returnCode !== AuthenticationResult.ok) {
-    ctx.close(false);
+    await ctx.close(false);
     return;
   }
   if (sessionPresent) {

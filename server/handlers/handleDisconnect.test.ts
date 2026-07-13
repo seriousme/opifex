@@ -3,11 +3,11 @@ import { test } from "node:test";
 import type { AnyPacket } from "../deps.ts";
 import { PacketType } from "../deps.ts";
 import {
+  addMockClient,
   checkNoPacket,
   connect,
   disconnect,
   startMockServer,
-  startMockServer2,
   subscribe,
 } from "../../dev_utils/mod.ts";
 
@@ -40,12 +40,13 @@ test("DISCONNECT clears will message", async () => {
     },
   };
 
-  const { mqttConn1, mqttConn2 } = startMockServer2();
+  const { mqttConn: mqttConn1, mqttServer } = startMockServer();
   // Connect subscriber to catch any will message
   await connect(mqttConn1);
   await subscribe(mqttConn1, [{ topicFilter: "will/topic", qos: 0 }]);
 
   // Connect with will message
+  const mqttConn2 = addMockClient(mqttServer);
   mqttConn2.send(connectWithWill);
   const { value: connack2 } = await mqttConn2.next();
   assert.deepStrictEqual(connack2.type, PacketType.connack, "Expected CONNACK");

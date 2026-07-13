@@ -2,10 +2,11 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { PacketType } from "../deps.ts";
 import {
+  addMockClient,
   connect,
   disconnect,
   ping,
-  startMockServer2,
+  startMockServer,
   subscribe,
 } from "../../dev_utils/mod.ts";
 
@@ -16,12 +17,13 @@ test("MQTT-3.1.2.5: will message delivered on ungraceful disconnect", {
 }, async () => {
   const willTopic = "will/topic";
   const payload = txtEncoder.encode("goodbye");
-  const { mqttConn1: subscriber, mqttConn2: publisher } = startMockServer2();
+  const { mqttConn: subscriber, mqttServer } = startMockServer();
 
   // Subscriber connects
   await connect(subscriber, { clientId: "subscriber1" });
   await subscribe(subscriber, [{ topicFilter: willTopic, qos: 0 }]);
 
+  const publisher = addMockClient(mqttServer);
   // Publisher connects
   await connect(publisher, {
     clientId: "publisher1",
@@ -66,12 +68,13 @@ test("MQTT-3.1.2.5: will message NOT delivered on graceful DISCONNECT", {
 }, async () => {
   const willTopic = "will/topic2";
   const payload = txtEncoder.encode("goodbye");
-  const { mqttConn1: subscriber, mqttConn2: publisher } = startMockServer2();
+  const { mqttConn: subscriber, mqttServer } = startMockServer();
 
   // Subscriber connects
   await connect(subscriber, { clientId: "subscriber2" });
   await subscribe(subscriber, [{ topicFilter: willTopic, qos: 0 }]);
 
+  const publisher = addMockClient(mqttServer);
   // Publisher connects
   await connect(publisher, {
     clientId: "publisher2",
@@ -97,13 +100,14 @@ test("MQTT-3.1.2.5: will message delivered with correct QoS", {
 }, async () => {
   const willTopic = "will/qos";
   const payload = txtEncoder.encode("goodbye");
-  const { mqttConn1: subscriber, mqttConn2: publisher } = startMockServer2();
+  const { mqttConn: subscriber, mqttServer } = startMockServer();
 
   // Subscriber connects
   await connect(subscriber, { clientId: "subscriber3" });
   await subscribe(subscriber, [{ topicFilter: willTopic, qos: 1 }]);
 
   // Publisher connects with will message QoS 1
+  const publisher = addMockClient(mqttServer);
   await connect(publisher, {
     clientId: "publisher3",
     will: {
@@ -146,12 +150,14 @@ test("MQTT-3.1.2.5: will message stored as retained when retain=true", {
 }, async () => {
   const willTopic = "will/retained";
   const payload = txtEncoder.encode("Retained message");
-  const { mqttConn1: subscriber, mqttConn2: publisher } = startMockServer2();
+
+  const { mqttConn: subscriber, mqttServer } = startMockServer();
 
   // Subscriber connects
   await connect(subscriber, { clientId: "subscriber4" });
 
   // Publisher connects with will retain true
+  const publisher = addMockClient(mqttServer);
   await connect(publisher, {
     clientId: "publisher4",
     will: {
@@ -196,13 +202,14 @@ test("MQTT-3.1.2.5: will message to $ topic is rejected", {
 }, async () => {
   const willTopic = "$SYS/will";
   const payload = txtEncoder.encode("System Will");
-  const { mqttConn1: subscriber, mqttConn2: publisher } = startMockServer2();
+  const { mqttConn: subscriber, mqttServer } = startMockServer();
 
   // Subscriber connects
   await connect(subscriber, { clientId: "subscriber5" });
   await subscribe(subscriber, [{ topicFilter: willTopic, qos: 0 }]);
 
   // Publisher connects with will message to system topic
+  const publisher = addMockClient(mqttServer);
   await connect(publisher, {
     clientId: "publisher5",
     will: {

@@ -7,12 +7,7 @@ export {
   runAsap,
   withTimeout,
 } from "./timers.ts";
-export {
-  addMockClient,
-  startMockServer,
-  startMockServer2,
-  startMockServer3,
-} from "./mockServer.ts";
+export { addMockClient, startMockServer } from "./mockServer.ts";
 export {
   checkNoPacket,
   connect,
