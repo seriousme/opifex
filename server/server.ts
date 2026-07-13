@@ -5,8 +5,17 @@ import type { IPersistence, SockConn, Topic } from "./deps.ts";
 import { handlePacket } from "./handlers/handlePacket.ts";
 
 /**
+ * Default preconnect handler that unconditionally permits all connections.
+ * @param {SockConn} _conn - The connection.
+ * @returns {boolean} Always returns true
+ */
+const defaultPreconnect = (
+  _conn: SockConn,
+) => true;
+
+/**
  * Default authentication handler that unconditionally permits all connections.
- * * @param {Context} _ctx - The connection context.
+ * @param {Context} _ctx - The connection context.
  * @param {string} _clientId - The client identifier.
  * @param {string} _username - The username provided by the client.
  * @param {Uint8Array} _password - The password provided by the client.
@@ -21,7 +30,7 @@ const defaultIsAuthenticated = (
 
 /**
  * Default authorization handler that unconditionally permits all topic operations.
- * * @param {Context} _ctx - The connection context.
+ * @param {Context} _ctx - The connection context.
  * @param {Topic} _topic - The topic being accessed.
  * @returns {boolean} Always returns true.
  */
@@ -64,6 +73,7 @@ export class MqttServer {
   }: MqttServerOptions) {
     this.persistence = persistence || new MemoryPersistence();
     this.handlers = {
+      preconnect: handlers?.preconnect || defaultPreconnect,
       isAuthenticated: handlers?.isAuthenticated || defaultIsAuthenticated,
       isAuthorizedToPublish: handlers?.isAuthorizedToPublish ||
         defaultIsAuthorized,
@@ -78,6 +88,12 @@ export class MqttServer {
    * @returns {Promise<void>} A promise that resolves when the connection is closed.
    */
   async serve(conn: SockConn): Promise<void> {
+    if (this.handlers.preconnect) {
+      if (!await this.handlers.preconnect(conn)) {
+        conn.close();
+        return;
+      }
+    }
     const ctx = new Context(this.persistence, conn, this.handlers);
     if (conn.remoteAddr?.transport === "tcp") {
       logger.debug(`socket connected from ${conn.remoteAddr.hostname}`);

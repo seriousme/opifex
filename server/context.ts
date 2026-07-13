@@ -31,11 +31,23 @@ export const utf8Encoder = new TextEncoder();
  * Handlers are hooks that the server will call
  * and let you influence the servers behaviour.
  * The following handlers can be configured:
+ * - preconnect()
  * - isAuthenticated()
  * - isAuthorizedToPublish()
  * - isAuthorizedToSubscribe()
  */
 export type Handlers = {
+  /**
+   * Default preconnect handler that unconditionally permits all connections.
+   * @param {SockConn} conn - The connection context.
+   * @param {SockAddr} localAddress- The local adress
+   * @param {SockAddr} remoteAddress- The remote adress
+   * @returns {boolean} fakse will close the connection
+   */
+  preconnect?(
+    conn: SockConn,
+  ): boolean | Promise<boolean>;
+
   /**
    * Hook to authenticate a client connection attempt.
    * @param {Context} ctx - The connection context.
@@ -51,7 +63,7 @@ export type Handlers = {
     username: string,
     password: Uint8Array,
     connectPacket: ConnectPacket,
-  ): TAuthenticationResult;
+  ): TAuthenticationResult | Promise<TAuthenticationResult>;
 
   /**
    * Hook to authorize a message publication to a specific topic.
@@ -59,7 +71,10 @@ export type Handlers = {
    * @param {Topic} topic - The topic the client wants to publish to.
    * @returns {boolean} True if the client is authorized to publish, false otherwise.
    */
-  isAuthorizedToPublish?(ctx: Context, topic: Topic): boolean;
+  isAuthorizedToPublish?(
+    ctx: Context,
+    topic: Topic,
+  ): boolean | Promise<boolean>;
 
   /**
    * Hook to authorize a subscription request to a specific topic.
@@ -67,7 +82,10 @@ export type Handlers = {
    * @param {Topic} topic - The topic filter the client wants to subscribe to.
    * @returns {boolean} True if the client is authorized to subscribe, false otherwise.
    */
-  isAuthorizedToSubscribe?(ctx: Context, topic: Topic): boolean;
+  isAuthorizedToSubscribe?(
+    ctx: Context,
+    topic: Topic,
+  ): boolean | Promise<boolean>;
 };
 
 /**
@@ -269,7 +287,7 @@ export class Context {
       if (
         !this.will.topic.startsWith(SysPrefix) &&
         this.handlers.isAuthorizedToPublish &&
-        this.handlers.isAuthorizedToPublish(this, this.will.topic)
+        await this.handlers.isAuthorizedToPublish(this, this.will.topic)
       ) {
         await this.publish(this.will);
       }

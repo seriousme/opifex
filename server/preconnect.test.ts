@@ -6,12 +6,15 @@ import {
   disconnect,
   startMockServer,
 } from "../dev_utils/mod.ts";
+import type { AnyPacket } from "./deps.ts";
+import { MQTTLevel } from "./deps.ts";
+import { PacketType } from "../mqttPacket/mod.ts";
 
 test(
   "Preconnect timer: connection closes if CONNECT not received within 3 seconds",
   { concurrency: false },
   async () => {
-    const { mqttConn } = await startMockServer();
+    const { mqttConn } = startMockServer();
 
     // Wait 3.5 seconds without sending CONNECT packet
     await delay(3500);
@@ -32,7 +35,7 @@ test(
   "Preconnect timer: connection succeeds if CONNECT received before timeout",
   { concurrency: false },
   async () => {
-    const { mqttConn } = await startMockServer();
+    const { mqttConn } = startMockServer();
 
     // Wait 2 seconds (before timeout)
     await delay(2000);
@@ -56,7 +59,7 @@ test(
   "Preconnect timer: connection succeeds with immediate CONNECT",
   { concurrency: false },
   async () => {
-    const { mqttConn } = await startMockServer();
+    const { mqttConn } = startMockServer();
 
     // Send CONNECT immediately
     await connect(mqttConn, { clientId: "preconnectTestImmediate" });
@@ -77,7 +80,7 @@ test(
   "Preconnect timer: closes connection at exactly 3 second mark",
   { concurrency: false },
   async () => {
-    const { mqttConn } = await startMockServer();
+    const { mqttConn } = startMockServer();
 
     // Wait just under 3 seconds - should still be connected
     await delay(2900);
@@ -108,7 +111,7 @@ test(
   "Preconnect timer: timer does not fire after successful connection",
   { concurrency: false },
   async () => {
-    const { mqttConn } = await startMockServer();
+    const { mqttConn } = startMockServer();
 
     // Connect early (at ~2 seconds)
     await delay(2000);
@@ -128,3 +131,37 @@ test(
     await disconnect(mqttConn);
   },
 );
+
+test("Preconnect handler: handler disconnects session", async () => {
+  const txtEncoder = new TextEncoder();
+
+  const connectPacket: AnyPacket = {
+    type: PacketType.connect,
+    protocolName: "MQTT",
+    protocolLevel: MQTTLevel.v4,
+    clientId: "testClient",
+    clean: true,
+    keepAlive: 0,
+    username: "IoTester_1",
+    password: txtEncoder.encode("strong_password"),
+    will: undefined,
+  };
+
+  const { mqttConn } = startMockServer({
+    handlers: {
+      preconnect: () => false,
+    },
+  });
+  await mqttConn.send(connectPacket);
+  const { value } = await mqttConn.next();
+  assert.deepStrictEqual(
+    value,
+    undefined,
+    "No connack received",
+  );
+  assert.deepStrictEqual(
+    mqttConn.isClosed,
+    true,
+    "Connection should be closed by the preconnect handler",
+  );
+});

@@ -9,12 +9,12 @@ import type { PublishPacket, Topic } from "../deps.ts";
  * @param topic - The topic to check authorization for
  * @returns boolean indicating if client is authorized to publish
  */
-function authorizedToPublish(ctx: Context, topic: Topic) {
+async function authorizedToPublish(ctx: Context, topic: Topic) {
   if (topic.startsWith(SysPrefix) && !ctx.isBroker) {
     return false;
   }
   if (ctx.handlers.isAuthorizedToPublish) {
-    return ctx.handlers.isAuthorizedToPublish(ctx, topic);
+    return await ctx.handlers.isAuthorizedToPublish(ctx, topic);
   }
   return true;
 }
@@ -30,7 +30,7 @@ export async function handlePublish(
   ctx: Context,
   packet: PublishPacket,
 ): Promise<void> {
-  if (!authorizedToPublish(ctx, packet.topic)) {
+  if (!await authorizedToPublish(ctx, packet.topic)) {
     // in V4 we can only close the connection
     await ctx.close();
     return;

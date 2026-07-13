@@ -14,9 +14,9 @@ const SubscriptionFailure = 0x80;
  * @param  topicFilter - The topic filter to check authorization for
  * @returns True if authorized, false otherwise
  */
-function authorizedToSubscribe(ctx: Context, topicFilter: Topic) {
+async function authorizedToSubscribe(ctx: Context, topicFilter: Topic) {
   if (ctx.handlers.isAuthorizedToSubscribe) {
-    return ctx.handlers.isAuthorizedToSubscribe(ctx, topicFilter);
+    return await ctx.handlers.isAuthorizedToSubscribe(ctx, topicFilter);
   }
   return true;
 }
@@ -41,7 +41,7 @@ export async function handleSubscribe(
   const validSubscriptions: Subscription[] = [];
   const returnCodes: number[] = [];
   for (const sub of packet.subscriptions) {
-    if (!authorizedToSubscribe(ctx, sub.topicFilter)) {
+    if (!await authorizedToSubscribe(ctx, sub.topicFilter)) {
       returnCodes.push(SubscriptionFailure);
       continue;
     }
