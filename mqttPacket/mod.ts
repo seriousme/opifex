@@ -5,7 +5,42 @@
  * transformations between binary and object representations.
  */
 
-import type {
+export { decode, decodePayload, encode } from "./codec.ts";
+export type { AnyPacket } from "./codec.ts";
+
+export type { ConnectPacket } from "./connect.ts";
+export type { ConnackPacket } from "./connack.ts";
+export type { PublishPacket } from "./publish.ts";
+export type { Subscription } from "./subscribe.ts";
+export type { SubscribePacket } from "./subscribe.ts";
+export type { SubackPacket } from "./suback.ts";
+export type { UnsubscribePacket } from "./unsubscribe.ts";
+export type { UnsubackPacket } from "./unsuback.ts";
+export type { PingreqPacket } from "./pingreq.ts";
+export type { PingresPacket } from "./pingres.ts";
+export type { DisconnectPacket } from "./disconnect.ts";
+export type { AuthPacket } from "./auth.ts";
+export type {
+  PubackPacket,
+  PubcompPacket,
+  PubrecPacket,
+  PubrelPacket,
+} from "./pubblishAcks.ts";
+
+export { MQTTLevel } from "./protocolLevels.ts";
+export { RetainHandling } from "./RetainHandling.ts";
+export { ReasonCode, ReasonCodeByNumber } from "./ReasonCode.ts";
+export { PacketNameByType, PacketType } from "./PacketType.ts";
+export {
+  AuthenticationResult,
+  AuthenticationResultByNumber,
+} from "./AuthenticationResult.ts";
+export { invalidTopic, invalidTopicFilter, invalidUTF8 } from "./validators.ts";
+export { decodeLength, encodeLength } from "./length.ts";
+export { getLengthDecoder } from "../mqttPacket/length.ts";
+
+export type { LengthDecoderResult } from "../mqttPacket/length.ts";
+export type {
   ClientId,
   CodecOpts,
   Dup,
@@ -22,211 +57,3 @@ import type {
   TRetainHandling,
   UTF8StringPair,
 } from "./types.ts";
-
-export { MQTTLevel } from "./protocolLevels.ts";
-export { RetainHandling } from "./RetainHandling.ts";
-export { ReasonCode, ReasonCodeByNumber } from "./ReasonCode.ts";
-import { PacketNameByType, PacketType } from "./PacketType.ts";
-import { invalidTopic, invalidTopicFilter, invalidUTF8 } from "./validators.ts";
-import { decodeLength, encodeLength } from "./length.ts";
-import * as connect from "./connect.ts";
-import * as connack from "./connack.ts";
-import {
-  AuthenticationResult,
-  AuthenticationResultByNumber,
-} from "./AuthenticationResult.ts";
-import * as publish from "./publish.ts";
-import * as anyAck from "./pubblishAcks.ts";
-import * as subscribe from "./subscribe.ts";
-import * as suback from "./suback.ts";
-import * as unsubscribe from "./unsubscribe.ts";
-import * as unsuback from "./unsuback.ts";
-import * as pingreq from "./pingreq.ts";
-import * as pingres from "./pingres.ts";
-import * as disconnect from "./disconnect.ts";
-import * as auth from "./auth.ts";
-import { DecoderError } from "./decoder.ts";
-
-import type { ConnectPacket } from "./connect.ts";
-import type { ConnackPacket } from "./connack.ts";
-import type { PublishPacket } from "./publish.ts";
-import type {
-  PubackPacket,
-  PubcompPacket,
-  PubrecPacket,
-  PubrelPacket,
-} from "./pubblishAcks.ts";
-import type { SubscribePacket } from "./subscribe.ts";
-import type { SubackPacket } from "./suback.ts";
-import type { UnsubscribePacket } from "./unsubscribe.ts";
-import type { UnsubackPacket } from "./unsuback.ts";
-import type { PingreqPacket } from "./pingreq.ts";
-import type { PingresPacket } from "./pingres.ts";
-import type { DisconnectPacket } from "./disconnect.ts";
-import type { AuthPacket } from "./auth.ts";
-
-/**
- * this can be any possible MQTT packet
- */
-export type AnyPacket =
-  | ConnectPacket
-  | ConnackPacket
-  | PublishPacket
-  | PubackPacket
-  | PubrecPacket
-  | PubrelPacket
-  | PubcompPacket
-  | SubscribePacket
-  | SubackPacket
-  | UnsubscribePacket
-  | UnsubackPacket
-  | PingreqPacket
-  | PingresPacket
-  | DisconnectPacket
-  | AuthPacket;
-
-export type {
-  AuthPacket,
-  ClientId,
-  CodecOpts,
-  ConnackPacket,
-  ConnectPacket,
-  DisconnectPacket,
-  Dup,
-  PacketId,
-  Payload,
-  PingreqPacket,
-  PingresPacket,
-  ProtocolLevel,
-  PubackPacket,
-  PubcompPacket,
-  PublishPacket,
-  PubrecPacket,
-  PubrelPacket,
-  QoS,
-  ReturnCodes,
-  SubackPacket,
-  SubscribePacket,
-  TAuthenticationResult,
-  Topic,
-  TopicFilter,
-  TPacketType,
-  TReasonCode,
-  TRetainHandling,
-  UnsubackPacket,
-  UnsubscribePacket,
-  UTF8StringPair,
-};
-
-export type { Subscription } from "./subscribe.ts";
-
-export {
-  AuthenticationResult,
-  AuthenticationResultByNumber,
-  decodeLength,
-  encodeLength,
-  invalidTopic,
-  invalidTopicFilter,
-  invalidUTF8,
-  PacketNameByType,
-  PacketType,
-};
-
-/**
- * Array mapping MQTT packet types to their corresponding encode/decode handlers
- * Index corresponds to packet type number.
- */
-export const packetsByType = [
-  null,
-  connect, // 1
-  connack, // 2
-  publish, // 3
-  anyAck, // 4 puback
-  anyAck, // 5 pubrec
-  anyAck, // 6 pubrel
-  anyAck, // 7 pubcomp
-  subscribe, // 8
-  suback, // 9
-  unsubscribe, // 10
-  unsuback, // 11
-  pingreq, // 12
-  pingres, // 13
-  disconnect, // 14
-  auth, // 15
-] as const;
-
-/**
- * @function encode
- * @description Encodes an MQTT packet object into a binary Uint8Array format
- * @param {AnyPacket} packet - The MQTT packet object to encode
- * @param {CodecOpts} codecOpts - options to use during encoding
- * @returns {Uint8Array} The encoded packet as a binary buffer
- * @throws {Error} If packet encoding fails
- */
-export function encode(
-  packet: AnyPacket,
-  codecOpts: CodecOpts,
-): Uint8Array {
-  const packetType: number = packet.type;
-  // deno-lint-ignore no-explicit-any
-  const pkt: any = packet;
-  const encoded = packetsByType[packetType]?.encode(pkt, codecOpts);
-  if (!encoded) {
-    throw Error("Packet encoding failed");
-  }
-  return encoded;
-}
-
-/**
- * @function decodePayload
- * @description Decodes a packet payload from binary format into an MQTT packet object
- * @param {number} firstByte - The first byte of the MQTT packet containing type and flags
- * @param {Uint8Array} buffer - The binary buffer containing the packet payload
- * @param {CodecOpts} codecOpts - options to use during encoding
- * @returns {AnyPacket} The decoded MQTT packet object
- * @throws {DecoderError} If packet decoding fails
- */
-
-export function decodePayload(
-  firstByte: number,
-  buffer: Uint8Array,
-  codecOpts: CodecOpts,
-): AnyPacket {
-  const packetType = firstByte >> 4;
-  const flags = firstByte & 0x0f;
-  const packet = packetsByType[packetType]?.decode(
-    buffer,
-    flags,
-    codecOpts,
-    packetType as TPacketType,
-  );
-  if (packet !== undefined) {
-    return packet;
-  }
-  throw new DecoderError("packet decoding failed");
-}
-
-/**
- * @function decode
- * @description Decodes a complete MQTT packet from binary format into a packet object
- *
- * @param {Uint8Array} buffer - The binary buffer containing the complete MQTT packet
- * @param {CodecOpts} codecOpts - the options for the decoder
- * @returns {AnyPacket} The decoded MQTT packet object
- * @throws {DecoderError} If packet decoding fails due to invalid format or insufficient data
- */
-export function decode(
-  buffer: Uint8Array,
-  codecOpts: CodecOpts,
-): AnyPacket {
-  if (buffer.length < 2) {
-    throw new DecoderError("Packet decoding failed");
-  }
-  const { length, numLengthBytes } = decodeLength(buffer, 1);
-  const start = numLengthBytes + 1;
-  const end = start + length;
-  return decodePayload(buffer[0] || 0, buffer.subarray(start, end), codecOpts);
-}
-
-export { getLengthDecoder } from "../mqttPacket/length.ts";
-export type { LengthDecoderResult } from "../mqttPacket/length.ts";
