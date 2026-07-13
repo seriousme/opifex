@@ -12,6 +12,7 @@
 - feat(server): add TLS client and server
 - feat(server): add WebSocket client and server
 - feat(server): refactor server persistence and add sqlite based persistence
+- feat(server): add a preconnect handler
 - feat(server): add Eclipse paho compatibility testing
 - chore: add many more tests
 - chore: remove .vscode files from repo
