@@ -111,7 +111,7 @@ export async function handleConnect(
   });
   logger.debug("connect returnCode", returnCode);
   if (returnCode !== AuthenticationResult.ok) {
-    ctx.close(false);
+    await ctx.close(false);
     return;
   }
   if (sessionPresent) {

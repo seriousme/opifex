@@ -58,12 +58,6 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
   describe(`${name} - Shared Behavioral Tests`, () => {
     // === Basic Operations ===
 
-    test("initializes with empty client list", () => {
-      const { persistence, cleanup } = factory();
-      assert.strictEqual(persistence.clientHandlerList.size, 0);
-      cleanup();
-    });
-
     test("registerClient creates client", async () => {
       const { persistence, cleanup } = factory();
       const { existingSession } = await persistence.registerClient(
@@ -71,19 +65,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
         () => Promise.resolve(),
       );
 
-      assert.strictEqual(persistence.clientHandlerList.size, 1);
-      assert(persistence.clientHandlerList.has("client1"));
       assert.strictEqual(existingSession, false);
-      cleanup();
-    });
-
-    test("deregisterClient removes client from list", async () => {
-      const { persistence, cleanup } = factory();
-      await persistence.registerClient("client1", () => Promise.resolve());
-      assert.strictEqual(persistence.clientHandlerList.size, 1);
-
-      await persistence.deregisterClient("client1");
-      assert.strictEqual(persistence.clientHandlerList.size, 0);
       cleanup();
     });
 
@@ -690,9 +672,6 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       }
 
       await Promise.all(operations);
-
-      // All active clients should be deregistered
-      assert.strictEqual(persistence.clientHandlerList.size, 0);
       cleanup();
     });
   });

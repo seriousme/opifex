@@ -32,7 +32,7 @@ export async function handlePublish(
 ): Promise<void> {
   if (!authorizedToPublish(ctx, packet.topic)) {
     // in V4 we can only close the connection
-    ctx.close();
+    await ctx.close();
     return;
   }
 

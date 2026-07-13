@@ -169,6 +169,11 @@ export class SqlitePersistence implements IPersistence {
     return Promise.resolve();
   }
 
+  disconnectClient(clientId: ClientId): Promise<void> {
+    this.clientHandlerList.delete(clientId);
+    return Promise.resolve();
+  }
+
   // --- Subscriptions ---
   subscribe(
     clientId: ClientId,

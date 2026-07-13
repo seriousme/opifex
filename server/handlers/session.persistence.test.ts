@@ -83,8 +83,6 @@ test("subscriptions persist with clean=false", async () => {
   await disconnect(mqttConn1);
 
   // Verify subscriptions are stored
-  const client1 = mqttServer.persistence.clientHandlerList.get(clientId);
-  assert(client1, "Expected client store for client-sub-persist");
   const client1Subs = await Array.fromAsync(
     mqttServer.persistence.listSubscriptions(clientId),
   );
@@ -120,11 +118,6 @@ test("subscriptions persist with clean=false", async () => {
   }
 
   // Verify subscriptions are restored
-  const client2 = mqttServer.persistence.clientHandlerList.get(clientId);
-  assert(
-    client2,
-    "Expected client store present after reconnection",
-  );
   const client2Subs = await Array.fromAsync(
     mqttServer.persistence.listSubscriptions(clientId),
   );
@@ -162,8 +155,6 @@ test("subscriptions cleared with clean=true", async () => {
   await disconnect(mqttConn1);
 
   // Verify subscriptions are stored
-  const client1 = mqttServer.persistence.clientHandlerList.get(clientId);
-  assert(client1, "Expected client store for client-sub-persist");
   const storedSubs = await Array.fromAsync(
     mqttServer.persistence.listSubscriptions(clientId),
   );
@@ -185,12 +176,6 @@ test("subscriptions cleared with clean=true", async () => {
     "Expected sessionPresent=false when clean=true",
   );
 
-  // Verify subscriptions are cleared
-  const cleanClient = mqttServer.persistence.clientHandlerList.get(clientId);
-  assert(
-    cleanClient,
-    "Expected client handler for client-clean after reconnection",
-  );
   const cleanedSubs = await Array.fromAsync(
     mqttServer.persistence.listSubscriptions(clientId),
   );

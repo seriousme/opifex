@@ -5,7 +5,7 @@ import type { Context } from "../context.ts";
  * @param {Context} ctx - The connection context object
  * @returns {void}
  */
-export function handleDisconnect(ctx: Context): void {
+export async function handleDisconnect(ctx: Context): Promise<void> {
   // close the context without sending the will
-  ctx.close(false);
+  await ctx.close(false);
 }

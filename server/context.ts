@@ -155,9 +155,13 @@ export class Context {
         PacketNameByType[packet.type]
       } to client ${this.clientId!}`,
     );
-
-    logger.debug(`ctx.send: ${JSON.stringify(packet, null, 2)}`);
-    await this.mqttConn.send(packet);
+    if ((!this.mqttConn.isClosed)) {
+      logger.debug(`ctx.send: ${JSON.stringify(packet, null, 2)}`);
+      await this.mqttConn.send(packet);
+      if (this.mqttConn.isClosed) {
+        await this.close();
+      }
+    }
   }
 
   /**
@@ -175,7 +179,7 @@ export class Context {
       logger.verbose(
         `ctx:connect: Existing session with ${clientId} exists, closing existing session`,
       );
-      existingActiveSession.close(false);
+      await existingActiveSession.close(false);
     }
     if (clean) {
       logger.verbose(
@@ -213,7 +217,7 @@ export class Context {
     if (this.clientId) {
       await this.persistence.deregisterClient(this.clientId);
     }
-    this.close(false);
+    await this.close(false);
   }
 
   /**
@@ -222,7 +226,7 @@ export class Context {
    * and announces the client disconnection.
    * If executewill=true triggers the registered Will packet logic.
    */
-  close(executewill = true): void {
+  async close(executewill = true): Promise<void> {
     logger.debug(`server closing context ${this.connected}`);
     if (this.preconnectTimer) {
       this.preconnectTimer.clear();
@@ -237,11 +241,13 @@ export class Context {
       if (typeof this.timer === "object") {
         this.timer.clear();
       }
-      if (this.clientId) {
-        void this.broadcast("$SYS/disconnect/clients", this.clientId);
-      }
       if (executewill) {
-        void this.handleWill();
+        await this.handleWill();
+      }
+      if (this.clientId) {
+        await this.persistence.disconnectClient(this.clientId);
+        void this.broadcast("$SYS/disconnect/clients", this.clientId);
+        Context.clientList.delete(this.clientId);
       }
     } else {
       logger.debug(
