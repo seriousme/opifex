@@ -10,7 +10,6 @@ import {
   ping,
   publish,
   startMockServer,
-  startMockServer2,
   subscribe,
 } from "../../dev_utils/mod.ts";
 import { SqlitePersistence } from "../../persistence/sqlite/sqlitePersistence.ts";
@@ -169,7 +168,7 @@ test("SUBSCRIBE to unauthorized topic is rejected", async () => {
 // ============================================================================
 
 test("SUBSCRIBE receives retained message after SUBACK", async () => {
-  const { mqttConn1, mqttConn2 } = startMockServer2();
+  const { mqttConn: mqttConn1, mqttServer } = startMockServer();
 
   // First, publish a retained message (before any subscriber)
   await connect(mqttConn1);
@@ -186,6 +185,7 @@ test("SUBSCRIBE receives retained message after SUBACK", async () => {
   await disconnect(mqttConn1);
 
   // Connect
+  const mqttConn2 = addMockClient(mqttServer);
   await connect(mqttConn2);
 
   // Subscribe to the topic with retained message
@@ -216,7 +216,7 @@ test("SUBSCRIBE receives retained message after SUBACK", async () => {
 });
 
 test("SUBSCRIBE receives multiple retained messages matching wildcard", async () => {
-  const { mqttConn1, mqttConn2 } = startMockServer2();
+  const { mqttConn: mqttConn1, mqttServer } = startMockServer();
   // Set up multiple retained messages
   await connect(mqttConn1);
   await mqttConn1.send({
@@ -238,6 +238,7 @@ test("SUBSCRIBE receives multiple retained messages matching wildcard", async ()
   await disconnect(mqttConn1);
 
   // Connect the second client
+  const mqttConn2 = addMockClient(mqttServer);
   await connect(mqttConn2);
 
   // Subscribe with wildcard
@@ -273,7 +274,7 @@ test("SUBSCRIBE receives multiple retained messages matching wildcard", async ()
 });
 
 test("SUBSCRIBE receives multiple retained messages with different QoS", async () => {
-  const { mqttConn1, mqttConn2 } = startMockServer2();
+  const { mqttConn: mqttConn1, mqttServer } = startMockServer();
   // Set up multiple retained messages
   await connect(mqttConn1);
   await publish(mqttConn1, "retained/qos0", 0, {
@@ -314,6 +315,7 @@ test("SUBSCRIBE receives multiple retained messages with different QoS", async (
     "retained/qos2",
   ]);
   await disconnect(mqttConn1);
+  const mqttConn2 = addMockClient(mqttServer);
   await connect(mqttConn2);
   // clear retained
   await publish(mqttConn2, "retained/qos0", 0, {

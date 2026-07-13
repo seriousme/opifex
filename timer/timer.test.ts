@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { delay } from "../dev_utils/mod.ts";
 
-test("timer should ring", async () => {
+test("timer should ring", { concurrency: false }, async () => {
   const wait = 50;
   const start = Date.now();
   let end = Date.now();
@@ -15,7 +15,7 @@ test("timer should ring", async () => {
   assert.deepStrictEqual(timeDiff < 10, true);
 });
 
-test("snooze should work", async () => {
+test("snooze should work", { concurrency: false }, async () => {
   const wait = 50;
   const quarterWait = Math.floor(wait / 4);
   const halfWait = quarterWait * 2;
@@ -34,7 +34,7 @@ test("snooze should work", async () => {
   assert.deepStrictEqual(timeDiff < 15, true, `TimeDiff of ${timeDiff} < 15`);
 });
 
-test("clear should work", () => {
+test("clear should work", { concurrency: false }, () => {
   const wait = 50;
   let end = 0;
   const timer = new Timer(() => {
