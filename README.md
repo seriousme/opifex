@@ -29,10 +29,10 @@ Opifex offers plugable persistence, but one can provide its own persistence.
 
 The following types are currently provided:
 
-|        | Plugable | Memeory | sqlLite |
-| ------ | -------- | ------- | ------- |
-| Client | ✅       | ✅      | ❌      |
-| Server | ✅       | ✅      | ✅      |
+|        | Plugable | Memory | Sqlite |
+| ------ | -------- | ------ | ------ |
+| Client | ✅       | ✅     | ❌     |
+| Server | ✅       | ✅     | ✅     |
 
 ## Usage
 
