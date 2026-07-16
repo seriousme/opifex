@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import { initializeDatabase } from "./sqliteDatabase.ts";
 import { SqlitePersistence } from "./sqlitePersistence.ts";
-import type { ClientSubscription } from "./sqlitePersistence.ts";
+import type { ClientSubscriptionData } from "./sqlitePersistence.ts";
 import assert from "node:assert/strict";
 
 test("SqlitePersistence - Trie is correctly rebuilt (restored) from the database", () => {
@@ -25,17 +25,17 @@ test("SqlitePersistence - Trie is correctly rebuilt (restored) from the database
   const trie = (persistence as any).trie;
 
   // Test matching for "sensor/temperature"
-  const matches: ClientSubscription[] = Array.from(
+  const matches: ClientSubscriptionData[] = Array.from(
     trie.match("sensor/temperature"),
   );
 
   // There should be 2 matches: client_A (exact match) and client_B (via wildcard #)
   assert.strictEqual(matches.length, 2);
 
-  const clientA = matches.find((m: ClientSubscription) =>
+  const clientA = matches.find((m: ClientSubscriptionData) =>
     m.clientId === "client_A"
   );
-  const clientB = matches.find((m: ClientSubscription) =>
+  const clientB = matches.find((m: ClientSubscriptionData) =>
     m.clientId === "client_B"
   );
 

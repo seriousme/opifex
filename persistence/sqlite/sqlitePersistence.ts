@@ -11,10 +11,12 @@ import type {
   QoS,
   Topic,
   TopicFilter,
+  TRetainHandling,
 } from "../deps.ts";
 
 import type {
   ClientRegistrationResult,
+  ClientSubscription,
   Handler,
   IPersistence,
 } from "../persistence.ts";
@@ -26,11 +28,11 @@ import { deleteClientState, initializeDatabase } from "./sqliteDatabase.ts";
 const SQLITE_DATABASE_URL = ":memory:";
 
 /**
- * Represents a subscription mapped to a specific client with its QoS level.
+ * Extended representation of a subscription supporting MQTT v5 options for
+ * storage in the table
  */
-export type ClientSubscription = {
+export type ClientSubscriptionData = Omit<ClientSubscription, "topicFilter"> & {
   clientId: ClientId;
-  qos: QoS;
 };
 
 /**
@@ -65,8 +67,11 @@ export class SqlitePersistence implements IPersistence {
 
   private db: sqlite.DatabaseSync;
 
+  // in memory session info cache
+  private sessionTable = new Map<ClientId, ClientRegistrationResult>();
+
   // In-memory Trie to retain fast MQTT topic matching performance
-  private trie = new Trie<ClientSubscription>();
+  private trie = new Trie<ClientSubscriptionData>();
   // In-memory Packet ID generator per client
   private packetIdCounters = new Map<ClientId, number>();
 
@@ -77,6 +82,7 @@ export class SqlitePersistence implements IPersistence {
       this.db = db; // Gebruik de al geïnitialiseerde test-database
     }
     this.rebuildTrie();
+    this.rebuildSessionTable();
   }
 
   initialize(): Promise<void> {
@@ -96,21 +102,38 @@ export class SqlitePersistence implements IPersistence {
   }
 
   /**
-   * Rebuilds the in-memory Trie from the database on startup.
+   * Rebuilds the in-memory session table from the database on startup.
    */
   private rebuildTrie(): void {
     const stmt = this.db.prepare(
-      "select client_id, topic, qos from subscriptions",
+      "select client_id, topic, subscription_data from subscriptions",
     );
     for (
       const row of stmt.iterate() as IterableIterator<
-        { client_id: string; topic: string; qos: number }
+        { client_id: string; topic: string; subscription_data: string }
       >
     ) {
-      this.trie.add(row.topic, {
-        clientId: row.client_id,
-        qos: row.qos as QoS,
-      });
+      const subdata = JSON.parse(row.subscription_data);
+      subdata.clientId = row.client_id;
+      this.trie.add(row.topic, subdata);
+    }
+  }
+
+  /**
+   * Rebuilds the in-memory Trie from the database on startup.
+   */
+  private rebuildSessionTable(): void {
+    this.sessionTable.clear();
+    const stmt = this.db.prepare(
+      "select client_id, session_data from client_sessions",
+    );
+    for (
+      const row of stmt.iterate() as IterableIterator<
+        { client_id: string; session_data: string }
+      >
+    ) {
+      const sessionData = JSON.parse(row.session_data);
+      this.sessionTable.set(row.client_id, sessionData);
     }
   }
 
@@ -120,47 +143,41 @@ export class SqlitePersistence implements IPersistence {
   ): Promise<ClientRegistrationResult> {
     this.clientHandlerList.set(clientId, handler);
 
-    const stmt = this.db.prepare(
-      "select existing_session from client_sessions where client_id = ?",
-    );
-    const row = stmt.get(clientId) as { existing_session: number } | undefined;
-
-    if (row) {
+    const sessionData = this.sessionTable.get(clientId);
+    if (sessionData) {
+      sessionData.existingSession = true;
       this.db.prepare(
-        "update client_sessions set existing_session = 1 where client_id = ?",
-      ).run(clientId);
-      return Promise.resolve({ existingSession: true });
+        "update client_sessions set session_data = ? where client_id = ?",
+      ).run(JSON.stringify(sessionData), clientId);
+
+      this.sessionTable.set(clientId, sessionData);
+      return Promise.resolve(sessionData);
     }
 
+    const newSession = { existingSession: false };
     // Begin transaction for clean registration of a new client
     this.db.exec("begin;");
     try {
       this.db.prepare(
-        "insert into client_sessions (client_id, existing_session) values (?, 0)",
-      ).run(clientId);
+        "insert into client_sessions (client_id, session_data) values (?, ?)",
+      ).run(clientId, JSON.stringify(newSession));
       this.db.exec("commit;");
     } catch (err) {
       this.db.exec("rollback;");
       throw err;
     }
-
-    return Promise.resolve({ existingSession: false });
+    // add it to the cache
+    this.sessionTable.set(clientId, newSession);
+    return Promise.resolve(newSession);
   }
 
   async deregisterClient(clientId: ClientId): Promise<void> {
     this.clientHandlerList.delete(clientId);
+    this.sessionTable.delete(clientId);
 
     // Explicitly remove subscriptions from the in-memory trie first
     for await (const { topicFilter } of this.listSubscriptions(clientId)) {
-      const stmt = this.db.prepare(
-        "select qos from subscriptions where client_id = ? and topic = ?",
-      );
-      const row = stmt.get(clientId, topicFilter) as
-        | { qos: number }
-        | undefined;
-      if (row) {
-        this.trie.remove(topicFilter, { clientId, qos: row.qos as QoS });
-      }
+      this.trie.remove(topicFilter, { clientId });
     }
 
     // Purge all related relational records via the sqliteDatabase.ts helper
@@ -179,52 +196,58 @@ export class SqlitePersistence implements IPersistence {
     clientId: ClientId,
     topicFilter: TopicFilter,
     qos: QoS,
+    noLocal?: boolean,
+    retainAsPublished?: boolean,
+    retainHandling?: TRetainHandling,
+    subscriptionIdentifier?: number,
   ): Promise<void> {
+    const subData = {
+      qos,
+      noLocal,
+      retainAsPublished,
+      retainHandling,
+      subscriptionIdentifier,
+    };
     // Perform an SQL upsert
     this.db.prepare(`
-      insert into subscriptions (client_id, topic, qos) 
+      insert into subscriptions (client_id, topic, subscription_data) 
       values (?, ?, ?)
-      on conflict(client_id, topic) do update set qos = excluded.qos
-    `).run(clientId, topicFilter, qos);
+      on conflict(client_id, topic) do update set subscription_data = excluded.subscription_data
+    `).run(clientId, topicFilter, JSON.stringify(subData));
 
     // Sync changes to the in-memory trie (clear older matching variants to avoid duplication)
-    this.trie.remove(topicFilter, { clientId, qos: 0 });
-    this.trie.remove(topicFilter, { clientId, qos: 1 });
-    this.trie.remove(topicFilter, { clientId, qos: 2 });
-    this.trie.add(topicFilter, { clientId, qos });
+    this.trie.remove(topicFilter, { clientId });
+    const subscription = subData as ClientSubscriptionData;
+    subscription.clientId = clientId;
+    this.trie.add(topicFilter, subscription);
 
     return Promise.resolve();
   }
 
   unsubscribe(clientId: ClientId, topicFilter: TopicFilter): Promise<void> {
-    const stmt = this.db.prepare(
-      "select qos from subscriptions where client_id = ? and topic = ?",
-    );
-    const row = stmt.get(clientId, topicFilter) as { qos: number } | undefined;
-
-    if (row) {
-      this.trie.remove(topicFilter, { clientId, qos: row.qos as QoS });
-      this.db.prepare(
-        "delete from subscriptions where client_id = ? and topic = ?",
-      ).run(clientId, topicFilter);
-    }
+    this.trie.remove(topicFilter, { clientId });
+    this.db.prepare(
+      "delete from subscriptions where client_id = ? and topic = ?",
+    ).run(clientId, topicFilter);
 
     return Promise.resolve();
   }
 
   async *listSubscriptions(
     clientId: ClientId,
-  ): AsyncIterableIterator<{ topicFilter: TopicFilter; qos: QoS }> {
+  ): AsyncIterableIterator<ClientSubscription> {
     const stmt = this.db.prepare(
-      "select topic, qos from subscriptions where client_id = ?",
+      "select topic, subscription_data from subscriptions where client_id = ?",
     );
 
     for (
       const row of stmt.iterate(clientId) as IterableIterator<
-        { topic: string; qos: number }
+        { topic: string; subscription_data: string }
       >
     ) {
-      yield { topicFilter: row.topic, qos: row.qos as QoS };
+      const subdata = JSON.parse(row.subscription_data);
+      subdata.topicFilter = row.topic;
+      yield subdata;
     }
   }
 
@@ -408,46 +431,102 @@ export class SqlitePersistence implements IPersistence {
     assert(false, "No unused packetId available");
   }
 
-  // --- Business Logic (Publish & Retained) ---
+  // --- Business Logic (MQTT v5 Compliant) ---
+
+  /**
+   * Evaluates incoming data payloads, routes them into matching subscriber sessions,
+   * updates global retained state flags, and manages MQTT v5 attributes.
+   */
   async publish(
-    _clientId: ClientId,
+    publisherClientId: ClientId,
     topic: Topic,
     packet: PublishPacket,
   ): Promise<void> {
     if (packet.retain) {
       if (!packet.payload?.byteLength) {
-        this.db.prepare("delete from retained where topic = ?").run(
-          packet.topic,
-        );
+        this.delRetained(packet.topic);
       } else {
-        const { packetJson, payloadBlob } = serializePacket(packet);
+        this.setRetained(topic, packet);
+      }
+    }
 
-        this.db.prepare(`
+    // Map to group matched client details & aggregate choices when multiple filters match
+    const clients = new Map<
+      ClientId,
+      {
+        maxQos: QoS;
+        retainAsPublished: boolean;
+        subIds: number[];
+      }
+    >();
+
+    for (const sub of this.trie.match(topic)) {
+      if (sub.noLocal && sub.clientId === publisherClientId) {
+        continue;
+      }
+
+      let clientTarget = clients.get(sub.clientId);
+      if (!clientTarget) {
+        clientTarget = {
+          maxQos: sub.qos,
+          retainAsPublished: !!sub.retainAsPublished,
+          subIds: [],
+        };
+        clients.set(sub.clientId, clientTarget);
+      } else {
+        // Evaluate Max QoS across all matches
+        if (sub.qos > clientTarget.maxQos) {
+          clientTarget.maxQos = sub.qos;
+        }
+        // If at least one matching subscription has Retain As Published, it overrides and remains true.
+        if (sub.retainAsPublished) {
+          clientTarget.retainAsPublished = true;
+        }
+      }
+
+      if (sub.subscriptionIdentifier !== undefined) {
+        clientTarget.subIds.push(sub.subscriptionIdentifier);
+      }
+    }
+
+    for (const [clientId, targetOpts] of clients) {
+      const newPacket = structuredClone(packet);
+
+      if (!targetOpts.retainAsPublished) {
+        newPacket.retain = false;
+      }
+
+      const originalQos = packet.qos || 0;
+      newPacket.qos = originalQos < targetOpts.maxQos
+        ? originalQos
+        : targetOpts.maxQos;
+
+      // Assign multiple subscription identifiers if matched [MQTT-3.3.4-3]
+      if (targetOpts.subIds.length > 0 && newPacket.protocolLevel === 5) {
+        newPacket.properties = {
+          ...newPacket.properties,
+          subscriptionIdentifiers: targetOpts.subIds,
+        };
+      }
+
+      await this.dispatch(clientId, newPacket);
+    }
+  }
+
+  private delRetained(topic: Topic) {
+    this.db.prepare("delete from retained where topic = ?").run(
+      topic,
+    );
+  }
+
+  private setRetained(topic: Topic, packet: PublishPacket) {
+    const { packetJson, payloadBlob } = serializePacket(packet);
+
+    this.db.prepare(`
           insert into retained (topic, packet, payload)
           values (?, ?, ?)
           on conflict(topic) do update set packet = excluded.packet, payload = excluded.payload
          `).run(topic, packetJson, payloadBlob);
-      }
-    }
-
-    // Deduplicate target clients using the fast in-memory trie matching
-    const clients = new Map<ClientId, QoS>();
-    for (const { clientId, qos } of this.trie.match(topic)) {
-      const prevQos = clients.get(clientId);
-      if (!prevQos || prevQos < qos) {
-        clients.set(clientId, qos);
-      }
-    }
-
-    // Publish the message payload to all currently active online handlers
-    for (const [clientId, qos] of clients) {
-      const newPacket = structuredClone(packet);
-      newPacket.retain = false;
-
-      const newQos = packet.qos || 0;
-      newPacket.qos = newQos < qos ? newQos : qos;
-      await this.dispatch(clientId, newPacket);
-    }
   }
 
   /**
@@ -484,10 +563,81 @@ export class SqlitePersistence implements IPersistence {
       return;
     }
 
-    for await (const { topicFilter } of this.listSubscriptions(clientId)) {
-      for (const retainedPacket of this.retainedMatches(topicFilter)) {
-        await handler(retainedPacket);
+    const matchedSubsMap = new Map<Topic, ClientSubscription[]>();
+    const retainedPacketMap = new Map<Topic, PublishPacket>();
+    for await (const sub of this.listSubscriptions(clientId)) {
+      for (const retainedPacket of this.retainedMatches(sub.topicFilter)) {
+        retainedPacketMap.set(retainedPacket.topic, retainedPacket);
+        const matchedSubs = matchedSubsMap.getOrInsert(
+          retainedPacket.topic,
+          [],
+        );
+        matchedSubs.push(sub);
       }
+    }
+    for (const topic of retainedPacketMap.keys()) {
+      const packet = retainedPacketMap.get(topic);
+      const matchedSubscriptions = matchedSubsMap.get(topic);
+      if (!packet || matchedSubscriptions?.length === 0) {
+        continue;
+      }
+
+      // Aggregate state options if multiple matching subscriptions are returned
+      let maxQos: QoS = 0;
+      let retainAsPublished = false;
+      const subIds: number[] = [];
+      let shouldDeliver = false;
+
+      const clientSession = this.sessionTable.get(clientId);
+      const existingSession = clientSession?.existingSession;
+
+      for (const subData of matchedSubscriptions!) {
+        const retainHandling = subData.retainHandling ?? 0;
+
+        // 2 = Do not send retained messages at the time of the subscribe
+        if (retainHandling === 2) {
+          continue;
+        }
+        // 1 = Send retained messages at subscribe only if the subscription does not currently exist
+        if (retainHandling === 1 && existingSession) {
+          continue;
+        }
+
+        // 0 = Send retained messages at the time of the subscribe
+        shouldDeliver = true;
+
+        if (subData.qos > maxQos) {
+          maxQos = subData.qos;
+        }
+        if (subData.retainAsPublished) {
+          retainAsPublished = true;
+        }
+        if (subData.subscriptionIdentifier !== undefined) {
+          subIds.push(subData.subscriptionIdentifier);
+        }
+      }
+
+      if (!shouldDeliver) {
+        continue;
+      }
+
+      const newPacket = structuredClone(packet);
+
+      if (!retainAsPublished) {
+        newPacket.retain = false;
+      }
+
+      if (subIds.length > 0 && newPacket.protocolLevel === 5) {
+        newPacket.properties = {
+          ...newPacket.properties,
+          subscriptionIdentifiers: subIds,
+        };
+      }
+
+      const originalQos = packet.qos || 0;
+      newPacket.qos = originalQos < maxQos ? originalQos : maxQos;
+
+      await handler(newPacket);
     }
   }
 

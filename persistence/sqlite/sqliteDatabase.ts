@@ -10,12 +10,12 @@ export function initializeDatabase(filename: string): sqlite.DatabaseSync {
   db.exec(`
       create table if not exists client_sessions (
         client_id text primary key,
-        existing_session integer not null
+        session_data text not null
       );
       create table if not exists subscriptions (
         client_id text not null,
         topic text not null,
-        qos integer not null,
+        subscription_data text not null,
         primary key(client_id, topic)
       );
       create table if not exists pending_incoming (

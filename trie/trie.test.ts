@@ -141,7 +141,8 @@ test("Removal of object values works", () => {
   assert.ok(includesAll(root.match("foo/bar"), [c1, c2]), "two items found");
   root.remove("foo/bar", c2);
   assert.ok(includesAll(root.match("foo/bar"), [c1]), "one item found");
-  root.remove("foo/bar", { a: 1, b: 2, c: 3 });
+  // partial filter
+  root.remove("foo/bar", { a: 1 });
   assert.ok(includesAll(root.match("foo/bar"), []), "empty array");
   assert.deepStrictEqual(root.match("foo/bar").length, 0, "matches left");
 });

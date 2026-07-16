@@ -9,7 +9,17 @@ import type {
   QoS,
   Topic,
   TopicFilter,
+  TRetainHandling,
 } from "./deps.ts";
+
+export type ClientSubscription = {
+  topicFilter: TopicFilter;
+  qos: QoS;
+  noLocal?: boolean;
+  retainAsPublished?: boolean;
+  retainHandling?: TRetainHandling;
+  subscriptionIdentifier?: number;
+};
 
 /**
  * Maximum packet ID value for MQTT messages (0xffff/65535)
@@ -42,11 +52,19 @@ export interface IPersistence {
   disconnectClient(clientId: ClientId): Promise<void>;
 
   // subscription management
-  subscribe(clientId: ClientId, topic: TopicFilter, qos: QoS): Promise<void>;
-  unsubscribe(clientId: ClientId, topic: TopicFilter): Promise<void>;
+  subscribe(
+    clientId: ClientId,
+    topicFilter: TopicFilter,
+    qos: QoS,
+    noLocal?: boolean,
+    retainAsPublished?: boolean,
+    retainHandling?: TRetainHandling,
+    subscriptionIdentifier?: number,
+  ): Promise<void>;
+  unsubscribe(clientId: ClientId, topicFilter: TopicFilter): Promise<void>;
   listSubscriptions(
     clientId: ClientId,
-  ): AsyncIterableIterator<{ topicFilter: TopicFilter; qos: QoS }>;
+  ): AsyncIterableIterator<ClientSubscription>;
 
   // Incoming Packet management
   addPendingIncomingPacket(

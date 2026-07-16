@@ -6,6 +6,7 @@ export type {
   Subscription,
   Topic,
   TopicFilter,
+  TRetainHandling,
 } from "../mqttPacket/mod.ts";
 export { MQTTLevel, PacketType } from "../mqttPacket/mod.ts";
 export { Trie } from "../trie/trie.ts";

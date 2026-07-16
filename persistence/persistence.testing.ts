@@ -7,9 +7,11 @@ import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { MQTTLevel, PacketType } from "./deps.ts";
 import type { PublishPacket, QoS } from "./deps.ts";
-import type { IPersistence } from "./persistence.ts";
+import type { ClientSubscription, IPersistence } from "./persistence.ts";
+import type { PublishPacketV5 } from "../mqttPacket/publish.ts";
 
 const utf8Encoder = new TextEncoder();
+const utf8Decoder = new TextDecoder();
 
 function createPacket(
   topic: string,
@@ -84,6 +86,37 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
       assert(match !== undefined);
       assert.strictEqual(match.qos, 1);
+      cleanup();
+    });
+
+    test("subscribe V5 adds subscription parameters to subscriptions", async () => {
+      const { persistence, cleanup } = factory();
+      await persistence.registerClient("client1", () => Promise.resolve());
+
+      const subscriptionData: ClientSubscription = {
+        topicFilter: "test/topic",
+        qos: 1,
+        noLocal: true,
+        retainAsPublished: true,
+        retainHandling: 2,
+        subscriptionIdentifier: 5,
+      };
+
+      await persistence.subscribe(
+        "client1",
+        subscriptionData.topicFilter,
+        subscriptionData.qos,
+        subscriptionData.noLocal,
+        subscriptionData.retainAsPublished,
+        subscriptionData.retainHandling,
+        subscriptionData.subscriptionIdentifier,
+      );
+
+      const subs = await Array.fromAsync(
+        persistence.listSubscriptions("client1"),
+      );
+
+      assert.deepEqual(subs[0], subscriptionData);
       cleanup();
     });
 
@@ -497,7 +530,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       cleanup();
     });
 
-    // === Low-Level Packet & Ack Stores (Voorheen IStore functionaliteiten) ===
+    // === Low-Level Packet & Ack Stores ===
 
     test("nextPacketId returns incrementing IDs", async () => {
       const { persistence, cleanup } = factory();
@@ -888,6 +921,265 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       // Should deduplicate and use highest QoS
       assert.strictEqual(received.length, 1);
       assert.strictEqual(received[0].qos, 1);
+      cleanup();
+    });
+  });
+  // === NoLocal tests , V5 specific feature ===
+
+  describe("NoLocal Cases (V5 feature)", () => {
+    test(`${name} - MQTT v5 - noLocal prevents forwarding own publications`, async () => {
+      const { persistence, cleanup } = factory();
+      const { received } = await createReceiver(persistence, "client1");
+
+      // Subscribe with noLocal = true
+      await persistence.subscribe(
+        "client1",
+        "chat/room1",
+        0, // QoS
+        true, // noLocal = true
+      );
+
+      // Client 1 publishes a message to the channel
+      await persistence.publish(
+        "client1", // publisherClientId
+        "chat/room1",
+        createPacket("chat/room1", "hello from myself", {
+          protocolLevel: MQTTLevel.v5,
+        }),
+      );
+
+      // Client 1 should NOT receive its own message
+      assert.strictEqual(received.length, 0);
+      cleanup();
+    });
+
+    test(`${name} - MQTT v5 - noLocal still allows forwarding other clients' publications`, async () => {
+      const { persistence, cleanup } = factory();
+      const { received } = await createReceiver(persistence, "client1");
+
+      await persistence.subscribe("client1", "chat/room1", 0, true); // noLocal = true
+
+      // Client 2 publishes a message
+      await persistence.publish(
+        "client2", // different publisher
+        "chat/room1",
+        createPacket("chat/room1", "hello from client2", {
+          protocolLevel: MQTTLevel.v5,
+        }),
+      );
+
+      // Client 1 SHOULD receive this message
+      assert.strictEqual(received.length, 1);
+      assert.strictEqual(
+        received[0].payload ? utf8Decoder.decode(received[0].payload) : "",
+        "hello from client2",
+      );
+      cleanup();
+    });
+  });
+
+  // === Retain as Published , V5 specific feature ===
+  describe("Retain As Published (V5 feature)", () => {
+    test(`${name} - MQTT v5  retainAsPublished=false (default) clears the retain flag on delivery`, async () => {
+      const { persistence, cleanup } = factory();
+      const { received } = await createReceiver(persistence, "client1");
+
+      // Subscribe with retainAsPublished = false (default behavior)
+      await persistence.subscribe("client1", "status/update", 0, false, false);
+
+      await persistence.publish(
+        "publisher",
+        "status/update",
+        createPacket("status/update", "online", {
+          retain: true,
+          protocolLevel: MQTTLevel.v5,
+        }),
+      );
+
+      assert.strictEqual(received.length, 1);
+      // The forwarded packet MUST have retain set to false
+      assert.strictEqual(received[0].retain, false);
+      cleanup();
+    });
+
+    test(`${name} - MQTT v5 - retainAsPublished=true preserves the retain flag on delivery`, async () => {
+      const { persistence, cleanup } = factory();
+      const { received } = await createReceiver(persistence, "client1");
+
+      // Subscribe with retainAsPublished = true
+      await persistence.subscribe("client1", "status/update", 0, false, true);
+
+      await persistence.publish(
+        "publisher",
+        "status/update",
+        createPacket("status/update", "online", {
+          retain: true,
+          protocolLevel: MQTTLevel.v5,
+        }),
+      );
+
+      assert.strictEqual(received.length, 1);
+      // The forwarded packet MUST retain its original retain flag
+      assert.strictEqual(received[0].retain, true);
+      cleanup();
+    });
+  });
+
+  // === Subscription Identifier, V5 specific feature ===
+  describe("Subscription Identifier (V5 feature)", () => {
+    test(`${name} - MQTT v5 - subscriptionIdentifier is attached to outgoing packets on MQTT v5`, async () => {
+      const { persistence, cleanup } = factory();
+      const { received } = await createReceiver(persistence, "client1");
+
+      // Subscribe with subscription identifier = 42
+      await persistence.subscribe(
+        "client1",
+        "sensor/temp",
+        0,
+        false,
+        false,
+        0,
+        42, // subscriptionIdentifier
+      );
+
+      await persistence.publish(
+        "publisher",
+        "sensor/temp",
+        createPacket("sensor/temp", "24", { protocolLevel: MQTTLevel.v5 }),
+      );
+
+      assert.strictEqual(received.length, 1);
+      const packet = received[0] as PublishPacketV5;
+      assert.deepStrictEqual(
+        packet.properties?.subscriptionIdentifiers,
+        [42],
+      );
+      cleanup();
+    });
+
+    test(`${name} - MQTT v5 - subscriptionIdentifier is ignored if protocol level is v4`, async () => {
+      const { persistence, cleanup } = factory();
+      const { received } = await createReceiver(persistence, "client1");
+
+      await persistence.subscribe(
+        "client1",
+        "sensor/temp",
+        0,
+        false,
+        false,
+        0,
+        42,
+      );
+
+      // Publish using legacy MQTT v4 (protocolLevel: 4)
+      await persistence.publish(
+        "publisher",
+        "sensor/temp",
+        createPacket("sensor/temp", "24", { protocolLevel: MQTTLevel.v4 }),
+      );
+
+      assert.strictEqual(received.length, 1);
+      // properties.subscriptionIdentifiers should not be populated on a non-v5 packet
+      const packet = received[0] as PublishPacketV5;
+      assert.strictEqual(
+        packet.properties?.subscriptionIdentifiers,
+        undefined,
+      );
+      cleanup();
+    });
+  });
+  // === Retain Handling, V5 specific feature ===
+  describe("Retain Handling (V5 feature)", () => {
+    test(`${name} - MQTT v5 - retainHandling=0 always sends retained messages`, async () => {
+      const { persistence, cleanup } = factory();
+
+      // Publish a retained message first
+      await persistence.publish(
+        "publisher",
+        "retained/topic",
+        createPacket("retained/topic", "data", { retain: true }),
+      );
+
+      const { received } = await createReceiver(persistence, "client1");
+      await persistence.subscribe(
+        "client1",
+        "retained/topic",
+        0,
+        false,
+        false,
+        0,
+      ); // retainHandling = 0
+      await persistence.handleRetained("client1");
+
+      assert.strictEqual(received.length, 1);
+      cleanup();
+    });
+
+    test(`${name} - MQTT v5 - retainHandling=1 only sends if it is a brand-new session`, async () => {
+      const { persistence, cleanup } = factory();
+
+      await persistence.publish(
+        "publisher",
+        "retained/topic",
+        createPacket("retained/topic", "data", { retain: true }),
+      );
+
+      // Case A: Existing session (existingSession = true)
+      // Simulate an existing session by registering once, then registering again
+      await persistence.registerClient("client1", () => Promise.resolve());
+      const { received: rec1 } = await createReceiver(persistence, "client1"); // Sets existingSession = true
+      await persistence.subscribe(
+        "client1",
+        "retained/topic",
+        0,
+        false,
+        false,
+        1,
+      ); // retainHandling = 1
+      await persistence.handleRetained("client1");
+
+      // Should NOT deliver retained messages since the session already existed
+      assert.strictEqual(rec1.length, 0);
+
+      // Case B: Brand-new session (existingSession = false)
+      await persistence.deregisterClient("client2"); // Ensure blank slate
+      const { received: rec2 } = await createReceiver(persistence, "client2"); // Sets existingSession = false
+      await persistence.subscribe(
+        "client2",
+        "retained/topic",
+        0,
+        false,
+        false,
+        1,
+      ); // retainHandling = 1
+      await persistence.handleRetained("client2");
+
+      // SHOULD deliver retained message
+      assert.strictEqual(rec2.length, 1);
+      cleanup();
+    });
+
+    test(`${name} - MQTT v5 - retainHandling=2 never sends retained messages`, async () => {
+      const { persistence, cleanup } = factory();
+
+      await persistence.publish(
+        "publisher",
+        "retained/topic",
+        createPacket("retained/topic", "data", { retain: true }),
+      );
+
+      const { received } = await createReceiver(persistence, "client1");
+      await persistence.subscribe(
+        "client1",
+        "retained/topic",
+        0,
+        false,
+        false,
+        2,
+      ); // retainHandling = 2
+      await persistence.handleRetained("client1");
+
+      assert.strictEqual(received.length, 0);
       cleanup();
     });
   });
