@@ -3,10 +3,10 @@
 // Incoming
 export class IncomingAliasManager {
   constructor(private maxIncomingAllowed: number) {}
-  
+
   private aliases = new Map<number, string>();
 
-  // register an alias and throw if 
+  // register an alias and throw if
   registerAlias(alias: number, topic: string): void {
     if (alias < 1 || alias > this.maxIncomingAllowed) {
       throw new Error("Protocol Error: Alias out of reach");
@@ -26,7 +26,7 @@ export class IncomingAliasManager {
 // Outgoing
 // No fancy stuff, just Roun-Robin
 export class OutgoingAliasManager {
-  private aliases: string[] = []; 
+  private aliases: string[] = [];
   private nextToReplaceIndex = 0;
 
   constructor(private maxOutgoingAllowed: number) {}
@@ -42,13 +42,14 @@ export class OutgoingAliasManager {
     }
 
     // Assign or overwrite (Round-Robin)
-    const aliasToUse = this.aliases.length < this.maxOutgoingAllowed 
+    const aliasToUse = this.aliases.length < this.maxOutgoingAllowed
       ? this.aliases.push(topic) // push returns new length, prefect as alias (1-based)
       : this.nextToReplaceIndex + 1;
 
     if (this.aliases.length >= this.maxOutgoingAllowed) {
       this.aliases[this.nextToReplaceIndex] = topic;
-      this.nextToReplaceIndex = (this.nextToReplaceIndex + 1) % this.maxOutgoingAllowed;
+      this.nextToReplaceIndex = (this.nextToReplaceIndex + 1) %
+        this.maxOutgoingAllowed;
     }
 
     return { alias: aliasToUse, mustSendTopic: true };
