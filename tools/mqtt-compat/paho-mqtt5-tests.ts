@@ -4,16 +4,17 @@ import type { AnyPacket, ConnectPacket, MqttConn } from "../../server/deps.ts";
 import { MQTTLevel, PacketType } from "../../server/deps.ts";
 import {
   addMockClient,
-  connect,
+  connect5,
   delay,
-  disconnect,
-  publish,
+  disconnect5,
+  publish5,
   startMockServer,
-  subscribe,
+  subscribe5,
 } from "../../dev_utils/mod.ts";
+import type { PublishProperties } from "../../mqttPacket/Properties.ts";
 
 const txtEncoder = new TextEncoder();
-const level = 5;
+
 
 // Setup global-like state mimicking original setData()
 const topicPrefix = "client_test5/";
@@ -28,7 +29,7 @@ const wildtopics = ["TopicA/+", "+/C", "#", "/#", "/+", "+/+", "TopicA/#"].map(
 async function receiveMessages(conn: MqttConn): Promise<AnyPacket[]> {
   const received = Array.fromAsync(conn);
   await delay(10);
-  await disconnect(conn);
+  await disconnect5(conn);
   const messages = await received;
   return messages;
 }
@@ -39,65 +40,65 @@ test("Basic Connection and Publish Flow", async () => {
   const { mqttConn } = startMockServer();
 
   // Test Connect & Disconnect sequence
-  await connect(mqttConn, { clientId: "myclientid" });
-  await disconnect(mqttConn);
+  await connect5(mqttConn, { clientId: "myclientid" });
+  await disconnect5(mqttConn);
 
   // Reconnect and test basic subscription and publishes
   const mqttConn2 = startMockServer().mqttConn;
-  await connect(mqttConn2, { clientId: "myclientid" });
+  await connect5(mqttConn2, { clientId: "myclientid" });
 
-  await subscribe(mqttConn2, [{ topicFilter: topics[0], qos: 2 }]);
+  await subscribe5(mqttConn2, [{ topicFilter: topics[0], qos: 2 }]);
 
-  await publish(mqttConn2, topics[0], 0, {
+  await publish5(mqttConn2, topics[0], 0, {
     payload: "qos 0",
   });
-  await publish(mqttConn2, topics[0], 1, {
+  await publish5(mqttConn2, topics[0], 1, {
     payload: "qos 1",
     id: 1,
   });
-  await publish(mqttConn2, topics[0], 2, {
+  await publish5(mqttConn2, topics[0], 2, {
     payload: "qos 2",
     id: 2,
   });
 
   await delay(100);
-  await disconnect(mqttConn2);
+  await disconnect5(mqttConn2);
 });
 
 test("Retained Messages with User Properties", async () => {
   const { mqttConn, mqttServer } = startMockServer();
 
-  await connect(mqttConn, { clientId: "myclientid" });
+  await connect5(mqttConn, { clientId: "myclientid" });
 
-  const properties = {
-    userProperties: { a: "2", c: "3" },
+  const properties:PublishProperties = {
+    userProperty: [["a", "2"], ["c", "3"] ],
   };
 
   // Publish retained messages
-  await publish(mqttConn, topics[1], 0, { level, retain: true, properties });
-  await publish(mqttConn, topics[2], 1, { retain: true, properties, id: 3 });
-  await publish(mqttConn, topics[3], 2, { retain: true, properties, id: 4 });
+  await publish5(mqttConn, topics[1], 0, { retain: true, properties });
+  await publish5(mqttConn, topics[2], 1, { retain: true, properties, id: 3 });
+  await publish5(mqttConn, topics[3], 2, { retain: true, properties, id: 4 });
 
   await delay(50);
 
   // New client subscribes to catch wildcards
   const bConn = addMockClient(mqttServer);
-  await connect(bConn, { clientId: "myclientid2" });
-  await subscribe(bConn, [{ topicFilter: wildtopics[5], qos: 2 }]);
+  await connect5(bConn, { clientId: "myclientid2" });
+  await subscribe5(bConn, [{ topicFilter: wildtopics[5], qos: 2 }]);
 
   // Consume published matching packets
   const packets = await receiveMessages(bConn);
 
   assert.strictEqual(packets.length, 3);
   assert.equal(packets.filter((p) => p.type === PacketType.publish).length, 3);
-  await disconnect(mqttConn);
+  await disconnect5(mqttConn);
 });
 
 test("Will Message Configuration", async () => {
   const { mqttConn: aConn, mqttServer } = startMockServer();
 
   // Connect client A with Will
-  await connect(aConn, {
+  await connect5(aConn, {
     clientId: "myclientid",
     clean: true,
     keepAlive: 2,
@@ -115,8 +116,8 @@ test("Will Message Configuration", async () => {
 
   // Connect client B to watch the topic
   const bConn = addMockClient(mqttServer);
-  await connect(bConn, { clientId: "myclientid2" });
-  await subscribe(bConn, [{ topicFilter: topics[2], qos: 2 }]);
+  await connect5(bConn, { clientId: "myclientid2" });
+  await subscribe5(bConn, [{ topicFilter: topics[2], qos: 2 }]);
 
   // Abruptly terminate connection A without cleanly calling disconnect
   await aConn.close();
@@ -126,7 +127,7 @@ test("Will Message Configuration", async () => {
   assert.strictEqual(willPublish.type, PacketType.publish);
   assert.strictEqual(willPublish.topic, topics[2]);
 
-  await disconnect(bConn);
+  await disconnect5(bConn);
 });
 
 test("Zero Length Client Identifier Processing", async () => {
@@ -145,7 +146,7 @@ test("Zero Length Client Identifier Processing", async () => {
   const { value: connack } = await mqttConn.next();
   assert.strictEqual(connack.type, PacketType.connack);
 
-  await disconnect(mqttConn);
+  await disconnect5(mqttConn);
 });
 
 test("Offline Message Queueing (Session Expiry)", async () => {
@@ -164,22 +165,22 @@ test("Offline Message Queueing (Session Expiry)", async () => {
 
   await aConn.send(connPacket);
   await aConn.next();
-  await subscribe(aConn, [{ topicFilter: wildtopics[5], qos: 2 }]);
-  await disconnect(aConn);
+  await subscribe5(aConn, [{ topicFilter: wildtopics[5], qos: 2 }]);
+  await disconnect5(aConn);
 
   // Publish messages while offline
   const bConn = addMockClient(mqttServer);
-  await connect(bConn, { clientId: "publisher" });
-  await publish(bConn, topics[1], 0, { payload: "qos 0" });
-  await publish(bConn, topics[2], 1, {
+  await connect5(bConn, { clientId: "publisher" });
+  await publish5(bConn, topics[1], 0, { payload: "qos 0" });
+  await publish5(bConn, topics[2], 1, {
     payload: "qos 1",
     id: 10,
   });
-  await publish(bConn, topics[3], 2, {
+  await publish5(bConn, topics[3], 2, {
     payload: "qos 2",
     id: 11,
   });
-  await disconnect(bConn);
+  await disconnect5(bConn);
 
   // Reconnect target client
   const aReconnect = addMockClient(mqttServer);
@@ -193,7 +194,7 @@ test("Offline Message Queueing (Session Expiry)", async () => {
   assert.strictEqual(packet1.value.type, PacketType.publish);
   assert.strictEqual(packet2.value.type, PacketType.publish);
 
-  await disconnect(aReconnect);
+  await disconnect5(aReconnect);
 });
 
 test("Shared Subscriptions Delivery Single-Instance Verification", async () => {
@@ -201,24 +202,24 @@ test("Shared Subscriptions Delivery Single-Instance Verification", async () => {
   const sharedSubTopic = `$share/sharename/${topicPrefix}x`;
   const sharedPubTopic = `${topicPrefix}x`;
 
-  await connect(aConn, { clientId: "clientA" });
-  await subscribe(aConn, [{ topicFilter: sharedSubTopic, qos: 2 }]);
+  await connect5(aConn, { clientId: "clientA" });
+  await subscribe5(aConn, [{ topicFilter: sharedSubTopic, qos: 2 }]);
 
   const bConn = addMockClient(mqttServer);
-  await connect(bConn, { clientId: "clientB" });
-  await subscribe(bConn, [{ topicFilter: sharedSubTopic, qos: 2 }]);
+  await connect5(bConn, { clientId: "clientB" });
+  await subscribe5(bConn, [{ topicFilter: sharedSubTopic, qos: 2 }]);
 
   // Publishing to shared topic structure
   const pConn = addMockClient(mqttServer);
-  await connect(pConn, { clientId: "publisher" });
-  await publish(pConn, sharedPubTopic, 0, {
+  await connect5(pConn, { clientId: "publisher" });
+  await publish5(pConn, sharedPubTopic, 0, {
     payload: "shared content",
   });
 
   // Introduce short validation lock to check execution order balance
   await delay(50);
 
-  await disconnect(aConn);
-  await disconnect(bConn);
-  await disconnect(pConn);
+  await disconnect5(aConn);
+  await disconnect5(bConn);
+  await disconnect5(pConn);
 });

@@ -11,6 +11,10 @@ import type {
 } from "@seriousme/opifex/mqttPacket";
 import assert from "node:assert/strict";
 import { logger } from "../utils/mod.ts";
+import type {
+  DisconnectProperties,
+  PublishProperties,
+} from "../mqttPacket/Properties.ts";
 
 const txtEncoder = new TextEncoder();
 let clientIdCounter = 1;
@@ -60,6 +64,15 @@ export async function connect(mqttConn: MqttConn, {
   return connack;
 }
 
+export async function connect5(mqttConn: MqttConn, opts: {
+  clientId?: string;
+  keepAlive?: number;
+  clean?: boolean;
+  will?: ConnectPacket["will"];
+}): Promise<ConnackPacket> {
+  return await connect(mqttConn, { ...opts, level: MQTTLevel.v5 });
+}
+
 export async function subscribe(
   subscriber: MqttConn,
   subscriptions: {
@@ -91,6 +104,20 @@ export async function subscribe(
   return packet;
 }
 
+export async function subscribe5(
+  subscriber: MqttConn,
+  subscriptions: {
+    topicFilter: TopicFilter;
+    qos: QoS;
+  }[],
+  opts?: {
+    id?: number;
+    checkAcks?: boolean;
+  },
+) {
+  return await subscribe(subscriber, subscriptions, { ...opts, level: MQTTLevel.v5 });
+}
+
 export async function unsubscribe(
   subscriber: MqttConn,
   topicFilters: TopicFilter[],
@@ -111,6 +138,16 @@ export async function unsubscribe(
   assert.equal(packet.id, id, "UNSUBACK ID should match UNSUBSCRIBE ID");
 }
 
+export async function unsubscribe5(
+  subscriber: MqttConn,
+  topicFilters: TopicFilter[],
+  opts?: {
+    id?: number;
+  },
+) {
+  return await unsubscribe(subscriber, topicFilters, { ...opts, level: MQTTLevel.v5 });
+}
+
 export async function publish(
   publisher: MqttConn,
   topic: Topic,
@@ -121,8 +158,8 @@ export async function publish(
     payload = "payload",
     retain = false,
     properties = {},
+    checkAcks = true,
   } = {},
-  checkAcks = true,
 ) {
   const encodedPayload = payload !== ""
     ? txtEncoder.encode(payload)
@@ -166,6 +203,21 @@ export async function publish(
   assert.equal(compPacket.id, id, "packetid of pubcomp matches");
 }
 
+export async function publish5(
+  publisher: MqttConn,
+  topic: Topic,
+  qos: QoS,
+  opts?: {
+    id?: number;
+    payload?: string;
+    retain?: boolean;
+    properties?: PublishProperties;
+    checkAcks?: boolean;
+  },
+) {
+  await publish(publisher, topic, qos, { ...opts, level: MQTTLevel.v5 });
+}
+
 export async function disconnect(mqttConn: MqttConn, {
   level = MQTTLevel.v4,
 } = {}) {
@@ -173,6 +225,27 @@ export async function disconnect(mqttConn: MqttConn, {
     type: PacketType.disconnect,
     protocolLevel: level,
   });
+  await mqttConn.next();
+
+  assert.deepStrictEqual(
+    mqttConn.isClosed,
+    true,
+    "Expected connection to be closed",
+  );
+}
+
+export async function disconnect5(mqttConn: MqttConn, opts?: {
+  reasonCode?: number;
+  properties?: DisconnectProperties;
+}) {
+ const packet = {
+    type: PacketType.disconnect,
+    protocolLevel: MQTTLevel.v5,
+    reasonCode: opts?.reasonCode,
+    properties: opts?.properties,
+  };
+
+  mqttConn.send(packet);
   await mqttConn.next();
 
   assert.deepStrictEqual(

@@ -168,8 +168,8 @@ test("Redelivery on reconnect after failed delivery", async () => {
   await connect(mqttConn1, { clientId, clean: false });
   // Subscribe to topic with no retained message
   await subscribe(mqttConn1, [{ topicFilter: topic, qos: 1 }]);
-  // checkAcks=false as the first packet returned will be the publish, not the ack.
-  await publish(mqttConn1, topic, 1, {}, false);
+  // the first packet returned will be the publish, not the ack.
+  await publish(mqttConn1, topic, 1, { checkAcks: false });
   // first reception on our subscription
   const { value: publishPacket } = await mqttConn1.next();
   assert.deepStrictEqual(
