@@ -164,8 +164,8 @@ test("Redelivery on reconnect after failed delivery", async () => {
   const clientId = "redeliveryClient";
   const topic = "no/retained/here";
   const { mqttConn: mqttConn1, mqttServer } = startMockServer();
-  // start first client
-  await connect(mqttConn1, { clientId });
+  // start first client, clean needs to be false or else client state whill be wiped on disconnect
+  await connect(mqttConn1, { clientId, clean: false });
   // Subscribe to topic with no retained message
   await subscribe(mqttConn1, [{ topicFilter: topic, qos: 1 }]);
   // checkAcks=false as the first packet returned will be the publish, not the ack.
@@ -207,7 +207,7 @@ test("Delivery of messages with QoS 1 or QoS2 received while offline", async () 
   const clientId = "offlineClient";
   const { mqttConn: mqttConn1, mqttServer } = startMockServer();
   // start first client
-  await connect(mqttConn1, { clientId });
+  await connect(mqttConn1, { clientId, clean: false });
   // Subscribe to topic with no retained message
   await subscribe(mqttConn1, [{ topicFilter: "offline/+", qos: 1 }]);
   // hangup

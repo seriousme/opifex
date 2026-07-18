@@ -99,6 +99,9 @@ export class Context {
   /** Indicates whether the client has successfully completed the MQTT CONNECT handshake. */
   connected = false;
 
+  /** Indicates whether the client asked for a clean session */
+  cleanSession = false;
+
   /** Indicates whether the client is considered a broker and allowed  to use $SYS topics etc */
   isBroker = false;
 
@@ -189,6 +192,7 @@ export class Context {
   async connect(clientId: string, clean: boolean): Promise<boolean> {
     logger.verbose("ctx:connect connecting", clientId);
     this.clientId = clientId;
+    this.cleanSession = clean;
     if (this.preconnectTimer) {
       this.preconnectTimer.clear();
     }
@@ -250,6 +254,12 @@ export class Context {
       this.preconnectTimer.clear();
     }
     if (this.connected) {
+      if (this.cleanSession) {
+        // [MQTT-3.1.2-6] State data associated with this Session MUST NOT be reused in any subsequent Session
+        if (this.clientId) {
+          await this.persistence.deregisterClient(this.clientId);
+        }
+      }
       logger.info(
         `Closing ${this.clientId} while mqttConn is ${
           this.mqttConn.isClosed ? "" : "not "
