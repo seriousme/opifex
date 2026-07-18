@@ -108,7 +108,7 @@ test("Will Message Configuration", async () => {
       retain: false,
       properties: {
         willDelayInterval: 0,
-        userProperty: [['a','2'],[ "c", "3"] ],
+        userProperty: [["a", "2"], ["c", "3"]],
       },
     },
   });

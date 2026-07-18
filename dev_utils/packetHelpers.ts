@@ -51,7 +51,7 @@ export async function connect(mqttConn: MqttConn, {
     will,
   };
   logger.verbose("connectHelper: sending connect");
-  logger.debug({connectPacket});
+  logger.debug({ connectPacket });
   mqttConn.send(connectPacket);
   const { value: connack } = await mqttConn.next();
   logger.verbose("connectHelper: connack", connack);
@@ -135,8 +135,8 @@ export async function publish(
     qos,
     payload: encodedPayload,
     retain,
-    properties
-  }
+    properties,
+  };
   await publisher.send(publishPacket);
 
   if (!checkAcks) {

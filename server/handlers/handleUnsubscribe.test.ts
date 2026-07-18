@@ -17,7 +17,7 @@ test("UNSUBSCRIBE returns UNSUBACK", async () => {
   await subscribe(mqttConn, [{ topicFilter: "test/topic", qos: 0 }]);
 
   // Unsubscribe
-  await unsubscribe(mqttConn, ["test/topic"], {id:2});
+  await unsubscribe(mqttConn, ["test/topic"], { id: 2 });
   await disconnect(mqttConn);
 });
 
@@ -33,7 +33,7 @@ test("UNSUBSCRIBE from multiple topics returns UNSUBACK", async () => {
   ]);
 
   // Unsubscribe from both
-  await unsubscribe(mqttConn, ["topic/one", "topic/two"], {id: 3});
+  await unsubscribe(mqttConn, ["topic/one", "topic/two"], { id: 3 });
   await disconnect(mqttConn);
 });
 
@@ -43,6 +43,6 @@ test("UNSUBSCRIBE from non-existent subscription still returns UNSUBACK", async 
   await connect(mqttConn);
 
   // Unsubscribe without subscribing first,should still get a SUBACK
-  await unsubscribe(mqttConn, ["nonexistent/topic"], {id:3});
+  await unsubscribe(mqttConn, ["nonexistent/topic"], { id: 3 });
   await disconnect(mqttConn);
 });
