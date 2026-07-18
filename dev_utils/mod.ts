@@ -16,6 +16,7 @@ export {
   ping,
   publish,
   subscribe,
+  unsubscribe,
 } from "./packetHelpers.ts";
 export { generateLocalhostCerts } from "./generateCert.ts";
 export { handlers, isAuthenticatedBroker } from "./test-handlers.ts";

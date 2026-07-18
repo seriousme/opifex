@@ -32,28 +32,31 @@ export async function checkNoPacket(mqttConn: MqttConn, timeoutMs = 10) {
   assert.equal(result, null, "no packet received");
 }
 
-export async function connect(mqttConn: MqttConn, options?: {
-  clientId?: string;
-  keepAlive?: number;
-  clean?: boolean;
-  will?: ConnectPacket["will"];
-}): Promise<ConnackPacket> {
+export async function connect(mqttConn: MqttConn, {
+  level = MQTTLevel.v4,
+  clientId = `testClient-${clientIdCounter++}`,
+  keepAlive = 0,
+  clean = true,
+  will = undefined as ConnectPacket["will"],
+} = {}): Promise<ConnackPacket> {
   const connectPacket: AnyPacket = {
     type: PacketType.connect,
     protocolName: "MQTT",
-    protocolLevel: 4,
-    clientId: options?.clientId || `testClient-${clientIdCounter++}`,
-    clean: options?.clean ?? true,
-    keepAlive: options?.keepAlive || 0,
+    protocolLevel: level,
+    clientId,
+    clean,
+    keepAlive,
     username: "IoTester_1",
     password: txtEncoder.encode("strong_password"),
-    will: options?.will,
+    will,
   };
-  logger.debug("connectHelper: sending connect");
+  logger.verbose("connectHelper: sending connect");
+  logger.debug({connectPacket});
   mqttConn.send(connectPacket);
   const { value: connack } = await mqttConn.next();
-  logger.debug("connectHelper: connack", connack);
+  logger.verbose("connectHelper: connack", connack);
   assert.deepStrictEqual(connack.type, PacketType.connack, "Expected CONNACK");
+  mqttConn.codecOpts.protocolLevel = level;
   return connack;
 }
 
@@ -63,22 +66,49 @@ export async function subscribe(
     topicFilter: TopicFilter;
     qos: QoS;
   }[],
-  id = 24,
+  {
+    level = MQTTLevel.v4,
+    id = 24,
+    checkAcks = true,
+  } = {},
 ) {
   subscriber.send({
     type: PacketType.subscribe,
-    protocolLevel: MQTTLevel.v4,
+    protocolLevel: level,
     id,
     subscriptions,
   });
 
   const { value: packet } = await subscriber.next();
-  assert.equal(packet.type, PacketType.suback);
-  assert.equal(packet.id, id);
-  for (let i = 0; i < packet.returnCodes.length; i++) {
-    assert.equal(packet.returnCodes[i], subscriptions[i].qos);
+  assert.equal(packet.type, PacketType.suback, "Expected SUBACK");
+  assert.equal(packet.protocolLevel, level, "received expected level");
+  assert.equal(packet.id, id, "SUBACK ID should match SUBSCRIBE ID");
+  if (checkAcks) {
+    for (let i = 0; i < packet.returnCodes.length; i++) {
+      assert.equal(packet.returnCodes[i], subscriptions[i].qos);
+    }
   }
   return packet;
+}
+
+export async function unsubscribe(
+  subscriber: MqttConn,
+  topicFilters: TopicFilter[],
+  {
+    level = MQTTLevel.v4,
+    id = 24,
+  } = {},
+) {
+  subscriber.send({
+    type: PacketType.unsubscribe,
+    protocolLevel: level,
+    id,
+    topicFilters,
+  });
+  const { value: packet } = await subscriber.next();
+  assert.equal(packet.type, PacketType.unsuback, "Expected UNSUBACK");
+  assert.equal(packet.protocolLevel, level, "received expected level");
+  assert.equal(packet.id, id, "UNSUBACK ID should match UNSUBSCRIBE ID");
 }
 
 export async function publish(
@@ -86,24 +116,28 @@ export async function publish(
   topic: Topic,
   qos: QoS,
   {
+    level = MQTTLevel.v4,
     id = 22,
     payload = "payload",
     retain = false,
-  },
+    properties = {},
+  } = {},
   checkAcks = true,
 ) {
   const encodedPayload = payload !== ""
     ? txtEncoder.encode(payload)
     : new Uint8Array([]);
-  publisher.send({
+  const publishPacket = {
     type: PacketType.publish,
-    protocolLevel: MQTTLevel.v4,
+    protocolLevel: level,
     id,
-    topic: topic,
+    topic,
     qos,
     payload: encodedPayload,
-    retain: retain,
-  });
+    retain,
+    properties
+  }
+  await publisher.send(publishPacket);
 
   if (!checkAcks) {
     return;
@@ -112,6 +146,7 @@ export async function publish(
 
   const { value: ackPacket } = await publisher.next();
   const expectedAckType = qos === 1 ? PacketType.puback : PacketType.pubrec;
+  assert.equal(ackPacket.protocolLevel, level, "received expected level");
   assert.equal(ackPacket.type, expectedAckType, "received expected ack");
   assert.equal(ackPacket.id, id, "packetid matches");
   if (qos === 1) {
@@ -119,7 +154,7 @@ export async function publish(
   }
   publisher.send({
     type: PacketType.pubrel,
-    protocolLevel: MQTTLevel.v4,
+    protocolLevel: level,
     id,
   });
   const { value: compPacket } = await publisher.next();
@@ -131,10 +166,12 @@ export async function publish(
   assert.equal(compPacket.id, id, "packetid of pubcomp matches");
 }
 
-export async function disconnect(mqttConn: MqttConn) {
+export async function disconnect(mqttConn: MqttConn, {
+  level = MQTTLevel.v4,
+} = {}) {
   mqttConn.send({
     type: PacketType.disconnect,
-    protocolLevel: MQTTLevel.v4,
+    protocolLevel: level,
   });
   await mqttConn.next();
 

@@ -365,7 +365,7 @@ test("SUBSCRIBE with wildcard does not match $ topics", async () => {
 
   // subscribe to wildcard topic
   await connect(subscriber);
-  await subscribe(subscriber, [{ topicFilter: wildcardTopic, qos: 1 }], 30);
+  await subscribe(subscriber, [{ topicFilter: wildcardTopic, qos: 1 }], { id:30});
 
   const publisher = addMockClient(mqttServer);
   await connect(publisher);
@@ -412,7 +412,7 @@ test("SUBSCRIBE receives retained messages and clearing works", async () => {
   const subscriber1 = addMockClient(mqttServer);
   await connect(subscriber1);
 
-  await subscribe(subscriber1, [{ topicFilter: wildcardTopic, qos: 2 }], 20);
+  await subscribe(subscriber1, [{ topicFilter: wildcardTopic, qos: 2 }], {id:20});
 
   const messages: AnyPacket[] = [];
   for (let i = 0; i < 3; i++) {
@@ -458,7 +458,7 @@ test("SUBSCRIBE receives retained messages and clearing works", async () => {
 
   await connect(subscriber2);
 
-  await subscribe(subscriber2, [{ topicFilter: wildcardTopic, qos: 2 }], 21);
+  await subscribe(subscriber2, [{ topicFilter: wildcardTopic, qos: 2 }], {id: 21});
   await ping(subscriber2);
 
   await disconnect(subscriber2);
@@ -475,7 +475,7 @@ test("SUBSCRIBE redelivery on reconnect (uncompleted QoS 1/2 exchanges)", async 
   const wildtopic6 = "TopicA/#";
 
   await connect(subscriber, { clean: false, clientId });
-  await subscribe(subscriber, [{ topicFilter: wildtopic6, qos: 2 }], 40);
+  await subscribe(subscriber, [{ topicFilter: wildtopic6, qos: 2 }], {id:40});
   await disconnect(subscriber);
 
   const publisher = addMockClient(mqttServer);
