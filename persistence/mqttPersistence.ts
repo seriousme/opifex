@@ -22,8 +22,11 @@ export class MqttPersistence implements IPersistence {
   private clientHandlerList = new Map<ClientId, Handler>();
   private trie = new Trie<TrieSubscription>();
   private packetIdCounters = new Map<ClientId, number>();
+  private storage: IStorageProvider;
 
-  constructor(private storage: IStorageProvider) {}
+  constructor(storage: IStorageProvider) {
+    this.storage = storage;
+  }
 
   async initialize(): Promise<void> {
     await this.storage.initialize();
