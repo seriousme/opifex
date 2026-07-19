@@ -115,7 +115,10 @@ export async function subscribe5(
     checkAcks?: boolean;
   },
 ) {
-  return await subscribe(subscriber, subscriptions, { ...opts, level: MQTTLevel.v5 });
+  return await subscribe(subscriber, subscriptions, {
+    ...opts,
+    level: MQTTLevel.v5,
+  });
 }
 
 export async function unsubscribe(
@@ -145,7 +148,10 @@ export async function unsubscribe5(
     id?: number;
   },
 ) {
-  return await unsubscribe(subscriber, topicFilters, { ...opts, level: MQTTLevel.v5 });
+  return await unsubscribe(subscriber, topicFilters, {
+    ...opts,
+    level: MQTTLevel.v5,
+  });
 }
 
 export async function publish(
@@ -238,7 +244,7 @@ export async function disconnect5(mqttConn: MqttConn, opts?: {
   reasonCode?: number;
   properties?: DisconnectProperties;
 }) {
- const packet = {
+  const packet = {
     type: PacketType.disconnect,
     protocolLevel: MQTTLevel.v5,
     reasonCode: opts?.reasonCode,

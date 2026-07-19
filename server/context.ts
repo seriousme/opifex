@@ -218,7 +218,9 @@ export class Context {
     Context.clientList.set(clientId, this);
     logger.verbose("ctx:connect: Broadcasting client connection", clientId);
     await this.broadcast("$SYS/connect/clients", clientId);
-    const remoteAddress = this.mqttConn.remoteAddress !== "unknown"? ` from ${this.mqttConn.remoteAddress}`:"";
+    const remoteAddress = this.mqttConn.remoteAddress !== "unknown"
+      ? ` from ${this.mqttConn.remoteAddress}`
+      : "";
     logger.info(`Connected "${clientId}"${remoteAddress}`);
     return existingSession;
   }

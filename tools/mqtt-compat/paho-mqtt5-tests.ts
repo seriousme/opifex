@@ -15,7 +15,6 @@ import type { PublishProperties } from "../../mqttPacket/Properties.ts";
 
 const txtEncoder = new TextEncoder();
 
-
 // Setup global-like state mimicking original setData()
 const topicPrefix = "client_test5/";
 const topics = ["TopicA", "TopicA/B", "Topic/C", "TopicA/C", "/TopicA"].map(
@@ -70,8 +69,8 @@ test("Retained Messages with User Properties", async () => {
 
   await connect5(mqttConn, { clientId: "myclientid" });
 
-  const properties:PublishProperties = {
-    userProperty: [["a", "2"], ["c", "3"] ],
+  const properties: PublishProperties = {
+    userProperty: [["a", "2"], ["c", "3"]],
   };
 
   // Publish retained messages
