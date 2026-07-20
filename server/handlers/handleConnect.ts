@@ -35,7 +35,7 @@ async function validateConnect(
   ctx: Context,
   packet: ConnectPacket,
 ): Promise<TAuthenticationResult> {
-  if (packet.protocolLevel !== 4) {
+  if (packet.protocolLevel !== 4 && packet.protocolLevel !== 5) {
     return AuthenticationResult.unacceptableProtocol;
   }
 
@@ -87,6 +87,26 @@ async function processValidatedConnect(
   return false;
 }
 
+function reasonToReturnCode(reasonCode: number): number {
+  // Direct overlap between V4 and V5
+  if (reasonCode <= 0x05) {
+    return reasonCode;
+  }
+
+  // Specific security/autorisation cases
+  if (reasonCode === 0x87 || reasonCode === 0x8C) {
+    return 0x05; // Not Authorized
+  }
+
+  // Client ID errors
+  if (reasonCode === 0x85) { // Client Identifier not valid
+    return 0x02; // Identifier Rejected
+  }
+
+  // Fall back for any other ReasonCodes (0x80+)
+  return 0x03; // Server Unavailable
+}
+
 /**
  * Handles the MQTT CONNECT packet
  * @param ctx - The connection context
@@ -97,21 +117,24 @@ export async function handleConnect(
   packet: ConnectPacket,
 ): Promise<void> {
   const clientId = packet.clientId || `Opifex-${crypto.randomUUID()}`;
-  const returnCode = await validateConnect(ctx, packet);
+  const reasonCode = await validateConnect(ctx, packet);
   const sessionPresent = await processValidatedConnect(
-    returnCode,
+    reasonCode,
     packet,
     ctx,
     clientId,
   );
+  const isProtocolV5 = packet.protocolLevel === 5;
   await ctx.send({
     type: PacketType.connack,
     protocolLevel: ctx.protocolLevel,
     sessionPresent,
-    returnCode,
+    ...(isProtocolV5
+      ? { reasonCode }
+      : { returnCode: reasonToReturnCode(reasonCode) }),
   });
-  logger.debug("connect returnCode", returnCode);
-  if (returnCode !== AuthenticationResult.ok) {
+  logger.debug("connect reasonCode", reasonCode);
+  if (reasonCode !== AuthenticationResult.ok) {
     await ctx.close(false);
     return;
   }

@@ -289,13 +289,16 @@ export class MqttPersistence implements IPersistence {
   }
 
   // --- Unified Retained Logic ---
-  async handleRetained(clientId: ClientId): Promise<void> {
+  async handleRetained(
+    clientId: ClientId,
+    subscriptions: ClientSubscription[],
+  ): Promise<void> {
     const handler = this.clientHandlerList.get(clientId);
     if (!handler) return;
 
     const session = await this.storage.getSession(clientId);
 
-    for (const sub of await Array.fromAsync(this.listSubscriptions(clientId))) {
+    for (const sub of subscriptions) {
       for await (
         const packet of this.storage.listRetainedMatches(sub.topicFilter)
       ) {

@@ -24,6 +24,7 @@ export type {
   TAuthenticationResult,
   Topic,
   TopicFilter,
+  TReasonCode,
   UnsubackPacket,
   UnsubscribePacket,
 } from "../mqttPacket/mod.ts";
@@ -33,6 +34,7 @@ export {
   MQTTLevel,
   PacketNameByType,
   PacketType,
+  ReasonCode,
 } from "../mqttPacket/mod.ts";
 export { Timer } from "../timer/timer.ts";
 export { assert, logger, LogLevel } from "../utils/mod.ts";

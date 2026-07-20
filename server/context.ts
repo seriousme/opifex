@@ -339,6 +339,7 @@ export class Context {
       if (!this.connected) {
         break;
       }
+      packet.dup = true;
       this.send(packet);
     }
     // we only need to resend QoS2 PubRel acks

@@ -108,7 +108,10 @@ export interface IPersistence {
     topic: Topic,
     packet: PublishPacket,
   ): Promise<void>;
-  handleRetained(clientId: ClientId): Promise<void>;
+  handleRetained(
+    clientId: ClientId,
+    subscriptions: ClientSubscription[],
+  ): Promise<void>;
 
   // Packet ID Generation
   nextPacketId(clientId: ClientId): Promise<PacketId>;

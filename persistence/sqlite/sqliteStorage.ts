@@ -13,7 +13,12 @@ import type {
 import { PacketDirection } from "../storage.ts";
 import type { IStorageProvider, TrieSubscription } from "../storage.ts";
 import { topicFilterToRegExp } from "../deps.ts";
-import { deleteClientState, initializeDatabase } from "./sqliteDatabase.ts";
+import {
+  deleteClientState,
+  initializeDatabase,
+  prepareAllStatements,
+} from "./sqliteDatabase.ts";
+import type { AllStatements } from "./sqliteDatabase.ts";
 
 const SQLITE_DATABASE_URL = ":memory:";
 
@@ -39,42 +44,7 @@ function deserializePacket(
 export class SqliteStorage implements IStorageProvider {
   private db: sqlite.DatabaseSync;
 
-  // A clean statement registry bound strictly to this class instance
-  private statements!: {
-    // Sessions
-    saveSession: sqlite.StatementSync;
-    getSession: sqlite.StatementSync;
-
-    // Subscriptions
-    saveSubscription: sqlite.StatementSync;
-    deleteSubscription: sqlite.StatementSync;
-    listSubscriptions: sqlite.StatementSync;
-    listAllSubscriptions: sqlite.StatementSync;
-
-    // Pending Incoming Packets
-    saveIncoming: sqlite.StatementSync;
-    getIncoming: sqlite.StatementSync;
-    deleteIncoming: sqlite.StatementSync;
-    listIncoming: sqlite.StatementSync;
-
-    // Pending Outgoing Packets
-    saveOutgoing: sqlite.StatementSync;
-    getOutgoing: sqlite.StatementSync;
-    deleteOutgoing: sqlite.StatementSync;
-    listOutgoing: sqlite.StatementSync;
-
-    // ACKs
-    saveAck: sqlite.StatementSync;
-    hasAck: sqlite.StatementSync;
-    deleteAck: sqlite.StatementSync;
-    listAcks: sqlite.StatementSync;
-
-    // Retained
-    saveRetained: sqlite.StatementSync;
-    deleteRetained: sqlite.StatementSync;
-    getRetainedExact: sqlite.StatementSync;
-    listRetainedLike: sqlite.StatementSync;
-  };
+  private statements: AllStatements;
 
   constructor(db: string | sqlite.DatabaseSync = SQLITE_DATABASE_URL) {
     if (typeof db === "string") {
@@ -82,102 +52,7 @@ export class SqliteStorage implements IStorageProvider {
     } else {
       this.db = db;
     }
-
-    this.prepareAllStatements();
-  }
-
-  private prepareAllStatements() {
-    this.statements = {
-      // Sessions
-      saveSession: this.db.prepare(`
-        insert into client_sessions (client_id, session_data) 
-        values (?, ?)
-        on conflict(client_id) do update set session_data = excluded.session_data
-      `),
-      getSession: this.db.prepare(`
-        select session_data from client_sessions where client_id = ?
-      `),
-
-      // Subscriptions
-      saveSubscription: this.db.prepare(`
-        insert into subscriptions (client_id, topic, subscription_data) 
-        values (?, ?, ?)
-        on conflict(client_id, topic) do update set subscription_data = excluded.subscription_data
-      `),
-      deleteSubscription: this.db.prepare(`
-        delete from subscriptions where client_id = ? and topic = ?
-      `),
-      listSubscriptions: this.db.prepare(`
-        select topic, subscription_data from subscriptions where client_id = ?
-      `),
-      listAllSubscriptions: this.db.prepare(`
-        select client_id, topic, subscription_data from subscriptions
-      `),
-
-      // Pending Incoming Packets
-      saveIncoming: this.db.prepare(`
-        insert into pending_incoming (client_id, packet_id, packet, payload)
-        values (?, ?, ?, ?)
-        on conflict(client_id, packet_id) do update set packet = excluded.packet, payload = excluded.payload
-      `),
-      getIncoming: this.db.prepare(`
-        select packet, payload from pending_incoming where client_id = ? and packet_id = ?
-      `),
-      deleteIncoming: this.db.prepare(`
-        delete from pending_incoming where client_id = ? and packet_id = ?
-      `),
-      listIncoming: this.db.prepare(`
-        select packet, payload from pending_incoming where client_id = ?
-      `),
-
-      // Pending Outgoing Packets
-      saveOutgoing: this.db.prepare(`
-        insert into pending_outgoing (client_id, packet_id, packet, payload)
-        values (?, ?, ?, ?)
-        on conflict(client_id, packet_id) do update set packet = excluded.packet, payload = excluded.payload
-      `),
-      getOutgoing: this.db.prepare(`
-        select packet, payload from pending_outgoing where client_id = ? and packet_id = ?
-      `),
-      deleteOutgoing: this.db.prepare(`
-        delete from pending_outgoing where client_id = ? and packet_id = ?
-      `),
-      listOutgoing: this.db.prepare(`
-        select packet, payload from pending_outgoing where client_id = ?
-      `),
-
-      // ACKs
-      saveAck: this.db.prepare(`
-        insert into pending_ack_outgoing (client_id, packet_id)
-        values (?, ?)
-        on conflict(client_id, packet_id) do nothing
-      `),
-      hasAck: this.db.prepare(`
-        select 1 from pending_ack_outgoing where client_id = ? and packet_id = ?
-      `),
-      deleteAck: this.db.prepare(`
-        delete from pending_ack_outgoing where client_id = ? and packet_id = ?
-      `),
-      listAcks: this.db.prepare(`
-        select packet_id from pending_ack_outgoing where client_id = ?
-      `),
-
-      // Retained Messages
-      saveRetained: this.db.prepare(`
-        insert into retained (topic, packet, payload)
-        values (?, ?, ?)
-        on conflict(topic) do update set packet = excluded.packet, payload = excluded.payload
-      `),
-      deleteRetained: this.db.prepare(`
-        delete from retained where topic = ?
-      `),
-      getRetainedExact: this.db.prepare(`
-        select packet, payload from retained where topic = ?
-      `),
-      listRetainedLike: this.db.prepare(`
-        select topic, packet, payload from retained where topic like ?
-      `),
-    };
+    this.statements = prepareAllStatements(this.db);
   }
 
   initialize(): Promise<void> {

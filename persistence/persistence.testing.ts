@@ -292,8 +292,10 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
         persistence,
         "client1",
       );
-      await persistence.subscribe("client1", "test/topic", 0);
-      await persistence.handleRetained("client1");
+      await persistence.handleRetained("client1", [{
+        topicFilter: "test/topic",
+        qos: 0,
+      }]);
       assert.strictEqual(received1.length, 1);
 
       await persistence.publish("publisher", "test/topic", {
@@ -308,8 +310,11 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
         persistence,
         "client2",
       );
-      await persistence.subscribe("client2", "test/topic", 0);
-      await persistence.handleRetained("client2");
+
+      await persistence.handleRetained("client2", [{
+        topicFilter: "test/topic",
+        qos: 0,
+      }]);
       assert.strictEqual(received2.length, 0);
       cleanup();
     });
@@ -334,8 +339,10 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       );
 
       const { received } = await createReceiver(persistence, "client1");
-      await persistence.subscribe("client1", "sensor/+", 0);
-      await persistence.handleRetained("client1");
+      await persistence.handleRetained("client1", [{
+        topicFilter: "sensor/+",
+        qos: 0,
+      }]);
 
       assert.strictEqual(received.length, 2);
       cleanup();
@@ -847,8 +854,10 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
         persistence,
         "client1",
       );
-      await persistence.subscribe("client1", "large/retained", 0);
-      await persistence.handleRetained("client1");
+      await persistence.handleRetained("client1", [{
+        topicFilter: "large/retained",
+        qos: 0,
+      }]);
       assert.strictEqual(received.length, 1);
 
       assert.strictEqual(received[0]?.payload?.length, 100 * 1024);
@@ -1101,15 +1110,13 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       );
 
       const { received } = await createReceiver(persistence, "client1");
-      await persistence.subscribe(
-        "client1",
-        "retained/topic",
-        0,
-        false,
-        false,
-        0,
-      ); // retainHandling = 0
-      await persistence.handleRetained("client1");
+      await persistence.handleRetained("client1", [{
+        topicFilter: "retained/topic",
+        qos: 0,
+        noLocal: false,
+        retainAsPublished: false,
+        retainHandling: 0,
+      }]);
 
       assert.strictEqual(received.length, 1);
       cleanup();
@@ -1128,15 +1135,13 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       // Simulate an existing session by registering once, then registering again
       await persistence.registerClient("client1", () => Promise.resolve());
       const { received: rec1 } = await createReceiver(persistence, "client1"); // Sets existingSession = true
-      await persistence.subscribe(
-        "client1",
-        "retained/topic",
-        0,
-        false,
-        false,
-        1,
-      ); // retainHandling = 1
-      await persistence.handleRetained("client1");
+      await persistence.handleRetained("client1", [{
+        topicFilter: "retained/topic",
+        qos: 0,
+        noLocal: false,
+        retainAsPublished: false,
+        retainHandling: 1,
+      }]);
 
       // Should NOT deliver retained messages since the session already existed
       assert.strictEqual(rec1.length, 0);
@@ -1144,15 +1149,13 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       // Case B: Brand-new session (existingSession = false)
       await persistence.deregisterClient("client2"); // Ensure blank slate
       const { received: rec2 } = await createReceiver(persistence, "client2"); // Sets existingSession = false
-      await persistence.subscribe(
-        "client2",
-        "retained/topic",
-        0,
-        false,
-        false,
-        1,
-      ); // retainHandling = 1
-      await persistence.handleRetained("client2");
+      await persistence.handleRetained("client2", [{
+        topicFilter: "retained/topic",
+        qos: 0,
+        noLocal: false,
+        retainAsPublished: false,
+        retainHandling: 1,
+      }]);
 
       // SHOULD deliver retained message
       assert.strictEqual(rec2.length, 1);
@@ -1169,15 +1172,13 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       );
 
       const { received } = await createReceiver(persistence, "client1");
-      await persistence.subscribe(
-        "client1",
-        "retained/topic",
-        0,
-        false,
-        false,
-        2,
-      ); // retainHandling = 2
-      await persistence.handleRetained("client1");
+      await persistence.handleRetained("client1", [{
+        topicFilter: "retained/topic",
+        qos: 0,
+        noLocal: false,
+        retainAsPublished: false,
+        retainHandling: 2,
+      }]);
 
       assert.strictEqual(received.length, 0);
       cleanup();

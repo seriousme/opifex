@@ -1,6 +1,11 @@
 import type { Context } from "../context.ts";
-import { PacketType } from "../deps.ts";
-import type { SubscribePacket, Subscription, Topic } from "../deps.ts";
+import { PacketType, ReasonCode } from "../deps.ts";
+import type {
+  SubscribePacket,
+  Subscription,
+  Topic,
+  TReasonCode,
+} from "../deps.ts";
 
 /**
  * @constant {number} SubscriptionFailure
@@ -34,31 +39,40 @@ export async function handleSubscribe(
   ctx: Context,
   packet: SubscribePacket,
 ): Promise<void> {
+  const isProtocolV4 = ctx.protocolLevel === 4;
   /*
    * The order of return codes in the SUBACK Packet MUST match the order of
    * Topic Filters in the SUBSCRIBE Packet [MQTT-3.9.3-1].
    */
   const validSubscriptions: Subscription[] = [];
-  const returnCodes: number[] = [];
+  const results: number[] = [];
   for (const sub of packet.subscriptions) {
     if (!await authorizedToSubscribe(ctx, sub.topicFilter)) {
-      returnCodes.push(SubscriptionFailure);
+      // codes differ between v4 and v5
+      results.push(
+        isProtocolV4 ? SubscriptionFailure : ReasonCode.notAuthorized,
+      );
       continue;
     }
     await ctx.persistence.subscribe(ctx.clientId!, sub.topicFilter, sub.qos);
     validSubscriptions.push(sub);
-    returnCodes.push(sub.qos);
+    // codes are identical between v4 and v5
+    results.push(sub.qos);
   }
 
   await ctx.send({
     type: PacketType.suback,
     protocolLevel: ctx.protocolLevel,
     id: packet.id,
-    returnCodes: returnCodes,
+    ...(isProtocolV4
+      ? { returnCodes: results }
+      : { reasonCodes: results as TReasonCode[] }),
   });
 
   /*
    * send any retained messages that match these subscriptions
    */
-  await ctx.persistence.handleRetained(ctx.clientId!);
+  if (validSubscriptions.length > 0) {
+    await ctx.persistence.handleRetained(ctx.clientId!, validSubscriptions);
+  }
 }

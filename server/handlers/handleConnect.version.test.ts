@@ -23,6 +23,32 @@ const disconnectPacket: AnyPacket = {
   protocolLevel: MQTTLevel.v4,
 };
 
+test("rejects MQTT 3.1 (protocolLevel 3) with unacceptableProtocol", async () => {
+  const { mqttConn } = startMockServer();
+  const packet = structuredClone(baseConnectPacket);
+  packet.protocolLevel = MQTTLevel.v3;
+  mqttConn.send(packet);
+  const { value: connack } = await mqttConn.next();
+  assert.deepStrictEqual(
+    connack.type,
+    PacketType.connack,
+    "Expect Connack packet",
+  );
+  if (connack.type === PacketType.connack) {
+    assert.deepStrictEqual(
+      connack.returnCode,
+      AuthenticationResult.unacceptableProtocol,
+      "Expected unacceptableProtocol for MQTT 3.1",
+    );
+  }
+  await mqttConn.next();
+  assert.deepStrictEqual(
+    mqttConn.isClosed,
+    true,
+    "Expected connection to be closed after protocol rejection",
+  );
+});
+
 test("accepts MQTT 3.1.1 (protocolLevel 4) connection", async () => {
   const { mqttConn } = startMockServer();
   const packet = structuredClone(baseConnectPacket);
@@ -50,36 +76,11 @@ test("accepts MQTT 3.1.1 (protocolLevel 4) connection", async () => {
   );
 });
 
-test("rejects MQTT 3.1 (protocolLevel 3) with unacceptableProtocol", async () => {
-  const { mqttConn } = startMockServer();
-  const packet = structuredClone(baseConnectPacket);
-  packet.protocolLevel = MQTTLevel.v3;
-  mqttConn.send(packet);
-  const { value: connack } = await mqttConn.next();
-  assert.deepStrictEqual(
-    connack.type,
-    PacketType.connack,
-    "Expect Connack packet",
-  );
-  if (connack.type === PacketType.connack) {
-    assert.deepStrictEqual(
-      connack.returnCode,
-      AuthenticationResult.unacceptableProtocol,
-      "Expected unacceptableProtocol for MQTT 3.1",
-    );
-  }
-  await mqttConn.next();
-  assert.deepStrictEqual(
-    mqttConn.isClosed,
-    true,
-    "Expected connection to be closed after protocol rejection",
-  );
-});
-
-test("rejects MQTT 5.0 (protocolLevel 5) with unacceptableProtocol", async () => {
+test("accepts MQTT 5.0 (protocolLevel 5) connection", async () => {
   const { mqttConn } = startMockServer();
   const packet = structuredClone(baseConnectPacket);
   packet.protocolLevel = MQTTLevel.v5;
+  mqttConn.codecOpts.protocolLevel = MQTTLevel.v5;
   mqttConn.send(packet);
   const { value: connack } = await mqttConn.next();
   assert.deepStrictEqual(
@@ -89,15 +90,19 @@ test("rejects MQTT 5.0 (protocolLevel 5) with unacceptableProtocol", async () =>
   );
   if (connack.type === PacketType.connack) {
     assert.deepStrictEqual(
-      connack.returnCode,
-      AuthenticationResult.unacceptableProtocol,
-      "Expected unacceptableProtocol for MQTT 5.0",
+      connack.reasonCode,
+      AuthenticationResult.ok,
+      "Expected Ok for MQTT 5.0",
     );
   }
+
+  const disconnectV5 = structuredClone(disconnectPacket);
+  disconnectV5.protocolLevel = 5;
+  mqttConn.send(disconnectV5);
   await mqttConn.next();
   assert.deepStrictEqual(
     mqttConn.isClosed,
     true,
-    "Expected connection to be closed after protocol rejection",
+    "Expected connection to be closed cleanly",
   );
 });

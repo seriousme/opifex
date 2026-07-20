@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { AnyPacket, ConnectPacket, MqttConn } from "../../server/deps.ts";
-import { MQTTLevel, PacketType } from "../../server/deps.ts";
+import { logger, LogLevel, MQTTLevel, PacketType } from "../../server/deps.ts";
 import {
   addMockClient,
   connect5,
@@ -14,6 +14,7 @@ import {
 import type { PublishProperties } from "../../mqttPacket/Properties.ts";
 
 const txtEncoder = new TextEncoder();
+logger.level(LogLevel.debug);
 
 // Setup global-like state mimicking original setData()
 const topicPrefix = "client_test5/";
@@ -43,25 +44,27 @@ test("Basic Connection and Publish Flow", async () => {
   await disconnect5(mqttConn);
 
   // Reconnect and test basic subscription and publishes
-  const mqttConn2 = startMockServer().mqttConn;
+  const { mqttConn: mqttConn2, mqttServer } = startMockServer();
   await connect5(mqttConn2, { clientId: "myclientid" });
 
   await subscribe5(mqttConn2, [{ topicFilter: topics[0], qos: 2 }]);
 
-  await publish5(mqttConn2, topics[0], 0, {
+  const mqttConn3 = addMockClient(mqttServer);
+
+  await publish5(mqttConn3, topics[0], 0, {
     payload: "qos 0",
   });
-  await publish5(mqttConn2, topics[0], 1, {
+  await publish5(mqttConn3, topics[0], 1, {
     payload: "qos 1",
     id: 1,
   });
-  await publish5(mqttConn2, topics[0], 2, {
+  await publish5(mqttConn3, topics[0], 2, {
     payload: "qos 2",
     id: 2,
   });
 
-  await delay(100);
-  await disconnect5(mqttConn2);
+  const messages = await receiveMessages(mqttConn2);
+  assert.strictEqual(messages.length, 3);
 });
 
 test("Retained Messages with User Properties", async () => {
