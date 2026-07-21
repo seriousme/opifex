@@ -5,12 +5,16 @@ import { AuthenticationResult, PacketType } from "../deps.ts";
 import {
   addMockClient,
   connect,
+  connect5,
   disconnect,
+  disconnect5,
   ping,
   publish,
   startMockServer,
   subscribe,
 } from "../../dev_utils/mod.ts";
+import { configuration } from "../config.ts";
+import type { ConnackPacketV5 } from "../../mqttPacket/connack.ts";
 
 const txtEncoder = new TextEncoder();
 
@@ -249,4 +253,55 @@ test("Delivery of messages with QoS 1 or QoS2 received while offline", async () 
   );
   await ping(mqttConn3);
   await disconnect(mqttConn3);
+});
+
+test("Delivery of messages with QoS 1 or QoS2 not received while offline when clean = true", async () => {
+  const clientId = "offlineClient";
+  const { mqttConn: mqttConn1, mqttServer } = startMockServer();
+  // start first client
+  await connect(mqttConn1, { clientId, clean: true });
+  // Subscribe to topic with no retained message
+  await subscribe(mqttConn1, [{ topicFilter: "offline/+", qos: 1 }]);
+  // hangup
+  await disconnect(mqttConn1);
+
+  //  connect the publisher
+  const mqttConn2 = addMockClient(mqttServer);
+  await connect(mqttConn2, { clientId: "publisher" });
+  await publish(mqttConn2, "offline/q0", 0, { id: 10 });
+  await publish(mqttConn2, "offline/q1", 1, { id: 11 });
+  await publish(mqttConn2, "offline/q2", 2, { id: 12 });
+  await disconnect(mqttConn2);
+
+  // connect again with same clientId as the initial connect,but now with clean = false, just to check
+  const mqttConn3 = addMockClient(mqttServer);
+  await connect(mqttConn3, { clientId, clean: false });
+  // expect no published packet to be delivered while offline
+  await ping(mqttConn3);
+  await disconnect(mqttConn3);
+});
+
+test("V5: Connect V5 works", async () => {
+  const { mqttConn } = startMockServer();
+  const connack = await connect5(mqttConn, {
+    clientId: "",
+    clean: true,
+  }) as ConnackPacketV5;
+  assert.deepEqual(connack.reasonCode, 0, "Reason code 0 is expected");
+  const props = connack.properties;
+  const cfg = configuration.context;
+  assert.equal(
+    props?.maximumQos,
+    cfg.maximumQos,
+    "Props contain configuration data",
+  );
+  assert.equal(
+    props?.assignedClientIdentifier?.startsWith("Opifex-"),
+    true,
+    "Client identifier is assigned",
+  );
+
+  await disconnect5(mqttConn);
+  await mqttConn.next();
+  assert.strictEqual(mqttConn.isClosed, true);
 });

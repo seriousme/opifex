@@ -3,6 +3,7 @@ import { Context } from "./context.ts";
 import type { Handlers } from "./context.ts";
 import type { IPersistence, SockConn, Topic } from "./deps.ts";
 import { handlePacket } from "./handlers/handlePacket.ts";
+import { configuration } from "./config.ts";
 
 /**
  * Default preconnect handler that unconditionally permits all connections.
@@ -94,7 +95,12 @@ export class MqttServer {
         return;
       }
     }
-    const ctx = new Context(this.persistence, conn, this.handlers);
+    const ctx = new Context(
+      configuration,
+      this.persistence,
+      conn,
+      this.handlers,
+    );
     if (conn.remoteAddr?.transport === "tcp") {
       logger.debug(`socket connected from ${conn.remoteAddr.hostname}`);
     }

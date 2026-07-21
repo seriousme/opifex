@@ -1,7 +1,51 @@
 import { SysPrefix } from "../context.ts";
-import { PacketType } from "../deps.ts";
+import { PacketType, ReasonCode } from "../deps.ts";
 import type { Context } from "../context.ts";
-import type { PublishPacket, Topic } from "../deps.ts";
+import type {
+  PacketId,
+  PublishPacket,
+  QoS,
+  Topic,
+  TReasonCode,
+} from "../deps.ts";
+
+async function handlePublishError(
+  ctx: Context,
+  id: PacketId | undefined,
+  topic: Topic,
+  qos: QoS,
+  reasonCode: TReasonCode,
+) {
+  // in v4 we can only close the connection
+  if (ctx.protocolLevel === 4) {
+    // in V4 we can only close the connection
+    await ctx.close();
+    return;
+  }
+  // in v5 we can message the client
+  if (qos === 0) {
+    // no message for QoS 0
+    return;
+  }
+  // QoS 1 and 2 get a nice message
+  let reasonString = "";
+  if (reasonCode === ReasonCode.notAuthorized) {
+    reasonString = `Client not authorized to publish to ${topic}`;
+  }
+  if (reasonCode === ReasonCode.retainNotSupported) {
+    reasonString = `Server does not support retain`;
+  }
+  const properties = reasonString ? { reasonString } : {};
+  const pType = qos === 1 ? PacketType.puback : PacketType.pubrec;
+  await ctx.send({
+    type: pType,
+    protocolLevel: ctx.protocolLevel,
+    id,
+    reasonCode: reasonCode,
+    properties,
+  });
+  return;
+}
 
 /**
  * Checks if a client is authorized to publish to a given topic
@@ -30,22 +74,38 @@ export async function handlePublish(
   ctx: Context,
   packet: PublishPacket,
 ): Promise<void> {
+  const qos = packet.qos || 0;
+  const id = packet.id;
+
+  if (!ctx.config.context.retainAvailable && packet.retain) {
+    await handlePublishError(
+      ctx,
+      id,
+      packet.topic,
+      qos,
+      ReasonCode.retainNotSupported,
+    );
+  }
+
   if (!await authorizedToPublish(ctx, packet.topic)) {
-    // in V4 we can only close the connection
-    await ctx.close();
+    await handlePublishError(
+      ctx,
+      id,
+      packet.topic,
+      qos,
+      ReasonCode.notAuthorized,
+    );
     return;
   }
 
-  const qos = packet.qos || 0;
   if (qos === 0) {
     await ctx.publish(packet);
     return;
   }
 
-  if (packet.id !== undefined) {
+  if (id !== undefined) {
     // qos 1
     if (qos === 1) {
-      const id = packet.id; // retain the id
       // publish the packet
       await ctx.publish(packet);
       // send the pubAck
@@ -76,7 +136,7 @@ Identifier as being a new publication.
     await ctx.send({
       type: PacketType.pubrec,
       protocolLevel: ctx.protocolLevel,
-      id: packet.id,
+      id,
     });
   }
 }

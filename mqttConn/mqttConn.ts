@@ -6,7 +6,6 @@ import type {
   AnyPacket,
   CodecOpts,
   LengthDecoderResult,
-  ProtocolLevel,
 } from "../mqttPacket/mod.ts";
 
 import {
@@ -26,6 +25,7 @@ import { Conn } from "../socket/socket.ts";
 export const MqttConnError = {
   invalidPacket: "Invalid Packet",
   packetTooLarge: "Packet too large",
+  connectPacketTooLarge: "Connect Packet too large",
   UnexpectedEof: "Unexpected EOF",
 } as const;
 
@@ -84,11 +84,13 @@ async function readFull(conn: Conn, length: number): Promise<Uint8Array> {
 export async function readPacket(
   conn: Conn,
   codecOpts: CodecOpts,
+  maxConnectPacketSize: number,
 ): Promise<AnyPacket> {
   // fixed header is 1 byte of type + flags
   // + a maximum of 4 bytes to encode the remaining length
   const decodeLength = getLengthDecoder();
   const firstByte = await readByte(conn);
+  const isConnect = (firstByte >> 4) === 1;
   let result: LengthDecoderResult;
   do {
     const byte = await readByte(conn);
@@ -96,6 +98,12 @@ export async function readPacket(
   } while (!result.done);
 
   const remainingLength = result.length;
+  if (isConnect) {
+    assert(
+      remainingLength < maxConnectPacketSize - 1,
+      MqttConnError.connectPacketTooLarge,
+    );
+  }
   const maxIncomingPacketSize = codecOpts.maxIncomingPacketSize;
   assert(
     remainingLength < maxIncomingPacketSize - 1,
@@ -114,6 +122,8 @@ export async function readPacket(
 export class MqttConn implements IMqttConn {
   /** Underlying connection */
   readonly conn: Conn;
+  /** Maximum Connect packet size */
+  readonly maxConnectPacketSize: number;
   /** codecOpts */
   codecOpts: CodecOpts;
   /** Reason for connection closure if any */
@@ -125,24 +135,25 @@ export class MqttConn implements IMqttConn {
    * Create new MQTT connection
    * @param options Connection options
    * @param options.conn Underlying socket connection
-   * @param options.maxIncomingPacketSize Maximum allowed incoming packet size (default 2MB)
-   * @param options.maxOutGoingPacketSize Maximum allowed outgoing packet size (default 2MB)
+   * @param options.maxConnectPacketSize Maximum allowed connect packet size
+   * @param options.maxIncomingPacketSize Maximum allowed incoming packet size
+   * @param options.maxOutGoingPacketSize Maximum allowed outgoing packet size
    * @param options.protocolLevel Supported protocolLevel
    */
-  constructor({
-    conn,
-    maxIncomingPacketSize = DEFAULT_MAX_PACKETSIZE,
-    protocolLevel = MQTTLevel.unknown,
-  }: {
-    conn: SockConn;
-    maxIncomingPacketSize?: number;
-    protocolLevel?: ProtocolLevel;
-  }) {
-    this.conn = new Conn(conn);
+  constructor(
+    options:
+      & { conn: SockConn; maxConnectPacketSize?: number }
+      & Partial<CodecOpts>,
+  ) {
+    this.conn = new Conn(options.conn);
+    this.maxConnectPacketSize = options.maxConnectPacketSize ??
+      DEFAULT_MAX_PACKETSIZE;
     this.codecOpts = {
-      maxIncomingPacketSize,
-      maxOutgoingPacketSize: maxIncomingPacketSize,
-      protocolLevel,
+      maxIncomingPacketSize: options.maxIncomingPacketSize ??
+        DEFAULT_MAX_PACKETSIZE,
+      maxOutgoingPacketSize: options.maxOutgoingPacketSize ??
+        DEFAULT_MAX_PACKETSIZE,
+      protocolLevel: options.protocolLevel ?? MQTTLevel.unknown,
     };
   }
 
@@ -169,7 +180,11 @@ export class MqttConn implements IMqttConn {
   async #receive(): Promise<AnyPacket | undefined> {
     if (!this._isClosed) {
       try {
-        return await readPacket(this.conn, this.codecOpts);
+        return await readPacket(
+          this.conn,
+          this.codecOpts,
+          this.maxConnectPacketSize,
+        );
       } catch (err) {
         if (err instanceof Error) {
           if (err.name === "PartialReadError") {

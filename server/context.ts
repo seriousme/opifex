@@ -18,6 +18,8 @@ import type {
   Topic,
 } from "./deps.ts";
 
+import type { Configuration } from "./config.ts";
+
 /** Unique identifier for an MQTT client. */
 export type ClientId = string;
 
@@ -120,6 +122,9 @@ export class Context {
   /** The configured authentication and authorization lifecycle hooks. */
   handlers: Handlers;
 
+  /** Configuration data */
+  config: Configuration;
+
   /** Global registry mapping active client identifiers to their respective connection context. */
   static clientList: Map<ClientId, Context> = new Map();
 
@@ -139,13 +144,20 @@ export class Context {
    * Initializes a new instance of the connection Context.
    */
   constructor(
+    configuration: Configuration, // all settings
     persistence: IPersistence, // The server persistence layer implementation.
     conn: SockConn, // The underlying socket connection.
     handlers: Handlers, // The validation handlers
   ) {
+    this.config = configuration;
     this.persistence = persistence;
     this.conn = conn;
-    this.mqttConn = new MqttConn({ conn });
+    const cfg = this.config.context;
+    this.mqttConn = new MqttConn({
+      conn,
+      maxIncomingPacketSize: cfg.maximumIncomingPacketSize,
+      maxOutgoingPacketSize: cfg.maximumOutgoingPacketSize,
+    });
     this.handlers = handlers;
     this.protocolLevel = MQTTLevel.unknown;
     this.initializePreconnectTimer(Context.preconnectTimeoutMs);

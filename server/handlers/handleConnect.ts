@@ -1,6 +1,39 @@
 import type { Context } from "../context.ts";
 import { AuthenticationResult, logger, PacketType, Timer } from "../deps.ts";
-import type { ConnectPacket, TAuthenticationResult } from "../deps.ts";
+import type {
+  ConnackProperties,
+  ConnectPacket,
+  TAuthenticationResult,
+} from "../deps.ts";
+
+function buildProps(ctx: Context, opts: {
+  assignedClientIdentifier: string | undefined;
+}): ConnackProperties {
+  const cfg = ctx.config.context;
+  const props: Partial<ConnackProperties> = {};
+  if (opts.assignedClientIdentifier !== undefined) {
+    props.assignedClientIdentifier = opts.assignedClientIdentifier;
+  }
+
+  return {
+    sessionExpiryInterval: cfg.sessionExpiryInterval,
+    receiveMaximum: cfg.receiveMaximum,
+    maximumQos: cfg.maximumQos,
+    retainAvailable: cfg.retainAvailable,
+    maximumPacketSize: cfg.maximumIncomingPacketSize,
+    topicAliasMaximum: cfg.topicAliasMaximum,
+    // reasonString: "reason",
+    wildcardSubscriptionAvailable: cfg.wildcardSubscriptionAvailable,
+    subscriptionIdentifierAvailable: cfg.subscriptionIdentifierAvailable,
+    sharedSubscriptionAvailable: cfg.sharedSubscriptionAvailable,
+    serverKeepAlive: cfg.serverKeepAlive,
+    ...props,
+    // responseInformation: "blah",
+    // serverReference: "xyz",
+    // authenticationMethod: "xyz",
+    // authenticationData: Uint8Array.from([1,2,3]),
+  };
+}
 
 /**
  * Checks if the client is authenticated based on the provided credentials
@@ -116,7 +149,13 @@ export async function handleConnect(
   ctx: Context,
   packet: ConnectPacket,
 ): Promise<void> {
-  const clientId = packet.clientId || `Opifex-${crypto.randomUUID()}`;
+  let clientId = packet.clientId;
+  let assignedClientIdentifier: string | undefined;
+
+  if (!clientId) {
+    assignedClientIdentifier = `Opifex-${crypto.randomUUID()}`;
+    clientId = assignedClientIdentifier;
+  }
   const reasonCode = await validateConnect(ctx, packet);
   const sessionPresent = await processValidatedConnect(
     reasonCode,
@@ -130,7 +169,10 @@ export async function handleConnect(
     protocolLevel: ctx.protocolLevel,
     sessionPresent,
     ...(isProtocolV5
-      ? { reasonCode }
+      ? {
+        reasonCode,
+        properties: buildProps(ctx, { assignedClientIdentifier }),
+      }
       : { returnCode: reasonToReturnCode(reasonCode) }),
   });
   logger.debug("connect reasonCode", reasonCode);

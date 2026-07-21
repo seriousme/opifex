@@ -57,3 +57,20 @@ export type {
   TRetainHandling,
   UTF8StringPair,
 } from "./types.ts";
+
+export type {
+  AuthProperties,
+  ConnackProperties,
+  ConnectProperties,
+  DisconnectProperties,
+  PubackProperties,
+  PubcompProperties,
+  PublishProperties,
+  PubrecProperties,
+  PubrelProperties,
+  SubackProperties,
+  SubscribeProperties,
+  UnsubackProperties,
+  UnsubscribeProperties,
+  WillProperties,
+} from "./Properties.ts";

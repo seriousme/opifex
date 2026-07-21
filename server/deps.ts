@@ -6,6 +6,7 @@ export type {
   AnyPacket,
   ClientId,
   ConnackPacket,
+  ConnackProperties,
   ConnectPacket,
   DisconnectPacket,
   PacketId,
