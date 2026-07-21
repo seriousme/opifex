@@ -1,4 +1,4 @@
-import { AuthenticationResult, logger, MemoryPersistence } from "./deps.ts";
+import { logger, MemoryPersistence, ReasonCode } from "./deps.ts";
 import { Context } from "./context.ts";
 import type { Handlers } from "./context.ts";
 import type { IPersistence, SockConn, Topic } from "./deps.ts";
@@ -20,14 +20,14 @@ const defaultPreconnect = (
  * @param {string} _clientId - The client identifier.
  * @param {string} _username - The username provided by the client.
  * @param {Uint8Array} _password - The password provided by the client.
- * @returns {AuthenticationResult} Always returns AuthenticationResult.ok.
+ * @returns {IsAuthenticatedResult} Always returns ReasonCode.success.
  */
 const defaultIsAuthenticated = (
   _ctx: Context,
   _clientId: string,
   _username: string,
   _password: Uint8Array,
-) => AuthenticationResult.ok;
+) => ({ reasonCode: ReasonCode.success });
 
 /**
  * Default authorization handler that unconditionally permits all topic operations.

@@ -1,18 +1,24 @@
-import type { Context } from "../context.ts";
-import { AuthenticationResult, logger, PacketType, Timer } from "../deps.ts";
-import type {
-  ConnackProperties,
-  ConnectPacket,
-  TAuthenticationResult,
+import type { Context, IsAuthenticatedResult } from "../context.ts";
+import {
+  AuthenticationResult,
+  logger,
+  PacketType,
+  ReasonCode,
+  Timer,
 } from "../deps.ts";
+import type { ConnackProperties, ConnectPacket, TReasonCode } from "../deps.ts";
 
 function buildProps(ctx: Context, opts: {
   assignedClientIdentifier: string | undefined;
+  reasonString: string | undefined;
 }): ConnackProperties {
   const cfg = ctx.config.context;
   const props: Partial<ConnackProperties> = {};
   if (opts.assignedClientIdentifier !== undefined) {
     props.assignedClientIdentifier = opts.assignedClientIdentifier;
+  }
+  if (opts.reasonString !== undefined) {
+    props.reasonString = opts.reasonString;
   }
 
   return {
@@ -44,7 +50,7 @@ function buildProps(ctx: Context, opts: {
 async function isAuthenticated(
   ctx: Context,
   packet: ConnectPacket,
-): Promise<TAuthenticationResult> {
+): Promise<IsAuthenticatedResult> {
   if (ctx.handlers.isAuthenticated) {
     return await ctx.handlers.isAuthenticated(
       ctx,
@@ -54,7 +60,7 @@ async function isAuthenticated(
       packet,
     );
   }
-  return AuthenticationResult.ok;
+  return { reasonCode: ReasonCode.success };
 }
 
 /**
@@ -67,9 +73,28 @@ async function isAuthenticated(
 async function validateConnect(
   ctx: Context,
   packet: ConnectPacket,
-): Promise<TAuthenticationResult> {
+): Promise<{ reasonCode: TReasonCode; reasonString?: string }> {
+  const cfg = ctx.config.context;
+  if (packet.will) {
+    const pkt = packet.will;
+    if (!cfg.retainAvailable && pkt.retain) {
+      return {
+        reasonCode: ReasonCode.retainNotSupported,
+        reasonString: `Client not authorized to publish will to ${pkt.topic}`,
+      };
+    }
+    if (!await ctx.handlers.isAuthorizedToPublish) {
+      return {
+        reasonCode: ReasonCode.notAuthorized,
+        reasonString: `Client not authorized to publish will to ${pkt.topic}`,
+      };
+    }
+  }
   if (packet.protocolLevel !== 4 && packet.protocolLevel !== 5) {
-    return AuthenticationResult.unacceptableProtocol;
+    return {
+      reasonCode: ReasonCode.unsupportedProtocolVersion,
+      reasonString: `Protocol version ${packet.protocolLevel} is not supported`,
+    };
   }
 
   return await isAuthenticated(ctx, packet);
@@ -82,12 +107,12 @@ async function validateConnect(
  * @param clientId - The client ID
  */
 async function processValidatedConnect(
-  returnCode: TAuthenticationResult,
+  reasonCode: TReasonCode,
   packet: ConnectPacket,
   ctx: Context,
   clientId: string,
 ): Promise<boolean> {
-  if (returnCode === AuthenticationResult.ok) {
+  if (reasonCode === ReasonCode.success) {
     if (packet.will) {
       ctx.will = {
         type: PacketType.publish,
@@ -121,23 +146,29 @@ async function processValidatedConnect(
 }
 
 function reasonToReturnCode(reasonCode: number): number {
-  // Direct overlap between V4 and V5
-  if (reasonCode <= 0x05) {
-    return reasonCode;
-  }
+  switch (reasonCode) {
+    case ReasonCode.success:
+      return AuthenticationResult.ok; // 0x00 -> 0x00
 
-  // Specific security/autorisation cases
-  if (reasonCode === 0x87 || reasonCode === 0x8C) {
-    return 0x05; // Not Authorized
-  }
+    case ReasonCode.unsupportedProtocolVersion:
+      return AuthenticationResult.unacceptableProtocol; // 0x84 -> 0x01
 
-  // Client ID errors
-  if (reasonCode === 0x85) { // Client Identifier not valid
-    return 0x02; // Identifier Rejected
-  }
+    case ReasonCode.clientIdentifierNotValid:
+      return AuthenticationResult.rejectedUsername; // 0x85 -> 0x02
 
-  // Fall back for any other ReasonCodes (0x80+)
-  return 0x03; // Server Unavailable
+    case ReasonCode.badUserNameOrPassword:
+    case ReasonCode.badAuthenticationMethod:
+      return AuthenticationResult.badUsernameOrPassword; // 0x86 / 0x8E -> 0x04
+
+    case ReasonCode.notAuthorized:
+    case ReasonCode.banned:
+      return AuthenticationResult.notAuthorized;
+
+      // Fall back for any other ReasonCodes (0x80+)
+      // 0x87 / 0x8C -> 0x05
+    default:
+      return AuthenticationResult.serverUnavailable; // Default fallback -> 0x03
+  }
 }
 
 /**
@@ -156,7 +187,7 @@ export async function handleConnect(
     assignedClientIdentifier = `Opifex-${crypto.randomUUID()}`;
     clientId = assignedClientIdentifier;
   }
-  const reasonCode = await validateConnect(ctx, packet);
+  const { reasonCode, reasonString } = await validateConnect(ctx, packet);
   const sessionPresent = await processValidatedConnect(
     reasonCode,
     packet,
@@ -171,12 +202,12 @@ export async function handleConnect(
     ...(isProtocolV5
       ? {
         reasonCode,
-        properties: buildProps(ctx, { assignedClientIdentifier }),
+        properties: buildProps(ctx, { assignedClientIdentifier, reasonString }),
       }
       : { returnCode: reasonToReturnCode(reasonCode) }),
   });
   logger.debug("connect reasonCode", reasonCode);
-  if (reasonCode !== AuthenticationResult.ok) {
+  if (reasonCode !== ReasonCode.success) {
     await ctx.close(false);
     return;
   }

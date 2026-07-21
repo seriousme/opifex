@@ -12,9 +12,9 @@ import type {
 async function handlePublishError(
   ctx: Context,
   id: PacketId | undefined,
-  topic: Topic,
   qos: QoS,
   reasonCode: TReasonCode,
+  reasonString: string,
 ) {
   // in v4 we can only close the connection
   if (ctx.protocolLevel === 4) {
@@ -28,13 +28,6 @@ async function handlePublishError(
     return;
   }
   // QoS 1 and 2 get a nice message
-  let reasonString = "";
-  if (reasonCode === ReasonCode.notAuthorized) {
-    reasonString = `Client not authorized to publish to ${topic}`;
-  }
-  if (reasonCode === ReasonCode.retainNotSupported) {
-    reasonString = `Server does not support retain`;
-  }
   const properties = reasonString ? { reasonString } : {};
   const pType = qos === 1 ? PacketType.puback : PacketType.pubrec;
   await ctx.send({
@@ -81,9 +74,9 @@ export async function handlePublish(
     await handlePublishError(
       ctx,
       id,
-      packet.topic,
       qos,
       ReasonCode.retainNotSupported,
+      `Server does not support retain`,
     );
   }
 
@@ -91,9 +84,9 @@ export async function handlePublish(
     await handlePublishError(
       ctx,
       id,
-      packet.topic,
       qos,
       ReasonCode.notAuthorized,
+      `Client not authorized to publish to ${packet.topic}`,
     );
     return;
   }

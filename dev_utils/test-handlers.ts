@@ -1,6 +1,6 @@
-import { AuthenticationResult } from "../server/mod.ts";
+import { ReasonCode } from "../server/mod.ts";
 import { logger } from "../utils/mod.ts";
-import type { Context, TAuthenticationResult, Topic } from "../server/mod.ts";
+import type { Context, IsAuthenticatedResult, Topic } from "../server/mod.ts";
 
 const utf8Decoder = new TextDecoder();
 const userTable = new Map();
@@ -13,7 +13,7 @@ function isAuthenticated(
   clientId: string,
   username: string,
   password: Uint8Array,
-): TAuthenticationResult {
+): IsAuthenticatedResult {
   const pwd = utf8Decoder.decode(password);
   logger.debug(
     `Verifying authentication of client '${clientId}' with username '${username}'`,
@@ -21,15 +21,18 @@ function isAuthenticated(
 
   if (!userTable.has(username)) {
     if (!strictUsername.test(username)) {
-      return AuthenticationResult.badUsernameOrPassword;
+      return { reasonCode: ReasonCode.success };
     }
   }
 
   const pass = userTable.get(username);
   if (pwd === pass) {
-    return AuthenticationResult.ok;
+    return { reasonCode: ReasonCode.success };
   }
-  return AuthenticationResult.badUsernameOrPassword;
+  return {
+    reasonCode: ReasonCode.badUserNameOrPassword,
+    reasonString: "Bad username or password",
+  };
 }
 
 function isAuthorizedToPublish(ctx: Context, topic: Topic): boolean {
@@ -59,7 +62,7 @@ export const handlers = {
 
 export function isAuthenticatedBroker(
   ctx: Context,
-): TAuthenticationResult {
+): IsAuthenticatedResult {
   ctx.isBroker = true;
-  return AuthenticationResult.ok;
+  return { reasonCode: ReasonCode.success };
 }

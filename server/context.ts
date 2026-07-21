@@ -14,8 +14,8 @@ import type {
   PublishPacket,
   PubrelPacket,
   SockConn,
-  TAuthenticationResult,
   Topic,
+  TReasonCode,
 } from "./deps.ts";
 
 import type { Configuration } from "./config.ts";
@@ -29,6 +29,10 @@ export const SysPrefix = "$";
 /** Standard UTF-8 encoder used across the server to convert strings to byte arrays. */
 export const utf8Encoder = new TextEncoder();
 
+export type IsAuthenticatedResult = {
+  reasonCode: TReasonCode;
+  reasonString?: string;
+};
 /**
  * Handlers are hooks that the server will call
  * and let you influence the servers behaviour.
@@ -57,7 +61,7 @@ export type Handlers = {
    * @param {string} username - The username provided by the client.
    * @param {Uint8Array} password - The password bytes provided by the client.
    * @param {ConnectPacket} connectPacket - The raw connect packet
-   * @returns {TAuthenticationResult} The result of the authentication attempt.
+   * @returns {IsAuthenticatedResult} The result of the authentication attempt.
    */
   isAuthenticated?(
     ctx: Context,
@@ -65,7 +69,7 @@ export type Handlers = {
     username: string,
     password: Uint8Array,
     connectPacket: ConnectPacket,
-  ): TAuthenticationResult | Promise<TAuthenticationResult>;
+  ): IsAuthenticatedResult | Promise<IsAuthenticatedResult>;
 
   /**
    * Hook to authorize a message publication to a specific topic.

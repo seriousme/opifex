@@ -22,7 +22,6 @@ export type {
   SubackPacket,
   SubscribePacket,
   Subscription,
-  TAuthenticationResult,
   Topic,
   TopicFilter,
   TReasonCode,
