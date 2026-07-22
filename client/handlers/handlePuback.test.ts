@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { handlePuback } from "./handlePuback.ts";
-import { PacketType } from "../deps.ts";
+import { PacketType, ReasonCode, ReasonCodeByNumber } from "../deps.ts";
 import type { PubackPacket } from "../deps.ts";
 
 function createMockContext() {
@@ -80,4 +80,20 @@ test("handlePuback processes multiple PUBACKs correctly", () => {
   assert.deepStrictEqual(ctx.store.pendingOutgoing.has(2), false);
   assert.deepStrictEqual(ctx.store.pendingOutgoing.has(3), true);
   assert.deepStrictEqual(ctx.receivedIds, [2]);
+});
+
+test("handlePuback processes V5 publish rejection", () => {
+  const ctx = createMockContext();
+  const reasonCode = ReasonCode.notAuthorized;
+  ctx.store.pendingOutgoing.set(2, {
+    type: PacketType.publish,
+    topic: "Test Puback",
+  });
+  assert.throws(() =>
+    handlePuback(ctx as never, {
+      type: PacketType.puback,
+      protocolLevel: 5,
+      id: 2,
+      reasonCode,
+    } as PubackPacket), Error(ReasonCodeByNumber[reasonCode]));
 });

@@ -8,10 +8,12 @@ import { handlePubrel } from "./handlePubrel.ts";
 import { handlePubcomp } from "./handlePubcomp.ts";
 import { handleSuback } from "./handleSuback.ts";
 import { handleUnsuback } from "./handleUnsuback.ts";
+import { handleDisconnect } from "./handleDisconnect.ts";
 import { logger, PacketNameByType, PacketType } from "../deps.ts";
 import type {
   AnyPacket,
   ConnackPacket,
+  DisconnectPacket,
   PubackPacket,
   PubcompPacket,
   PublishPacket,
@@ -65,6 +67,9 @@ export async function handlePacket(
         break;
       case PacketType.unsuback:
         handleUnsuback(ctx, packet as UnsubackPacket);
+        break;
+      case PacketType.disconnect:
+        handleDisconnect(ctx, packet as DisconnectPacket);
         break;
 
       default:

@@ -95,7 +95,7 @@ test("handleSuback handles subscription failure code", () => {
   );
 });
 
-test("handleSuback skips notification for MQTT v5", () => {
+test("handleSuback handles notification for MQTT v5", () => {
   const ctx = createMockContext();
   ctx.store.pendingOutgoing.set(4, { type: PacketType.subscribe, id: 4 });
 
@@ -108,17 +108,15 @@ test("handleSuback skips notification for MQTT v5", () => {
 
   handleSuback(ctx as never, packet);
 
-  // Should still remove from pending
   assert.deepStrictEqual(
     ctx.store.pendingOutgoing.has(4),
     false,
     "Should remove from pending",
   );
 
-  // But should not call receiveSuback for v5
   assert.deepStrictEqual(
     ctx.receivedSubacks.length,
-    0,
-    "Should not notify for v5 (different flow)",
+    1,
+    "Should notify for v5",
   );
 });
