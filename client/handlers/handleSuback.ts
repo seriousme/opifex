@@ -9,11 +9,14 @@ import type { SubackPacket } from "../deps.ts";
  * - Processes SUBACK packets sent by server to confirm SUBSCRIBE requests
  * - Removes the packet ID from pending outgoing messages
  * - Notifies the client about granted QoS levels for each subscription
+ *    - in V5 the reason codes could carry various errors
  */
 export function handleSuback(ctx: Context, packet: SubackPacket): void {
   const id = packet.id;
   ctx.store.pendingOutgoing.delete(id);
   if (packet.protocolLevel !== 5) {
     ctx.receiveSuback(id, packet.returnCodes);
+    return;
   }
+  ctx.receiveSuback(id, packet.reasonCodes);
 }

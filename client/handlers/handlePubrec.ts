@@ -1,5 +1,5 @@
 import type { Context } from "../context.ts";
-import { PacketType } from "../deps.ts";
+import { PacketType, ReasonCodeByNumber } from "../deps.ts";
 import type { PubrecPacket, PubrelPacket } from "../deps.ts";
 
 /**
@@ -26,6 +26,10 @@ export async function handlePubrec(
     id,
   };
   if (ctx.store.pendingOutgoing.has(id)) {
+    if (packet.protocolLevel === 5 && ((packet.reasonCode ?? 0) !== 0)) {
+      ctx.store.pendingOutgoing.delete(id);
+      throw new Error(ReasonCodeByNumber[packet.reasonCode!]);
+    }
     ctx.store.pendingAckOutgoing.set(id, ack);
     ctx.store.pendingOutgoing.delete(id);
     await ctx.send(ack);

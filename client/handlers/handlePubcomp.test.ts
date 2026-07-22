@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { handlePubcomp } from "./handlePubcomp.ts";
-import { PacketType } from "../deps.ts";
+import { PacketType, ReasonCode, ReasonCodeByNumber } from "../deps.ts";
 import type { PubcompPacket } from "../deps.ts";
 
 function createMockContext() {
@@ -96,4 +96,17 @@ test("handlePubcomp processes multiple PUBCOMPs correctly", () => {
   assert.deepStrictEqual(ctx.store.pendingAckOutgoing.has(2), false);
   assert.deepStrictEqual(ctx.store.pendingAckOutgoing.has(3), true);
   assert.deepStrictEqual(ctx.receivedIds, [2]);
+});
+
+test("handlePubComp processes V5 rejection", () => {
+  const ctx = createMockContext();
+  ctx.store.pendingAckOutgoing.set(3, { type: PacketType.pubrel, id: 3 });
+  const reasonCode = ReasonCode.notAuthorized;
+  assert.throws(() =>
+    handlePubcomp(ctx as never, {
+      type: PacketType.pubcomp,
+      protocolLevel: 5,
+      id: 3,
+      reasonCode,
+    } as PubcompPacket), Error(ReasonCodeByNumber[reasonCode]));
 });

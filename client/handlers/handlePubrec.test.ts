@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { handlePubrec } from "./handlePubrec.ts";
-import { PacketType } from "../deps.ts";
+import { PacketType, ReasonCode, ReasonCodeByNumber } from "../deps.ts";
 import type { PubrecPacket } from "../deps.ts";
 
 function createMockContext() {
@@ -100,4 +100,20 @@ test("handlePubrec stores PUBREL packet for retransmission", async () => {
     PacketType.pubrel,
     "Stored packet should be PUBREL",
   );
+});
+
+test("handlePuback processes V5 publish rejection", () => {
+  const ctx = createMockContext();
+  const reasonCode = ReasonCode.notAuthorized;
+  ctx.store.pendingOutgoing.set(2, {
+    type: PacketType.publish,
+    topic: "Test Pubrec",
+  });
+  assert.rejects(() =>
+    handlePubrec(ctx as never, {
+      type: PacketType.pubrec,
+      protocolLevel: 5,
+      id: 2,
+      reasonCode,
+    } as PubrecPacket), Error(ReasonCodeByNumber[reasonCode]));
 });

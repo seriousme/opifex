@@ -31,6 +31,7 @@ export {
   MQTTLevel,
   PacketNameByType,
   PacketType,
+  ReasonCode,
   ReasonCodeByNumber,
 } from "../mqttPacket/mod.ts";
 

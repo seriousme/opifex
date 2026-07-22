@@ -1,5 +1,6 @@
 import type { Context } from "../context.ts";
 import type { PubackPacket } from "../deps.ts";
+import { ReasonCodeByNumber } from "../deps.ts";
 
 /**
  * Handles PUBACK packet processing for QoS level 1 PUBLISH responses
@@ -12,5 +13,10 @@ import type { PubackPacket } from "../deps.ts";
 export function handlePuback(ctx: Context, packet: PubackPacket): void {
   const id = packet.id;
   ctx.store.pendingOutgoing.delete(id);
+
+  if (packet.protocolLevel === 5 && ((packet.reasonCode ?? 0) !== 0)) {
+    ctx.store.pendingOutgoing.delete(id);
+    throw new Error(ReasonCodeByNumber[packet.reasonCode!]);
+  }
   ctx.receivePuback(id);
 }
