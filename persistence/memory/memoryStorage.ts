@@ -137,7 +137,7 @@ export class MemoryStorage implements IStorageProvider {
     clientId: ClientId,
     direction: PacketDirection,
     packet: PublishPacket,
-    expiresAtMs: number|null = null,
+    expiresAtMs: number | null = null,
   ): Promise<void> {
     const createdAtMs = Date.now();
     if (packet.id !== undefined) {
@@ -145,7 +145,7 @@ export class MemoryStorage implements IStorageProvider {
         seqId: this.seqId++,
         packet,
         expiresAtMs,
-        createdAtMs
+        createdAtMs,
       });
     }
     return Promise.resolve();
@@ -173,7 +173,6 @@ export class MemoryStorage implements IStorageProvider {
     clientId: ClientId,
     direction: PacketDirection,
   ): AsyncIterableIterator<PublishPacket> {
-
     const queue = this.getPacketTable(clientId, direction);
     if (!queue) return;
 

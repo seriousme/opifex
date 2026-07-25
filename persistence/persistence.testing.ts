@@ -156,7 +156,8 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
       await persistence.subscribe("client1", "test/topic", 0);
       await persistence.publish(
-        "client1", createPacket("test/topic", "hello"),
+        "client1",
+        createPacket("test/topic", "hello"),
       );
 
       assert.strictEqual(received.length, 1);
@@ -169,7 +170,8 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { received } = await createReceiver(persistence, "client1");
 
       await persistence.publish(
-        "client1",createPacket("test/topic", "hello"),
+        "client1",
+        createPacket("test/topic", "hello"),
       );
 
       assert.strictEqual(received.length, 0);
@@ -182,13 +184,16 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
       await persistence.subscribe("client1", "sensors/+/temp", 0);
       await persistence.publish(
-        "client1",createPacket("sensors/room1/temp", "22"),
+        "client1",
+        createPacket("sensors/room1/temp", "22"),
       );
       await persistence.publish(
-        "client1",createPacket("sensors/room2/temp", "24"),
+        "client1",
+        createPacket("sensors/room2/temp", "24"),
       );
       await persistence.publish(
-        "client1",createPacket("sensors/room1/humidity", "50"),
+        "client1",
+        createPacket("sensors/room1/humidity", "50"),
       );
 
       assert.strictEqual(received.length, 2);
@@ -201,13 +206,16 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
       await persistence.subscribe("client1", "sensors/#", 0);
       await persistence.publish(
-        "client1",createPacket("sensors/temp", "22"),
+        "client1",
+        createPacket("sensors/temp", "22"),
       );
       await persistence.publish(
-        "client1",createPacket("sensors/room1/temp", "24"),
+        "client1",
+        createPacket("sensors/room1/temp", "24"),
       );
       await persistence.publish(
-        "client1",createPacket("other/topic", "data"),
+        "client1",
+        createPacket("other/topic", "data"),
       );
 
       assert.strictEqual(received.length, 2);
@@ -223,7 +231,8 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       await persistence.subscribe("client1", "test/topic", 0);
 
       await persistence.publish(
-        "client1",createPacket("test/topic", "hello", { qos: 2 }),
+        "client1",
+        createPacket("test/topic", "hello", { qos: 2 }),
       );
 
       // Should receive only once with highest QoS
@@ -247,7 +256,8 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       await persistence.subscribe("client2", "test/topic", 1);
 
       await persistence.publish(
-        "some-publisher",createPacket("test/topic", "hello", { qos: 1 }),
+        "some-publisher",
+        createPacket("test/topic", "hello", { qos: 1 }),
       );
 
       assert.strictEqual(received1.length, 1);
@@ -263,7 +273,8 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { persistence, cleanup } = factory();
 
       await persistence.publish(
-        "publisher",createPacket("test/topic", "retained", { retain: true }),
+        "publisher",
+        createPacket("test/topic", "retained", { retain: true }),
       );
 
       const { received: received1 } = await createReceiver(
@@ -276,7 +287,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       }]);
       assert.strictEqual(received1.length, 1);
 
-      await persistence.publish("publisher",{
+      await persistence.publish("publisher", {
         type: PacketType.publish,
         protocolLevel: MQTTLevel.v4,
         topic: "test/topic",
@@ -301,13 +312,16 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { persistence, cleanup } = factory();
 
       await persistence.publish(
-        "publisher",createPacket("sensor/temp", "22", { retain: true }),
+        "publisher",
+        createPacket("sensor/temp", "22", { retain: true }),
       );
       await persistence.publish(
-        "publisher",createPacket("sensor/humidity", "50", { retain: true }),
+        "publisher",
+        createPacket("sensor/humidity", "50", { retain: true }),
       );
       await persistence.publish(
-        "publisher",createPacket("other/topic", "data", { retain: true }),
+        "publisher",
+        createPacket("other/topic", "data", { retain: true }),
       );
 
       const { received } = await createReceiver(persistence, "client1");
@@ -325,7 +339,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
     test("reconnect without deregistration retains client state", async () => {
       const { persistence, cleanup } = factory();
 
-      const client= "reconnect client";
+      const client = "reconnect client";
       const qos0opts = { qos: 0 as QoS, retain: false };
 
       // QoS 0 packets must not be retained
@@ -360,7 +374,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       await persistence.addPendingIncomingPacket(client, incomingQoS0pkt);
       await persistence.addPendingIncomingPacket(client, incomingQoS1pkt);
       await persistence.addPendingIncomingPacket(client, incomingQoS2pkt);
-     
+
       await persistence.addPendingOutgoingPacket(client, outgoingQoS0pkt);
       await persistence.addPendingOutgoingPacket(client, outgoingQoS1pkt);
       await persistence.addPendingOutgoingPacket(client, outgoingQoS2pkt);
@@ -384,10 +398,10 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       assert.strictEqual(inPkts.length, 2);
       assert.strictEqual(inPkts[0].topic, incomingQoS1pkt.topic);
       assert.strictEqual(inPkts[0].qos, incomingQoS1pkt.qos);
-      const inPkt1 = await persistence.getPendingIncomingPacket(client,12)
-      const inPkt2 = await persistence.getPendingIncomingPacket(client,13)
-      assert.deepEqual(inPkt1,inPkts[0])
-      assert.deepEqual(inPkt2,inPkts[1])
+      const inPkt1 = await persistence.getPendingIncomingPacket(client, 12);
+      const inPkt2 = await persistence.getPendingIncomingPacket(client, 13);
+      assert.deepEqual(inPkt1, inPkts[0]);
+      assert.deepEqual(inPkt2, inPkts[1]);
 
       const outPkts = await Array.fromAsync(
         persistence.listPendingOutgoingPackets(client),
@@ -740,7 +754,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       await persistence.nextPacketId("client1");
       const targetSkippedId = await persistence.nextPacketId("client1");
 
-      // 2. Registreer de 'targetSkippedId' kunstmatig in de pending ACK tabel
+      // add the ack
       await persistence.addPendingAck("client1", targetSkippedId);
 
       // simulate session reset, the ack should still be there
@@ -816,7 +830,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
         qos: 0,
       };
 
-      await persistence.publish("sender",packet);
+      await persistence.publish("sender", packet);
 
       assert.strictEqual(received.length, 1);
       assert.strictEqual(received[0].payload?.length, 1024 * 1024);
@@ -836,7 +850,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
         retain: true,
       };
 
-      await persistence.publish("sender",packet);
+      await persistence.publish("sender", packet);
 
       const { received } = await createReceiver(
         persistence,
@@ -862,9 +876,9 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
       await persistence.subscribe("client1", "#", 0);
 
-      await persistence.publish("sender",createPacket("a", "1"));
-      await persistence.publish("sender",createPacket("a/b", "2"));
-      await persistence.publish("sender",createPacket("a/b/c", "3"));
+      await persistence.publish("sender", createPacket("a", "1"));
+      await persistence.publish("sender", createPacket("a/b", "2"));
+      await persistence.publish("sender", createPacket("a/b/c", "3"));
 
       assert.strictEqual(received.length, 3);
       cleanup();
@@ -882,7 +896,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
         await persistence.subscribe("client1", "+/+", 0);
         await persistence.subscribe("client1", "#", 0);
 
-        await persistence.publish("sender",createPacket("$topic", "1"));
+        await persistence.publish("sender", createPacket("$topic", "1"));
         assert.strictEqual(received.length, 0);
         cleanup();
       },
@@ -894,8 +908,8 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
       await persistence.subscribe("client1", "a/+/c", 0);
 
-      await persistence.publish("sender",createPacket("a/b/c", "1"));
-      await persistence.publish("sender",createPacket("a//c", "2")); // Empty middle level - still matches
+      await persistence.publish("sender", createPacket("a/b/c", "1"));
+      await persistence.publish("sender", createPacket("a//c", "2")); // Empty middle level - still matches
 
       // Both should match: + matches any single level (including empty string)
       assert.strictEqual(received.length, 2);
@@ -910,7 +924,8 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       await persistence.subscribe("client1", "a/b/#", 1);
 
       await persistence.publish(
-        "sender",createPacket("a/b/c", "data", { qos: 1 }),
+        "sender",
+        createPacket("a/b/c", "data", { qos: 1 }),
       );
 
       // Should deduplicate and use highest QoS
@@ -981,7 +996,8 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       await persistence.subscribe("client1", "status/update", 0, false, false);
 
       await persistence.publish(
-        "publisher",createPacket("status/update", "online", {
+        "publisher",
+        createPacket("status/update", "online", {
           retain: true,
           protocolLevel: MQTTLevel.v5,
         }),
@@ -1001,7 +1017,8 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       await persistence.subscribe("client1", "status/update", 0, false, true);
 
       await persistence.publish(
-        "publisher",createPacket("status/update", "online", {
+        "publisher",
+        createPacket("status/update", "online", {
           retain: true,
           protocolLevel: MQTTLevel.v5,
         }),
@@ -1032,7 +1049,8 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       );
 
       await persistence.publish(
-        "publisher",createPacket("sensor/temp", "24", { protocolLevel: MQTTLevel.v5 }),
+        "publisher",
+        createPacket("sensor/temp", "24", { protocolLevel: MQTTLevel.v5 }),
       );
 
       assert.strictEqual(received.length, 1);
@@ -1060,7 +1078,8 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
       // Publish using legacy MQTT v4 (protocolLevel: 4)
       await persistence.publish(
-        "publisher",createPacket("sensor/temp", "24", { protocolLevel: MQTTLevel.v4 }),
+        "publisher",
+        createPacket("sensor/temp", "24", { protocolLevel: MQTTLevel.v4 }),
       );
 
       assert.strictEqual(received.length, 1);
@@ -1080,7 +1099,8 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
       // Publish a retained message first
       await persistence.publish(
-        "publisher",createPacket("retained/topic", "data", { retain: true }),
+        "publisher",
+        createPacket("retained/topic", "data", { retain: true }),
       );
 
       const { received } = await createReceiver(persistence, "client1");
@@ -1100,7 +1120,8 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { persistence, cleanup } = factory();
 
       await persistence.publish(
-        "publisher",createPacket("retained/topic", "data", { retain: true }),
+        "publisher",
+        createPacket("retained/topic", "data", { retain: true }),
       );
 
       // Case A: Existing session (existingSession = true)
@@ -1138,7 +1159,8 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { persistence, cleanup } = factory();
 
       await persistence.publish(
-        "publisher",createPacket("retained/topic", "data", { retain: true }),
+        "publisher",
+        createPacket("retained/topic", "data", { retain: true }),
       );
 
       const { received } = await createReceiver(persistence, "client1");

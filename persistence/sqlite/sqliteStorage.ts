@@ -158,7 +158,7 @@ export class SqliteStorage implements IStorageProvider {
   }
 
   // --- Pending Packets (Incoming & Outgoing) ---
-savePendingPacket(
+  savePendingPacket(
     clientId: ClientId,
     direction: PacketDirection,
     packet: PublishPacket,
@@ -175,7 +175,7 @@ savePendingPacket(
     return Promise.resolve();
   }
 
-getPendingPacket(
+  getPendingPacket(
     clientId: ClientId,
     direction: PacketDirection,
     packetId: PacketId,
@@ -213,7 +213,7 @@ getPendingPacket(
     return Promise.resolve(info.changes > 0);
   }
 
-async *listPendingPackets(
+  async *listPendingPackets(
     clientId: ClientId,
     direction: PacketDirection,
   ): AsyncIterableIterator<PublishPacket> {

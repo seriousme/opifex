@@ -359,9 +359,8 @@ test("SUBSCRIBE with wildcard does not match $ topics", async () => {
   const { mqttConn: subscriber, mqttServer } = startMockServer();
   mqttServer.handlers.isAuthenticated = isAuthenticatedBroker;
 
-  // Definieer de topics op basis van de Python test setup
-  const wildcardTopic = "+/+"; // Overeenkomend met topics[5] uit Python
-  const dollarTopic = "$TopicA/B"; // Overeenkomend met "$"+topics[1] uit Python
+  const wildcardTopic = "+/+";
+  const dollarTopic = "$TopicA/B";
 
   // subscribe to wildcard topic
   await connect(subscriber);
@@ -440,7 +439,6 @@ test("SUBSCRIBE receives retained messages and clearing works", async () => {
   const publisher2 = addMockClient(mqttServer);
   await connect(publisher2);
 
-  // In MQTT verwijder je een retained bericht door een leeg payload te sturen met retain: true
   await publish(publisher2, qos0topic, 0, {
     payload: "",
     retain: true,
@@ -489,7 +487,6 @@ test("SUBSCRIBE redelivery on reconnect (uncompleted QoS 1/2 exchanges)", async 
   const publisher = addMockClient(mqttServer);
   await connect(publisher);
 
-  // Publiceer een QoS 1 en een QoS 2 bericht
   await publish(publisher, topic1, 1, {
     payload: "qos 1 message",
     retain: false,
