@@ -7,7 +7,6 @@ import type {
   PacketId,
   PublishPacket,
   QoS,
-  Topic,
   TopicFilter,
   TRetainHandling,
 } from "./deps.ts";
@@ -105,7 +104,6 @@ export interface IPersistence {
   // Message Delivery & Retained
   publish(
     clientId: ClientId,
-    topic: Topic,
     packet: PublishPacket,
   ): Promise<void>;
   handleRetained(

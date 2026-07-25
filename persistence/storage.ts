@@ -50,6 +50,7 @@ export interface IStorageProvider {
     clientId: ClientId,
     direction: PacketDirection,
     packet: PublishPacket,
+    expiresAtMs: number | null,
   ): Promise<void>;
   getPendingPacket(
     clientId: ClientId,

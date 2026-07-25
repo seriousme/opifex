@@ -8,41 +8,52 @@ import type { ClientId } from "../../mqttPacket/types.ts";
 export function initializeDatabase(filename: string): sqlite.DatabaseSync {
   const db = new sqlite.DatabaseSync(filename);
   db.exec(`
-      create table if not exists client_sessions (
-        client_id text primary key,
-        session_data text not null
-      );
-      create table if not exists subscriptions (
-        client_id text not null,
-        topic text not null,
-        subscription_data text not null,
-        primary key(client_id, topic)
-      );
-      create table if not exists pending_incoming (
-        client_id text not null,
-        packet_id integer not null,
-        packet text not null,
-        payload blob,
-        primary key(client_id, packet_id)
-      );
-      create table if not exists pending_outgoing (
-        client_id text not null,
-        packet_id integer not null,
-        packet text not null,
-        payload blob,
-        primary key(client_id, packet_id)
-      );
-      create table if not exists pending_ack_outgoing (
-        client_id text not null,
-        packet_id integer not null,
-        primary key(client_id, packet_id)
-      );
-      create table if not exists retained (
-        topic text primary key,
-        packet text not null,
-        payload blob
-      );
-    `);
+    CREATE TABLE IF NOT EXISTS client_sessions (
+      client_id    TEXT PRIMARY KEY,
+      session_data TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS subscriptions (
+      client_id         TEXT NOT NULL,
+      topic             TEXT NOT NULL,
+      subscription_data TEXT NOT NULL,
+      PRIMARY KEY (client_id, topic)
+    );
+
+    CREATE TABLE IF NOT EXISTS pending_incoming (
+      seq_id     INTEGER PRIMARY KEY AUTOINCREMENT, -- Guarantees absolute insertion order
+      client_id  TEXT NOT NULL,
+      packet_id  INTEGER NOT NULL,
+      packet     TEXT NOT NULL,
+      payload    BLOB,
+      expires_at INTEGER,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE (client_id, packet_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS pending_outgoing (
+      seq_id     INTEGER PRIMARY KEY AUTOINCREMENT, -- Guarantees absolute insertion order
+      client_id  TEXT NOT NULL,
+      packet_id  INTEGER NOT NULL,
+      packet     TEXT NOT NULL,
+      payload    BLOB,
+      expires_at INTEGER,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE (client_id, packet_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS pending_ack_outgoing (
+      client_id TEXT NOT NULL,
+      packet_id INTEGER NOT NULL,
+      PRIMARY KEY (client_id, packet_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS retained (
+      topic   TEXT PRIMARY KEY,
+      packet  TEXT NOT NULL,
+      payload BLOB
+    );
+  `);
   return db;
 }
 
@@ -90,93 +101,147 @@ export function prepareAllStatements(db: sqlite.DatabaseSync): AllStatements {
   return {
     // Sessions
     saveSession: db.prepare(`
-          insert into client_sessions (client_id, session_data) 
-          values (?, ?)
-          on conflict(client_id) do update set session_data = excluded.session_data
-        `),
+      INSERT INTO client_sessions (client_id, session_data) 
+      VALUES (?, ?)
+      ON CONFLICT(client_id) DO UPDATE SET 
+        session_data = excluded.session_data
+    `),
+
     getSession: db.prepare(`
-          select session_data from client_sessions where client_id = ?
-        `),
+      SELECT session_data 
+      FROM client_sessions 
+      WHERE client_id = ?
+    `),
 
     // Subscriptions
     saveSubscription: db.prepare(`
-          insert into subscriptions (client_id, topic, subscription_data) 
-          values (?, ?, ?)
-          on conflict(client_id, topic) do update set subscription_data = excluded.subscription_data
-        `),
+      INSERT INTO subscriptions (client_id, topic, subscription_data) 
+      VALUES (?, ?, ?)
+      ON CONFLICT(client_id, topic) DO UPDATE SET 
+        subscription_data = excluded.subscription_data
+    `),
+
     deleteSubscription: db.prepare(`
-          delete from subscriptions where client_id = ? and topic = ?
-        `),
+      DELETE FROM subscriptions 
+      WHERE client_id = ? AND topic = ?
+    `),
+
     listSubscriptions: db.prepare(`
-          select topic, subscription_data from subscriptions where client_id = ?
-        `),
+      SELECT topic, subscription_data 
+      FROM subscriptions 
+      WHERE client_id = ?
+    `),
+
     listAllSubscriptions: db.prepare(`
-          select client_id, topic, subscription_data from subscriptions
-        `),
+      SELECT client_id, topic, subscription_data 
+      FROM subscriptions
+    `),
 
     // Pending Incoming Packets
     saveIncoming: db.prepare(`
-          insert into pending_incoming (client_id, packet_id, packet, payload)
-          values (?, ?, ?, ?)
-          on conflict(client_id, packet_id) do update set packet = excluded.packet, payload = excluded.payload
-        `),
+      INSERT INTO pending_incoming (client_id, packet_id, packet, payload, expires_at)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(client_id, packet_id) DO UPDATE SET 
+        packet = excluded.packet, 
+        payload = excluded.payload,
+        expires_at = excluded.expires_at
+    `),
+
     getIncoming: db.prepare(`
-          select packet, payload from pending_incoming where client_id = ? and packet_id = ?
-        `),
+      SELECT packet, payload, expires_at 
+      FROM pending_incoming 
+      WHERE client_id = ? AND packet_id = ?
+    `),
+
     deleteIncoming: db.prepare(`
-          delete from pending_incoming where client_id = ? and packet_id = ?
-        `),
+      DELETE FROM pending_incoming 
+      WHERE client_id = ? AND packet_id = ?
+    `),
+
     listIncoming: db.prepare(`
-          select packet, payload from pending_incoming where client_id = ?
-        `),
+      SELECT packet, payload, expires_at 
+      FROM pending_incoming 
+      WHERE client_id = ? 
+      ORDER BY seq_id ASC
+    `),
 
     // Pending Outgoing Packets
     saveOutgoing: db.prepare(`
-          insert into pending_outgoing (client_id, packet_id, packet, payload)
-          values (?, ?, ?, ?)
-          on conflict(client_id, packet_id) do update set packet = excluded.packet, payload = excluded.payload
-        `),
+      INSERT INTO pending_outgoing (client_id, packet_id, packet, payload, expires_at)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(client_id, packet_id) DO UPDATE SET 
+        packet = excluded.packet, 
+        payload = excluded.payload,
+        expires_at = excluded.expires_at
+    `),
+
     getOutgoing: db.prepare(`
-          select packet, payload from pending_outgoing where client_id = ? and packet_id = ?
-        `),
+      SELECT packet, payload, expires_at 
+      FROM pending_outgoing 
+      WHERE client_id = ? AND packet_id = ?
+    `),
+
     deleteOutgoing: db.prepare(`
-          delete from pending_outgoing where client_id = ? and packet_id = ?
-        `),
+      DELETE FROM pending_outgoing 
+      WHERE client_id = ? AND packet_id = ?
+    `),
+
     listOutgoing: db.prepare(`
-          select packet, payload from pending_outgoing where client_id = ?
-        `),
+      SELECT packet, payload, expires_at 
+      FROM pending_outgoing 
+      WHERE client_id = ? 
+      ORDER BY seq_id ASC
+    `),
 
     // ACKs
     saveAck: db.prepare(`
-          insert into pending_ack_outgoing (client_id, packet_id)
-          values (?, ?)
-          on conflict(client_id, packet_id) do nothing
-        `),
+      INSERT INTO pending_ack_outgoing (client_id, packet_id)
+      VALUES (?, ?)
+      ON CONFLICT(client_id, packet_id) DO NOTHING
+    `),
+
     hasAck: db.prepare(`
-          select 1 from pending_ack_outgoing where client_id = ? and packet_id = ?
-        `),
+      SELECT 1 
+      FROM pending_ack_outgoing 
+      WHERE client_id = ? AND packet_id = ?
+    `),
+
     deleteAck: db.prepare(`
-          delete from pending_ack_outgoing where client_id = ? and packet_id = ?
-        `),
+      DELETE FROM pending_ack_outgoing 
+      WHERE client_id = ? AND packet_id = ?
+    `),
+
     listAcks: db.prepare(`
-          select packet_id from pending_ack_outgoing where client_id = ?
-        `),
+      SELECT packet_id 
+      FROM pending_ack_outgoing 
+      WHERE client_id = ?
+    `),
 
     // Retained Messages
     saveRetained: db.prepare(`
-          insert into retained (topic, packet, payload)
-          values (?, ?, ?)
-          on conflict(topic) do update set packet = excluded.packet, payload = excluded.payload
-        `),
+      INSERT INTO retained (topic, packet, payload)
+      VALUES (?, ?, ?)
+      ON CONFLICT(topic) DO UPDATE SET 
+        packet = excluded.packet, 
+        payload = excluded.payload
+    `),
+
     deleteRetained: db.prepare(`
-          delete from retained where topic = ?
-        `),
+      DELETE FROM retained 
+      WHERE topic = ?
+    `),
+
     getRetainedExact: db.prepare(`
-          select packet, payload from retained where topic = ?
-        `),
+      SELECT packet, payload 
+      FROM retained 
+      WHERE topic = ?
+    `),
+
     listRetainedLike: db.prepare(`
-          select topic, packet, payload from retained where topic like ?
-        `),
+      SELECT topic, packet, payload 
+      FROM retained 
+      WHERE topic LIKE ?
+    `),
   };
 }
 

@@ -18,7 +18,15 @@ import type { IStorageProvider, TrieSubscription } from "../storage.ts";
 import { PacketDirection } from "../storage.ts";
 import { topicFilterToRegExp } from "../deps.ts";
 
+type pendingTableEntry = {
+  seqId: number;
+  packet: PublishPacket;
+  expiresAtMs: number | null;
+  createdAtMs: number;
+};
+
 export class MemoryStorage implements IStorageProvider {
+  private seqId = 1;
   private sessionTable = new Map<ClientId, ClientRegistrationResult>();
 
   private subscriptionTable = new Map<
@@ -28,12 +36,12 @@ export class MemoryStorage implements IStorageProvider {
 
   private pendingIncomingTable = new Map<
     ClientId,
-    Map<PacketId, PublishPacket>
+    Map<PacketId, pendingTableEntry>
   >();
 
   private pendingOutgoingTable = new Map<
     ClientId,
-    Map<PacketId, PublishPacket>
+    Map<PacketId, pendingTableEntry>
   >();
 
   private pendingAckOutgoingTable = new Map<ClientId, Set<PacketId>>();
@@ -129,9 +137,16 @@ export class MemoryStorage implements IStorageProvider {
     clientId: ClientId,
     direction: PacketDirection,
     packet: PublishPacket,
+    expiresAtMs: number|null = null,
   ): Promise<void> {
+    const createdAtMs = Date.now();
     if (packet.id !== undefined) {
-      this.getPacketTable(clientId, direction).set(packet.id, packet);
+      this.getPacketTable(clientId, direction).set(packet.id, {
+        seqId: this.seqId++,
+        packet,
+        expiresAtMs,
+        createdAtMs
+      });
     }
     return Promise.resolve();
   }
@@ -141,8 +156,8 @@ export class MemoryStorage implements IStorageProvider {
     direction: PacketDirection,
     packetId: PacketId,
   ): Promise<PublishPacket | null> {
-    const packet = this.getPacketTable(clientId, direction).get(packetId);
-    return Promise.resolve(packet ?? null);
+    const entry = this.getPacketTable(clientId, direction).get(packetId);
+    return Promise.resolve(entry?.packet ?? null);
   }
 
   deletePendingPacket(
@@ -158,9 +173,16 @@ export class MemoryStorage implements IStorageProvider {
     clientId: ClientId,
     direction: PacketDirection,
   ): AsyncIterableIterator<PublishPacket> {
-    const clientPackets = this.getPacketTable(clientId, direction);
-    for (const packet of clientPackets.values()) {
-      yield packet;
+
+    const queue = this.getPacketTable(clientId, direction);
+    if (!queue) return;
+
+    // Sort queue by order of insertion (seqId)
+    const sortedEntries = Array.from(queue.values())
+      .sort((a, b) => a.seqId - b.seqId);
+
+    for (const entry of sortedEntries) {
+      yield entry.packet;
     }
   }
 

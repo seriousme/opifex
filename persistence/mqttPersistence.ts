@@ -3,7 +3,6 @@ import type {
   PacketId,
   PublishPacket,
   QoS,
-  Topic,
   TopicFilter,
   TRetainHandling,
 } from "./deps.ts";
@@ -17,6 +16,20 @@ import type { IStorageProvider, TrieSubscription } from "./storage.ts";
 import { PacketDirection } from "./storage.ts";
 import { assert, Trie } from "./deps.ts";
 import { MAX_PACKET_ID } from "./persistence.ts";
+import { logger } from "./deps.ts";
+
+/** helper to calculate expiry date/time in ms */
+function getExpiresAt(packet: PublishPacket): number | null {
+  const now = Date.now();
+  if (packet.protocolLevel !== 5) {
+    return null;
+  }
+  const expiry = packet.properties?.messageExpiryInterval;
+  if (expiry === undefined) {
+    return null;
+  }
+  return now + (expiry * 1000);
+}
 
 export class MqttPersistence implements IPersistence {
   private clientHandlerList = new Map<ClientId, Handler>();
@@ -113,19 +126,62 @@ export class MqttPersistence implements IPersistence {
     return this.storage.listSubscriptions(clientId);
   }
 
-  // --- Map remaining incoming/outgoing/ack methods to storage directly ---
+  /**
+   * check if the client is still subscribed to the packets topic
+   * as things could have changed, e.g. between enqueing and resending offline packets
+   * and add subscriptionIdentifiers
+   */
+  private matchSubscriptions(
+    clientId: ClientId,
+    packet: PublishPacket,
+  ): boolean {
+    let maxQos = 0;
+    const subIds = [];
+    let matched = false;
+    for (const sub of this.trie.match(packet.topic)) {
+      if (sub.clientId === clientId) {
+        matched = true;
+        if (sub.subscriptionIdentifier) {
+          subIds.push(sub.subscriptionIdentifier);
+        }
+        if (sub.qos > maxQos) {
+          maxQos = sub.qos;
+        }
+      }
+    }
+    if (subIds.length > 0 && packet.protocolLevel === 5) {
+      if (packet.properties === undefined) {
+        packet.properties = {};
+      }
+      packet.properties.subscriptionIdentifiers = subIds;
+    }
+    const originalQos = packet.qos || 0;
+    packet.qos = (originalQos < maxQos ? originalQos : maxQos) as QoS;
+    logger.debug(
+      `matchSubscriptions: topic ${packet.topic}, matched ${matched}`,
+    );
+    return matched;
+  }
+
   async addPendingIncomingPacket(
     clientId: ClientId,
     packet: PublishPacket,
   ): Promise<void> {
+    logger.debug(
+      `addPendingIncomingPacket: id ${packet.id} , topic "${packet.topic}", QoS ${packet.qos}`,
+    );
+
     if (packet.id) {
+      const expiresAtMs = getExpiresAt(packet);
       await this.storage.savePendingPacket(
         clientId,
         PacketDirection.Incoming,
         packet,
+        expiresAtMs,
       );
     }
   }
+
   getPendingIncomingPacket(
     clientId: ClientId,
     packetId: PacketId,
@@ -145,6 +201,8 @@ export class MqttPersistence implements IPersistence {
     clientId: ClientId,
     packetId: PacketId,
   ): Promise<boolean> {
+    logger.debug(`delete PendingIncomingPacket: id ${packetId}`);
+
     return this.storage.deletePendingPacket(
       clientId,
       PacketDirection.Incoming,
@@ -156,10 +214,15 @@ export class MqttPersistence implements IPersistence {
     packet: PublishPacket,
   ): Promise<void> {
     if (packet.id) {
+      logger.debug(
+        `addPendingOutGoingPacket: id ${packet.id} , topic "${packet.topic}", QoS ${packet.qos}`,
+      );
+      const expiresAtMs = getExpiresAt(packet);
       await this.storage.savePendingPacket(
         clientId,
         PacketDirection.Outgoing,
         packet,
+        expiresAtMs,
       );
     }
   }
@@ -191,7 +254,7 @@ export class MqttPersistence implements IPersistence {
     return this.storage.listPendingAcks(clientId);
   }
 
-  // --- Unified Packet ID Assignment ---
+  // --- Packet ID Assignment ---
   async nextPacketId(clientId: ClientId): Promise<PacketId> {
     const currentId = this.packetIdCounters.get(clientId) || 0;
     let nextId = currentId;
@@ -217,15 +280,18 @@ export class MqttPersistence implements IPersistence {
     assert(false, "No unused packetId available");
   }
 
-  // --- Unified Publish Protocol Logic (MQTT v5 Compliant) ---
+  // --- Publish Protocol Logic
   async publish(
     publisherClientId: ClientId,
-    topic: Topic,
     packet: PublishPacket,
   ): Promise<void> {
+    const topic = packet.topic;
+    logger.debug(
+      `mqttPersistence: publish "${publisherClientId}" "${topic}", ${packet.qos}`,
+    );
     if (packet.retain) {
       if (!packet.payload?.byteLength) {
-        await this.storage.deleteRetained(packet.topic);
+        await this.storage.deleteRetained(topic);
       } else {
         await this.storage.saveRetained(topic, packet);
       }
@@ -233,7 +299,7 @@ export class MqttPersistence implements IPersistence {
 
     const clients = new Map<
       ClientId,
-      { maxQos: QoS; retainAsPublished: boolean; subIds: number[] }
+      { maxQos: QoS; retainAsPublished: boolean }
     >();
 
     for (const sub of this.trie.match(topic)) {
@@ -245,15 +311,11 @@ export class MqttPersistence implements IPersistence {
         target = {
           maxQos: sub.qos,
           retainAsPublished: sub.retainAsPublished,
-          subIds: [],
         };
         clients.set(sub.clientId, target);
       } else {
         if (sub.qos > target.maxQos) target.maxQos = sub.qos;
         if (sub.retainAsPublished) target.retainAsPublished = true;
-      }
-      if (sub.subscriptionIdentifier !== undefined) {
-        target.subIds.push(sub.subscriptionIdentifier);
       }
     }
 
@@ -263,26 +325,31 @@ export class MqttPersistence implements IPersistence {
 
       const originalQos = packet.qos || 0;
       newPacket.qos = originalQos < opts.maxQos ? originalQos : opts.maxQos;
-
-      if (opts.subIds.length > 0 && newPacket.protocolLevel === 5) {
-        newPacket.properties = {
-          ...newPacket.properties,
-          subscriptionIdentifiers: opts.subIds,
-        };
-      }
       await this.dispatch(clientId, newPacket);
     }
   }
 
-  async dispatch(clientId: ClientId, packet: PublishPacket): Promise<void> {
+  async dispatch(
+    clientId: ClientId,
+    packet: PublishPacket,
+  ): Promise<void> {
     const handler = this.clientHandlerList.get(clientId);
+    logger.debug(`dispatch ${clientId}, ${packet.topic}, ${packet.qos}`);
     const qos = packet.qos || 0;
     if (qos === 0) {
       packet.id = 0;
+      if (!this.matchSubscriptions(clientId, packet)) {
+        // client is no longer subscribed
+        return;
+      }
       if (handler) handler(packet);
       return;
     }
 
+    if (!this.matchSubscriptions(clientId, packet)) {
+      // client is no longer subscribed
+      return;
+    }
     packet.id = await this.nextPacketId(clientId);
     await this.addPendingOutgoingPacket(clientId, packet);
     if (handler) handler(packet);
@@ -296,8 +363,8 @@ export class MqttPersistence implements IPersistence {
     const handler = this.clientHandlerList.get(clientId);
     if (!handler) return;
 
+    const seen = new Set();
     const session = await this.storage.getSession(clientId);
-
     for (const sub of subscriptions) {
       for await (
         const packet of this.storage.listRetainedMatches(sub.topicFilter)
@@ -305,22 +372,12 @@ export class MqttPersistence implements IPersistence {
         const retainHandling = sub.retainHandling ?? 0;
         if (retainHandling === 2) continue;
         if (retainHandling === 1 && session?.existingSession) continue;
-
+        if (seen.has(packet.topic)) continue; //dedupe
+        seen.add(packet.topic);
         const newPacket = structuredClone(packet);
         if (!(sub.retainAsPublished ?? true)) newPacket.retain = false;
+        this.matchSubscriptions(clientId, packet);
 
-        if (
-          sub.subscriptionIdentifier !== undefined &&
-          newPacket.protocolLevel === 5
-        ) {
-          newPacket.properties = {
-            ...newPacket.properties,
-            subscriptionIdentifiers: [sub.subscriptionIdentifier],
-          };
-        }
-
-        const originalQos = packet.qos || 0;
-        newPacket.qos = originalQos < sub.qos ? originalQos : sub.qos;
         await handler(newPacket);
       }
     }

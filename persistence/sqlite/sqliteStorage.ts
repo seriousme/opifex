@@ -158,10 +158,11 @@ export class SqliteStorage implements IStorageProvider {
   }
 
   // --- Pending Packets (Incoming & Outgoing) ---
-  savePendingPacket(
+savePendingPacket(
     clientId: ClientId,
     direction: PacketDirection,
     packet: PublishPacket,
+    expiresAtMs: number | null,
   ): Promise<void> {
     if (packet.id === undefined) return Promise.resolve();
 
@@ -170,11 +171,11 @@ export class SqliteStorage implements IStorageProvider {
       ? this.statements.saveIncoming
       : this.statements.saveOutgoing;
 
-    stmt.run(clientId, packet.id, packetJson, payloadBlob);
+    stmt.run(clientId, packet.id, packetJson, payloadBlob, expiresAtMs);
     return Promise.resolve();
   }
 
-  getPendingPacket(
+getPendingPacket(
     clientId: ClientId,
     direction: PacketDirection,
     packetId: PacketId,
@@ -182,12 +183,20 @@ export class SqliteStorage implements IStorageProvider {
     const stmt = direction === PacketDirection.Incoming
       ? this.statements.getIncoming
       : this.statements.getOutgoing;
+
     const row = stmt.get(clientId, packetId) as {
       packet: string;
       payload: Uint8Array | null;
+      expires_at: number | null;
     } | undefined;
 
     if (!row) return Promise.resolve(null);
+
+    // Filter out expired packets
+    if (row.expires_at !== null && row.expires_at <= Date.now()) {
+      return Promise.resolve(null);
+    }
+
     return Promise.resolve(deserializePacket(row.packet, row.payload));
   }
 
@@ -204,7 +213,7 @@ export class SqliteStorage implements IStorageProvider {
     return Promise.resolve(info.changes > 0);
   }
 
-  async *listPendingPackets(
+async *listPendingPackets(
     clientId: ClientId,
     direction: PacketDirection,
   ): AsyncIterableIterator<PublishPacket> {
@@ -215,9 +224,15 @@ export class SqliteStorage implements IStorageProvider {
     const rows = stmt.all(clientId) as Array<{
       packet: string;
       payload: Uint8Array | null;
+      expires_at: number | null;
     }>;
 
+    const now = Date.now();
     for (const row of rows) {
+      // Skip expired packets during iteration
+      if (row.expires_at !== null && row.expires_at <= now) {
+        continue;
+      }
       yield deserializePacket(row.packet, row.payload);
     }
   }

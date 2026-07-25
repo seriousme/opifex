@@ -248,7 +248,7 @@ export class Context {
     logger.verbose(
       `ctx:publish processing incoming publish for topic "${packet.topic}"`,
     );
-    await this.persistence.publish(this.clientId!, packet.topic, packet);
+    await this.persistence.publish(this.clientId!, packet);
   }
 
   /**

@@ -22,7 +22,7 @@ test("SqlitePersistence - Trie is correctly rebuilt (restored) from the database
   storage.saveSubscription("Client_B", { topicFilter: "sensor/#", qos: 2 });
   const persistence = await SqlitePersistence.start(sharedDb);
   const topic = "sensor/temperature";
-  await persistence.publish("Client_C", topic, {
+  await persistence.publish("Client_C", {
     type: PacketType.publish,
     protocolLevel: MQTTLevel.v4,
     topic,
