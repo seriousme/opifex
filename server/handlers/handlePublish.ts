@@ -28,7 +28,9 @@ async function handlePublishError(
     return;
   }
   // QoS 1 and 2 get a nice message
-  const properties = reasonString ? { reasonString } : {};
+  const cfg = ctx.config.context;
+  const addReasonString = cfg.provideReasonStrings === true;
+  const properties = (reasonString && addReasonString) ? { reasonString } : {};
   const pType = qos === 1 ? PacketType.puback : PacketType.pubrec;
   await ctx.send({
     type: pType,
@@ -69,8 +71,9 @@ export async function handlePublish(
 ): Promise<void> {
   const qos = packet.qos || 0;
   const id = packet.id;
+  const cfg = ctx.config.context;
 
-  if (!ctx.config.context.retainAvailable && packet.retain) {
+  if (!cfg.retainAvailable && packet.retain) {
     await handlePublishError(
       ctx,
       id,

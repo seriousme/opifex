@@ -17,7 +17,7 @@ function buildProps(ctx: Context, opts: {
   if (opts.assignedClientIdentifier !== undefined) {
     props.assignedClientIdentifier = opts.assignedClientIdentifier;
   }
-  if (opts.reasonString !== undefined) {
+  if (opts.reasonString !== undefined && cfg.provideReasonStrings) {
     props.reasonString = opts.reasonString;
   }
 
