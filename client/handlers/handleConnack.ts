@@ -10,15 +10,25 @@ import type { ConnackPacket, TReasonCode } from "../deps.ts";
  * @returns Promise that resolves when handling is complete
  */
 export async function handleConnack(packet: ConnackPacket, ctx: Context) {
-  const result = packet.protocolLevel === 5
-    ? packet.reasonCode
-    : packet.returnCode;
+  const isVersion5 = packet.protocolLevel === 5;
+  const result = isVersion5 ? packet.reasonCode : packet.returnCode;
   if (result === 0) {
     ctx.connectionState = ConnectionState.connected;
     if (ctx.mqttConn) {
       ctx.mqttConn.codecOpts.protocolLevel = ctx.protocolLevel;
     }
-    ctx.pingTimer?.reset();
+
+    const serverKeepAlive = isVersion5
+      ? packet.properties?.serverKeepAlive
+      : undefined;
+
+    if (serverKeepAlive === 0) {
+      ctx.pingTimer?.clear(); // Server disabled keepalive
+    } else if (serverKeepAlive !== undefined) {
+      ctx.setPingTimer(serverKeepAlive); // Server set a new interval
+    } else {
+      ctx.pingTimer?.reset(); // Default fallback for V4 or V5 without override
+    }
     ctx.unresolvedConnect?.resolve(result);
     // start transmitting packets that were queued before
     for await (const packet of ctx.store.pendingOutgoingPackets()) {

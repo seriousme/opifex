@@ -13,9 +13,10 @@ import {
   startMockServer,
   subscribe,
 } from "../../dev_utils/mod.ts";
-import { configuration } from "../config.ts";
+import { createConfiguration } from "../config.ts";
 import type { ConnackPacketV5 } from "../../mqttPacket/connack.ts";
 
+const configuration = createConfiguration();
 const txtEncoder = new TextEncoder();
 
 const baseConnectPacket: AnyPacket = {

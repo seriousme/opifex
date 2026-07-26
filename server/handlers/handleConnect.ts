@@ -8,21 +8,26 @@ import {
 } from "../deps.ts";
 import type { ConnackProperties, ConnectPacket, TReasonCode } from "../deps.ts";
 
+const MAX_EXPIRY = 0xFFFFFFFF;
+
 function buildProps(ctx: Context, opts: {
   assignedClientIdentifier: string | undefined;
   reasonString: string | undefined;
+  sessionExpiryInterval: number | undefined;
 }): ConnackProperties {
   const cfg = ctx.config.context;
   const props: Partial<ConnackProperties> = {};
   if (opts.assignedClientIdentifier !== undefined) {
     props.assignedClientIdentifier = opts.assignedClientIdentifier;
   }
+  if (opts.sessionExpiryInterval !== undefined) {
+    props.sessionExpiryInterval = opts.sessionExpiryInterval;
+  }
   if (opts.reasonString !== undefined && cfg.provideReasonStrings) {
     props.reasonString = opts.reasonString;
   }
 
   return {
-    sessionExpiryInterval: cfg.sessionExpiryInterval,
     receiveMaximum: cfg.receiveMaximum,
     maximumQos: cfg.maximumQos,
     retainAvailable: cfg.retainAvailable,
@@ -73,9 +78,17 @@ async function isAuthenticated(
 async function validateConnect(
   ctx: Context,
   packet: ConnectPacket,
+  sessionExpiryInterval: number | undefined,
 ): Promise<{ reasonCode: TReasonCode; reasonString?: string }> {
   const cfg = ctx.config.context;
+  if (!cfg.protocols.includes(packet.protocolLevel)) {
+    return {
+      reasonCode: ReasonCode.unsupportedProtocolVersion,
+      reasonString: `Protocol version ${packet.protocolLevel} is not supported`,
+    };
+  }
   if (packet.will) {
+    const isProtocolV5 = packet.protocolLevel === 5;
     const pkt = packet.will;
     if (!cfg.retainAvailable && pkt.retain) {
       return {
@@ -83,18 +96,29 @@ async function validateConnect(
         reasonString: `Client not authorized to publish will to ${pkt.topic}`,
       };
     }
-    if (!await ctx.handlers.isAuthorizedToPublish) {
+    if (!ctx.handlers.isAuthorizedToPublish) {
       return {
         reasonCode: ReasonCode.notAuthorized,
         reasonString: `Client not authorized to publish will to ${pkt.topic}`,
       };
     }
-  }
-  if (packet.protocolLevel !== 4 && packet.protocolLevel !== 5) {
-    return {
-      reasonCode: ReasonCode.unsupportedProtocolVersion,
-      reasonString: `Protocol version ${packet.protocolLevel} is not supported`,
-    };
+    const qos = pkt.qos || 0;
+    if (qos > cfg.maximumQos) {
+      return {
+        reasonCode: ReasonCode.qosNotSupported,
+        reasonString: `Server does not support publish will with QoS ${qos} `,
+      };
+    }
+    if (isProtocolV5) {
+      const requestedInterval = packet.will.properties?.willDelayInterval || 0;
+      if (requestedInterval > (sessionExpiryInterval || 0)) {
+        return {
+          reasonCode: ReasonCode.payloadFormatInvalid,
+          reasonString:
+            `Will delay interval larger than allowed session expiry interval`,
+        };
+      }
+    }
   }
 
   return await isAuthenticated(ctx, packet);
@@ -107,20 +131,18 @@ async function validateConnect(
  * @param clientId - The client ID
  */
 async function processValidatedConnect(
-  reasonCode: TReasonCode,
-  packet: ConnectPacket,
   ctx: Context,
+  packet: ConnectPacket,
+  reasonCode: TReasonCode,
   clientId: string,
+  sessionExpiryInterval: number | undefined,
 ): Promise<boolean> {
   if (reasonCode === ReasonCode.success) {
     if (packet.will) {
       ctx.will = {
         type: PacketType.publish,
         protocolLevel: ctx.protocolLevel,
-        qos: packet.will.qos,
-        retain: packet.will.retain,
-        topic: packet.will.topic,
-        payload: packet.will.payload,
+        ...packet.will, //need to refine this to publish props only
       };
     }
     const existingSession = await ctx.connect(clientId, packet.clean || false);
@@ -132,13 +154,26 @@ async function processValidatedConnect(
       logger.debug(`Setting protocolLevel to ${ctx.protocolLevel}`);
       ctx.mqttConn.codecOpts.protocolLevel = ctx.protocolLevel;
     }
+    const cfg = ctx.config.context;
+    const isProtocolV5 = packet.protocolLevel === 5;
+    const serverKeepAlive = cfg.serverKeepAlive;
 
-    const keepAlive = packet.keepAlive || 0;
+    let keepAlive = packet.keepAlive || 0;
+    if (isProtocolV5 && serverKeepAlive !== undefined) {
+      // in V5 the server can force the keepalive [MQTT-3.2.2-21].
+      keepAlive = serverKeepAlive;
+    }
     if (keepAlive > 0) {
       logger.debug(`Setting keepalive to ${keepAlive * 1500} ms`);
       ctx.timer = new Timer(() => {
         ctx.close();
-      }, Math.floor(keepAlive * 1500));
+      }, keepAlive * 1500);
+    }
+
+    if (isProtocolV5 && sessionExpiryInterval) {
+      ctx.sessionEndsTimer = new Timer(() => {
+        ctx.close(false);
+      }, sessionExpiryInterval * 1500);
     }
     return existingSession;
   }
@@ -180,21 +215,35 @@ export async function handleConnect(
   ctx: Context,
   packet: ConnectPacket,
 ): Promise<void> {
+  const isProtocolV5 = packet.protocolLevel === 5;
   let clientId = packet.clientId;
   let assignedClientIdentifier: string | undefined;
-
+  let sessionExpiryInterval;
   if (!clientId) {
     assignedClientIdentifier = `Opifex-${crypto.randomUUID()}`;
     clientId = assignedClientIdentifier;
   }
-  const { reasonCode, reasonString } = await validateConnect(ctx, packet);
-  const sessionPresent = await processValidatedConnect(
-    reasonCode,
-    packet,
+  if (isProtocolV5) {
+    const requestedInterval = packet.properties?.sessionExpiryInterval || 0;
+    const maxInterval = ctx.config.context.maxSessionExpiryInterval ||
+      MAX_EXPIRY;
+    sessionExpiryInterval = requestedInterval > maxInterval
+      ? maxInterval
+      : requestedInterval;
+  }
+  const { reasonCode, reasonString } = await validateConnect(
     ctx,
-    clientId,
+    packet,
+    sessionExpiryInterval,
   );
-  const isProtocolV5 = packet.protocolLevel === 5;
+  const sessionPresent = await processValidatedConnect(
+    ctx,
+    packet,
+    reasonCode,
+    clientId,
+    sessionExpiryInterval,
+  );
+
   await ctx.send({
     type: PacketType.connack,
     protocolLevel: ctx.protocolLevel,
@@ -202,7 +251,11 @@ export async function handleConnect(
     ...(isProtocolV5
       ? {
         reasonCode,
-        properties: buildProps(ctx, { assignedClientIdentifier, reasonString }),
+        properties: buildProps(ctx, {
+          assignedClientIdentifier,
+          reasonString,
+          sessionExpiryInterval,
+        }),
       }
       : { returnCode: reasonToReturnCode(reasonCode) }),
   });

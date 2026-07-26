@@ -63,6 +63,16 @@ export class Context {
         break;
     }
   }
+  setPingTimer(interval: number) {
+    if (this.pingTimer) {
+      this.pingTimer.clear();
+    }
+    this.pingTimer = new Timer(
+      this.sendPing.bind(this),
+      interval * 1000,
+      true,
+    );
+  }
 
   async connect(packet: ConnectPacket) {
     this.connectionState = ConnectionState.connecting;
@@ -73,11 +83,7 @@ export class Context {
     await this.mqttConn?.send(packet);
     const keepAlive = packet.keepAlive || 0;
     if (keepAlive > 0) {
-      this.pingTimer = new Timer(
-        this.sendPing.bind(this),
-        keepAlive * 1000,
-        true,
-      );
+      this.setPingTimer(keepAlive);
     }
   }
 

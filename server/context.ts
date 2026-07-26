@@ -138,6 +138,12 @@ export class Context {
   /** The Keep Alive timer tracking the client activity timeout. */
   timer?: Timer;
 
+  /** Timer to keep track of when a V5 session ends */
+  sessionEndsTimer?: Timer;
+
+  /** Timer to handle V5 delayed will delivery */
+  willTimer?: Timer;
+
   /** Timer enforcing a deadline for the client to send a CONNECT packet after establishing a socket connection. */
   preconnectTimer?: Timer;
 
@@ -217,6 +223,14 @@ export class Context {
       logger.verbose(
         `ctx:connect: Existing session with ${clientId} exists, closing existing session`,
       );
+      // clear up any still running V5 timers
+      if (this.sessionEndsTimer) {
+        this.sessionEndsTimer.clear();
+      }
+      if (this.willTimer) {
+        this.willTimer.clear();
+      }
+      // close the network connection of the previous session(if any)
       await existingActiveSession.close(false);
     }
     if (clean) {
@@ -273,8 +287,9 @@ export class Context {
       this.preconnectTimer.clear();
     }
     if (this.connected) {
-      if (this.cleanSession) {
+      if (this.cleanSession && !this.sessionEndsTimer) {
         // [MQTT-3.1.2-6] State data associated with this Session MUST NOT be reused in any subsequent Session
+        // except when the V5 session timer is active
         if (this.clientId) {
           await this.persistence.deregisterClient(this.clientId);
         }

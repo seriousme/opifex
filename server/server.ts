@@ -3,7 +3,8 @@ import { Context } from "./context.ts";
 import type { Handlers } from "./context.ts";
 import type { IPersistence, SockConn, Topic } from "./deps.ts";
 import { handlePacket } from "./handlers/handlePacket.ts";
-import { configuration } from "./config.ts";
+import { createConfiguration } from "./config.ts";
+import type { Configuration, ConfigurationInput } from "./config.ts";
 
 /**
  * Default preconnect handler that unconditionally permits all connections.
@@ -45,6 +46,8 @@ export type MqttServerOptions = {
   persistence?: IPersistence;
   /** Optional custom handlers for authentication and authorization. */
   handlers?: Handlers;
+  /** Optional configuration data */
+  configuration?: ConfigurationInput;
 };
 
 /** * The MqttServer class provides an MQTT server with configurable persistence and
@@ -63,6 +66,8 @@ export class MqttServer {
   handlers: Handlers;
   /** The persistence layer used for storing sessions and messages. */
   persistence: IPersistence;
+  /** The persistence layer used for storing sessions and messages. */
+  configuration: Configuration;
 
   /**
    * Initializes a new instance of the MqttServer.
@@ -71,6 +76,7 @@ export class MqttServer {
   constructor({
     persistence,
     handlers,
+    configuration,
   }: MqttServerOptions) {
     this.persistence = persistence || new MemoryPersistence();
     this.handlers = {
@@ -81,6 +87,7 @@ export class MqttServer {
       isAuthorizedToSubscribe: handlers?.isAuthorizedToSubscribe ||
         defaultIsAuthorized,
     };
+    this.configuration = createConfiguration(configuration);
   }
 
   /**
@@ -96,7 +103,7 @@ export class MqttServer {
       }
     }
     const ctx = new Context(
-      configuration,
+      this.configuration,
       this.persistence,
       conn,
       this.handlers,

@@ -50,6 +50,7 @@ test("Basic Connection and Publish Flow", async () => {
   await subscribe5(mqttConn2, [{ topicFilter: topics[0], qos: 2 }]);
 
   const mqttConn3 = addMockClient(mqttServer);
+  await connect5(mqttConn3, { clientId: "publisher" });
 
   await publish5(mqttConn3, topics[0], 0, {
     payload: "qos 0",
@@ -122,7 +123,7 @@ test("Will Message Configuration", async () => {
   await subscribe5(bConn, [{ topicFilter: topics[2], qos: 2 }]);
 
   // Abruptly terminate connection A without cleanly calling disconnect
-  await aConn.close();
+  aConn.close();
 
   // Client B should receive the Will message due to the forced closure
   const { value: willPublish } = await bConn.next();
@@ -167,6 +168,10 @@ test("Offline Message Queueing (Session Expiry)", async () => {
 
   await aConn.send(connPacket);
   await aConn.next();
+  await connect5(aConn, {
+    clientId: "offlineClient",
+    properties: { sessionExpiryInterval: 99999 },
+  });
   await subscribe5(aConn, [{ topicFilter: wildtopics[5], qos: 2 }]);
   await disconnect5(aConn);
 

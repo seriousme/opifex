@@ -5,16 +5,15 @@ import type {
   AnyPacket,
   ConnackPacket,
   ConnectPacket,
+  DisconnectProperties,
+  PublishProperties,
   QoS,
   Topic,
   TopicFilter,
-} from "@seriousme/opifex/mqttPacket";
+} from "../mqttPacket/mod.ts";
+import type { ConnackPacketV5 } from "../mqttPacket/connack.ts";
 import assert from "node:assert/strict";
 import { logger } from "../utils/mod.ts";
-import type {
-  DisconnectProperties,
-  PublishProperties,
-} from "../mqttPacket/Properties.ts";
 
 const txtEncoder = new TextEncoder();
 let clientIdCounter = 1;
@@ -42,9 +41,10 @@ export async function connect(mqttConn: MqttConn, {
   keepAlive = 0,
   clean = true,
   will = undefined as ConnectPacket["will"],
+  properties = {},
 } = {}): Promise<ConnackPacket> {
   mqttConn.codecOpts.protocolLevel = level;
-  const connectPacket: AnyPacket = {
+  const connectPacket: ConnectPacket = {
     type: PacketType.connect,
     protocolName: "MQTT",
     protocolLevel: level,
@@ -55,6 +55,9 @@ export async function connect(mqttConn: MqttConn, {
     password: txtEncoder.encode("strong_password"),
     will,
   };
+  if (connectPacket.protocolLevel === 5) {
+    connectPacket.properties = properties;
+  }
   logger.verbose("connectHelper: sending connect");
   logger.debug({ connectPacket });
 
@@ -71,6 +74,7 @@ export async function connect5(mqttConn: MqttConn, opts: {
   keepAlive?: number;
   clean?: boolean;
   will?: ConnectPacket["will"];
+  properties?: ConnackPacketV5["properties"];
 }): Promise<ConnackPacket> {
   return await connect(mqttConn, { ...opts, level: MQTTLevel.v5 });
 }

@@ -2,9 +2,12 @@
  * Server configuration parameters
  */
 
-export const configuration = {
+import { MQTTLevel } from "./deps.ts";
+
+export const defaultConfiguration = {
   context: {
-    sessionExpiryInterval: 0, // how long before a session expires
+    protocols: [MQTTLevel.v4, MQTTLevel.v5],
+    maxSessionExpiryInterval: 86400, // 1 day
     receiveMaximum: 65535,
     maximumQos: 2,
     retainAvailable: true,
@@ -20,4 +23,29 @@ export const configuration = {
   },
 };
 
-export type Configuration = typeof configuration;
+type DefaultContext = typeof defaultConfiguration.context;
+type BaseContext =
+  & Omit<DefaultContext, "sessionExpiryInterval">
+  & {
+    maxSessionExpiryInterval: number | undefined;
+  };
+
+type ContextInput = Partial<BaseContext>;
+
+export type Configuration = {
+  context: BaseContext;
+};
+
+export type ConfigurationInput = {
+  context?: ContextInput;
+};
+
+// Helper function to safely merge consumer config with defaults
+export function createConfiguration(input?: ConfigurationInput): Configuration {
+  return {
+    context: {
+      ...defaultConfiguration.context,
+      ...input?.context,
+    },
+  };
+}
