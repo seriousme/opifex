@@ -1,11 +1,5 @@
 import type { Context, IsAuthenticatedResult } from "../context.ts";
-import {
-  AuthenticationResult,
-  logger,
-  PacketType,
-  ReasonCode,
-  Timer,
-} from "../deps.ts";
+import { AuthenticationResult, PacketType, ReasonCode } from "../deps.ts";
 import type { ConnackProperties, ConnectPacket, TReasonCode } from "../deps.ts";
 
 const MAX_EXPIRY = 0xFFFFFFFF;
@@ -96,7 +90,8 @@ async function validateConnect(
         reasonString: `Client not authorized to publish will to ${pkt.topic}`,
       };
     }
-    if (!ctx.handlers.isAuthorizedToPublish) {
+    const checkAuthz = ctx.handlers.isAuthorizedToPublish;
+    if (checkAuthz && !await checkAuthz(ctx, pkt.topic)) {
       return {
         reasonCode: ReasonCode.notAuthorized,
         reasonString: `Client not authorized to publish will to ${pkt.topic}`,
@@ -122,62 +117,6 @@ async function validateConnect(
   }
 
   return await isAuthenticated(ctx, packet);
-}
-
-/**
- * Processes the validated CONNECT packet
- * @param packet - The MQTT CONNECT packet
- * @param ctx - The connection context
- * @param clientId - The client ID
- */
-async function processValidatedConnect(
-  ctx: Context,
-  packet: ConnectPacket,
-  reasonCode: TReasonCode,
-  clientId: string,
-  sessionExpiryInterval: number | undefined,
-): Promise<boolean> {
-  if (reasonCode === ReasonCode.success) {
-    if (packet.will) {
-      ctx.will = {
-        type: PacketType.publish,
-        protocolLevel: ctx.protocolLevel,
-        ...packet.will, //need to refine this to publish props only
-      };
-    }
-    const existingSession = await ctx.connect(clientId, packet.clean || false);
-    logger.debug(
-      `Client has ${existingSession ? "an" : "no"} existing session`,
-    );
-    ctx.protocolLevel = packet.protocolLevel;
-    if (ctx.mqttConn) {
-      logger.debug(`Setting protocolLevel to ${ctx.protocolLevel}`);
-      ctx.mqttConn.codecOpts.protocolLevel = ctx.protocolLevel;
-    }
-    const cfg = ctx.config.context;
-    const isProtocolV5 = packet.protocolLevel === 5;
-    const serverKeepAlive = cfg.serverKeepAlive;
-
-    let keepAlive = packet.keepAlive || 0;
-    if (isProtocolV5 && serverKeepAlive !== undefined) {
-      // in V5 the server can force the keepalive [MQTT-3.2.2-21].
-      keepAlive = serverKeepAlive;
-    }
-    if (keepAlive > 0) {
-      logger.debug(`Setting keepalive to ${keepAlive * 1500} ms`);
-      ctx.timer = new Timer(() => {
-        ctx.close();
-      }, keepAlive * 1500);
-    }
-
-    if (isProtocolV5 && sessionExpiryInterval) {
-      ctx.sessionEndsTimer = new Timer(() => {
-        ctx.close(false);
-      }, sessionExpiryInterval * 1500);
-    }
-    return existingSession;
-  }
-  return false;
 }
 
 function reasonToReturnCode(reasonCode: number): number {
@@ -217,36 +156,37 @@ export async function handleConnect(
 ): Promise<void> {
   const isProtocolV5 = packet.protocolLevel === 5;
   let clientId = packet.clientId;
-  let assignedClientIdentifier: string | undefined;
+  let assignedClientIdentifier = undefined;
   let sessionExpiryInterval;
-  if (!clientId) {
+  if (clientId === undefined || clientId === "") {
     assignedClientIdentifier = `Opifex-${crypto.randomUUID()}`;
     clientId = assignedClientIdentifier;
   }
+
   if (isProtocolV5) {
     const requestedInterval = packet.properties?.sessionExpiryInterval || 0;
     const maxInterval = ctx.config.context.maxSessionExpiryInterval ||
       MAX_EXPIRY;
-    sessionExpiryInterval = requestedInterval > maxInterval
-      ? maxInterval
-      : requestedInterval;
+    sessionExpiryInterval = Math.min(requestedInterval, maxInterval);
   }
+
+  // Validate packet
   const { reasonCode, reasonString } = await validateConnect(
     ctx,
     packet,
     sessionExpiryInterval,
   );
-  const sessionPresent = await processValidatedConnect(
-    ctx,
-    packet,
-    reasonCode,
-    clientId,
-    sessionExpiryInterval,
-  );
 
+  // On success connect the client
+  let sessionPresent = false;
+  if (reasonCode === ReasonCode.success) {
+    sessionPresent = await ctx.connect(packet, clientId, sessionExpiryInterval);
+  }
+
+  // Send the connack
   await ctx.send({
     type: PacketType.connack,
-    protocolLevel: ctx.protocolLevel,
+    protocolLevel: packet.protocolLevel,
     sessionPresent,
     ...(isProtocolV5
       ? {
@@ -259,11 +199,14 @@ export async function handleConnect(
       }
       : { returnCode: reasonToReturnCode(reasonCode) }),
   });
-  logger.debug("connect reasonCode", reasonCode);
+
+  // Close connection on failure
   if (reasonCode !== ReasonCode.success) {
     await ctx.close(false);
     return;
   }
+
+  // Process waiting packets
   if (sessionPresent) {
     await ctx.handleRedelivery();
   }

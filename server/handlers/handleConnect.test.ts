@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { AnyPacket } from "../deps.ts";
-import { AuthenticationResult, PacketType } from "../deps.ts";
+import {
+  AuthenticationResult,
+  MQTTLevel,
+  PacketType,
+  ReasonCode,
+} from "../deps.ts";
 import {
   addMockClient,
   connect,
@@ -14,61 +18,31 @@ import {
   subscribe,
 } from "../../dev_utils/mod.ts";
 import { createConfiguration } from "../config.ts";
-import type { ConnackPacketV5 } from "../../mqttPacket/connack.ts";
 
 const configuration = createConfiguration();
 const txtEncoder = new TextEncoder();
 
-const baseConnectPacket: AnyPacket = {
-  type: PacketType.connect,
-  protocolName: "MQTT",
-  protocolLevel: 4,
-  clientId: "testClient",
-  clean: true,
-  keepAlive: 0,
-  username: "IoTester_1",
-  password: txtEncoder.encode("strong_password"),
-  will: undefined,
-};
-
 test("Authentication with valid username and password works", async () => {
-  const connectPacket = structuredClone(baseConnectPacket);
   const { mqttConn } = startMockServer();
-  mqttConn.send(connectPacket);
-  const { value: connack } = await mqttConn.next();
+  const connack = await connect(mqttConn);
   assert.deepStrictEqual(
-    connack.type,
-    PacketType.connack,
-    "Expect Connack packet",
+    connack.returnCode,
+    AuthenticationResult.ok,
+    "Expected OK",
   );
-  if (connack.type === PacketType.connack) {
-    assert.deepStrictEqual(
-      connack.returnCode,
-      AuthenticationResult.ok,
-      "Expected OK",
-    );
-  }
   await disconnect(mqttConn);
 });
 
 test("Authentication with invalid username fails", async () => {
-  const connectPacket = structuredClone(baseConnectPacket);
-  connectPacket.username = "wrong";
   const { mqttConn } = startMockServer();
-  await mqttConn.send(connectPacket);
-  const { value: connack } = await mqttConn.next();
+  const connack = await connect(mqttConn, { username: "wrong" });
+
   assert.deepStrictEqual(
-    connack.type,
-    PacketType.connack,
-    "Expected Connack packet",
+    connack.returnCode,
+    AuthenticationResult.badUsernameOrPassword,
+    "Expected badUsernameOrPassword",
   );
-  if (connack.type === PacketType.connack) {
-    assert.deepStrictEqual(
-      connack.returnCode,
-      AuthenticationResult.badUsernameOrPassword,
-      "Expected badUsernameOrPassword",
-    );
-  }
+
   await mqttConn.next();
   assert.deepStrictEqual(
     mqttConn.isClosed,
@@ -78,23 +52,15 @@ test("Authentication with invalid username fails", async () => {
 });
 
 test("Authentication with invalid password fails", async () => {
-  const connectPacket = structuredClone(baseConnectPacket);
-  connectPacket.password = undefined;
   const { mqttConn } = startMockServer();
-  await mqttConn.send(connectPacket);
-  const { value: connack } = await mqttConn.next();
+  const connack = await connect(mqttConn, { password: "" });
+
   assert.deepStrictEqual(
-    connack.type,
-    PacketType.connack,
-    "Expected Connack packet",
+    connack.returnCode,
+    AuthenticationResult.badUsernameOrPassword,
+    "Expected badUsernameOrPassword",
   );
-  if (connack.type === PacketType.connack) {
-    assert.deepStrictEqual(
-      connack.returnCode,
-      AuthenticationResult.badUsernameOrPassword,
-      "Expected badUsernameOrPassword",
-    );
-  }
+
   await mqttConn.next();
   assert.deepStrictEqual(
     mqttConn.isClosed,
@@ -104,24 +70,16 @@ test("Authentication with invalid password fails", async () => {
 });
 
 test("Two connect messages on same connection closes connection", async () => {
-  const connectPacket = structuredClone(baseConnectPacket);
   const { mqttConn } = startMockServer();
-  await mqttConn.send(connectPacket);
-  const { value: connack } = await mqttConn.next();
+
+  const connack = await connect(mqttConn);
   assert.deepStrictEqual(
-    connack.type,
-    PacketType.connack,
-    "Expect Connack packet",
+    connack.returnCode,
+    AuthenticationResult.ok,
+    "Expected OK",
   );
-  if (connack.type === PacketType.connack) {
-    assert.deepStrictEqual(
-      connack.returnCode,
-      AuthenticationResult.ok,
-      "Expected OK",
-    );
-  }
-  await mqttConn.send(connectPacket);
-  const { value: connack2 } = await mqttConn.next();
+
+  const connack2 = await connect(mqttConn, { checkAck: false });
   assert.deepStrictEqual(connack2, undefined, "Expected no second connack");
   assert.deepStrictEqual(
     mqttConn.isClosed,
@@ -131,25 +89,14 @@ test("Two connect messages on same connection closes connection", async () => {
 });
 
 test("Second session with same client id closes the first", async () => {
-  const connectPacket = structuredClone(baseConnectPacket);
+  const clientId = "doubleClient";
   const { mqttConn: mqttConn1, mqttServer } = startMockServer();
   // start first client
-  await mqttConn1.send(connectPacket);
-  const { value: connack1 } = await mqttConn1.next();
-  assert.deepStrictEqual(
-    connack1.type,
-    PacketType.connack,
-    "Expected first Connack packet",
-  );
+  await connect(mqttConn1, { clientId });
+
   // start second client with same id
   const mqttConn2 = addMockClient(mqttServer);
-  await mqttConn2.send(connectPacket);
-  const { value: connack2 } = await mqttConn2.next();
-  assert.deepStrictEqual(
-    connack2.type,
-    PacketType.connack,
-    "Expected second Connack packet",
-  );
+  await connect(mqttConn2, { clientId });
 
   await mqttConn1.next();
   assert.deepStrictEqual(
@@ -284,10 +231,7 @@ test("Delivery of messages with QoS 1 or QoS2 not received while offline when cl
 
 test("V5: Connect V5 works", async () => {
   const { mqttConn } = startMockServer();
-  const connack = await connect5(mqttConn, {
-    clientId: "",
-    clean: true,
-  }) as ConnackPacketV5;
+  const connack = await connect5(mqttConn, { clientId: "" });
   assert.deepEqual(connack.reasonCode, 0, "Reason code 0 is expected");
   const props = connack.properties;
   const cfg = configuration.context;
@@ -305,4 +249,200 @@ test("V5: Connect V5 works", async () => {
   await disconnect5(mqttConn);
   await mqttConn.next();
   assert.strictEqual(mqttConn.isClosed, true);
+});
+
+test("V5: Fails on unsupported protocol level and returns V5 ReasonCode", async () => {
+  const { mqttConn } = startMockServer({
+    configuration: { context: { protocols: [MQTTLevel.v4] } },
+  });
+
+  const connack = await connect5(mqttConn, {
+    clientId: "v5Client",
+  });
+  assert.strictEqual(
+    connack.reasonCode,
+    ReasonCode.unsupportedProtocolVersion,
+  );
+
+  await mqttConn.next();
+  assert.strictEqual(mqttConn.isClosed, true);
+});
+
+test("Will Packet: Retain not supported returns retainNotSupported", async () => {
+  const { mqttConn } = startMockServer({
+    configuration: { context: { retainAvailable: false } },
+  });
+
+  const connack = await connect(mqttConn, {
+    will: {
+      topic: "will/topic",
+      payload: txtEncoder.encode("payload"),
+      qos: 0,
+      retain: true,
+    },
+  });
+
+  assert.strictEqual(
+    connack.returnCode,
+    AuthenticationResult.serverUnavailable,
+  );
+
+  await mqttConn.next();
+  assert.strictEqual(mqttConn.isClosed, true);
+});
+
+test("V5 Will Packet: unauthorized will topic returns notAuthorized", async () => {
+  const { mqttConn } = startMockServer({
+    handlers: {
+      isAuthorizedToPublish: () => false,
+    },
+  });
+
+  const connack = await connect5(mqttConn, {
+    will: {
+      topic: "will/topic",
+      payload: txtEncoder.encode("payload"),
+      qos: 0,
+      retain: false,
+    },
+  });
+
+  assert.strictEqual(
+    connack.reasonCode,
+    ReasonCode.notAuthorized,
+  );
+
+  await mqttConn.next();
+  assert.strictEqual(mqttConn.isClosed, true);
+});
+
+test("V5 Will Packet: QoS exceeds maximumQos returns qosNotSupported", async () => {
+  const { mqttConn } = startMockServer({
+    configuration: { context: { maximumQos: 1 } },
+  });
+
+  const connack = await connect5(mqttConn, {
+    will: {
+      topic: "will/topic",
+      payload: txtEncoder.encode("payload"),
+      qos: 2, // Exceeds max QoS 1
+      retain: false,
+    },
+  });
+
+  assert.strictEqual(
+    connack.reasonCode,
+    ReasonCode.qosNotSupported,
+  );
+
+  await mqttConn.next();
+  assert.strictEqual(mqttConn.isClosed, true);
+});
+
+test("V5 Will Packet: willDelayInterval greater than sessionExpiryInterval fails", async () => {
+  const { mqttConn } = startMockServer();
+
+  const connack = await connect5(mqttConn, {
+    clientId: "v5WillClient",
+    properties: {
+      sessionExpiryInterval: 100,
+    },
+    will: {
+      topic: "will/topic",
+      payload: txtEncoder.encode("payload"),
+      qos: 0,
+      retain: false,
+      properties: {
+        willDelayInterval: 200, // Greater than sessionExpiryInterval (100)
+      },
+    },
+  });
+
+  assert.strictEqual(
+    connack.reasonCode,
+    ReasonCode.payloadFormatInvalid,
+  );
+
+  await mqttConn.next();
+  assert.strictEqual(mqttConn.isClosed, true);
+});
+
+test("V5: sessionExpiryInterval capped to maxSessionExpiryInterval", async () => {
+  const { mqttConn } = startMockServer({
+    configuration: { context: { maxSessionExpiryInterval: 300 } },
+  });
+  const connack = await connect5(mqttConn, {
+    clientId: "cappedSessionClient",
+    clean: false,
+    properties: {
+      sessionExpiryInterval: 1000, // Greater than maxSessionExpiryInterval (300)
+    },
+  });
+
+  assert.strictEqual(connack.reasonCode, ReasonCode.success);
+  assert.strictEqual(connack.properties?.sessionExpiryInterval, 300);
+
+  await disconnect5(mqttConn);
+});
+
+test("V5: Reason string returned in properties when provideReasonStrings is true", async () => {
+  const { mqttConn } = startMockServer({
+    configuration: {
+      context: {
+        provideReasonStrings: true,
+        protocols: [MQTTLevel.v4],
+      },
+    },
+  });
+  const connack = await connect5(mqttConn, {});
+  assert.strictEqual(
+    connack.reasonCode,
+    ReasonCode.unsupportedProtocolVersion,
+  );
+  assert.strictEqual(
+    connack.properties?.reasonString,
+    "Protocol version 5 is not supported",
+  );
+
+  await mqttConn.next();
+  assert.strictEqual(mqttConn.isClosed, true);
+});
+
+test("reasonToReturnCode branch coverage for V4 status mappings", async () => {
+  const testCases = [
+    {
+      reasonCode: ReasonCode.clientIdentifierNotValid,
+      expectedReturnCode: AuthenticationResult.rejectedUsername,
+    },
+    {
+      reasonCode: ReasonCode.badAuthenticationMethod,
+      expectedReturnCode: AuthenticationResult.badUsernameOrPassword,
+    },
+    {
+      reasonCode: ReasonCode.banned,
+      expectedReturnCode: AuthenticationResult.notAuthorized,
+    },
+    {
+      reasonCode: ReasonCode.packetIdentifierNotFound, // Unmapped fallback
+      expectedReturnCode: AuthenticationResult.serverUnavailable,
+    },
+  ];
+
+  for (const tc of testCases) {
+    const { mqttConn } = startMockServer({
+      handlers: {
+        isAuthenticated: () => ({ reasonCode: tc.reasonCode }),
+      },
+    });
+
+    const connack = await connect(mqttConn);
+    assert.strictEqual(
+      connack.returnCode,
+      tc.expectedReturnCode,
+      `ReasonCode ${tc.reasonCode} should map to returnCode ${tc.expectedReturnCode}`,
+    );
+
+    await mqttConn.next();
+    assert.strictEqual(mqttConn.isClosed, true);
+  }
 });

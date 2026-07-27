@@ -206,57 +206,134 @@ export class Context {
       }
     }
   }
+  /**
+   * Helper to setup the timers
+   */
+  private setupConnectionTimers(
+    keepAliveSeconds: number | undefined,
+    sessionExpiryInterval?: number,
+    willDelayInterval?: number,
+  ) {
+    const cfg = this.config.context;
+    const isProtocolV5 = this.protocolLevel === 5;
+    const clientId = this.clientId;
+
+    let keepAlive = keepAliveSeconds || 0;
+    if (isProtocolV5 && cfg.serverKeepAlive !== undefined) {
+      keepAlive = cfg.serverKeepAlive;
+    }
+
+    if (keepAlive > 0) {
+      logger.debug(`Setting keepalive to ${keepAlive * 1500} ms`);
+      this.timer = new Timer(() => {
+        this.close();
+      }, keepAlive * 1500);
+    }
+
+    if (isProtocolV5 && sessionExpiryInterval && clientId) {
+      this.sessionEndsTimer = new Timer(
+        () => {
+          this.persistence.deregisterClient(clientId);
+        },
+        sessionExpiryInterval * 1000,
+        true, // do not start the timer yet.
+      );
+    }
+
+    if (isProtocolV5 && willDelayInterval) {
+      this.willTimer = new Timer(
+        () => {
+          this.handleWill();
+        },
+        willDelayInterval * 1000,
+        true, // do not start the timer yet.
+      );
+    }
+  }
 
   /**
    * Finalizes the client connection state, registers the client in persistence,
    * kicks out existing duplicate sessions, and broadcasts the client connection event.
    */
-  async connect(clientId: string, clean: boolean): Promise<boolean> {
+  async connect(
+    packet: ConnectPacket,
+    clientId: string,
+    sessionExpiryInterval?: number,
+    willDelayInterval?: number,
+  ): Promise<boolean> {
     logger.verbose("ctx:connect connecting", clientId);
+
+    // configure protocol and state
     this.clientId = clientId;
-    this.cleanSession = clean;
+    this.cleanSession = packet.clean || false;
+    this.protocolLevel = packet.protocolLevel;
+
+    if (this.mqttConn) {
+      this.mqttConn.codecOpts.protocolLevel = this.protocolLevel;
+    }
+
+    if (packet.will) {
+      this.will = {
+        type: PacketType.publish,
+        protocolLevel: this.protocolLevel,
+        ...packet.will,
+      };
+    }
+
+    // Cleanup preconnect timer
     if (this.preconnectTimer) {
       this.preconnectTimer.clear();
     }
+
+    // Cleanup previous sessions and timers
     const existingActiveSession = Context.clientList.get(clientId);
     if (existingActiveSession) {
       logger.verbose(
         `ctx:connect: Existing session with ${clientId} exists, closing existing session`,
       );
-      // clear up any still running V5 timers
-      if (this.sessionEndsTimer) {
-        this.sessionEndsTimer.clear();
-      }
-      if (this.willTimer) {
-        this.willTimer.clear();
-      }
-      // close the network connection of the previous session(if any)
+      if (this.sessionEndsTimer) this.sessionEndsTimer.clear();
+      if (this.willTimer) this.willTimer.clear();
       await existingActiveSession.close(false);
     }
-    if (clean) {
+
+    if (this.cleanSession) {
       logger.verbose(
         `ctx:connect: Clean session requested for ${clientId}, deregistering existing state`,
       );
       await this.persistence.deregisterClient(clientId);
     }
+
+    // Register client in persistence & clientList
     logger.verbose("ctx:connect: Registering client", clientId);
     const { existingSession } = await this.persistence.registerClient(
       clientId,
       this.send.bind(this),
     );
+
     this.connected = true;
     Context.clientList.set(clientId, this);
+
+    // Start the timers
+    this.setupConnectionTimers(
+      packet.keepAlive,
+      sessionExpiryInterval,
+      willDelayInterval,
+    );
+
+    // Announce client connected
     logger.verbose("ctx:connect: Broadcasting client connection", clientId);
     await this.broadcast("$SYS/connect/clients", clientId);
+
     const remoteAddress = this.mqttConn.remoteAddress !== "unknown"
       ? ` from ${this.mqttConn.remoteAddress}`
       : "";
     logger.info(`Connected "${clientId}"${remoteAddress}`);
+
     return existingSession;
   }
 
   /**
-   * Processes -inbound- publication requests
+   * Proces -inbound- publication requests
    */
   async publish(packet: PublishPacket) {
     logger.verbose(
@@ -289,35 +366,35 @@ export class Context {
     if (this.connected) {
       if (this.cleanSession && !this.sessionEndsTimer) {
         // [MQTT-3.1.2-6] State data associated with this Session MUST NOT be reused in any subsequent Session
-        // except when the V5 session timer is active
         if (this.clientId) {
           await this.persistence.deregisterClient(this.clientId);
         }
       }
-      logger.info(
-        `Closing ${this.clientId} while mqttConn is ${
-          this.mqttConn.isClosed ? "" : "not "
-        }closed because of "${this.mqttConn.reason || "normal disconnect"}"`,
-      );
       this.connected = false;
       if (typeof this.timer === "object") {
         this.timer.clear();
       }
       if (executewill) {
-        await this.handleWill();
+        if (!this.willTimer) {
+          await this.handleWill();
+        }
       }
       if (this.clientId) {
         await this.persistence.disconnectClient(this.clientId);
         void this.broadcast("$SYS/disconnect/clients", this.clientId);
         Context.clientList.delete(this.clientId);
       }
-    } else {
-      logger.debug(
-        `closing connection from ${this.mqttConn.remoteAddress} because of "${
-          this.mqttConn.reason || "normal disconnect"
-        }"`,
-      );
     }
+    if (this.sessionEndsTimer) {
+      // delayed deregistration, start the timer
+      this.sessionEndsTimer.reset();
+    }
+
+    logger.info(
+      `closing connection from ${
+        this.clientId || this.mqttConn.remoteAddress
+      } because of "${this.mqttConn.reason || "normal disconnect"}"`,
+    );
     if (!this.mqttConn.isClosed) {
       this.mqttConn.close();
     }
