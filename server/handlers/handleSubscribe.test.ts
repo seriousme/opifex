@@ -1,18 +1,22 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { AnyPacket, PublishPacket } from "../deps.ts";
-import { MQTTLevel, PacketType } from "../deps.ts";
+import { MQTTLevel, PacketType, ReasonCode } from "../deps.ts";
 import {
   addMockClient,
   connect,
+  connect5,
   disconnect,
+  disconnect5,
   isAuthenticatedBroker,
   ping,
   publish,
   startMockServer,
   subscribe,
+  subscribe5,
 } from "../../dev_utils/mod.ts";
 import { SqlitePersistence } from "../../persistence/sqlite/sqlitePersistence.ts";
+import { receiveMessages } from "../../dev_utils/packetHelpers.ts";
 
 const txtEncoder = new TextEncoder();
 
@@ -23,27 +27,8 @@ test("SUBSCRIBE returns SUBACK with matching return codes", async () => {
   await connect(mqttConn);
 
   // Subscribe to a topic
-  const subscribePacket: AnyPacket = {
-    type: PacketType.subscribe,
-    protocolLevel: MQTTLevel.v4,
-    id: 1,
-    subscriptions: [
-      { topicFilter: "test/topic", qos: 0 },
-    ],
-  };
-  mqttConn.send(subscribePacket);
-
-  const { value: suback } = await mqttConn.next();
-  assert.deepStrictEqual(suback.type, PacketType.suback, "Expected SUBACK");
-  if (suback.type === PacketType.suback) {
-    assert.deepStrictEqual(suback.id, 1, "SUBACK ID should match SUBSCRIBE ID");
-    assert.deepStrictEqual(
-      suback.returnCodes,
-      [0],
-      "Return code should match requested QoS",
-    );
-  }
-
+  // subscribe() also checks packetId and QoS in subacks
+  await subscribe(mqttConn, [{ topicFilter: "test/topic", qos: 0 }], { id: 1 });
   await disconnect(mqttConn);
 });
 
@@ -51,29 +36,12 @@ test("SUBSCRIBE with multiple topics returns multiple return codes", async () =>
   const { mqttConn } = startMockServer();
 
   await connect(mqttConn);
-
-  const subscribePacket: AnyPacket = {
-    type: PacketType.subscribe,
-    protocolLevel: MQTTLevel.v4,
-    id: 2,
-    subscriptions: [
-      { topicFilter: "topic/one", qos: 0 },
-      { topicFilter: "topic/two", qos: 1 },
-      { topicFilter: "topic/three", qos: 2 },
-    ],
-  };
-  mqttConn.send(subscribePacket);
-
-  const { value: suback } = await mqttConn.next();
-  assert.deepStrictEqual(suback.type, PacketType.suback, "Expected SUBACK");
-  if (suback.type === PacketType.suback) {
-    assert.deepStrictEqual(suback.id, 2);
-    assert.deepStrictEqual(
-      suback.returnCodes,
-      [0, 1, 2],
-      "Return codes should match requested QoS levels in order",
-    );
-  }
+  // subscribe() also checks packetId and QoS in subacks
+  await subscribe(mqttConn, [
+    { topicFilter: "topic/one", qos: 0 },
+    { topicFilter: "topic/two", qos: 1 },
+    { topicFilter: "topic/three", qos: 2 },
+  ], { id: 2 });
 
   await disconnect(mqttConn);
 });
@@ -83,26 +51,10 @@ test("SUBSCRIBE with wildcard topics works", async () => {
 
   await connect(mqttConn);
 
-  const subscribePacket: AnyPacket = {
-    type: PacketType.subscribe,
-    protocolLevel: MQTTLevel.v4,
-    id: 3,
-    subscriptions: [
-      { topicFilter: "sensors/+/temperature", qos: 0 },
-      { topicFilter: "events/#", qos: 1 },
-    ],
-  };
-  mqttConn.send(subscribePacket);
-
-  const { value: suback } = await mqttConn.next();
-  assert.deepStrictEqual(suback.type, PacketType.suback, "Expected SUBACK");
-  if (suback.type === PacketType.suback) {
-    assert.deepStrictEqual(suback.id, 3);
-    assert.deepStrictEqual(
-      suback.returnCodes,
-      [0, 1],
-    );
-  }
+  await subscribe(mqttConn, [
+    { topicFilter: "sensors/+/temperature", qos: 0 },
+    { topicFilter: "events/#", qos: 1 },
+  ], { id: 3 });
 
   await disconnect(mqttConn);
 });
@@ -113,25 +65,9 @@ test("SUBSCRIBE with missing isAuthorizedToSubscribe handler authorizes subscrib
 
   await connect(mqttConn);
 
-  const subscribePacket: AnyPacket = {
-    type: PacketType.subscribe,
-    protocolLevel: MQTTLevel.v4,
-    id: 3,
-    subscriptions: [
-      { topicFilter: "sensors/temperature", qos: 0 },
-    ],
-  };
-  mqttConn.send(subscribePacket);
-
-  const { value: suback } = await mqttConn.next();
-  assert.deepStrictEqual(suback.type, PacketType.suback, "Expected SUBACK");
-  if (suback.type === PacketType.suback) {
-    assert.deepStrictEqual(suback.id, 3);
-    assert.deepStrictEqual(
-      suback.returnCodes,
-      [0],
-    );
-  }
+  await subscribe(mqttConn, [
+    { topicFilter: "sensors/temperature", qos: 0 },
+  ], { id: 3 });
 
   await disconnect(mqttConn);
 });
@@ -141,25 +77,16 @@ test("SUBSCRIBE to unauthorized topic is rejected", async () => {
 
   await connect(mqttConn);
 
-  const subscribePacket: AnyPacket = {
-    type: PacketType.subscribe,
-    protocolLevel: MQTTLevel.v4,
-    id: 3,
-    subscriptions: [
-      { topicFilter: "topic/unauthorized", qos: 0 },
-    ],
-  };
-  mqttConn.send(subscribePacket);
+  const subAck = await subscribe(mqttConn, [
+    { topicFilter: "topic/unauthorized", qos: 0 },
+  ], { id: 3, checkAcks: false });
 
-  const { value: suback } = await mqttConn.next();
-  assert.deepStrictEqual(suback.type, PacketType.suback, "Expected SUBACK");
-  if (suback.type === PacketType.suback) {
-    assert.deepStrictEqual(suback.id, 3);
-    assert.deepStrictEqual(
-      suback.returnCodes,
-      [128],
-    );
-  }
+  assert.deepStrictEqual(subAck.type, PacketType.suback, "Expected SUBACK");
+  assert.deepStrictEqual(subAck.id, 3);
+  assert.deepStrictEqual(
+    subAck.returnCodes,
+    [128],
+  );
 
   await disconnect(mqttConn);
 });
@@ -169,18 +96,13 @@ test("SUBSCRIBE to unauthorized topic is rejected", async () => {
 
 test("SUBSCRIBE receives retained message after SUBACK", async () => {
   const { mqttConn: mqttConn1, mqttServer } = startMockServer();
-
+  const retainedPayload = "retained-value";
   // First, publish a retained message (before any subscriber)
   await connect(mqttConn1);
 
-  const retainedPayload = txtEncoder.encode("retained-value");
-  await mqttConn1.send({
-    type: PacketType.publish,
-    protocolLevel: MQTTLevel.v4,
-    topic: "sensors/temperature",
+  await publish(mqttConn1, "sensors/temperature", 0, {
     payload: retainedPayload,
     retain: true,
-    qos: 0,
   });
   await disconnect(mqttConn1);
 
@@ -189,29 +111,24 @@ test("SUBSCRIBE receives retained message after SUBACK", async () => {
   await connect(mqttConn2);
 
   // Subscribe to the topic with retained message
-  const subscribePacket: AnyPacket = {
-    type: PacketType.subscribe,
-    protocolLevel: MQTTLevel.v4,
+  await subscribe(mqttConn2, [{ topicFilter: "sensors/temperature", qos: 0 }], {
     id: 10,
-    subscriptions: [{ topicFilter: "sensors/temperature", qos: 0 }],
-  };
-  mqttConn2.send(subscribePacket);
-
-  // Should receive SUBACK first
-  const { value: suback } = await mqttConn2.next();
-  assert.deepStrictEqual(suback.type, PacketType.suback, "Expected SUBACK");
+  });
 
   // Then should receive the retained message
-  const { value: publish } = await mqttConn2.next();
+  const { value: publishPkt } = await mqttConn2.next();
   assert.deepStrictEqual(
-    publish.type,
+    publishPkt.type,
     PacketType.publish,
     "Expected retained PUBLISH",
   );
-  if (publish.type === PacketType.publish) {
-    assert.deepStrictEqual(publish.topic, "sensors/temperature");
-    assert.deepStrictEqual(publish.payload, retainedPayload);
-  }
+
+  assert.deepStrictEqual(publishPkt.topic, "sensors/temperature");
+  assert.deepStrictEqual(
+    publishPkt.payload,
+    txtEncoder.encode(retainedPayload),
+  );
+
   await disconnect(mqttConn2);
 });
 
@@ -219,22 +136,16 @@ test("SUBSCRIBE receives multiple retained messages matching wildcard", async ()
   const { mqttConn: mqttConn1, mqttServer } = startMockServer();
   // Set up multiple retained messages
   await connect(mqttConn1);
-  await mqttConn1.send({
-    type: PacketType.publish,
-    protocolLevel: MQTTLevel.v4,
-    topic: "sensors/temp/living",
-    payload: txtEncoder.encode("22"),
+  await publish(mqttConn1, "sensors/temp/living", 0, {
+    payload: "22",
     retain: true,
-    qos: 0,
   });
-  await mqttConn1.send({
-    type: PacketType.publish,
-    protocolLevel: MQTTLevel.v4,
-    topic: "sensors/temp/bedroom",
-    payload: txtEncoder.encode("20"),
+
+  await publish(mqttConn1, "sensors/temp/bedroom", 0, {
+    payload: "20",
     retain: true,
-    qos: 0,
   });
+
   await disconnect(mqttConn1);
 
   // Connect the second client
@@ -242,23 +153,12 @@ test("SUBSCRIBE receives multiple retained messages matching wildcard", async ()
   await connect(mqttConn2);
 
   // Subscribe with wildcard
-  mqttConn2.send({
-    type: PacketType.subscribe,
-    protocolLevel: MQTTLevel.v4,
+  await subscribe(mqttConn2, [{ topicFilter: "sensors/temp/#", qos: 0 }], {
     id: 11,
-    subscriptions: [{ topicFilter: "sensors/temp/#", qos: 0 }],
   });
 
-  // SUBACK
-  const { value: suback } = await mqttConn2.next();
-  assert.deepStrictEqual(suback.type, PacketType.suback);
-
   // Should receive both retained messages
-  const messages: AnyPacket[] = [];
-  const { value: msg1 } = await mqttConn2.next();
-  messages.push(msg1);
-  const { value: msg2 } = await mqttConn2.next();
-  messages.push(msg2);
+  const messages = await receiveMessages(mqttConn2);
 
   const topics = messages
     .filter((m): m is PublishPacket => m.type === PacketType.publish)
@@ -269,8 +169,6 @@ test("SUBSCRIBE receives multiple retained messages matching wildcard", async ()
     "sensors/temp/bedroom",
     "sensors/temp/living",
   ]);
-
-  await disconnect(mqttConn2);
 });
 
 test("SUBSCRIBE receives multiple retained messages with different QoS", async () => {
@@ -296,13 +194,7 @@ test("SUBSCRIBE receives multiple retained messages with different QoS", async (
   ]);
 
   // Should receive three retained messages
-  const messages: AnyPacket[] = [];
-  const { value: msg1 } = await mqttConn1.next();
-  messages.push(msg1);
-  const { value: msg2 } = await mqttConn1.next();
-  messages.push(msg2);
-  const { value: msg3 } = await mqttConn1.next();
-  messages.push(msg3);
+  const messages = await receiveMessages(mqttConn1);
 
   const topics = messages
     .filter((m): m is PublishPacket => m.type === PacketType.publish)
@@ -314,7 +206,7 @@ test("SUBSCRIBE receives multiple retained messages with different QoS", async (
     "retained/qos1",
     "retained/qos2",
   ]);
-  await disconnect(mqttConn1);
+
   const mqttConn2 = addMockClient(mqttServer);
   await connect(mqttConn2);
   // clear retained
@@ -417,11 +309,7 @@ test("SUBSCRIBE receives retained messages and clearing works", async () => {
     id: 20,
   });
 
-  const messages: AnyPacket[] = [];
-  for (let i = 0; i < 3; i++) {
-    const { value: msg } = await subscriber1.next();
-    messages.push(msg);
-  }
+  const messages = await receiveMessages(subscriber1);
 
   const receivedTopics = messages
     .filter((m): m is PublishPacket => m.type === PacketType.publish)
@@ -433,8 +321,6 @@ test("SUBSCRIBE receives retained messages and clearing works", async () => {
     [qos0topic, qos1topic, qos2topic].sort(),
     "Should receive all three retained messages",
   );
-
-  await disconnect(subscriber1);
 
   const publisher2 = addMockClient(mqttServer);
   await connect(publisher2);
@@ -504,11 +390,7 @@ test("SUBSCRIBE redelivery on reconnect (uncompleted QoS 1/2 exchanges)", async 
 
   await connect(subscriberReconnect, { clean: false, clientId });
 
-  const messages: AnyPacket[] = [];
-  for (let i = 0; i < 2; i++) {
-    const { value: msg } = await subscriberReconnect.next();
-    messages.push(msg);
-  }
+  const messages = await receiveMessages(subscriberReconnect);
 
   const receivedTopics = messages
     .filter((m): m is PublishPacket => m.type === PacketType.publish)
@@ -523,3 +405,147 @@ test("SUBSCRIBE redelivery on reconnect (uncompleted QoS 1/2 exchanges)", async 
 
   await disconnect(subscriberReconnect);
 });
+
+// ============================================================================
+// MQTT v5 Specific Tests
+// ============================================================================
+
+test("SUBSCRIBE v5 returns SUBACK with reasonCodes and handles subscriptionIdentifier", async () => {
+  const { mqttConn } = startMockServer();
+
+  await connect5(mqttConn);
+
+  const subAck = await subscribe5(mqttConn, [{
+    topicFilter: "v5/test/topic",
+    qos: 1,
+    noLocal: true,
+    retainAsPublished: true,
+    retainHandling: 0,
+  }], { id: 100, subscriptionIdentifier: 42 });
+
+  assert.deepStrictEqual(subAck.id, 100);
+  assert.deepStrictEqual(
+    subAck.reasonCodes,
+    [ReasonCode.grantedQos1],
+    "Expected reasonCodes matching requested QoS 1 for MQTT v5",
+  );
+
+  await disconnect5(mqttConn);
+});
+
+test("SUBSCRIBE v5 to unauthorized topic returns ReasonCode.notAuthorized (0x87)", async () => {
+  const { mqttConn } = startMockServer();
+
+  await connect5(mqttConn);
+
+  const subAck = await subscribe5(mqttConn, [{
+    topicFilter: "topic/unauthorized",
+    qos: 0,
+  }], {
+    id: 101,
+    checkAcks: false,
+  });
+
+  assert.deepStrictEqual(subAck.type, PacketType.suback, "Expected SUBACK");
+  assert.deepStrictEqual(subAck.id, 101);
+  assert.deepStrictEqual(
+    subAck.reasonCodes,
+    [ReasonCode.notAuthorized],
+    "Return code should be 0x87 (ReasonCode.notAuthorized) for MQTT v5",
+  );
+
+  await disconnect5(mqttConn);
+});
+
+test("SUBSCRIBE v5 handles mixed authorized and unauthorized topics", async () => {
+  const { mqttConn } = startMockServer();
+
+  await connect5(mqttConn);
+
+  const subAck = await subscribe5(mqttConn, [
+    { topicFilter: "topic/authorized", qos: 1 },
+    { topicFilter: "topic/unauthorized", qos: 2 },
+  ], { id: 102, checkAcks: false });
+
+  assert.deepStrictEqual(subAck.type, PacketType.suback, "Expected SUBACK");
+
+  assert.deepStrictEqual(subAck.id, 102);
+  assert.deepStrictEqual(
+    subAck.reasonCodes,
+    [ReasonCode.grantedQos1, ReasonCode.notAuthorized],
+    "Should return success code for authorized topic and 0x87 for unauthorized topic in exact order",
+  );
+
+  await disconnect5(mqttConn);
+});
+
+// ============================================================================
+// Edge Cases & Error Handling
+// ============================================================================
+
+test("SUBSCRIBE does not trigger retained messages when all subscriptions fail authorization", async () => {
+  const { mqttConn: publisher, mqttServer } = startMockServer();
+
+  // Set up a retained message first
+  await connect(publisher);
+  await publish(publisher, "topic/unauthorized", 0, {
+    payload: "secret-retained",
+    retain: true,
+  });
+
+  await disconnect(publisher);
+
+  const subscriber = addMockClient(mqttServer);
+  await connect(subscriber);
+
+  const subAck = await subscribe(subscriber, [{
+    topicFilter: "topic/unauthorized",
+    qos: 0,
+  }], {
+    id: 104,
+    checkAcks: false,
+  });
+
+  // Expect SUBACK with 128 (0x80)
+  assert.deepStrictEqual(subAck.type, PacketType.suback);
+  assert.deepStrictEqual(subAck.returnCodes, [128]);
+
+  // Ping to verify no retained message was forwarded
+  await ping(subscriber);
+  await disconnect(subscriber);
+});
+
+test(
+  "SUBSCRIBE handles error thrown inside isAuthorizedToSubscribe gracefully",
+  { skip: true },
+  async () => {
+    const { mqttConn, mqttServer } = startMockServer();
+
+    // Force authorization handler to throw an error
+    mqttServer.handlers.isAuthorizedToSubscribe = () => {
+      throw new Error("Authorization handler internal failure");
+    };
+
+    await connect(mqttConn);
+
+    const subscribePacket: AnyPacket = {
+      type: PacketType.subscribe,
+      protocolLevel: MQTTLevel.v4,
+      id: 105,
+      subscriptions: [
+        { topicFilter: "sensors/temperature", qos: 0 },
+      ],
+    };
+
+    // The assertion verifies whether the exception bubble-up matches expected server context behavior
+    await assert.rejects(
+      async () => {
+        mqttConn.send(subscribePacket);
+        await mqttConn.next();
+      },
+      (err: Error) => {
+        return err.message.includes("Authorization handler internal failure");
+      },
+    );
+  },
+);

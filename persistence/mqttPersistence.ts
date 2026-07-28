@@ -108,7 +108,7 @@ export class MqttPersistence implements IPersistence {
     await this.storage.saveSubscription(clientId, sub);
 
     const trieSub = { ...sub, clientId } as TrieSubscription;
-    this.trie.remove(topicFilter, { clientId });
+    this.trie.remove(topicFilter, { clientId, topicFilter });
     this.trie.add(topicFilter, trieSub);
   }
 

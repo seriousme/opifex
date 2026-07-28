@@ -3,6 +3,7 @@ import { PacketType, ReasonCode } from "../deps.ts";
 import type {
   SubscribePacket,
   Subscription,
+  SubscriptionV5,
   Topic,
   TReasonCode,
 } from "../deps.ts";
@@ -39,22 +40,42 @@ export async function handleSubscribe(
   ctx: Context,
   packet: SubscribePacket,
 ): Promise<void> {
-  const isProtocolV4 = ctx.protocolLevel === 4;
+  const isProtocolV5 = packet.protocolLevel === 5;
+
+  // Extract Subscription Identifier from MQTT v5 packet properties if available
+  const subscriptionIdentifier = isProtocolV5
+    ? packet.properties?.subscriptionIdentifier
+    : undefined;
+
   /*
    * The order of return codes in the SUBACK Packet MUST match the order of
    * Topic Filters in the SUBSCRIBE Packet [MQTT-3.9.3-1].
    */
   const validSubscriptions: Subscription[] = [];
   const results: number[] = [];
+
   for (const sub of packet.subscriptions) {
     if (!await authorizedToSubscribe(ctx, sub.topicFilter)) {
       // codes differ between v4 and v5
       results.push(
-        isProtocolV4 ? SubscriptionFailure : ReasonCode.notAuthorized,
+        isProtocolV5 ? ReasonCode.notAuthorized : SubscriptionFailure,
       );
       continue;
     }
-    await ctx.persistence.subscribe(ctx.clientId!, sub.topicFilter, sub.qos);
+
+    // Safely cast to SubscriptionV5 to extract optional v5 flags
+    const subV5 = sub as Partial<SubscriptionV5>;
+
+    await ctx.persistence.subscribe(
+      ctx.clientId!,
+      sub.topicFilter,
+      sub.qos,
+      subV5.noLocal,
+      subV5.retainAsPublished,
+      subV5.retainHandling,
+      subscriptionIdentifier,
+    );
+
     validSubscriptions.push(sub);
     // codes are identical between v4 and v5
     results.push(sub.qos);
@@ -64,9 +85,9 @@ export async function handleSubscribe(
     type: PacketType.suback,
     protocolLevel: ctx.protocolLevel,
     id: packet.id,
-    ...(isProtocolV4
-      ? { returnCodes: results }
-      : { reasonCodes: results as TReasonCode[] }),
+    ...(isProtocolV5
+      ? { reasonCodes: results as TReasonCode[] }
+      : { returnCodes: results }),
   });
 
   /*

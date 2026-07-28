@@ -18,6 +18,8 @@ export {
   ping,
   publish,
   publish5,
+  receiveMessages,
+  receiveMessages5,
   subscribe,
   subscribe5,
   unsubscribe,

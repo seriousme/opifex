@@ -17,7 +17,7 @@ export const defaultConfiguration = {
     provideReasonStrings: false,
     topicAliasMaximum: 5,
     wildcardSubscriptionAvailable: true,
-    subscriptionIdentifierAvailable: false,
+    subscriptionIdentifierAvailable: true,
     sharedSubscriptionAvailable: false,
     serverKeepAlive: 100,
   },

@@ -1,5 +1,6 @@
 import type { MqttConn } from "../mqttConn/mqttConn.ts";
 import { withTimeout } from "./timers.ts";
+import { delay } from "./timers.ts";
 import { MQTTLevel, PacketType } from "../mqttPacket/mod.ts";
 import type {
   AnyPacket,
@@ -20,8 +21,7 @@ import assert from "node:assert/strict";
 import { logger } from "../utils/mod.ts";
 
 const txtEncoder = new TextEncoder();
-const EMPTY_BYTES = new Uint8Array(0);
-const DEFAULT_PAYLOAD_BYTES = txtEncoder.encode("payload");
+
 let clientIdCounter = 1;
 
 const PINGREQ_PACKET: AnyPacket = Object.freeze({
@@ -250,14 +250,7 @@ export async function publish(
     checkAcks = true,
   } = {},
 ) {
-  let encodedPayload: Uint8Array;
-  if (payload === "payload") {
-    encodedPayload = DEFAULT_PAYLOAD_BYTES;
-  } else if (payload === "") {
-    encodedPayload = EMPTY_BYTES;
-  } else {
-    encodedPayload = txtEncoder.encode(payload);
-  }
+  const encodedPayload = txtEncoder.encode(payload);
 
   await publisher.send({
     type: PacketType.publish,
@@ -278,7 +271,7 @@ export async function publish(
   assert.equal(ackPacket.protocolLevel, level, "received expected level");
   assert.equal(ackPacket.id, id, "packetid matches");
 
-  if (qos === 1) return;
+  if (qos === 1) return ackPacket;
 
   publisher.send({
     type: PacketType.pubrel,
@@ -357,4 +350,20 @@ export async function ping(mqttConn: MqttConn) {
   mqttConn.send(PINGREQ_PACKET);
   const { value: pingres } = await mqttConn.next();
   assert.strictEqual(pingres.type, PacketType.pingres);
+}
+
+export async function receiveMessages(conn: MqttConn) {
+  const received = Array.fromAsync(conn);
+  await delay(10);
+  await disconnect(conn);
+  const messages = await received;
+  return messages;
+}
+
+export async function receiveMessages5(conn: MqttConn) {
+  const received = Array.fromAsync(conn);
+  await delay(10);
+  await disconnect5(conn);
+  const messages = await received;
+  return messages;
 }

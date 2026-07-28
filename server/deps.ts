@@ -22,6 +22,7 @@ export type {
   SubackPacket,
   SubscribePacket,
   Subscription,
+  SubscriptionV5,
   Topic,
   TopicFilter,
   TReasonCode,

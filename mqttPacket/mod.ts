@@ -11,8 +11,11 @@ export type { AnyPacket } from "./codec.ts";
 export type { ConnectPacket } from "./connect.ts";
 export type { ConnackPacket } from "./connack.ts";
 export type { PublishPacket } from "./publish.ts";
-export type { Subscription } from "./subscribe.ts";
-export type { SubscribePacket } from "./subscribe.ts";
+export type {
+  SubscribePacket,
+  Subscription,
+  SubscriptionV5,
+} from "./subscribe.ts";
 export type { SubackPacket } from "./suback.ts";
 export type { UnsubscribePacket } from "./unsubscribe.ts";
 export type { UnsubackPacket } from "./unsuback.ts";
