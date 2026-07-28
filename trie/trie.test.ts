@@ -146,3 +146,10 @@ test("Removal of object values works", () => {
   assert.ok(includesAll(root.match("foo/bar"), []), "empty array");
   assert.deepStrictEqual(root.match("foo/bar").length, 0, "matches left");
 });
+
+test("Overlapping topics with empty levels works", () => {
+  const root = new Trie<number>();
+  root.add("foo/bar", 2);
+  root.add("foo/bar/#", 3);
+  assert.ok(includesAll(root.match("foo/bar"), [2, 3]), "two items found");
+});

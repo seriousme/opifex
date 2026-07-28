@@ -20,6 +20,7 @@
 - chore: simplify mqttPacket encoder/decoder exports
 - fix(server): fix empty payload to clear retained message
 - fix(client): fix client handling of broker V5 rejects
+- fix(trie): fix matching empty levels on wildcards
 - fix: remove password from demo logging and debug logging
 
 ## [v1.11.3] 31-05-2026

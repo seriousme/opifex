@@ -59,8 +59,9 @@ export class Trie<T> {
    */
   private _matchPrefix(parts: Parts): Array<T> {
     const [first, ...rest] = parts;
-    // deno-coverage-ignore
     if (first === undefined) return [];
+
+    // Direct lookup on the reserved topic node without evaluating top-level + or #
     return this.matchChild(first, rest);
   }
 
@@ -70,18 +71,31 @@ export class Trie<T> {
    * @returns Array of matched values
    */
   private _match(parts: Parts): Array<T> {
-    if (parts.length === 0) {
-      return this.#value;
+    let results: Array<T> = [];
+
+    // 1. Check if there is a multi-level wildcard ('#') at this level.
+    // In MQTT, 'a/#' matches 'a', 'a/b', 'a/b/c', etc.
+    const subtreeNode = this.#children.get(this.wildcardSubtree);
+    if (subtreeNode) {
+      results = results.concat(subtreeNode.#value);
     }
+
+    // 2. Base case: we reached the end of the topic parts.
+    if (parts.length === 0) {
+      return results.concat(this.#value);
+    }
+
     const [first, ...rest] = parts;
     // deno-coverage-ignore
     if (first === undefined) return [];
 
+    // 3. Exact matching child node
     const exact = this.matchChild(first, rest);
+
+    // 4. Single-level wildcard ('+') matching child node
     const single = this.matchChild(this.wildcardOne, rest);
-    const subtree = this.matchChild(this.wildcardSubtree, []);
-    const results = exact.concat(single, subtree);
-    return results;
+
+    return results.concat(exact, single);
   }
 
   /**
