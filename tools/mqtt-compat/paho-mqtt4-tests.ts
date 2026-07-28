@@ -3,7 +3,6 @@ import { test } from "node:test";
 import { MQTTLevel, PacketType } from "../../server/deps.ts";
 import type {
   ConnectPacket,
-  MqttConn,
   PublishPacket,
 } from "../../server/deps.ts";
 import {

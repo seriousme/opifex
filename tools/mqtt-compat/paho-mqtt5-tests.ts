@@ -1,9 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type {
-  AnyPacket,
   ConnectPacket,
-  MqttConn,
   QoS,
 } from "../../server/deps.ts";
 import { logger, LogLevel, MQTTLevel, PacketType } from "../../server/deps.ts";
