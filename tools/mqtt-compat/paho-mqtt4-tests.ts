@@ -14,6 +14,7 @@ import {
   isAuthenticatedBroker,
   ping,
   publish,
+  receiveMessages,
   startMockServer,
   subscribe,
   unsubscribe,
@@ -28,15 +29,6 @@ const topics = ["TopicA", "TopicA/B", "Topic/C", "TopicA/C", "/TopicA"];
 const wildtopics = ["TopicA/+", "+/C", "#", "/#", "/+", "+/+", "TopicA/#"];
 const nosubscribeTopics = ["test/nosubscribe"];
 
-// receive messages from server
-
-async function receiveMessages(conn: MqttConn) {
-  const received = Array.fromAsync(conn);
-  await delay(10);
-  await disconnect(conn);
-  const messages = await received;
-  return messages;
-}
 // --- Tests ---
 
 test("Basic test: Connect, Subscribe, and Publish", async () => {
