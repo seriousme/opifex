@@ -338,6 +338,7 @@ export async function disconnect5(mqttConn: MqttConn, opts?: {
 
   mqttConn.send(packet);
   await mqttConn.next();
+  await mqttConn.next();
 
   assert.strictEqual(
     mqttConn.isClosed,

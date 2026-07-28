@@ -78,7 +78,7 @@ export async function handlePublish(
       ctx,
       id,
       qos,
-      ReasonCode.retainNotSupported,
+      ReasonCode.unspecifiedError,
       `Server does not support retain`,
     );
   }
