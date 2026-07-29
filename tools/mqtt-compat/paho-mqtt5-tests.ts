@@ -1,9 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type {
-  ConnectPacket,
-  QoS,
-} from "../../server/deps.ts";
+import type { ConnectPacket, QoS } from "../../server/deps.ts";
 import { logger, LogLevel, MQTTLevel, PacketType } from "../../server/deps.ts";
 import {
   addMockClient,
