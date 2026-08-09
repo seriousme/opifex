@@ -11,6 +11,7 @@ import type {
   QoS,
   Topic,
   TopicFilter,
+  UnsubackPacket,
 } from "../mqttPacket/mod.ts";
 import type {
   ConnackPacketV4,
@@ -225,16 +226,22 @@ export async function unsubscribe(
   assert.equal(packet.id, id, "UNSUBACK ID should match UNSUBSCRIBE ID");
 }
 
-export function unsubscribe5(
+export async function unsubscribe5(
   subscriber: MqttConn,
   topicFilters: TopicFilter[],
-  opts?: { id?: number },
-) {
-  return unsubscribe(
-    subscriber,
+  { id = 24 } = {},
+): Promise<UnsubackPacket> {
+  subscriber.send({
+    type: PacketType.unsubscribe,
+    protocolLevel: MQTTLevel.v5,
+    id,
     topicFilters,
-    Object.assign({}, opts, { level: MQTTLevel.v5 }),
-  );
+  });
+  const { value: packet } = await subscriber.next();
+  assert.equal(packet.type, PacketType.unsuback, "Expected UNSUBACK");
+  assert.equal(packet.protocolLevel, MQTTLevel.v5, "received expected level");
+  assert.equal(packet.id, id, "UNSUBACK ID should match UNSUBSCRIBE ID");
+  return packet;
 }
 
 export async function publish(

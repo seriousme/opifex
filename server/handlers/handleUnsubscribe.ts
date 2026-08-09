@@ -1,5 +1,5 @@
-import { PacketType } from "../deps.ts";
-import type { UnsubscribePacket } from "../deps.ts";
+import { PacketType, ReasonCode } from "../deps.ts";
+import type { TReasonCode, UnsubscribePacket } from "../deps.ts";
 import type { Context } from "../context.ts";
 
 /**
@@ -12,12 +12,25 @@ export async function handleUnsubscribe(
   ctx: Context,
   packet: UnsubscribePacket,
 ): Promise<void> {
+  const subscriptions = new Set();
+  for await (const sub of ctx.persistence.listSubscriptions(ctx.clientId!)) {
+    subscriptions.add(sub.topicFilter);
+  }
+
+  const reasonCodes: TReasonCode[] = [];
+
   for (const topicFilter of packet.topicFilters) {
-    await ctx.persistence.unsubscribe(ctx.clientId!, topicFilter);
+    if (subscriptions.has(topicFilter)) {
+      reasonCodes.push(ReasonCode.success);
+      await ctx.persistence.unsubscribe(ctx.clientId!, topicFilter);
+    } else {
+      reasonCodes.push(ReasonCode.noSubscriptionExisted);
+    }
   }
   await ctx.send({
     type: PacketType.unsuback,
     id: packet.id,
     protocolLevel: ctx.protocolLevel,
+    reasonCodes,
   });
 }
