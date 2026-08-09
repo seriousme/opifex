@@ -19,7 +19,7 @@ import type {
 } from "../../mqttPacket/Properties.ts";
 
 const txtEncoder = new TextEncoder();
-logger.level(LogLevel.error);
+logger.level(LogLevel.debug);
 
 // Global-like state setup matching Python suite
 const topicPrefix = "client_test5/";
@@ -126,18 +126,6 @@ test("Zero Length Client Identifier Processing", async () => {
 test("Offline Message Queueing (Session Expiry)", async () => {
   const { mqttConn: aConn, mqttServer } = startMockServer();
 
-  const connPacket: ConnectPacket = {
-    type: PacketType.connect,
-    protocolName: "MQTT",
-    protocolLevel: MQTTLevel.v5,
-    clientId: "offlineClient",
-    clean: true,
-    keepAlive: 0,
-    properties: { sessionExpiryInterval: 99999 },
-  };
-
-  await aConn.send(connPacket);
-  await aConn.next();
   await connect5(aConn, {
     clientId: "offlineClient",
     properties: { sessionExpiryInterval: 99999 },
@@ -153,9 +141,11 @@ test("Offline Message Queueing (Session Expiry)", async () => {
   await disconnect5(bConn);
 
   const aReconnect = addMockClient(mqttServer);
-  connPacket.clean = false;
-  await aReconnect.send(connPacket);
-  await aReconnect.next();
+  await connect5(aReconnect, {
+    clientId: "offlineClient",
+    clean: false,
+    properties: { sessionExpiryInterval: 99999 },
+  });
 
   const packet1 = await aReconnect.next();
   const packet2 = await aReconnect.next();
@@ -210,8 +200,10 @@ test("Overlapping Subscriptions", async () => {
   await disconnect5(aConn);
 });
 
-test("Keepalive Timeout Triggering Will Message", { skip: true }, async () => {
+test("Keepalive Timeout Triggering Will Message", async () => {
   const { mqttConn: aConn, mqttServer } = startMockServer();
+  // set server keepalive small to speed up test
+  mqttServer.configuration.context.serverKeepAlive = 2;
 
   await connect5(aConn, {
     clientId: "keepaliveClient",
@@ -406,7 +398,7 @@ test("Payload Format Indicator and Content Type", async () => {
   await disconnect5(pConn);
 });
 
-test("Publication Message Expiry Interval", { skip: true }, async () => {
+test("Publication Message Expiry Interval", async () => {
   const { mqttConn: bConn, mqttServer } = startMockServer();
 
   await connect5(bConn, {
@@ -460,13 +452,13 @@ test("Subscribe Options (noLocal, retainAsPublished, retainHandling)", async () 
 
   const { value: bMsg } = await bConn.next();
   assert.strictEqual(bMsg.type, PacketType.publish);
-  assert.strictEqual(bMsg.payload, "noLocal test");
+  assert.deepEqual(bMsg.payload, txtEncoder.encode("noLocal test"));
 
   await disconnect5(aConn);
   await disconnect5(bConn);
 
   // --- 2. Test retainAsPublished ---
-  const { mqttConn: connRetain } = startMockServer();
+  const { mqttConn: connRetain, mqttServer: mqttServer2 } = startMockServer();
   await connect5(connRetain, { clientId: "retainAsPublishedClient" });
   await subscribe5(connRetain, [{
     topicFilter: topics[0],
@@ -474,12 +466,14 @@ test("Subscribe Options (noLocal, retainAsPublished, retainHandling)", async () 
     retainAsPublished: true,
   }]);
 
-  await publish5(connRetain, topics[0], 1, {
+  const retainPublish = addMockClient(mqttServer2);
+  await connect5(retainPublish);
+  await publish5(retainPublish, topics[0], 1, {
     payload: "retain false",
     retain: false,
     id: 2,
   });
-  await publish5(connRetain, topics[0], 1, {
+  await publish5(retainPublish, topics[0], 1, {
     payload: "retain true",
     retain: true,
     id: 3,
@@ -492,6 +486,7 @@ test("Subscribe Options (noLocal, retainAsPublished, retainHandling)", async () 
   assert.strictEqual(msg2.retain, true);
 
   await disconnect5(connRetain);
+  await disconnect5(retainPublish);
 
   // --- 3. Test retainHandling ---
   // Clean start & prepare some retained messages via Client A
@@ -777,7 +772,7 @@ test("Server Keep Alive Enforcement", async () => {
   await disconnect5(mqttConn);
 });
 
-test("Flow Control - Client Receive Maximum", { skip: true }, async () => {
+test("Flow Control - Client Receive Maximum", async () => {
   const { mqttConn } = startMockServer();
   const clientReceiveMaximum = 2;
 
