@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { ConnectPacket, QoS } from "../../server/deps.ts";
+import type { AnyPacket, QoS } from "../../server/deps.ts";
 import { logger, LogLevel, MQTTLevel, PacketType } from "../../server/deps.ts";
 import {
   addMockClient,
@@ -19,7 +19,7 @@ import type {
 } from "../../mqttPacket/Properties.ts";
 
 const txtEncoder = new TextEncoder();
-logger.level(LogLevel.debug);
+logger.level(LogLevel.error);
 
 // Global-like state setup matching Python suite
 const topicPrefix = "client_test5/";
@@ -74,7 +74,7 @@ test("Retained Messages with User Properties", async () => {
   await connect5(bConn, { clientId: "myclientid2" });
   await subscribe5(bConn, [{ topicFilter: wildtopics[5], qos: 2 }]);
 
-  const packets = await receiveMessages5(bConn);
+  const packets: AnyPacket[] = await receiveMessages5(bConn);
 
   assert.strictEqual(packets.length, 3);
   assert.strictEqual(

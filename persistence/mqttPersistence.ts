@@ -365,13 +365,11 @@ export class MqttPersistence implements IPersistence {
 
     const seen = new Set();
     const session = await this.storage.getSession(clientId);
+    logger.debug(`handleRetained: session ${JSON.stringify(session)}`);
     for (const sub of subscriptions) {
       for await (
         const packet of this.storage.listRetainedMatches(sub.topicFilter)
       ) {
-        const retainHandling = sub.retainHandling ?? 0;
-        if (retainHandling === 2) continue;
-        if (retainHandling === 1 && session?.existingSession) continue;
         if (seen.has(packet.topic)) continue; //dedupe
         seen.add(packet.topic);
         const newPacket = structuredClone(packet);

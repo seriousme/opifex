@@ -47,11 +47,17 @@ export async function handleSubscribe(
     ? packet.properties?.subscriptionIdentifier
     : undefined;
 
+  const existingTopicFilters = new Set<string>();
+  for await (
+    const existingSub of ctx.persistence.listSubscriptions(ctx.clientId!)
+  ) {
+    existingTopicFilters.add(existingSub.topicFilter);
+  }
   /*
    * The order of return codes in the SUBACK Packet MUST match the order of
    * Topic Filters in the SUBSCRIBE Packet [MQTT-3.9.3-1].
    */
-  const validSubscriptions: Subscription[] = [];
+  const retainedSubscriptions: Subscription[] = [];
   const results: number[] = [];
 
   for (const sub of packet.subscriptions) {
@@ -65,6 +71,7 @@ export async function handleSubscribe(
 
     // Safely cast to SubscriptionV5 to extract optional v5 flags
     const subV5 = sub as Partial<SubscriptionV5>;
+    const isNewSubscription = !existingTopicFilters.has(sub.topicFilter);
 
     await ctx.persistence.subscribe(
       ctx.clientId!,
@@ -76,7 +83,14 @@ export async function handleSubscribe(
       subscriptionIdentifier,
     );
 
-    validSubscriptions.push(sub);
+    existingTopicFilters.add(sub.topicFilter);
+
+    if (
+      subV5.retainHandling !== 2 &&
+      (subV5.retainHandling !== 1 || isNewSubscription)
+    ) {
+      retainedSubscriptions.push(sub);
+    }
     // codes are identical between v4 and v5
     results.push(sub.qos);
   }
@@ -93,7 +107,7 @@ export async function handleSubscribe(
   /*
    * send any retained messages that match these subscriptions
    */
-  if (validSubscriptions.length > 0) {
-    await ctx.persistence.handleRetained(ctx.clientId!, validSubscriptions);
+  if (retainedSubscriptions.length > 0) {
+    await ctx.persistence.handleRetained(ctx.clientId!, retainedSubscriptions);
   }
 }
