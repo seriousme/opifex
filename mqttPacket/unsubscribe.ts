@@ -68,7 +68,7 @@ export function encode(
     );
   }
   for (const topicFilter of packet.topicFilters) {
-    encoder.setTopicFilter(topicFilter);
+    encoder.setUtf8String(topicFilter);
   }
   return encoder.done(flags);
 }
@@ -90,7 +90,7 @@ export function decode(
   }
   const topicFilters: Topic[] = [];
   do {
-    const topicFilter = decoder.getTopicFilter();
+    const topicFilter = decoder.getUTF8String();
     topicFilters.push(topicFilter);
   } while (!decoder.atEnd());
   decoder.done();

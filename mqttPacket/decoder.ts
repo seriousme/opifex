@@ -1,18 +1,10 @@
 import type {
   TBitMask,
-  Topic,
-  TopicFilter,
   TPacketType,
   TReasonCode,
   UTF8StringPair,
 } from "./types.ts";
-import {
-  DEFAULT_MAX_TOPIC_LEVELS,
-  invalidmaxTopicLevels,
-  invalidTopic,
-  invalidTopicFilter,
-  invalidUTF8,
-} from "./validators.ts";
+import { invalidUTF8 } from "./validators.ts";
 import { isValidReasonCode } from "./ReasonCode.ts";
 import type {
   Mqttv5PropertyTypesNoUser,
@@ -83,7 +75,6 @@ export class Decoder {
   private buf: Uint8Array;
   private pos: number;
   private len: number;
-  maxTopicLevels = DEFAULT_MAX_TOPIC_LEVELS;
 
   /**
    * Creates a new Decoder instance
@@ -193,51 +184,6 @@ export class Decoder {
     const name = this.getUTF8String();
     const value = this.getUTF8String();
     return [name, value];
-  }
-
-  /**
-   * Gets a topic from the buffer
-   * @returns The decoded topic
-   * @throws {DecoderError} If topic is invalid
-   */
-  getTopic(): Topic {
-    const topic = this.getUTF8String();
-    if (invalidmaxTopicLevels(topic, this.maxTopicLevels)) {
-      throw new DecoderError(
-        `Topicfilter must contain a maximum of ${this.maxTopicLevels} levels`,
-      );
-    }
-    if (invalidTopic(topic)) {
-      throw new DecoderError(
-        "Topic must contain more than 1 byte and no wildcards",
-      );
-    }
-    return topic;
-  }
-
-  /**
-   * Gets a topic filter from the buffer
-   * @returns The decoded topic filter
-   * @throws {DecoderError} If topic filter is invalid
-   */
-  getTopicFilter(): TopicFilter {
-    const topicFilter = this.getUTF8String();
-    if (invalidUTF8(topicFilter)) {
-      throw new DecoderError(
-        "Topicfilter must contain valid UTF-8",
-      );
-    }
-    if (invalidmaxTopicLevels(topicFilter, this.maxTopicLevels)) {
-      throw new DecoderError(
-        `Topicfilter must contain a maximum of ${this.maxTopicLevels} levels`,
-      );
-    }
-    if (invalidTopicFilter(topicFilter)) {
-      throw new DecoderError(
-        "Topicfilter must contain more than 1 byte and valid wildcards",
-      );
-    }
-    return topicFilter;
   }
 
   /**

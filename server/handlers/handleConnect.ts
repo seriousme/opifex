@@ -1,25 +1,48 @@
 import type { Context, IsAuthenticatedResult } from "../context.ts";
-import { AuthenticationResult, PacketType, ReasonCode } from "../deps.ts";
+import {
+  AuthenticationResult,
+  invalidmaxTopicLevels,
+  invalidTopic,
+  PacketType,
+  ReasonCode,
+} from "../deps.ts";
 import type { ConnackProperties, ConnectPacket, TReasonCode } from "../deps.ts";
 
 const MAX_EXPIRY = 0xFFFFFFFF;
 
-function buildProps(ctx: Context, opts: {
-  assignedClientIdentifier: string | undefined;
-  reasonString: string | undefined;
-  sessionExpiryInterval: number | undefined;
-}): ConnackProperties {
+/**
+ * Maps MQTT v5 ReasonCodes to MQTT v3.1.1 ReturnCodes (AuthenticationResult)
+ */
+const V4_RETURN_CODE_MAP: Record<number, number> = {
+  [ReasonCode.success]: AuthenticationResult.ok, // 0x00
+  [ReasonCode.unsupportedProtocolVersion]:
+    AuthenticationResult.unacceptableProtocol, // 0x01
+  [ReasonCode.clientIdentifierNotValid]: AuthenticationResult.rejectedUsername, // 0x02
+  [ReasonCode.badUserNameOrPassword]:
+    AuthenticationResult.badUsernameOrPassword, // 0x04
+  [ReasonCode.badAuthenticationMethod]:
+    AuthenticationResult.badUsernameOrPassword, // 0x04
+  [ReasonCode.notAuthorized]: AuthenticationResult.notAuthorized, // 0x05
+  [ReasonCode.banned]: AuthenticationResult.notAuthorized, // 0x05
+};
+
+function reasonToReturnCode(reasonCode: number): number {
+  return V4_RETURN_CODE_MAP[reasonCode] ??
+    AuthenticationResult.serverUnavailable; // 0x03
+}
+
+/**
+ * Builds MQTT v5 CONNACK properties.
+ */
+function buildConnackProperties(
+  ctx: Context,
+  opts: {
+    assignedClientIdentifier?: string | undefined;
+    reasonString?: string | undefined;
+    sessionExpiryInterval?: number | undefined;
+  },
+): ConnackProperties {
   const cfg = ctx.config.context;
-  const props: Partial<ConnackProperties> = {};
-  if (opts.assignedClientIdentifier !== undefined) {
-    props.assignedClientIdentifier = opts.assignedClientIdentifier;
-  }
-  if (opts.sessionExpiryInterval !== undefined) {
-    props.sessionExpiryInterval = opts.sessionExpiryInterval;
-  }
-  if (opts.reasonString !== undefined && cfg.provideReasonStrings) {
-    props.reasonString = opts.reasonString;
-  }
 
   return {
     receiveMaximum: cfg.receiveMaximum,
@@ -27,26 +50,28 @@ function buildProps(ctx: Context, opts: {
     retainAvailable: cfg.retainAvailable,
     maximumPacketSize: cfg.maximumIncomingPacketSize,
     topicAliasMaximum: cfg.topicAliasMaximum,
-    // reasonString: "reason",
     wildcardSubscriptionAvailable: cfg.wildcardSubscriptionAvailable,
     subscriptionIdentifierAvailable: cfg.subscriptionIdentifierAvailable,
     sharedSubscriptionAvailable: cfg.sharedSubscriptionAvailable,
     serverKeepAlive: cfg.serverKeepAlive,
-    ...props,
-    // responseInformation: "blah",
-    // serverReference: "xyz",
-    // authenticationMethod: "xyz",
-    // authenticationData: Uint8Array.from([1,2,3]),
+
+    // Conditionally included fields
+    ...(opts.assignedClientIdentifier && {
+      assignedClientIdentifier: opts.assignedClientIdentifier,
+    }),
+    ...(opts.sessionExpiryInterval !== undefined && {
+      sessionExpiryInterval: opts.sessionExpiryInterval,
+    }),
+    ...(opts.reasonString && cfg.provideReasonStrings && {
+      reasonString: opts.reasonString,
+    }),
   };
 }
 
 /**
- * Checks if the client is authenticated based on the provided credentials
- * @param ctx - The connection context
- * @param packet - The MQTT CONNECT packet
- * @returns Authentication result indicating if the client is authenticated
+ * Checks if client credentials are valid.
  */
-async function isAuthenticated(
+async function authenticateClient(
   ctx: Context,
   packet: ConnectPacket,
 ): Promise<IsAuthenticatedResult> {
@@ -63,106 +88,95 @@ async function isAuthenticated(
 }
 
 /**
- * Validates the CONNECT packet
- * @param ctx - The connection context
- * @param packet - The MQTT CONNECT packet to validate
- * @returns Authentication result indicating if the CONNECT packet is valid
+ * Validates the CONNECT packet structure and Will configuration.
  */
-
-async function validateConnect(
+async function validateConnectPacket(
   ctx: Context,
   packet: ConnectPacket,
-  sessionExpiryInterval: number | undefined,
-): Promise<{ reasonCode: TReasonCode; reasonString?: string }> {
+  sessionExpiryInterval?: number,
+): Promise<{ reasonCode: TReasonCode; reasonString?: string } | null> {
   const cfg = ctx.config.context;
+
+  // Protocol version check
   if (!cfg.protocols.includes(packet.protocolLevel)) {
     return {
       reasonCode: ReasonCode.unsupportedProtocolVersion,
       reasonString: `Protocol version ${packet.protocolLevel} is not supported`,
     };
   }
+
+  // Will message validation
   if (packet.will) {
     const isProtocolV5 = packet.protocolLevel === 5;
-    const pkt = packet.will;
-    if (!cfg.retainAvailable && pkt.retain) {
+    const { will } = packet;
+
+    if (
+      will.topic === "" || invalidTopic(will.topic) ||
+      invalidmaxTopicLevels(will.topic, cfg.maxTopicLevels)
+    ) {
+      return {
+        reasonCode: ReasonCode.topicNameInvalid,
+        reasonString: "Invalid will topic",
+      };
+    }
+
+    if (!cfg.retainAvailable && will.retain) {
       return {
         reasonCode: ReasonCode.retainNotSupported,
-        reasonString: `Client not authorized to publish will to ${pkt.topic}`,
+        reasonString: "Publish will with retain=true is not supported",
       };
     }
+
     const checkAuthz = ctx.handlers.isAuthorizedToPublish;
-    if (checkAuthz && !await checkAuthz(ctx, pkt.topic)) {
+    if (checkAuthz && !await checkAuthz(ctx, will.topic)) {
       return {
         reasonCode: ReasonCode.notAuthorized,
-        reasonString: `Client not authorized to publish will to ${pkt.topic}`,
+        reasonString: `Client not authorized to publish will to ${will.topic}`,
       };
     }
-    const qos = pkt.qos || 0;
+
+    const qos = will.qos || 0;
     if (qos > cfg.maximumQos) {
       return {
         reasonCode: ReasonCode.qosNotSupported,
-        reasonString: `Server does not support publish will with QoS ${qos} `,
+        reasonString: `Server does not support publish will with QoS ${qos}`,
       };
     }
+
     if (isProtocolV5) {
       const requestedInterval = packet.will.properties?.willDelayInterval || 0;
       if (requestedInterval > (sessionExpiryInterval || 0)) {
         return {
           reasonCode: ReasonCode.payloadFormatInvalid,
           reasonString:
-            `Will delay interval larger than allowed session expiry interval`,
+            "Will delay interval larger than allowed session expiry interval",
         };
       }
     }
   }
 
-  return await isAuthenticated(ctx, packet);
-}
-
-function reasonToReturnCode(reasonCode: number): number {
-  switch (reasonCode) {
-    case ReasonCode.success:
-      return AuthenticationResult.ok; // 0x00 -> 0x00
-
-    case ReasonCode.unsupportedProtocolVersion:
-      return AuthenticationResult.unacceptableProtocol; // 0x84 -> 0x01
-
-    case ReasonCode.clientIdentifierNotValid:
-      return AuthenticationResult.rejectedUsername; // 0x85 -> 0x02
-
-    case ReasonCode.badUserNameOrPassword:
-    case ReasonCode.badAuthenticationMethod:
-      return AuthenticationResult.badUsernameOrPassword; // 0x86 / 0x8E -> 0x04
-
-    case ReasonCode.notAuthorized:
-    case ReasonCode.banned:
-      return AuthenticationResult.notAuthorized;
-
-      // Fall back for any other ReasonCodes (0x80+)
-      // 0x87 / 0x8C -> 0x05
-    default:
-      return AuthenticationResult.serverUnavailable; // Default fallback -> 0x03
-  }
+  return null;
 }
 
 /**
- * Handles the MQTT CONNECT packet
- * @param ctx - The connection context
- * @param packet - The MQTT CONNECT packet to handle
+ * Handles the MQTT CONNECT packet.
  */
 export async function handleConnect(
   ctx: Context,
   packet: ConnectPacket,
 ): Promise<void> {
   const isProtocolV5 = packet.protocolLevel === 5;
+
+  // Assign Client ID if missing
   let clientId = packet.clientId;
-  let assignedClientIdentifier = undefined;
-  let sessionExpiryInterval;
-  if (clientId === undefined || clientId === "") {
+  let assignedClientIdentifier: string | undefined;
+  if (!clientId) {
     assignedClientIdentifier = `Opifex-${crypto.randomUUID()}`;
     clientId = assignedClientIdentifier;
   }
 
+  // Compute Session Expiry Interval (v5)
+  let sessionExpiryInterval: number | undefined;
   if (isProtocolV5) {
     const requestedInterval = packet.properties?.sessionExpiryInterval || 0;
     const maxInterval = ctx.config.context.maxSessionExpiryInterval ||
@@ -170,20 +184,24 @@ export async function handleConnect(
     sessionExpiryInterval = Math.min(requestedInterval, maxInterval);
   }
 
-  // Validate packet
-  const { reasonCode, reasonString } = await validateConnect(
+  // Validate Packet & Authenticate Client
+  const validationError = await validateConnectPacket(
     ctx,
     packet,
     sessionExpiryInterval,
   );
+  const authResult = validationError ?? await authenticateClient(ctx, packet);
 
-  // On success connect the client
+  const { reasonCode, reasonString } = authResult;
+  const isSuccess = reasonCode === ReasonCode.success;
+
+  // Establish Session on Success
   let sessionPresent = false;
-  if (reasonCode === ReasonCode.success) {
+  if (isSuccess) {
     sessionPresent = await ctx.connect(packet, clientId, sessionExpiryInterval);
   }
 
-  // Send the connack
+  // Send CONNACK
   await ctx.send({
     type: PacketType.connack,
     protocolLevel: packet.protocolLevel,
@@ -191,7 +209,7 @@ export async function handleConnect(
     ...(isProtocolV5
       ? {
         reasonCode,
-        properties: buildProps(ctx, {
+        properties: buildConnackProperties(ctx, {
           assignedClientIdentifier,
           reasonString,
           sessionExpiryInterval,
@@ -200,13 +218,12 @@ export async function handleConnect(
       : { returnCode: reasonToReturnCode(reasonCode) }),
   });
 
-  // Close connection on failure
-  if (reasonCode !== ReasonCode.success) {
+  // Finalize or Terminate Connection
+  if (!isSuccess) {
     await ctx.close(false);
     return;
   }
 
-  // Process waiting packets
   if (sessionPresent) {
     await ctx.handleRedelivery();
   }

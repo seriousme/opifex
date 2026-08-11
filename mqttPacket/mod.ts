@@ -38,7 +38,7 @@ export {
   AuthenticationResult,
   AuthenticationResultByNumber,
 } from "./AuthenticationResult.ts";
-export { invalidTopic, invalidTopicFilter, invalidUTF8 } from "./validators.ts";
+export { invalidUTF8 } from "./validators.ts";
 export { decodeLength, encodeLength } from "./length.ts";
 export { getLengthDecoder } from "../mqttPacket/length.ts";
 

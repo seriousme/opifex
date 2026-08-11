@@ -38,4 +38,12 @@ export {
   ReasonCode,
 } from "../mqttPacket/mod.ts";
 export { Timer } from "../timer/timer.ts";
-export { assert, logger, LogLevel } from "../utils/mod.ts";
+export {
+  assert,
+  hasWildcards,
+  invalidmaxTopicLevels,
+  invalidTopic,
+  invalidTopicFilter,
+  logger,
+  LogLevel,
+} from "../utils/mod.ts";

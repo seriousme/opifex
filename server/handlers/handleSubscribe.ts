@@ -1,5 +1,11 @@
 import type { Context } from "../context.ts";
-import { PacketType, ReasonCode } from "../deps.ts";
+import {
+  hasWildcards,
+  invalidmaxTopicLevels,
+  invalidTopicFilter,
+  PacketType,
+  ReasonCode,
+} from "../deps.ts";
 import type {
   SubscribePacket,
   Subscription,
@@ -8,19 +14,15 @@ import type {
   TReasonCode,
 } from "../deps.ts";
 
+// V4 Subscription Failure
+const V4SubscriptionFailure = 0x80;
 /**
- * @constant {number} SubscriptionFailure
- * @description Code indicating a failed subscription attempt
+ * Checks if a client is authorized to subscribe to a topic.
  */
-const SubscriptionFailure = 0x80;
-
-/**
- * Checks if a client is authorized to subscribe to a topic
- * @param  ctx - The connection context
- * @param  topicFilter - The topic filter to check authorization for
- * @returns True if authorized, false otherwise
- */
-async function authorizedToSubscribe(ctx: Context, topicFilter: Topic) {
+async function authorizedToSubscribe(
+  ctx: Context,
+  topicFilter: Topic,
+): Promise<boolean> {
   if (ctx.handlers.isAuthorizedToSubscribe) {
     return await ctx.handlers.isAuthorizedToSubscribe(ctx, topicFilter);
   }
@@ -28,48 +30,77 @@ async function authorizedToSubscribe(ctx: Context, topicFilter: Topic) {
 }
 
 /**
- * @function handleSubscribe
- * @description Processes an MQTT SUBSCRIBE packet
- * @param {Context} ctx - The connection context
- * @param {SubscribePacket} packet - The SUBSCRIBE packet received from the client
- * @returns {Promise<void>}
- * @throws {Error} If subscription processing fails
+ * Validates a single subscription topic filter against server configuration.
+ * Returns an error ReasonCode if invalid, or null if valid.
+ */
+function validateSubscriptionTopic(
+  sub: Subscription,
+  cfg: Context["config"]["context"],
+): TReasonCode | null {
+  if (
+    cfg.wildcardSubscriptionAvailable === false && hasWildcards(sub.topicFilter)
+  ) {
+    return ReasonCode.wildcardSubscriptionsNotSupported;
+  }
+
+  if (
+    sub.topicFilter.length === 0 ||
+    invalidTopicFilter(sub.topicFilter) ||
+    invalidmaxTopicLevels(sub.topicFilter, cfg.maxTopicLevels)
+  ) {
+    return ReasonCode.topicFilterInvalid;
+  }
+
+  return null;
+}
+
+/**
+ * Processes an MQTT SUBSCRIBE packet.
  * @remarks The order of return codes in the SUBACK Packet MUST match the order of Topic Filters in the SUBSCRIBE Packet [MQTT-3.9.3-1]
  */
 export async function handleSubscribe(
   ctx: Context,
   packet: SubscribePacket,
 ): Promise<void> {
+  const cfg = ctx.config.context;
   const isProtocolV5 = packet.protocolLevel === 5;
 
-  // Extract Subscription Identifier from MQTT v5 packet properties if available
   const subscriptionIdentifier = isProtocolV5
     ? packet.properties?.subscriptionIdentifier
     : undefined;
 
+  // Pre-fetch existing subscriptions to evaluate Retain Handling logic (retainHandling === 1)
   const existingTopicFilters = new Set<string>();
   for await (
     const existingSub of ctx.persistence.listSubscriptions(ctx.clientId!)
   ) {
     existingTopicFilters.add(existingSub.topicFilter);
   }
-  /*
-   * The order of return codes in the SUBACK Packet MUST match the order of
-   * Topic Filters in the SUBSCRIBE Packet [MQTT-3.9.3-1].
-   */
+
   const retainedSubscriptions: Subscription[] = [];
-  const results: number[] = [];
+  const results: TReasonCode[] = [];
 
   for (const sub of packet.subscriptions) {
+    // TopicFilter Validation
+    const validationError = validateSubscriptionTopic(sub, cfg);
+    if (validationError !== null) {
+      if (!isProtocolV5) {
+        await ctx.close(false);
+        return;
+      }
+      results.push(validationError);
+      continue;
+    }
+
+    // Authorization Check
     if (!await authorizedToSubscribe(ctx, sub.topicFilter)) {
-      // codes differ between v4 and v5
       results.push(
-        isProtocolV5 ? ReasonCode.notAuthorized : SubscriptionFailure,
+        isProtocolV5 ? ReasonCode.notAuthorized : V4SubscriptionFailure,
       );
       continue;
     }
 
-    // Safely cast to SubscriptionV5 to extract optional v5 flags
+    // Register Subscription
     const subV5 = sub as Partial<SubscriptionV5>;
     const isNewSubscription = !existingTopicFilters.has(sub.topicFilter);
 
@@ -85,28 +116,29 @@ export async function handleSubscribe(
 
     existingTopicFilters.add(sub.topicFilter);
 
+    // Collect Subscriptions Requiring Retained Messages
     if (
       subV5.retainHandling !== 2 &&
       (subV5.retainHandling !== 1 || isNewSubscription)
     ) {
       retainedSubscriptions.push(sub);
     }
-    // codes are identical between v4 and v5
-    results.push(sub.qos);
+
+    // Success code (Granted QoS)
+    results.push(sub.qos as TReasonCode);
   }
 
+  // Send SUBACK response
   await ctx.send({
     type: PacketType.suback,
     protocolLevel: ctx.protocolLevel,
     id: packet.id,
     ...(isProtocolV5
-      ? { reasonCodes: results as TReasonCode[] }
-      : { returnCodes: results }),
+      ? { reasonCodes: results }
+      : { returnCodes: results as number[] }),
   });
 
-  /*
-   * send any retained messages that match these subscriptions
-   */
+  // Dispatch matching retained messages
   if (retainedSubscriptions.length > 0) {
     await ctx.persistence.handleRetained(ctx.clientId!, retainedSubscriptions);
   }

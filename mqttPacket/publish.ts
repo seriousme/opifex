@@ -53,7 +53,7 @@ export function encode(
     (packet.retain ? BitMask.bit0 : 0);
 
   const encoder = new Encoder(packet.type);
-  encoder.setTopic(packet.topic);
+  encoder.setUtf8String(packet.topic);
 
   if (qos === 1 || qos === 2) {
     if (typeof packet.id !== "number" || packet.id < 1) {
@@ -92,7 +92,7 @@ export function decode(
   }
 
   const decoder = new Decoder(packetType, buffer);
-  const topic = decoder.getTopic();
+  const topic = decoder.getUTF8String();
 
   let id = undefined;
   if (qos > 0) {

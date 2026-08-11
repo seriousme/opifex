@@ -14,8 +14,6 @@ import {
 } from "../../dev_utils/mod.ts";
 
 import { PacketType, ReasonCode } from "../deps.ts";
-import { logger, LogLevel } from "../deps.ts";
-logger.level(LogLevel.debug);
 
 test("PUBLISH QoS 0 does not receive acknowledgment", async () => {
   const { mqttConn } = startMockServer();

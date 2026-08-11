@@ -150,7 +150,8 @@ export function encode(
         codecOpts.maxOutgoingPacketSize,
       );
     }
-    encoder.setTopic(packet.will.topic).setByteArray(packet.will.payload);
+    encoder.setUtf8String(packet.will.topic);
+    encoder.setByteArray(packet.will.payload);
   }
 
   if (packet.username !== undefined) {
@@ -218,7 +219,7 @@ export function decode(
     if (isV5) {
       willProperties = decoder.getProperties(PropertySetType.will);
     }
-    willTopic = decoder.getTopic();
+    willTopic = decoder.getUTF8String();
     willPayload = decoder.getByteArray();
   }
 

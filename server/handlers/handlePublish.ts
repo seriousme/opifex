@@ -1,5 +1,10 @@
 import { SysPrefix } from "../context.ts";
-import { PacketType, ReasonCode } from "../deps.ts";
+import {
+  invalidmaxTopicLevels,
+  invalidTopic,
+  PacketType,
+  ReasonCode,
+} from "../deps.ts";
 import type { Context } from "../context.ts";
 import type {
   PacketId,
@@ -59,6 +64,40 @@ async function authorizedToPublish(ctx: Context, topic: Topic) {
 }
 
 /**
+ * Validates incoming PUBLISH packet rules prior to processing.
+ * Returns an error object if invalid, or null if valid.
+ */
+function validatePublishPacket(
+  ctx: Context,
+  packet: PublishPacket,
+): { reasonCode: TReasonCode; message: string } | null {
+  const cfg = ctx.config.context;
+  const isProtocolV5 = packet.protocolLevel === 5;
+  const hasTopicAlias = isProtocolV5 &&
+    packet.properties?.topicAlias !== undefined;
+
+  if (!cfg.retainAvailable && packet.retain) {
+    return {
+      reasonCode: ReasonCode.unspecifiedError,
+      message: "Server does not support retain",
+    };
+  }
+
+  const isInvalidTopic = (packet.topic.length === 0 && !hasTopicAlias) ||
+    invalidTopic(packet.topic) ||
+    invalidmaxTopicLevels(packet.topic, cfg.maxTopicLevels);
+
+  if (isInvalidTopic) {
+    return {
+      reasonCode: ReasonCode.topicNameInvalid,
+      message: "Invalid topic name",
+    };
+  }
+
+  return null;
+}
+
+/**
  * Handles MQTT PUBLISH packets
  * @param ctx - The connection context
  * @param packet - The PUBLISH packet to process
@@ -71,15 +110,15 @@ export async function handlePublish(
 ): Promise<void> {
   const qos = packet.qos || 0;
   const id = packet.id;
-  const cfg = ctx.config.context;
 
-  if (!cfg.retainAvailable && packet.retain) {
-    await handlePublishError(
+  const validationError = validatePublishPacket(ctx, packet);
+  if (validationError) {
+    return await handlePublishError(
       ctx,
       id,
       qos,
-      ReasonCode.unspecifiedError,
-      `Server does not support retain`,
+      validationError.reasonCode,
+      validationError.message,
     );
   }
 
@@ -99,21 +138,20 @@ export async function handlePublish(
     return;
   }
 
-  if (id !== undefined) {
-    // qos 1
-    if (qos === 1) {
-      // publish the packet
-      await ctx.publish(packet);
-      // send the pubAck
-      await ctx.send({
-        type: PacketType.puback,
-        protocolLevel: ctx.protocolLevel,
-        id,
-      });
-      return;
-    }
+  // qos 1
+  if (qos === 1) {
+    // publish the packet
+    await ctx.publish(packet);
+    // send the pubAck
+    await ctx.send({
+      type: PacketType.puback,
+      protocolLevel: ctx.protocolLevel,
+      id: id!,
+    });
+    return;
+  }
 
-    /*
+  /*
 In the QoS 2 delivery protocol, the Receiver
 
 - MUST respond with a PUBREC containing the Packet Identifier from the incoming PUBLISH Packet,
@@ -127,12 +165,11 @@ Identifier as being a new publication.
 [MQTT-4.3.3-2].
     */
 
-    // we take responsibility for the packet
-    await ctx.persistence.addPendingIncomingPacket(ctx.clientId!, packet);
-    await ctx.send({
-      type: PacketType.pubrec,
-      protocolLevel: ctx.protocolLevel,
-      id,
-    });
-  }
+  // we take responsibility for the packet
+  await ctx.persistence.addPendingIncomingPacket(ctx.clientId!, packet);
+  await ctx.send({
+    type: PacketType.pubrec,
+    protocolLevel: ctx.protocolLevel,
+    id: id!,
+  });
 }

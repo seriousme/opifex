@@ -14,6 +14,7 @@ export const defaultConfiguration = {
     maximumConnectPacketSize: 4000,
     maximumIncomingPacketSize: 4000,
     maximumOutgoingPacketSize: 4000,
+    maxTopicLevels: 50,
     provideReasonStrings: false,
     topicAliasMaximum: 5,
     wildcardSubscriptionAvailable: true,
