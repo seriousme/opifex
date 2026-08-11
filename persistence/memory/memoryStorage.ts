@@ -181,6 +181,11 @@ export class MemoryStorage implements IStorageProvider {
       .sort((a, b) => a.seqId - b.seqId);
 
     for (const entry of sortedEntries) {
+      const now = Date.now();
+      if (entry.expiresAtMs !== null && entry.expiresAtMs < now) {
+        this.deletePendingPacket(clientId, direction, entry.packet.id!);
+        continue;
+      }
       yield entry.packet;
     }
   }

@@ -1105,4 +1105,52 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       cleanup();
     });
   });
+
+  test("Message expiry removes expired packets when listing pending packets", async () => {
+    const { persistence, cleanup } = factory();
+    await persistence.registerClient("client1", () => Promise.resolve());
+    await persistence.subscribe("client1", "test/topic", 1);
+
+    // Non-expired packet (expires far in the future)
+    const validPacket = createPacket("test/topic", "valid payload", {
+      id: 1,
+      qos: 1,
+      protocolLevel: MQTTLevel.v5,
+      properties: { messageExpiryInterval: 60 },
+    });
+
+    // Packet configured to expire almost immediately (1 second)
+    const expiredPacket = createPacket("test/topic", "expired payload", {
+      id: 2,
+      qos: 1,
+      protocolLevel: MQTTLevel.v5,
+      properties: { messageExpiryInterval: 1 },
+    });
+
+    // Add packets to outgoing and incoming pending queues
+    await persistence.addPendingOutgoingPacket("client1", validPacket);
+    await persistence.addPendingOutgoingPacket("client1", expiredPacket);
+
+    await persistence.addPendingIncomingPacket("client1", validPacket);
+    await persistence.addPendingIncomingPacket("client1", expiredPacket);
+
+    // Wait for the short expiry interval to pass
+    await new Promise((resolve) => setTimeout(resolve, 1100));
+
+    // Verify outgoing pending list filtered out expired message
+    const outgoing = await Array.fromAsync(
+      persistence.listPendingOutgoingPackets("client1"),
+    );
+    assert.strictEqual(outgoing.length, 1);
+    assert.strictEqual(outgoing[0].id, 1);
+
+    // Verify incoming pending list filtered out expired message
+    const incoming = await Array.fromAsync(
+      persistence.listPendingIncomingPackets("client1"),
+    );
+    assert.strictEqual(incoming.length, 1);
+    assert.strictEqual(incoming[0].id, 1);
+
+    cleanup();
+  });
 }

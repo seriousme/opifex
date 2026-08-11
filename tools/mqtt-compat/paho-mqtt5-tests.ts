@@ -430,7 +430,7 @@ test("Publication Message Expiry Interval", async () => {
 
   const { value: recMsg } = await bReconnect.next();
   assert.strictEqual(recMsg.type, PacketType.publish);
-  assert.strictEqual(recMsg.payload, "valid message");
+  assert.deepEqual(recMsg.payload, txtEncoder.encode("valid message"));
 
   await disconnect5(aConn);
   await disconnect5(bReconnect);
