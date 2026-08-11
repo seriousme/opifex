@@ -200,6 +200,7 @@ export class Context {
     );
     if ((!this.mqttConn.isClosed)) {
       logger.debug(`ctx.send: ${JSON.stringify(packet, null, 2)}`);
+      packet.protocolLevel = this.protocolLevel;
       await this.mqttConn.send(packet);
       if (this.mqttConn.isClosed) {
         await this.close();

@@ -360,12 +360,11 @@ export class MqttPersistence implements IPersistence {
     clientId: ClientId,
     subscriptions: ClientSubscription[],
   ): Promise<void> {
-    const handler = this.clientHandlerList.get(clientId);
-    if (!handler) return;
+    if (!this.clientHandlerList.get(clientId)) {
+      return;
+    }
 
     const seen = new Set();
-    const session = await this.storage.getSession(clientId);
-    logger.debug(`handleRetained: session ${JSON.stringify(session)}`);
     for (const sub of subscriptions) {
       for await (
         const packet of this.storage.listRetainedMatches(sub.topicFilter)
@@ -374,9 +373,7 @@ export class MqttPersistence implements IPersistence {
         seen.add(packet.topic);
         const newPacket = structuredClone(packet);
         if (!(sub.retainAsPublished ?? true)) newPacket.retain = false;
-        this.matchSubscriptions(clientId, packet);
-
-        await handler(newPacket);
+        await this.dispatch(clientId, newPacket);
       }
     }
   }
