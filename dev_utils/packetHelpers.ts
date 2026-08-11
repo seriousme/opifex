@@ -150,10 +150,9 @@ export async function subscribe(
   subscriber.send(subscribePacket);
 
   const { value: packet } = await subscriber.next();
-  assert.equal(packet.type, PacketType.suback, "Expected SUBACK");
-  assert.equal(packet.id, id, "SUBACK ID should match SUBSCRIBE ID");
-
   if (checkAcks) {
+    assert.equal(packet.type, PacketType.suback, "Expected SUBACK");
+    assert.equal(packet.id, id, "SUBACK ID should match SUBSCRIBE ID");
     const results = packet.returnCodes || packet.reasonCodes;
     assert.equal(results.length, subscriptions.length, "ACK count match");
     for (let i = 0; i < results.length; i++) {

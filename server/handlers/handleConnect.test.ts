@@ -446,3 +446,144 @@ test("reasonToReturnCode branch coverage for V4 status mappings", async () => {
     assert.strictEqual(mqttConn.isClosed, true);
   }
 });
+
+test("Will Packet: Empty topic fails with topicNameInvalid", async () => {
+  const { mqttConn } = startMockServer();
+
+  const connack = await connect5(mqttConn, {
+    will: {
+      topic: "",
+      payload: txtEncoder.encode("payload"),
+      qos: 0,
+      retain: false,
+    },
+  });
+
+  assert.strictEqual(connack.reasonCode, ReasonCode.topicNameInvalid);
+  await mqttConn.next();
+  assert.strictEqual(mqttConn.isClosed, true);
+});
+
+test("Will Packet: Invalid wildcard topic filter fails validation", async () => {
+  const { mqttConn } = startMockServer();
+
+  const connack = await connect5(mqttConn, {
+    will: {
+      topic: "invalid/+/will",
+      payload: txtEncoder.encode("payload"),
+      qos: 0,
+      retain: false,
+    },
+  });
+
+  assert.strictEqual(connack.reasonCode, ReasonCode.topicNameInvalid);
+  await mqttConn.next();
+  assert.strictEqual(mqttConn.isClosed, true);
+});
+
+test("Will Packet: Topic level count exceeding maxTopicLevels fails validation", async () => {
+  const { mqttConn } = startMockServer({
+    configuration: { context: { maxTopicLevels: 1 } },
+  });
+
+  const connack = await connect5(mqttConn, {
+    will: {
+      topic: "level1/level2/level3", // 3 levels exceeds limit of 1
+      payload: txtEncoder.encode("payload"),
+      qos: 0,
+      retain: false,
+    },
+  });
+
+  assert.strictEqual(connack.reasonCode, ReasonCode.topicNameInvalid);
+  await mqttConn.next();
+  assert.strictEqual(mqttConn.isClosed, true);
+});
+
+test("V4 Will Packet: Unauthorized Will topic maps to V4 returnCode", async () => {
+  const { mqttConn } = startMockServer({
+    handlers: {
+      isAuthorizedToPublish: () => false,
+    },
+  });
+
+  const connack = await connect(mqttConn, {
+    will: {
+      topic: "unauthorized/will",
+      payload: txtEncoder.encode("payload"),
+      qos: 0,
+      retain: false,
+    },
+  });
+
+  assert.strictEqual(
+    connack.returnCode,
+    AuthenticationResult.notAuthorized,
+  );
+  await mqttConn.next();
+  assert.strictEqual(mqttConn.isClosed, true);
+});
+
+test("V5 Will Packet: Valid willDelayInterval when sessionExpiryInterval is omitted or sufficient", async () => {
+  const { mqttConn } = startMockServer();
+
+  const connack = await connect5(mqttConn, {
+    properties: {
+      sessionExpiryInterval: 300,
+    },
+    will: {
+      topic: "will/topic",
+      payload: txtEncoder.encode("payload"),
+      qos: 0,
+      retain: false,
+      properties: {
+        willDelayInterval: 100, // Valid since 100 <= 300
+      },
+    },
+  });
+
+  assert.strictEqual(connack.reasonCode, ReasonCode.success);
+  await disconnect5(mqttConn);
+});
+
+test("V5: Assigned clientId omitted from CONNACK when client provides explicit clientId", async () => {
+  const { mqttConn } = startMockServer();
+
+  const connack = await connect5(mqttConn, {
+    clientId: "explicit-client-id",
+  });
+
+  assert.strictEqual(connack.reasonCode, ReasonCode.success);
+  assert.strictEqual(
+    connack.properties?.assignedClientIdentifier,
+    undefined,
+    "Expected assignedClientIdentifier to be omitted",
+  );
+
+  await disconnect5(mqttConn);
+});
+
+test("V5: Reason string omitted when provideReasonStrings is false", async () => {
+  const { mqttConn } = startMockServer({
+    configuration: {
+      context: {
+        provideReasonStrings: false,
+        protocols: [MQTTLevel.v4], // Force failure to evaluate error properties
+      },
+    },
+  });
+
+  const connack = await connect5(mqttConn, {});
+  assert.strictEqual(
+    connack.reasonCode,
+    ReasonCode.unsupportedProtocolVersion,
+  );
+  assert.strictEqual(
+    connack.properties?.reasonString,
+    undefined,
+    "Reason string should be omitted when provideReasonStrings is false",
+  );
+
+  await mqttConn.next();
+  assert.strictEqual(mqttConn.isClosed, true);
+});

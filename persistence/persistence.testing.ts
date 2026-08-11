@@ -281,6 +281,9 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
         persistence,
         "client1",
       );
+      // Register subscription in Trie first
+      await persistence.subscribe("client1", "test/topic", 0);
+
       await persistence.handleRetained("client1", [{
         topicFilter: "test/topic",
         qos: 0,
@@ -299,6 +302,8 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
         persistence,
         "client2",
       );
+      // Register subscription in Trie first
+      await persistence.subscribe("client2", "test/topic", 0);
 
       await persistence.handleRetained("client2", [{
         topicFilter: "test/topic",
@@ -325,6 +330,8 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       );
 
       const { received } = await createReceiver(persistence, "client1");
+      // Register subscription in Trie first
+      await persistence.subscribe("client1", "sensor/+", 0);
       await persistence.handleRetained("client1", [{
         topicFilter: "sensor/+",
         qos: 0,
@@ -402,6 +409,9 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const inPkt2 = await persistence.getPendingIncomingPacket(client, 13);
       assert.deepEqual(inPkt1, inPkts[0]);
       assert.deepEqual(inPkt2, inPkts[1]);
+
+      // Register subscription in Trie first
+      await persistence.subscribe(client, "outgoing/+", 1);
 
       const outPkts = await Array.fromAsync(
         persistence.listPendingOutgoingPackets(client),
@@ -564,7 +574,8 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
       const packet = createPacket("test", "data", { id: 1, qos: 1 });
       await persistence.addPendingOutgoingPacket("client1", packet);
-
+      // Register subscription in Trie first
+      await persistence.subscribe("client1", "test", 1);
       const packets = await Array.fromAsync(
         persistence.listPendingOutgoingPackets("client1"),
       );
@@ -856,6 +867,8 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
         persistence,
         "client1",
       );
+      // Register subscription in Trie first
+      await persistence.subscribe("client1", "large/retained", 0);
       await persistence.handleRetained("client1", [{
         topicFilter: "large/retained",
         qos: 0,

@@ -226,11 +226,31 @@ export class MqttPersistence implements IPersistence {
       );
     }
   }
-  listPendingOutgoingPackets(
+
+  async *listPendingOutgoingPackets(
     clientId: ClientId,
   ): AsyncIterableIterator<PublishPacket> {
-    return this.storage.listPendingPackets(clientId, PacketDirection.Outgoing);
+    for await (
+      const packet of this.storage.listPendingPackets(
+        clientId,
+        PacketDirection.Outgoing,
+      )
+    ) {
+      if (this.matchSubscriptions(clientId, packet)) {
+        yield packet;
+      } else {
+        // Clean up orphaned pending packet since client unsubscribed while offline
+        if (packet.id) {
+          await this.storage.deletePendingPacket(
+            clientId,
+            PacketDirection.Outgoing,
+            packet.id,
+          );
+        }
+      }
+    }
   }
+
   deletePendingOutgoingPacket(
     clientId: ClientId,
     packetId: PacketId,

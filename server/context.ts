@@ -200,12 +200,24 @@ export class Context {
     );
     if ((!this.mqttConn.isClosed)) {
       logger.debug(`ctx.send: ${JSON.stringify(packet, null, 2)}`);
-      packet.protocolLevel = this.protocolLevel;
       await this.mqttConn.send(packet);
       if (this.mqttConn.isClosed) {
         await this.close();
       }
     }
+  }
+
+  /**
+   * Dispatch publish and ackPackets packet to client
+   */
+  dispatch(packet: PublishPacket): Promise<void> {
+    // Fast-path short-circuit if context is dead
+    if (!this.connected || this.mqttConn.isClosed) {
+      return Promise.resolve();
+    }
+
+    packet.protocolLevel = this.protocolLevel;
+    return this.send(packet);
   }
   /**
    * Helper to setup the timers
@@ -308,7 +320,7 @@ export class Context {
     logger.verbose("ctx:connect: Registering client", clientId);
     const { existingSession } = await this.persistence.registerClient(
       clientId,
-      this.send.bind(this),
+      this.dispatch.bind(this),
     );
 
     this.connected = true;
@@ -449,7 +461,7 @@ export class Context {
         break;
       }
       packet.dup = true;
-      this.send(packet);
+      this.dispatch(packet);
     }
     // we only need to resend QoS2 PubRel acks
     for await (const packetId of p.listPendingAcks(clientId)) {

@@ -277,3 +277,154 @@ test("PUBLISH v5 includes reasonString when provideReasonStrings is enabled", as
 
   await disconnect5(mqttConn);
 });
+
+// ============================================================================
+// Invalid Topic & Topic Alias Tests
+// ============================================================================
+
+test("PUBLISH v4 with invalid topic containing wildcards closes connection", async () => {
+  const { mqttConn } = startMockServer();
+
+  await connect(mqttConn);
+
+  await publish(mqttConn, "invalid/+/topic", 1, {
+    id: 1,
+    payload: "test",
+    checkAcks: false,
+  });
+
+  await mqttConn.next();
+  assert.equal(mqttConn.isClosed, true, "expect connection to be closed in v4");
+});
+
+test("PUBLISH v5 QoS 1 with invalid topic containing wildcards receives PUBACK with topicNameInvalid", async () => {
+  const { mqttConn } = startMockServer();
+
+  await connect5(mqttConn);
+
+  await publish5(mqttConn, "invalid/+/topic", 1, {
+    id: 1,
+    payload: "test",
+    checkAcks: false,
+  });
+
+  const { value: pubAck } = await mqttConn.next();
+  assert.equal(pubAck.type, PacketType.puback);
+  assert.equal(pubAck.id, 1);
+  assert.equal(
+    pubAck.reasonCode,
+    ReasonCode.topicNameInvalid,
+    "Expected topicNameInvalid (0x90) reasonCode",
+  );
+
+  await disconnect5(mqttConn);
+});
+
+test("PUBLISH v5 QoS 2 with invalid topic containing wildcards receives PUBREC with topicNameInvalid", async () => {
+  const { mqttConn } = startMockServer();
+
+  await connect5(mqttConn);
+
+  await publish5(mqttConn, "invalid/#", 2, {
+    id: 2,
+    payload: "test",
+    checkAcks: false,
+  });
+
+  const { value: pubRec } = await mqttConn.next();
+  assert.equal(pubRec.type, PacketType.pubrec);
+  assert.equal(pubRec.id, 2);
+  assert.equal(
+    pubRec.reasonCode,
+    ReasonCode.topicNameInvalid,
+    "Expected topicNameInvalid (0x90) reasonCode",
+  );
+
+  await disconnect5(mqttConn);
+});
+
+test("PUBLISH v5 with topic level count exceeding maxTopicLevels receives topicNameInvalid", async () => {
+  const { mqttConn } = startMockServer({
+    configuration: { context: { maxTopicLevels: 1 } },
+  });
+
+  await connect5(mqttConn);
+
+  await publish5(mqttConn, "level1/level2/level3", 1, {
+    id: 3,
+    payload: "test",
+    checkAcks: false,
+  });
+
+  const { value: pubAck } = await mqttConn.next();
+  assert.equal(pubAck.type, PacketType.puback);
+  assert.equal(
+    pubAck.reasonCode,
+    ReasonCode.topicNameInvalid,
+    "Expected topicNameInvalid (0x90) reasonCode",
+  );
+
+  await disconnect5(mqttConn);
+});
+
+test("PUBLISH v5 with empty topic and no topic alias receives topicNameInvalid", async () => {
+  const { mqttConn } = startMockServer();
+
+  await connect5(mqttConn);
+
+  await publish5(mqttConn, "", 1, {
+    id: 4,
+    payload: "test",
+    checkAcks: false,
+  });
+
+  const { value: pubAck } = await mqttConn.next();
+  assert.equal(pubAck.type, PacketType.puback);
+  assert.equal(
+    pubAck.reasonCode,
+    ReasonCode.topicNameInvalid,
+    "Expected topicNameInvalid (0x90) reasonCode",
+  );
+
+  await disconnect5(mqttConn);
+});
+
+test("PUBLISH v5 with empty topic but with topic alias passes topic validation", async () => {
+  const { mqttConn } = startMockServer();
+
+  await connect5(mqttConn);
+
+  // An empty topic with topicAlias present in properties should pass validation
+  await publish5(mqttConn, "", 1, {
+    id: 5,
+    payload: "test",
+    properties: { topicAlias: 1 },
+  });
+
+  await disconnect5(mqttConn);
+});
+
+test("PUBLISH v5 omits reasonString when provideReasonStrings is false", async () => {
+  const { mqttConn } = startMockServer({
+    configuration: { context: { provideReasonStrings: false } },
+  });
+
+  await connect5(mqttConn);
+
+  await publish5(mqttConn, "topic/unauthorized", 1, {
+    id: 6,
+    payload: "test",
+    checkAcks: false,
+  });
+
+  const { value: pubAck } = await mqttConn.next();
+  assert.equal(pubAck.type, PacketType.puback);
+  assert.equal(pubAck.reasonCode, ReasonCode.notAuthorized);
+  assert.equal(
+    pubAck.properties?.reasonString,
+    undefined,
+    "Expected reasonString to be omitted when provideReasonStrings is false",
+  );
+
+  await disconnect5(mqttConn);
+});

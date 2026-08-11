@@ -549,3 +549,192 @@ test(
     );
   },
 );
+
+// ============================================================================
+// Wildcard Restriction Tests
+// ============================================================================
+
+test("SUBSCRIBE v4 closes connection when wildcardSubscriptionAvailable is false", async () => {
+  const { mqttConn } = startMockServer({
+    configuration: { context: { wildcardSubscriptionAvailable: false } },
+  });
+
+  await connect(mqttConn);
+
+  await subscribe(mqttConn, [{ topicFilter: "sensors/+", qos: 0 }], {
+    id: 1,
+    checkAcks: false,
+  });
+
+  await mqttConn.next();
+  assert.strictEqual(
+    mqttConn.isClosed,
+    true,
+    "Expected connection to be closed in v4",
+  );
+});
+
+test("SUBSCRIBE v5 returns wildcardSubscriptionsNotSupported when wildcardSubscriptionAvailable is false", async () => {
+  const { mqttConn } = startMockServer({
+    configuration: { context: { wildcardSubscriptionAvailable: false } },
+  });
+
+  await connect5(mqttConn);
+
+  const subAck = await subscribe5(mqttConn, [{
+    topicFilter: "sensors/+",
+    qos: 0,
+  }], {
+    id: 2,
+    checkAcks: false,
+  });
+
+  assert.strictEqual(subAck.type, PacketType.suback);
+  assert.strictEqual(subAck.id, 2);
+  assert.deepStrictEqual(
+    subAck.reasonCodes,
+    [ReasonCode.wildcardSubscriptionsNotSupported],
+    "Expected wildcardSubscriptionsNotSupported (0xA2) in v5",
+  );
+
+  await disconnect5(mqttConn);
+});
+
+// ============================================================================
+// Topic Filter Validation Tests
+// ============================================================================
+
+test("SUBSCRIBE v4 closes connection on invalid topic filter", async () => {
+  const { mqttConn } = startMockServer();
+
+  await connect(mqttConn);
+
+  // Invalid wildcard placement
+  await subscribe(mqttConn, [{ topicFilter: "invalid/#/topic", qos: 0 }], {
+    id: 3,
+    checkAcks: false,
+  });
+
+  await mqttConn.next();
+  assert.strictEqual(
+    mqttConn.isClosed,
+    true,
+    "Expected connection to be closed in v4",
+  );
+});
+
+test("SUBSCRIBE v5 returns topicFilterInvalid on invalid topic filter or empty filter", async () => {
+  const { mqttConn } = startMockServer();
+
+  await connect5(mqttConn);
+
+  const subAck = await subscribe5(mqttConn, [
+    { topicFilter: "", qos: 0 },
+    { topicFilter: "invalid/#/topic", qos: 1 },
+  ], {
+    id: 4,
+    checkAcks: false,
+  });
+
+  assert.strictEqual(subAck.type, PacketType.suback);
+  assert.strictEqual(subAck.id, 4);
+  assert.deepStrictEqual(
+    subAck.reasonCodes,
+    [ReasonCode.topicFilterInvalid, ReasonCode.topicFilterInvalid],
+    "Expected topicFilterInvalid (0x8F) for invalid topic filters in v5",
+  );
+
+  await disconnect5(mqttConn);
+});
+
+test("SUBSCRIBE v5 returns topicFilterInvalid when topic levels exceed maxTopicLevels", async () => {
+  const { mqttConn } = startMockServer({
+    configuration: { context: { maxTopicLevels: 1 } },
+  });
+
+  await connect5(mqttConn);
+
+  const subAck = await subscribe5(mqttConn, [{
+    topicFilter: "level1/level2/level3",
+    qos: 0,
+  }], {
+    id: 5,
+    checkAcks: false,
+  });
+
+  assert.strictEqual(subAck.type, PacketType.suback);
+  assert.deepStrictEqual(
+    subAck.reasonCodes,
+    [ReasonCode.topicFilterInvalid],
+    "Expected topicFilterInvalid when exceeding maxTopicLevels",
+  );
+
+  await disconnect5(mqttConn);
+});
+
+// ============================================================================
+// MQTT v5 Retain Handling Tests
+// ============================================================================
+
+test("SUBSCRIBE v5 with retainHandling = 2 does not send retained message", async () => {
+  const { mqttConn: publisher, mqttServer } = startMockServer();
+
+  // Publish retained message
+  await connect(publisher);
+  await publish(publisher, "retained/handling2", 0, {
+    payload: "should-not-be-sent",
+    retain: true,
+  });
+  await disconnect(publisher);
+
+  const subscriber = addMockClient(mqttServer);
+  await connect5(subscriber);
+
+  // Subscribe with retainHandling = 2 (Do not send retained messages)
+  await subscribe5(subscriber, [{
+    topicFilter: "retained/handling2",
+    qos: 0,
+    retainHandling: 2,
+  }], { id: 10 });
+
+  // PING to verify no retained PUBLISH packet was delivered after SUBACK
+  await ping(subscriber);
+  await disconnect5(subscriber);
+});
+
+test("SUBSCRIBE v5 with retainHandling = 1 sends retained message on new sub, skips on resubscribe", async () => {
+  const { mqttConn: publisher, mqttServer } = startMockServer();
+
+  await connect(publisher);
+  // Use QoS 1 so publish completes and persists before disconnecting
+  await publish(publisher, "retained/handling1", 1, {
+    id: 1,
+    payload: "first-delivery-only",
+    retain: true,
+  });
+  await disconnect(publisher);
+
+  const subscriber = addMockClient(mqttServer);
+  await connect5(subscriber);
+
+  // 1. Initial subscribe with retainHandling = 1 -> Should receive retained message
+  await subscribe5(subscriber, [{
+    topicFilter: "retained/handling1",
+    qos: 0,
+    retainHandling: 1,
+  }], { id: 20 });
+
+  const { value: publishPkt } = await subscriber.next();
+  assert.strictEqual(publishPkt.type, PacketType.publish);
+  assert.strictEqual(publishPkt.topic, "retained/handling1");
+
+  // 2. Re-subscribe to the exact same topic with retainHandling = 1 -> Should NOT receive retained message again
+  await subscribe5(subscriber, [{
+    topicFilter: "retained/handling1",
+    qos: 0,
+    retainHandling: 1,
+  }], { id: 21 });
+
+  await ping(subscriber);
+  await disconnect5(subscriber);
+});
