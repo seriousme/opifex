@@ -6,8 +6,12 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { MQTTLevel, PacketType } from "./deps.ts";
-import type { PublishPacket, QoS } from "./deps.ts";
-import type { ClientSubscription, IPersistence } from "./persistence.ts";
+import type { QoS } from "./deps.ts";
+import type {
+  ClientSubscription,
+  ExtPublishPacket,
+  IPersistence,
+} from "./persistence.ts";
 import type { PublishPacketV5 } from "../mqttPacket/publish.ts";
 
 const utf8Encoder = new TextEncoder();
@@ -16,8 +20,8 @@ const utf8Decoder = new TextDecoder();
 function createPacket(
   topic: string,
   payload: string,
-  options: Partial<PublishPacket> = {},
-): PublishPacket {
+  options: Partial<ExtPublishPacket> = {},
+): ExtPublishPacket {
   return {
     type: PacketType.publish,
     protocolLevel: MQTTLevel.v4,
@@ -32,11 +36,11 @@ async function createReceiver(
   persistence: IPersistence,
   clientId: string,
   clean = false,
-): Promise<{ received: PublishPacket[] }> {
+): Promise<{ received: ExtPublishPacket[] }> {
   if (clean) {
     await persistence.deregisterClient(clientId);
   }
-  const received: PublishPacket[] = [];
+  const received: ExtPublishPacket[] = [];
   await persistence.registerClient(
     clientId,
     (pkt) => {
@@ -645,7 +649,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
   describe("Concurrency Tests", () => {
     test(`${name} - multiple clients publishing simultaneously`, async () => {
       const { persistence, cleanup } = factory();
-      const allReceived: PublishPacket[][] = [];
+      const allReceived: ExtPublishPacket[][] = [];
 
       // Create 10 clients
       for (let i = 0; i < 10; i++) {
@@ -833,7 +837,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
         largePayload[i] = i % 256;
       }
 
-      const packet: PublishPacket = {
+      const packet: ExtPublishPacket = {
         type: PacketType.publish,
         protocolLevel: MQTTLevel.v4,
         topic: "large",
@@ -852,7 +856,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { persistence, cleanup } = factory();
 
       const largePayload = new Uint8Array(100 * 1024); // 100KB
-      const packet: PublishPacket = {
+      const packet: ExtPublishPacket = {
         type: PacketType.publish,
         protocolLevel: MQTTLevel.v4,
         topic: "large/retained",
@@ -1117,6 +1121,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       qos: 1,
       protocolLevel: MQTTLevel.v5,
       properties: { messageExpiryInterval: 60 },
+      expiresAtMs: Date.now() + 60 * 1000,
     });
 
     // Packet configured to expire almost immediately (1 second)
@@ -1125,6 +1130,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       qos: 1,
       protocolLevel: MQTTLevel.v5,
       properties: { messageExpiryInterval: 1 },
+      expiresAtMs: Date.now() + 1000,
     });
 
     // Add packets to outgoing and incoming pending queues

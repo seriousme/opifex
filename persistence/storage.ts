@@ -1,13 +1,8 @@
-import type {
-  ClientId,
-  PacketId,
-  PublishPacket,
-  Topic,
-  TopicFilter,
-} from "./deps.ts";
+import type { ClientId, PacketId, Topic, TopicFilter } from "./deps.ts";
 import type {
   ClientRegistrationResult,
   ClientSubscription,
+  ExtPublishPacket,
 } from "./persistence.ts";
 
 export type TrieSubscription = ClientSubscription & { clientId: ClientId };
@@ -49,14 +44,13 @@ export interface IStorageProvider {
   savePendingPacket(
     clientId: ClientId,
     direction: PacketDirection,
-    packet: PublishPacket,
-    expiresAtMs: number | null,
+    packet: ExtPublishPacket,
   ): Promise<void>;
   getPendingPacket(
     clientId: ClientId,
     direction: PacketDirection,
     packetId: PacketId,
-  ): Promise<PublishPacket | null>;
+  ): Promise<ExtPublishPacket | null>;
   deletePendingPacket(
     clientId: ClientId,
     direction: PacketDirection,
@@ -65,7 +59,7 @@ export interface IStorageProvider {
   listPendingPackets(
     clientId: ClientId,
     direction: PacketDirection,
-  ): AsyncIterableIterator<PublishPacket>;
+  ): AsyncIterableIterator<ExtPublishPacket>;
 
   // --- Pending Acknowledgment Storage ---
   savePendingAck(clientId: ClientId, packetId: PacketId): Promise<void>;
@@ -74,9 +68,9 @@ export interface IStorageProvider {
   listPendingAcks(clientId: ClientId): AsyncIterableIterator<PacketId>;
 
   // --- Retained Message Storage ---
-  saveRetained(topic: Topic, packet: PublishPacket): Promise<void>;
+  saveRetained(topic: Topic, packet: ExtPublishPacket): Promise<void>;
   deleteRetained(topic: Topic): Promise<void>;
   listRetainedMatches(
     topicFilter: TopicFilter,
-  ): AsyncIterableIterator<PublishPacket>;
+  ): AsyncIterableIterator<ExtPublishPacket>;
 }

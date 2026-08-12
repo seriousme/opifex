@@ -11,6 +11,13 @@ import type {
   TRetainHandling,
 } from "./deps.ts";
 
+/**
+ * extended publish packet also contains meta data
+ */
+export type ExtPublishPacket = PublishPacket & {
+  expiresAtMs?: number;
+};
+
 export type ClientSubscription = {
   topicFilter: TopicFilter;
   qos: QoS;
@@ -26,7 +33,7 @@ export type ClientSubscription = {
 export const MAX_PACKET_ID = 0xffff;
 
 // Handler function type for processing publish packets
-export type Handler = (packet: PublishPacket) => void | Promise<void>;
+export type Handler = (packet: ExtPublishPacket) => void | Promise<void>;
 
 // The result returned by client registration
 export type ClientRegistrationResult = {
@@ -68,15 +75,15 @@ export interface IPersistence {
   // Incoming Packet management
   addPendingIncomingPacket(
     clientId: ClientId,
-    packet: PublishPacket,
+    packet: ExtPublishPacket,
   ): Promise<void>;
   getPendingIncomingPacket(
     clientId: ClientId,
     packetId: PacketId,
-  ): Promise<PublishPacket | null>;
+  ): Promise<ExtPublishPacket | null>;
   listPendingIncomingPackets(
     clientId: ClientId,
-  ): AsyncIterableIterator<PublishPacket>;
+  ): AsyncIterableIterator<ExtPublishPacket>;
   deletePendingIncomingPacket(
     clientId: ClientId,
     packetId: PacketId,
@@ -85,11 +92,11 @@ export interface IPersistence {
   // Outgoing Packet management
   addPendingOutgoingPacket(
     clientId: ClientId,
-    packet: PublishPacket,
+    packet: ExtPublishPacket,
   ): Promise<void>;
   listPendingOutgoingPackets(
     clientId: ClientId,
-  ): AsyncIterableIterator<PublishPacket>;
+  ): AsyncIterableIterator<ExtPublishPacket>;
   deletePendingOutgoingPacket(
     clientId: ClientId,
     packetId: PacketId,
@@ -104,7 +111,7 @@ export interface IPersistence {
   // Message Delivery & Retained
   publish(
     clientId: ClientId,
-    packet: PublishPacket,
+    packet: ExtPublishPacket,
   ): Promise<void>;
   handleRetained(
     clientId: ClientId,

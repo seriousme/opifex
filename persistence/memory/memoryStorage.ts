@@ -3,16 +3,11 @@
  * Volatile in-memory implementation of IStorageProvider.
  * Completely decoupled from MQTT protocol logic.
  */
-import type {
-  ClientId,
-  PacketId,
-  PublishPacket,
-  Topic,
-  TopicFilter,
-} from "../deps.ts";
+import type { ClientId, PacketId, Topic, TopicFilter } from "../deps.ts";
 import type {
   ClientRegistrationResult,
   ClientSubscription,
+  ExtPublishPacket,
 } from "../persistence.ts";
 import type { IStorageProvider, TrieSubscription } from "../storage.ts";
 import { PacketDirection } from "../storage.ts";
@@ -20,8 +15,7 @@ import { topicFilterToRegExp } from "../deps.ts";
 
 type pendingTableEntry = {
   seqId: number;
-  packet: PublishPacket;
-  expiresAtMs: number | null;
+  packet: ExtPublishPacket;
   createdAtMs: number;
 };
 
@@ -46,7 +40,7 @@ export class MemoryStorage implements IStorageProvider {
 
   private pendingAckOutgoingTable = new Map<ClientId, Set<PacketId>>();
 
-  private retainedTable = new Map<Topic, PublishPacket>();
+  private retainedTable = new Map<Topic, ExtPublishPacket>();
 
   initialize(): Promise<void> {
     return Promise.resolve();
@@ -136,15 +130,13 @@ export class MemoryStorage implements IStorageProvider {
   savePendingPacket(
     clientId: ClientId,
     direction: PacketDirection,
-    packet: PublishPacket,
-    expiresAtMs: number | null = null,
+    packet: ExtPublishPacket,
   ): Promise<void> {
     const createdAtMs = Date.now();
     if (packet.id !== undefined) {
       this.getPacketTable(clientId, direction).set(packet.id, {
         seqId: this.seqId++,
         packet,
-        expiresAtMs,
         createdAtMs,
       });
     }
@@ -155,7 +147,7 @@ export class MemoryStorage implements IStorageProvider {
     clientId: ClientId,
     direction: PacketDirection,
     packetId: PacketId,
-  ): Promise<PublishPacket | null> {
+  ): Promise<ExtPublishPacket | null> {
     const entry = this.getPacketTable(clientId, direction).get(packetId);
     return Promise.resolve(entry?.packet ?? null);
   }
@@ -172,20 +164,11 @@ export class MemoryStorage implements IStorageProvider {
   async *listPendingPackets(
     clientId: ClientId,
     direction: PacketDirection,
-  ): AsyncIterableIterator<PublishPacket> {
+  ): AsyncIterableIterator<ExtPublishPacket> {
     const queue = this.getPacketTable(clientId, direction);
     if (!queue) return;
 
-    // Sort queue by order of insertion (seqId)
-    const sortedEntries = Array.from(queue.values())
-      .sort((a, b) => a.seqId - b.seqId);
-
-    for (const entry of sortedEntries) {
-      const now = Date.now();
-      if (entry.expiresAtMs !== null && entry.expiresAtMs < now) {
-        this.deletePendingPacket(clientId, direction, entry.packet.id!);
-        continue;
-      }
+    for (const entry of queue.values()) {
       yield entry.packet;
     }
   }
@@ -223,7 +206,7 @@ export class MemoryStorage implements IStorageProvider {
   }
 
   // --- Retained Messages ---
-  saveRetained(topic: Topic, packet: PublishPacket): Promise<void> {
+  saveRetained(topic: Topic, packet: ExtPublishPacket): Promise<void> {
     this.retainedTable.set(topic, packet);
     return Promise.resolve();
   }
@@ -235,7 +218,7 @@ export class MemoryStorage implements IStorageProvider {
 
   async *listRetainedMatches(
     topicFilter: TopicFilter,
-  ): AsyncIterableIterator<PublishPacket> {
+  ): AsyncIterableIterator<ExtPublishPacket> {
     const regex = topicFilterToRegExp(topicFilter);
     for (const [topic, packet] of this.retainedTable.entries()) {
       if (regex.test(topic)) {

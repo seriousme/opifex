@@ -9,9 +9,9 @@ import {
 import type {
   AnyPacket,
   ConnectPacket,
+  ExtPublishPacket,
   IPersistence,
   ProtocolLevel,
-  PublishPacket,
   PubrelPacket,
   SockConn,
   Topic,
@@ -133,7 +133,7 @@ export class Context {
   static clientList: Map<ClientId, Context> = new Map();
 
   /** The optional Will packet configured by the client to be published if disconnected unexpectedly. */
-  will?: PublishPacket | undefined;
+  will?: ExtPublishPacket | undefined;
 
   /** The Keep Alive timer tracking the client activity timeout. */
   timer?: Timer;
@@ -210,9 +210,24 @@ export class Context {
   /**
    * Dispatch publish and ackPackets packet to client
    */
-  dispatch(packet: PublishPacket): Promise<void> {
-    // Fast-path short-circuit if context is dead
+  dispatch(packet: ExtPublishPacket): Promise<void> {
+    // Fast-path short-circuit if client is no longer connected
     if (!this.connected || this.mqttConn.isClosed) {
+      return Promise.resolve();
+    }
+
+    const packetExpired = packet.expiresAtMs
+      ? Date.now() > packet.expiresAtMs
+      : false;
+    if (packetExpired) {
+      // qos 0 we can just forget the packet
+      // qos 1 & 2 we need to remove the packet from persistence
+      if ((packet.qos || 0) !== 0) {
+        this.persistence.deletePendingOutgoingPacket(
+          this.clientId!,
+          packet.id!,
+        );
+      }
       return Promise.resolve();
     }
 
@@ -348,7 +363,7 @@ export class Context {
   /**
    * Proces -inbound- publication requests
    */
-  async publish(packet: PublishPacket) {
+  async publish(packet: ExtPublishPacket) {
     logger.verbose(
       `ctx:publish processing incoming publish for topic "${packet.topic}"`,
     );
@@ -436,7 +451,7 @@ export class Context {
     payload: string, // The plain-text message string to encode.
     retain = false, // Specifies if the message should be retained.
   ): Promise<void> {
-    const packet: PublishPacket = {
+    const packet: ExtPublishPacket = {
       type: PacketType.publish,
       protocolLevel: this.protocolLevel,
       topic,

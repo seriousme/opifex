@@ -1,14 +1,9 @@
 import type sqlite from "node:sqlite";
-import type {
-  ClientId,
-  PacketId,
-  PublishPacket,
-  Topic,
-  TopicFilter,
-} from "../deps.ts";
+import type { ClientId, PacketId, Topic, TopicFilter } from "../deps.ts";
 import type {
   ClientRegistrationResult,
   ClientSubscription,
+  ExtPublishPacket,
 } from "../persistence.ts";
 import { PacketDirection } from "../storage.ts";
 import type { IStorageProvider, TrieSubscription } from "../storage.ts";
@@ -23,7 +18,7 @@ import type { AllStatements } from "./sqliteDatabase.ts";
 const SQLITE_DATABASE_URL = ":memory:";
 
 function serializePacket(
-  packet: PublishPacket,
+  packet: ExtPublishPacket,
 ): { packetJson: string; payloadBlob: Uint8Array | null } {
   const packetJson = JSON.stringify({ ...packet, payload: undefined });
   const payloadBlob = packet.payload ? packet.payload : null;
@@ -33,8 +28,8 @@ function serializePacket(
 function deserializePacket(
   packetJson: string,
   payloadBlob: Uint8Array | null,
-): PublishPacket {
-  const packet = JSON.parse(packetJson) as PublishPacket;
+): ExtPublishPacket {
+  const packet = JSON.parse(packetJson) as ExtPublishPacket;
   if (payloadBlob) {
     packet.payload = payloadBlob;
   }
@@ -161,8 +156,7 @@ export class SqliteStorage implements IStorageProvider {
   savePendingPacket(
     clientId: ClientId,
     direction: PacketDirection,
-    packet: PublishPacket,
-    expiresAtMs: number | null,
+    packet: ExtPublishPacket,
   ): Promise<void> {
     if (packet.id === undefined) return Promise.resolve();
 
@@ -171,7 +165,7 @@ export class SqliteStorage implements IStorageProvider {
       ? this.statements.saveIncoming
       : this.statements.saveOutgoing;
 
-    stmt.run(clientId, packet.id, packetJson, payloadBlob, expiresAtMs);
+    stmt.run(clientId, packet.id, packetJson, payloadBlob);
     return Promise.resolve();
   }
 
@@ -179,7 +173,7 @@ export class SqliteStorage implements IStorageProvider {
     clientId: ClientId,
     direction: PacketDirection,
     packetId: PacketId,
-  ): Promise<PublishPacket | null> {
+  ): Promise<ExtPublishPacket | null> {
     const stmt = direction === PacketDirection.Incoming
       ? this.statements.getIncoming
       : this.statements.getOutgoing;
@@ -216,7 +210,7 @@ export class SqliteStorage implements IStorageProvider {
   async *listPendingPackets(
     clientId: ClientId,
     direction: PacketDirection,
-  ): AsyncIterableIterator<PublishPacket> {
+  ): AsyncIterableIterator<ExtPublishPacket> {
     const stmt = direction === PacketDirection.Incoming
       ? this.statements.listIncoming
       : this.statements.listOutgoing;
@@ -227,12 +221,7 @@ export class SqliteStorage implements IStorageProvider {
       expires_at: number | null;
     }>;
 
-    const now = Date.now();
     for (const row of rows) {
-      // Skip expired packets during iteration
-      if (row.expires_at !== null && row.expires_at <= now) {
-        continue;
-      }
       yield deserializePacket(row.packet, row.payload);
     }
   }
@@ -264,7 +253,7 @@ export class SqliteStorage implements IStorageProvider {
   }
 
   // --- Retained Messages ---
-  saveRetained(topic: Topic, packet: PublishPacket): Promise<void> {
+  saveRetained(topic: Topic, packet: ExtPublishPacket): Promise<void> {
     const { packetJson, payloadBlob } = serializePacket(packet);
     this.statements.saveRetained.run(topic, packetJson, payloadBlob);
     return Promise.resolve();
@@ -277,7 +266,7 @@ export class SqliteStorage implements IStorageProvider {
 
   async *listRetainedMatches(
     topicFilter: TopicFilter,
-  ): AsyncIterableIterator<PublishPacket> {
+  ): AsyncIterableIterator<ExtPublishPacket> {
     let hasWildcards = false;
     const sqlLike = topicFilter.replace(/\/#|#|\+/g, () => {
       hasWildcards = true;

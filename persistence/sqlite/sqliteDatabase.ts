@@ -26,7 +26,6 @@ export function initializeDatabase(filename: string): sqlite.DatabaseSync {
       packet_id  INTEGER NOT NULL,
       packet     TEXT NOT NULL,
       payload    BLOB,
-      expires_at INTEGER,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       UNIQUE (client_id, packet_id)
     );
@@ -37,7 +36,6 @@ export function initializeDatabase(filename: string): sqlite.DatabaseSync {
       packet_id  INTEGER NOT NULL,
       packet     TEXT NOT NULL,
       payload    BLOB,
-      expires_at INTEGER,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       UNIQUE (client_id, packet_id)
     );
@@ -139,16 +137,15 @@ export function prepareAllStatements(db: sqlite.DatabaseSync): AllStatements {
 
     // Pending Incoming Packets
     saveIncoming: db.prepare(`
-      INSERT INTO pending_incoming (client_id, packet_id, packet, payload, expires_at)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO pending_incoming (client_id, packet_id, packet, payload)
+      VALUES (?, ?, ?, ?)
       ON CONFLICT(client_id, packet_id) DO UPDATE SET 
         packet = excluded.packet, 
-        payload = excluded.payload,
-        expires_at = excluded.expires_at
+        payload = excluded.payload
     `),
 
     getIncoming: db.prepare(`
-      SELECT packet, payload, expires_at 
+      SELECT packet, payload
       FROM pending_incoming 
       WHERE client_id = ? AND packet_id = ?
     `),
@@ -159,7 +156,7 @@ export function prepareAllStatements(db: sqlite.DatabaseSync): AllStatements {
     `),
 
     listIncoming: db.prepare(`
-      SELECT packet, payload, expires_at 
+      SELECT packet, payload
       FROM pending_incoming 
       WHERE client_id = ? 
       ORDER BY seq_id ASC
@@ -167,16 +164,15 @@ export function prepareAllStatements(db: sqlite.DatabaseSync): AllStatements {
 
     // Pending Outgoing Packets
     saveOutgoing: db.prepare(`
-      INSERT INTO pending_outgoing (client_id, packet_id, packet, payload, expires_at)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO pending_outgoing (client_id, packet_id, packet, payload)
+      VALUES (?, ?, ?, ?)
       ON CONFLICT(client_id, packet_id) DO UPDATE SET 
         packet = excluded.packet, 
-        payload = excluded.payload,
-        expires_at = excluded.expires_at
+        payload = excluded.payload
     `),
 
     getOutgoing: db.prepare(`
-      SELECT packet, payload, expires_at 
+      SELECT packet, payload
       FROM pending_outgoing 
       WHERE client_id = ? AND packet_id = ?
     `),
@@ -187,7 +183,7 @@ export function prepareAllStatements(db: sqlite.DatabaseSync): AllStatements {
     `),
 
     listOutgoing: db.prepare(`
-      SELECT packet, payload, expires_at 
+      SELECT packet, payload
       FROM pending_outgoing 
       WHERE client_id = ? 
       ORDER BY seq_id ASC

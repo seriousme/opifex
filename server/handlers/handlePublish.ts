@@ -7,8 +7,8 @@ import {
 } from "../deps.ts";
 import type { Context } from "../context.ts";
 import type {
+  ExtPublishPacket,
   PacketId,
-  PublishPacket,
   QoS,
   Topic,
   TReasonCode,
@@ -69,7 +69,7 @@ async function authorizedToPublish(ctx: Context, topic: Topic) {
  */
 function validatePublishPacket(
   ctx: Context,
-  packet: PublishPacket,
+  packet: ExtPublishPacket,
 ): { reasonCode: TReasonCode; message: string } | null {
   const cfg = ctx.config.context;
   const isProtocolV5 = packet.protocolLevel === 5;
@@ -106,7 +106,7 @@ function validatePublishPacket(
  */
 export async function handlePublish(
   ctx: Context,
-  packet: PublishPacket,
+  packet: ExtPublishPacket,
 ): Promise<void> {
   const qos = packet.qos || 0;
   const id = packet.id;
@@ -133,6 +133,12 @@ export async function handlePublish(
     return;
   }
 
+  if (
+    (packet.protocolLevel === 5) && packet.properties?.messageExpiryInterval
+  ) {
+    packet.expiresAtMs = Date.now() +
+      packet.properties.messageExpiryInterval * 1000;
+  }
   if (qos === 0) {
     await ctx.publish(packet);
     return;

@@ -1,7 +1,6 @@
 import type {
   ClientId,
   PacketId,
-  PublishPacket,
   QoS,
   TopicFilter,
   TRetainHandling,
@@ -9,6 +8,7 @@ import type {
 import type {
   ClientRegistrationResult,
   ClientSubscription,
+  ExtPublishPacket,
   Handler,
   IPersistence,
 } from "./persistence.ts";
@@ -17,19 +17,6 @@ import { PacketDirection } from "./storage.ts";
 import { assert, Trie } from "./deps.ts";
 import { MAX_PACKET_ID } from "./persistence.ts";
 import { logger } from "./deps.ts";
-
-/** helper to calculate expiry date/time in ms */
-function getExpiresAt(packet: PublishPacket): number | null {
-  const now = Date.now();
-  if (packet.protocolLevel !== 5) {
-    return null;
-  }
-  const expiry = packet.properties?.messageExpiryInterval;
-  if (expiry === undefined) {
-    return null;
-  }
-  return now + (expiry * 1000);
-}
 
 export class MqttPersistence implements IPersistence {
   private clientHandlerList = new Map<ClientId, Handler>();
@@ -133,7 +120,7 @@ export class MqttPersistence implements IPersistence {
    */
   private matchSubscriptions(
     clientId: ClientId,
-    packet: PublishPacket,
+    packet: ExtPublishPacket,
   ): boolean {
     let maxQos = 0;
     const subIds = [];
@@ -165,19 +152,17 @@ export class MqttPersistence implements IPersistence {
 
   async addPendingIncomingPacket(
     clientId: ClientId,
-    packet: PublishPacket,
+    packet: ExtPublishPacket,
   ): Promise<void> {
     logger.debug(
       `addPendingIncomingPacket: id ${packet.id} , topic "${packet.topic}", QoS ${packet.qos}`,
     );
 
     if (packet.id) {
-      const expiresAtMs = getExpiresAt(packet);
       await this.storage.savePendingPacket(
         clientId,
         PacketDirection.Incoming,
         packet,
-        expiresAtMs,
       );
     }
   }
@@ -185,18 +170,41 @@ export class MqttPersistence implements IPersistence {
   getPendingIncomingPacket(
     clientId: ClientId,
     packetId: PacketId,
-  ): Promise<PublishPacket | null> {
+  ): Promise<ExtPublishPacket | null> {
     return this.storage.getPendingPacket(
       clientId,
       PacketDirection.Incoming,
       packetId,
     );
   }
-  listPendingIncomingPackets(
+
+  async *listPendingIncomingPackets(
     clientId: ClientId,
-  ): AsyncIterableIterator<PublishPacket> {
-    return this.storage.listPendingPackets(clientId, PacketDirection.Incoming);
+  ): AsyncIterableIterator<ExtPublishPacket> {
+    for await (
+      const packet of this.storage.listPendingPackets(
+        clientId,
+        PacketDirection.Incoming,
+      )
+    ) {
+      // Clean up expired packets
+      const packetExpired = packet.expiresAtMs
+        ? Date.now() > packet.expiresAtMs
+        : false;
+      if (packetExpired) {
+        if (packet.id) {
+          await this.storage.deletePendingPacket(
+            clientId,
+            PacketDirection.Incoming,
+            packet.id,
+          );
+        }
+      } else {
+        yield packet;
+      }
+    }
   }
+
   deletePendingIncomingPacket(
     clientId: ClientId,
     packetId: PacketId,
@@ -211,35 +219,36 @@ export class MqttPersistence implements IPersistence {
   }
   async addPendingOutgoingPacket(
     clientId: ClientId,
-    packet: PublishPacket,
+    packet: ExtPublishPacket,
   ): Promise<void> {
     if (packet.id) {
       logger.debug(
         `addPendingOutGoingPacket: id ${packet.id} , topic "${packet.topic}", QoS ${packet.qos}`,
       );
-      const expiresAtMs = getExpiresAt(packet);
       await this.storage.savePendingPacket(
         clientId,
         PacketDirection.Outgoing,
         packet,
-        expiresAtMs,
       );
     }
   }
 
   async *listPendingOutgoingPackets(
     clientId: ClientId,
-  ): AsyncIterableIterator<PublishPacket> {
+  ): AsyncIterableIterator<ExtPublishPacket> {
     for await (
       const packet of this.storage.listPendingPackets(
         clientId,
         PacketDirection.Outgoing,
       )
     ) {
-      if (this.matchSubscriptions(clientId, packet)) {
-        yield packet;
-      } else {
-        // Clean up orphaned pending packet since client unsubscribed while offline
+      // Clean up
+      // - orphaned pending packet since client unsubscribed while offline
+      // - expired packets
+      const packetExpired = packet.expiresAtMs
+        ? Date.now() > packet.expiresAtMs
+        : false;
+      if (!this.matchSubscriptions(clientId, packet) || packetExpired) {
         if (packet.id) {
           await this.storage.deletePendingPacket(
             clientId,
@@ -247,6 +256,8 @@ export class MqttPersistence implements IPersistence {
             packet.id,
           );
         }
+      } else {
+        yield packet;
       }
     }
   }
@@ -303,7 +314,7 @@ export class MqttPersistence implements IPersistence {
   // --- Publish Protocol Logic
   async publish(
     publisherClientId: ClientId,
-    packet: PublishPacket,
+    packet: ExtPublishPacket,
   ): Promise<void> {
     const topic = packet.topic;
     logger.debug(
@@ -351,7 +362,7 @@ export class MqttPersistence implements IPersistence {
 
   async dispatch(
     clientId: ClientId,
-    packet: PublishPacket,
+    packet: ExtPublishPacket,
   ): Promise<void> {
     const handler = this.clientHandlerList.get(clientId);
     logger.debug(`dispatch ${clientId}, ${packet.topic}, ${packet.qos}`);
