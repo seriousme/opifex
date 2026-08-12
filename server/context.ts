@@ -147,9 +147,6 @@ export class Context {
   /** Timer enforcing a deadline for the client to send a CONNECT packet after establishing a socket connection. */
   preconnectTimer?: Timer;
 
-  /** The default timeout limit in milliseconds for a client to complete the connection handshake. */
-  static preconnectTimeoutMs: number = 3000; // 3 seconds
-
   /**
    * Initializes a new instance of the connection Context.
    */
@@ -170,7 +167,7 @@ export class Context {
     });
     this.handlers = handlers;
     this.protocolLevel = MQTTLevel.unknown;
-    this.initializePreconnectTimer(Context.preconnectTimeoutMs);
+    this.initializePreconnectTimer(cfg.preconnectTimeoutMs);
   }
 
   /**

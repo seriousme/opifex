@@ -20,7 +20,8 @@ export const defaultConfiguration = {
     wildcardSubscriptionAvailable: true,
     subscriptionIdentifierAvailable: true,
     sharedSubscriptionAvailable: false,
-    serverKeepAlive: 100,
+    serverKeepAlive: 100, // 100 seconds
+    preconnectTimeoutMs: 3000,
   },
 };
 

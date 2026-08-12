@@ -11,13 +11,13 @@ import { MQTTLevel } from "./deps.ts";
 import { PacketType } from "../mqttPacket/mod.ts";
 
 test(
-  "Preconnect timer: connection closes if CONNECT not received within 3 seconds",
+  "Preconnect timer: connection closes if CONNECT not received within timeout",
   { concurrency: false },
   async () => {
-    const { mqttConn } = startMockServer();
+    const { mqttConn } = startMockServer({configuration:{context:{preconnectTimeoutMs: 500}}});
 
-    // Wait 3.5 seconds without sending CONNECT packet
-    await delay(3500);
+    // Wait 750 ms without sending CONNECT packet
+    await delay(750);
 
     // Try to get next packet (should timeout/close)
     await mqttConn.next();
@@ -35,10 +35,10 @@ test(
   "Preconnect timer: connection succeeds if CONNECT received before timeout",
   { concurrency: false },
   async () => {
-    const { mqttConn } = startMockServer();
+    const { mqttConn } = startMockServer({configuration:{context:{preconnectTimeoutMs: 500}}});
 
-    // Wait 2 seconds (before timeout)
-    await delay(2000);
+    // Wait 200 ms (before timeout)
+    await delay(200);
 
     // Send CONNECT packet
     await connect(mqttConn, { clientId: "preconnectTestClient" });
@@ -59,10 +59,11 @@ test(
   "Preconnect timer: connection succeeds with immediate CONNECT",
   { concurrency: false },
   async () => {
-    const { mqttConn } = startMockServer();
+    const { mqttConn } = startMockServer({configuration:{context:{preconnectTimeoutMs: 500}}});
 
     // Send CONNECT immediately
     await connect(mqttConn, { clientId: "preconnectTestImmediate" });
+    await delay(750);
 
     // Connection should be open
     assert.deepStrictEqual(
@@ -77,13 +78,13 @@ test(
 );
 
 test(
-  "Preconnect timer: closes connection at exactly 3 second mark",
+  "Preconnect timer: closes connection at exact time",
   { concurrency: false },
   async () => {
-    const { mqttConn } = startMockServer();
+    const { mqttConn } = startMockServer({configuration:{context:{preconnectTimeoutMs: 500}}});
 
-    // Wait just under 3 seconds - should still be connected
-    await delay(2900);
+    // Wait just under 500 ms - should still be connected
+    await delay(400);
 
     // Connection should still be open
     assert.deepStrictEqual(
@@ -92,7 +93,7 @@ test(
       "Connection should be open at 2.9 seconds",
     );
 
-    // Wait additional 200ms to cross the 3 second boundary
+    // Wait additional 200ms to cross the 500 ms boundary
     await delay(200);
 
     // Try to interact with connection
@@ -102,33 +103,8 @@ test(
     assert.deepStrictEqual(
       mqttConn.isClosed,
       true,
-      "Connection should be closed after 3 seconds",
+      "Connection should be closed now",
     );
-  },
-);
-
-test(
-  "Preconnect timer: timer does not fire after successful connection",
-  { concurrency: false },
-  async () => {
-    const { mqttConn } = startMockServer();
-
-    // Connect early (at ~2 seconds)
-    await delay(2000);
-    await connect(mqttConn, { clientId: "preconnectTestNoFire" });
-
-    // Wait additional 1 second (total 3 seconds)
-    await delay(1000);
-
-    // Connection should still be open because timer was cleared
-    assert.deepStrictEqual(
-      mqttConn.isClosed,
-      false,
-      "Connection should remain open after successful CONNECT despite waiting past 3 seconds total",
-    );
-
-    // Cleanup
-    await disconnect(mqttConn);
   },
 );
 
