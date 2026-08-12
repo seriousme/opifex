@@ -14,7 +14,9 @@ test(
   "Preconnect timer: connection closes if CONNECT not received within timeout",
   { concurrency: false },
   async () => {
-    const { mqttConn } = startMockServer({configuration:{context:{preconnectTimeoutMs: 500}}});
+    const { mqttConn } = startMockServer({
+      configuration: { context: { preconnectTimeoutMs: 500 } },
+    });
 
     // Wait 750 ms without sending CONNECT packet
     await delay(750);
@@ -35,7 +37,9 @@ test(
   "Preconnect timer: connection succeeds if CONNECT received before timeout",
   { concurrency: false },
   async () => {
-    const { mqttConn } = startMockServer({configuration:{context:{preconnectTimeoutMs: 500}}});
+    const { mqttConn } = startMockServer({
+      configuration: { context: { preconnectTimeoutMs: 500 } },
+    });
 
     // Wait 200 ms (before timeout)
     await delay(200);
@@ -59,7 +63,9 @@ test(
   "Preconnect timer: connection succeeds with immediate CONNECT",
   { concurrency: false },
   async () => {
-    const { mqttConn } = startMockServer({configuration:{context:{preconnectTimeoutMs: 500}}});
+    const { mqttConn } = startMockServer({
+      configuration: { context: { preconnectTimeoutMs: 500 } },
+    });
 
     // Send CONNECT immediately
     await connect(mqttConn, { clientId: "preconnectTestImmediate" });
@@ -81,7 +87,9 @@ test(
   "Preconnect timer: closes connection at exact time",
   { concurrency: false },
   async () => {
-    const { mqttConn } = startMockServer({configuration:{context:{preconnectTimeoutMs: 500}}});
+    const { mqttConn } = startMockServer({
+      configuration: { context: { preconnectTimeoutMs: 500 } },
+    });
 
     // Wait just under 500 ms - should still be connected
     await delay(400);
