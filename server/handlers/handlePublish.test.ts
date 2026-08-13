@@ -389,12 +389,17 @@ test("PUBLISH v5 with empty topic and no topic alias receives topicNameInvalid",
   await disconnect5(mqttConn);
 });
 
-test("PUBLISH v5 with empty topic but with topic alias passes topic validation", async () => {
+test("PUBLISH v5 with topic alias works", async () => {
   const { mqttConn } = startMockServer();
 
   await connect5(mqttConn);
-
-  // An empty topic with topicAlias present in properties should pass validation
+  // Topic with topicAlias
+  await publish5(mqttConn, "topic/alias", 1, {
+    id: 4,
+    payload: "test",
+    properties: { topicAlias: 1 },
+  });
+  // Empty topic with topicAlias
   await publish5(mqttConn, "", 1, {
     id: 5,
     payload: "test",
@@ -402,6 +407,26 @@ test("PUBLISH v5 with empty topic but with topic alias passes topic validation",
   });
 
   await disconnect5(mqttConn);
+});
+
+test("PUBLISH v5 with invalid topic alias results in disconnect", async () => {
+  const { mqttConn } = startMockServer();
+
+  await connect5(mqttConn);
+  // Empty topic with unknown topicAlias
+  await publish5(mqttConn, "", 1, {
+    id: 5,
+    payload: "test",
+    properties: { topicAlias: 1 },
+    checkAcks: false,
+  });
+  const { value: disc } = await mqttConn.next();
+  assert.equal(disc.type, PacketType.disconnect);
+  assert.equal(
+    disc.reasonCode,
+    ReasonCode.topicAliasInvalid,
+    "Expected topicAliasInvalid (0x94) reasonCode",
+  );
 });
 
 test("PUBLISH v5 omits reasonString when provideReasonStrings is false", async () => {

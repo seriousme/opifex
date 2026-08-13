@@ -653,49 +653,47 @@ test("Client Topic Alias", async () => {
 
   // Test 1: Topic Alias 0 is invalid and must trigger a disconnect
   await connect5(mqttConn, { clientId: "topicAliasClient" });
-  await mqttConn.send({
-    type: PacketType.publish,
-    protocolLevel: MQTTLevel.v5,
-    topic: topics[0],
-    qos: 1,
+  await publish5(mqttConn, topics[0], 1, {
     id: 1,
-    payload: txtEncoder.encode("invalid alias 0"),
+    payload: "invalid alias 0",
     properties: { topicAlias: 0 },
+    checkAcks: false,
   });
 
   const { value: disc1 } = await mqttConn.next();
   assert.strictEqual(disc1.type, PacketType.disconnect);
 
   // Test 2: Valid Topic Alias usage
-  const { mqttConn: conn2 } = startMockServer();
-  const connack = await connect5(conn2, {
-    clientId: "topicAliasClient",
-    properties: { topicAliasMaximum: 5 },
+  const { mqttConn: publisher, mqttServer } = startMockServer();
+  const connack = await connect5(publisher, {
+    clientId: "publisher",
   });
 
   if ((connack.properties?.topicAliasMaximum ?? 0) > 0) {
-    await subscribe5(conn2, [{ topicFilter: topics[0], qos: 2 }]);
+    const subscriber = addMockClient(mqttServer);
+    await subscribe5(subscriber, [{ topicFilter: topics[0], qos: 2 }]);
 
+    await connect5(publisher);
     // First message sets up the alias mapping
-    await publish5(conn2, topics[0], 1, {
+    await publish5(publisher, topics[0], 1, {
       payload: "alias mapping",
       properties: { topicAlias: 1 },
       id: 2,
     });
-    const { value: m1 } = await conn2.next();
-    assert.strictEqual(m1.type, PacketType.publish);
 
     // Subsequent message uses an empty topic string with the existing alias
-    await publish5(conn2, "", 1, {
+    await publish5(publisher, "", 1, {
       payload: "using alias",
       properties: { topicAlias: 1 },
       id: 3,
     });
-    const { value: m2 } = await conn2.next();
-    assert.strictEqual(m2.type, PacketType.publish);
+    const results = await receiveMessages5(subscriber);
+    assert.strictEqual(results.length, 2);
+    assert.strictEqual(results[0].type, PacketType.publish);
+    assert.strictEqual(results[1].type, PacketType.publish);
   }
 
-  await disconnect5(conn2);
+  await disconnect5(publisher);
 });
 
 test("Server Topic Alias", async () => {

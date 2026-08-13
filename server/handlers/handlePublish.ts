@@ -14,6 +14,10 @@ import type {
   TReasonCode,
 } from "../deps.ts";
 
+const reasonsToDisconnect: TReasonCode[] = [
+  ReasonCode.topicAliasInvalid,
+];
+
 async function handlePublishError(
   ctx: Context,
   id: PacketId | undefined,
@@ -24,24 +28,38 @@ async function handlePublishError(
   // in v4 we can only close the connection
   if (ctx.protocolLevel === 4) {
     // in V4 we can only close the connection
-    await ctx.close();
+    await ctx.close(false);
     return;
   }
   // in v5 we can message the client
+  //
+  const cfg = ctx.config.context;
+  const addReasonString = cfg.provideReasonStrings === true;
+  const properties = (reasonString && addReasonString) ? { reasonString } : {};
+
+  if (reasonsToDisconnect.includes(reasonCode)) {
+    await ctx.send({
+      type: PacketType.disconnect,
+      protocolLevel: ctx.protocolLevel,
+      reasonCode,
+      properties,
+    });
+    await ctx.close(false);
+    return;
+  }
+
   if (qos === 0) {
     // no message for QoS 0
     return;
   }
   // QoS 1 and 2 get a nice message
-  const cfg = ctx.config.context;
-  const addReasonString = cfg.provideReasonStrings === true;
-  const properties = (reasonString && addReasonString) ? { reasonString } : {};
+
   const pType = qos === 1 ? PacketType.puback : PacketType.pubrec;
   await ctx.send({
     type: pType,
     protocolLevel: ctx.protocolLevel,
     id,
-    reasonCode: reasonCode,
+    reasonCode,
     properties,
   });
   return;
@@ -92,6 +110,27 @@ function validatePublishPacket(
       reasonCode: ReasonCode.topicNameInvalid,
       message: "Invalid topic name",
     };
+  }
+
+  if (hasTopicAlias) {
+    const topicAlias = packet.properties?.topicAlias;
+    const aliasedTopic = ctx.incomingTopicAliases.get(topicAlias!);
+    if (
+      (topicAlias === 0 || topicAlias! > cfg.topicAliasMaximum) ||
+      (packet.topic === "" && aliasedTopic === undefined)
+    ) {
+      return {
+        reasonCode: ReasonCode.topicAliasInvalid,
+        message: "Invalid topic alias",
+      };
+    }
+    if (packet.topic !== "") {
+      ctx.incomingTopicAliases.set(topicAlias!, packet.topic);
+    } else {
+      packet.topic = aliasedTopic!;
+    }
+    // reset the topicAlias so we don't accidentally send it down the line
+    delete (packet.properties!.topicAlias);
   }
 
   return null;
