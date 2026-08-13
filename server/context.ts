@@ -454,7 +454,9 @@ export class Context {
         this.timer.clear();
       }
       if (executewill) {
-        if (!this.willTimer) {
+        if (this.willTimer) {
+          this.willTimer.reset();
+        } else {
           await this.handleWill();
         }
       }
