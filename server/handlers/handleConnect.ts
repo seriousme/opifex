@@ -1,4 +1,8 @@
-import type { Context, IsAuthenticatedResult } from "../context.ts";
+import type {
+  ConnectOptions,
+  Context,
+  IsAuthenticatedResult,
+} from "../context.ts";
 import {
   AuthenticationResult,
   invalidmaxTopicLevels,
@@ -6,9 +10,12 @@ import {
   PacketType,
   ReasonCode,
 } from "../deps.ts";
-import type { ConnackProperties, ConnectPacket, TReasonCode } from "../deps.ts";
-
-const MAX_EXPIRY = 0xFFFFFFFF;
+import type {
+  ConnackProperties,
+  ConnectPacket,
+  ExtPublishPacket,
+  TReasonCode,
+} from "../deps.ts";
 
 /**
  * Maps MQTT v5 ReasonCodes to MQTT v3.1.1 ReturnCodes (AuthenticationResult)
@@ -31,6 +38,22 @@ function reasonToReturnCode(reasonCode: number): number {
     AuthenticationResult.serverUnavailable; // 0x03
 }
 
+/**
+ * Extracts options from MQTT v5 packet properties.
+ */
+function extractConnectOptions(packet: ConnectPacket): ConnectOptions {
+  if (packet.protocolLevel !== 5) {
+    return {};
+  }
+
+  return {
+    sessionExpiryInterval: packet.properties?.sessionExpiryInterval,
+    willDelayInterval: packet.will?.properties?.willDelayInterval,
+    topicAliasMaximum: packet.properties?.topicAliasMaximum,
+    maximumOutgoingPacketSize: packet.properties?.maximumPacketSize,
+    receiveMaximum: packet.properties?.receiveMaximum,
+  };
+}
 /**
  * Builds MQTT v5 CONNACK properties.
  */
@@ -93,7 +116,7 @@ async function authenticateClient(
 async function validateConnectPacket(
   ctx: Context,
   packet: ConnectPacket,
-  sessionExpiryInterval?: number,
+  sessionExpiryInterval: number,
 ): Promise<{ reasonCode: TReasonCode; reasonString?: string } | null> {
   const cfg = ctx.config.context;
 
@@ -108,7 +131,7 @@ async function validateConnectPacket(
   // Will message validation
   if (packet.will) {
     const isProtocolV5 = packet.protocolLevel === 5;
-    const { will } = packet;
+    const will = packet.will as ExtPublishPacket;
 
     if (
       will.topic === "" || invalidTopic(will.topic) ||
@@ -145,12 +168,16 @@ async function validateConnectPacket(
 
     if (isProtocolV5) {
       const requestedInterval = packet.will.properties?.willDelayInterval || 0;
-      if (requestedInterval > (sessionExpiryInterval || 0)) {
+      if (requestedInterval > sessionExpiryInterval) {
         return {
           reasonCode: ReasonCode.payloadFormatInvalid,
           reasonString:
             "Will delay interval larger than allowed session expiry interval",
         };
+      }
+      const expiryInterval = packet.will.properties?.messageExpiryInterval;
+      if (expiryInterval) {
+        will.expiresAtMs = Date.now() + expiryInterval * 1000;
       }
     }
   }
@@ -166,6 +193,7 @@ export async function handleConnect(
   packet: ConnectPacket,
 ): Promise<void> {
   const isProtocolV5 = packet.protocolLevel === 5;
+  const cfg = ctx.config.context;
 
   // Assign Client ID if missing
   let clientId = packet.clientId;
@@ -175,20 +203,19 @@ export async function handleConnect(
     clientId = assignedClientIdentifier;
   }
 
-  // Compute Session Expiry Interval (v5)
-  let sessionExpiryInterval: number | undefined;
-  if (isProtocolV5) {
-    const requestedInterval = packet.properties?.sessionExpiryInterval || 0;
-    const maxInterval = ctx.config.context.maxSessionExpiryInterval ||
-      MAX_EXPIRY;
-    sessionExpiryInterval = Math.min(requestedInterval, maxInterval);
-  }
+  // Extract connect options for v5
+  const connectOpts = extractConnectOptions(packet);
+  // Limit session Expiry Interval to server maximum
+  connectOpts.sessionExpiryInterval = Math.min(
+    connectOpts.sessionExpiryInterval || 0,
+    cfg.maxSessionExpiryInterval,
+  );
 
   // Validate Packet & Authenticate Client
   const validationError = await validateConnectPacket(
     ctx,
     packet,
-    sessionExpiryInterval,
+    connectOpts.sessionExpiryInterval,
   );
   const authResult = validationError ?? await authenticateClient(ctx, packet);
 
@@ -198,7 +225,11 @@ export async function handleConnect(
   // Establish Session on Success
   let sessionPresent = false;
   if (isSuccess) {
-    sessionPresent = await ctx.connect(packet, clientId, sessionExpiryInterval);
+    sessionPresent = await ctx.connect(
+      packet,
+      clientId,
+      connectOpts,
+    );
   }
 
   // Send CONNACK
@@ -212,7 +243,7 @@ export async function handleConnect(
         properties: buildConnackProperties(ctx, {
           assignedClientIdentifier,
           reasonString,
-          sessionExpiryInterval,
+          sessionExpiryInterval: connectOpts.sessionExpiryInterval,
         }),
       }
       : { returnCode: reasonToReturnCode(reasonCode) }),

@@ -6,22 +6,22 @@ import { MQTTLevel } from "./deps.ts";
 
 export const defaultConfiguration = {
   context: {
-    protocols: [MQTTLevel.v4, MQTTLevel.v5],
     maxSessionExpiryInterval: 86400, // 1 day
-    receiveMaximum: 65535,
-    maximumQos: 2,
-    retainAvailable: true,
     maximumConnectPacketSize: 4000,
     maximumIncomingPacketSize: 4000,
     maximumOutgoingPacketSize: 4000,
+    maximumQos: 2,
     maxTopicLevels: 50,
+    preconnectTimeoutMs: 3000,
+    protocols: [MQTTLevel.v4, MQTTLevel.v5],
     provideReasonStrings: false,
+    receiveMaximum: 65535,
+    retainAvailable: true,
+    serverKeepAlive: 100, // 100 seconds
+    sharedSubscriptionAvailable: false,
+    subscriptionIdentifierAvailable: true,
     topicAliasMaximum: 5,
     wildcardSubscriptionAvailable: true,
-    subscriptionIdentifierAvailable: true,
-    sharedSubscriptionAvailable: false,
-    serverKeepAlive: 100, // 100 seconds
-    preconnectTimeoutMs: 3000,
   },
 };
 

@@ -95,6 +95,17 @@ export type Handlers = {
 };
 
 /**
+ * V5 options that can be passed by handleConnect
+ */
+export type ConnectOptions = {
+  sessionExpiryInterval?: number | undefined;
+  willDelayInterval?: number | undefined;
+  topicAliasMaximum?: number | undefined;
+  maximumOutgoingPacketSize?: number | undefined;
+  receiveMaximum?: number | undefined;
+};
+
+/**
  * Per-connection server context that manages the lifecycle, packets,
  * timers, and persistence interactions for an individual client connection.
  */
@@ -146,6 +157,19 @@ export class Context {
 
   /** Timer enforcing a deadline for the client to send a CONNECT packet after establishing a socket connection. */
   preconnectTimer?: Timer;
+
+  /**
+   * V5, max number of inflight packets for this client
+   */
+  receiveMaximum = 0xFFFF;
+  /**
+   * V5,max topicAliases ,0 = none
+   */
+  outgoingMaxTopicAlias = 0;
+  incomingMaxTopicAlias = 0;
+
+  /** V5 server topic aliases */
+  incomingTopicAliases: Map<number, Topic> = new Map();
 
   /**
    * Initializes a new instance of the connection Context.
@@ -205,7 +229,7 @@ export class Context {
   }
 
   /**
-   * Dispatch publish and ackPackets packet to client
+   * Dispatch publish packets to client
    */
   dispatch(packet: ExtPublishPacket): Promise<void> {
     // Fast-path short-circuit if client is no longer connected
@@ -277,21 +301,51 @@ export class Context {
   }
 
   /**
+   * process V5 connectOptions
+   */
+  private applyConnectOptions(opts: ConnectOptions) {
+    const cfg = this.config.context;
+
+    // Topic Alias Maximum
+    if (opts.topicAliasMaximum !== undefined) {
+      this.outgoingMaxTopicAlias = Math.min(
+        opts.topicAliasMaximum,
+        cfg.topicAliasMaximum,
+      );
+    }
+
+    // Maximum Packet Size
+    if (opts.maximumOutgoingPacketSize !== undefined && this.mqttConn) {
+      this.mqttConn.codecOpts.maxOutgoingPacketSize = Math.min(
+        opts.maximumOutgoingPacketSize,
+        cfg.maximumOutgoingPacketSize,
+      );
+    }
+
+    // Receive Maximum
+    if (opts.receiveMaximum !== undefined) {
+      this.receiveMaximum = opts.receiveMaximum;
+    }
+  }
+
+  /**
    * Finalizes the client connection state, registers the client in persistence,
    * kicks out existing duplicate sessions, and broadcasts the client connection event.
    */
   async connect(
     packet: ConnectPacket,
     clientId: string,
-    sessionExpiryInterval?: number,
-    willDelayInterval?: number,
+    connectOpts: ConnectOptions = {},
   ): Promise<boolean> {
     logger.verbose("ctx:connect connecting", clientId);
-
+    const cfg = this.config.context;
     // configure protocol and state
     this.clientId = clientId;
     this.cleanSession = packet.clean || false;
     this.protocolLevel = packet.protocolLevel;
+    this.incomingMaxTopicAlias = cfg.topicAliasMaximum;
+
+    this.applyConnectOptions(connectOpts);
 
     if (this.mqttConn) {
       this.mqttConn.codecOpts.protocolLevel = this.protocolLevel;
@@ -341,8 +395,8 @@ export class Context {
     // Start the timers
     this.setupConnectionTimers(
       packet.keepAlive,
-      sessionExpiryInterval,
-      willDelayInterval,
+      connectOpts.sessionExpiryInterval,
+      connectOpts.willDelayInterval,
     );
 
     // Announce client connected
