@@ -645,14 +645,14 @@ test("Request Response Pattern", async () => {
   assert.deepEqual(respMsg.payload, txtEncoder.encode("response"));
 
   await disconnect5(aConn);
-  await disconnect5(bConn);
+  await disconnect5(bConn);{ clientId: "topicAliasClient" }
 });
 
 test("Client Topic Alias", async () => {
   const { mqttConn } = startMockServer();
 
   // Test 1: Topic Alias 0 is invalid and must trigger a disconnect
-  await connect5(mqttConn, { clientId: "topicAliasClient" });
+  await connect5(mqttConn, );
   await publish5(mqttConn, topics[0], 1, {
     id: 1,
     payload: "invalid alias 0",
@@ -671,9 +671,9 @@ test("Client Topic Alias", async () => {
 
   if ((connack.properties?.topicAliasMaximum ?? 0) > 0) {
     const subscriber = addMockClient(mqttServer);
+    await connect5(subscriber,{ clientId: "topicAliasClient" });
     await subscribe5(subscriber, [{ topicFilter: topics[0], qos: 2 }]);
 
-    await connect5(publisher);
     // First message sets up the alias mapping
     await publish5(publisher, topics[0], 1, {
       payload: "alias mapping",
