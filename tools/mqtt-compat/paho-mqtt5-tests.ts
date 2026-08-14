@@ -646,9 +646,6 @@ test("Request Response Pattern", async () => {
 
   await disconnect5(aConn);
   await disconnect5(bConn);
-  {
-    clientId: "topicAliasClient";
-  }
 });
 
 test("Client Topic Alias", async () => {
