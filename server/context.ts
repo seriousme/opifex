@@ -2,6 +2,7 @@ import {
   logger,
   MqttConn,
   MQTTLevel,
+  OutboundTopicAliasManager,
   PacketNameByType,
   PacketType,
   Timer,
@@ -46,8 +47,6 @@ export type Handlers = {
   /**
    * Default preconnect handler that unconditionally permits all connections.
    * @param {SockConn} conn - The connection context.
-   * @param {SockAddr} localAddress- The local adress
-   * @param {SockAddr} remoteAddress- The remote adress
    * @returns {boolean} fakse will close the connection
    */
   preconnect?(
@@ -170,7 +169,8 @@ export class Context {
 
   /** V5 server topic aliases */
   incomingTopicAliases: Map<number, Topic> = new Map();
-
+  /** V5 client topic aliases */
+  outgoingTopicAliasManager: undefined | OutboundTopicAliasManager;
   /**
    * Initializes a new instance of the connection Context.
    */
@@ -253,6 +253,23 @@ export class Context {
     }
 
     packet.protocolLevel = this.protocolLevel;
+    // protocol < V5 ends here
+    if (packet.protocolLevel !== 5) {
+      return this.send(packet);
+    }
+
+    // V5 specifics
+    if (this.outgoingMaxTopicAlias > 0 && this.outgoingTopicAliasManager) {
+      if (!packet.properties) {
+        packet.properties = {};
+      }
+      const { topicName, topicAlias } = this.outgoingTopicAliasManager
+        .processTopic(packet.topic);
+      packet.topic = topicName;
+      if (topicAlias !== undefined) {
+        packet.properties.topicAlias = topicAlias;
+      }
+    }
     return this.send(packet);
   }
   /**
@@ -312,6 +329,11 @@ export class Context {
         opts.topicAliasMaximum,
         cfg.topicAliasMaximum,
       );
+      if (this.outgoingMaxTopicAlias > 0) {
+        this.outgoingTopicAliasManager = new OutboundTopicAliasManager(
+          this.outgoingMaxTopicAlias,
+        );
+      }
     }
 
     // Maximum Packet Size

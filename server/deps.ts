@@ -49,4 +49,5 @@ export {
   invalidTopicFilter,
   logger,
   LogLevel,
+  OutboundTopicAliasManager,
 } from "../utils/mod.ts";

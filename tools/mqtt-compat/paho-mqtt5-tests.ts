@@ -697,34 +697,39 @@ test("Client Topic Alias", async () => {
 });
 
 test("Server Topic Alias", async () => {
-  const { mqttConn } = startMockServer();
+  const { mqttConn: subscriber, mqttServer } = startMockServer();
+  const publisher = addMockClient(mqttServer);
 
   // Client indicates support for server topic aliases (max 1)
-  await connect5(mqttConn, {
+  await connect5(subscriber, {
     clientId: "serverTopicAliasClient",
     properties: { topicAliasMaximum: 1 },
   });
-  await subscribe5(mqttConn, [{ topicFilter: topics[0], qos: 2 }]);
+  await subscribe5(subscriber, [{ topicFilter: topics[0], qos: 2 }]);
 
+  await connect5(publisher, {
+    clientId: "publisher",
+  });
   for (let qos = 0; qos < 3; qos++) {
-    await publish5(mqttConn, topics[0], qos as QoS, {
+    await publish5(publisher, topics[0], qos as QoS, {
       payload: `msg qos ${qos}`,
       id: qos || undefined,
     });
   }
 
   // First received message establishes the alias on the client
-  const { value: msg1 } = await mqttConn.next();
+  const { value: msg1 } = await subscriber.next();
   assert.strictEqual(msg1.type, PacketType.publish);
   assert.ok(msg1.properties?.topicAlias);
   assert.strictEqual(msg1.topic, topics[0]);
 
   // Subsequent messages use the alias and may contain an empty topic string
-  const { value: msg2 } = await mqttConn.next();
+  const { value: msg2 } = await subscriber.next();
   assert.strictEqual(msg2.type, PacketType.publish);
   assert.strictEqual(msg2.properties?.topicAlias, msg1.properties.topicAlias);
 
-  await disconnect5(mqttConn);
+  await disconnect5(publisher);
+  await disconnect5(subscriber);
 });
 
 test("Maximum Packet Size Handling", async () => {
