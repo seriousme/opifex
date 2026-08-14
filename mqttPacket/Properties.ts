@@ -117,11 +117,14 @@ export type ValidPropertyNumber =
   (typeof propertyToId)[keyof typeof propertyToId];
 // Then, create a mapped type that iterates over the property names
 // and uses propertyToKind to look up the correct TypeScript type.
+// properties are optional, but can also hold "undefined"
 
 type AllMqttv5Properties = {
-  [K in PropertyNames]?: Mqttv5PropertyType<
-    typeof propertyToKind[typeof propertyToId[K]]
-  >;
+  [K in PropertyNames]?:
+    | Mqttv5PropertyType<
+      typeof propertyToKind[typeof propertyToId[K]]
+    >
+    | undefined;
 };
 
 type PropertyByNumberType = InvertRecord<typeof propertyToId>;
