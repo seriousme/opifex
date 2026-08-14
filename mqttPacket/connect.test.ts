@@ -774,29 +774,3 @@ test("encode/decode minimal connect MQTTv5", () => {
   const decoded = decode(encoded, codecOptsUnknown);
   assert.deepStrictEqual(decoded, expected);
 });
-
-for (
-  const prop of [
-    "receiveMaximum", // 2 byte 0x21
-    "maximumPacketSize", // 4 byte 0x27
-  ]
-) {
-  test(`property ${prop} cannot contain 0`, () => {
-    const buf = encode({
-      type: PacketType.connect,
-      keepAlive: 60,
-      clientId: "test",
-      protocolLevel: MQTTLevel.v5,
-      username: undefined,
-      password: undefined,
-      clean: false,
-      properties: {
-        [prop]: 0,
-      },
-    }, codecOptsUnknown);
-    assert.throws(
-      () => decode(buf, codecOptsUnknown),
-      new RegExp(`${prop} cannot contain 0`),
-    );
-  });
-}

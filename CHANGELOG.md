@@ -8,13 +8,12 @@
 - feat(server): close connection on unauthorized publish (was ignore)
 - feat(server): add preconnect timeout
 - feat(server): set default max incoming message size to 2Kb (was 2Mb)
-- feat(server): limit max number of topic and topicFilter levels to 50
+- feat: limit max number of topic and topicFilter levels to 50
 - feat(server): add TLS client and server
 - feat(server): add WebSocket client and server
 - feat(server): refactor server persistence and add sqlite based persistence
 - feat(server): add a preconnect handler
 - feat(server): add Eclipse paho compatibility testing
-- feat(mqttPacket): error on properties that cannot contain 0 but do contain 0
 - chore: add many more tests
 - chore: remove .vscode files from repo
 - chore: move benchmarks to tools folder

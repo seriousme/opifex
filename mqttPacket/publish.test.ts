@@ -275,21 +275,3 @@ test("encode/decode Publish v5", () => {
   const decoded = decode(encoded, codecOptsV5);
   assert.deepStrictEqual(decoded, packet);
 });
-
-test(`property topicAlias cannot contain 0`, () => {
-  const buf = encode({
-    type: PacketType.publish,
-    protocolLevel: MQTTLevel.v5,
-    id: 1,
-    topic: "a/b",
-    payload,
-    qos: 1,
-    properties: {
-      topicAlias: 0,
-    },
-  }, codecOptsV5);
-  assert.throws(
-    () => decode(buf, codecOptsV5),
-    /topicAlias cannot contain 0/,
-  );
-});

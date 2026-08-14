@@ -14,7 +14,6 @@ import type {
   ValidPropertyNumber,
 } from "./Properties.ts";
 import {
-  nonZeroProperties,
   propertyByNumber,
   PropertyByPropertySetType,
   propertyKind,
@@ -265,11 +264,6 @@ export class Decoder {
       }
 
       const value = this.getProperty(id);
-      if (nonZeroProperties.includes(id)) {
-        if (value === 0) {
-          throw new DecoderError(`Property ${label} cannot contain 0`);
-        }
-      }
 
       // deno-lint-ignore no-explicit-any
       if ((properties as any)[label] !== undefined) {

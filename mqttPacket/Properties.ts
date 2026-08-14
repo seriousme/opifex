@@ -232,13 +232,6 @@ export const PropertyByPropertySetType = {
   ],
 } as const;
 
-// these properties are not allowed to contain 0
-export const nonZeroProperties: ValidPropertyNumber[] = [
-  propertyToId.topicAlias,
-  propertyToId.receiveMaximum,
-  propertyToId.maximumPacketSize,
-] as const;
-
 // helper types
 type PropertyIdsToKeys<T extends readonly ValidPropertyNumber[]> = {
   [K in T[number]]: (typeof propertyByNumber)[K];
