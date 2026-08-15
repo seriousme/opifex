@@ -14,7 +14,7 @@ import type {
 } from "./persistence.ts";
 import type { IStorageProvider, TrieSubscription } from "./storage.ts";
 import { PacketDirection } from "./storage.ts";
-import { assert, Trie } from "./deps.ts";
+import { assert, parseTopicFilter, Trie } from "./deps.ts";
 import { MAX_PACKET_ID } from "./persistence.ts";
 import { logger } from "./deps.ts";
 
@@ -23,6 +23,7 @@ export class MqttPersistence implements IPersistence {
   private trie = new Trie<TrieSubscription>();
   private packetIdCounters = new Map<ClientId, number>();
   private storage: IStorageProvider;
+  private sharedGroupCounters = new Map<string, number>();
 
   constructor(storage: IStorageProvider) {
     this.storage = storage;
@@ -78,13 +79,17 @@ export class MqttPersistence implements IPersistence {
     retainHandling?: TRetainHandling,
     subscriptionIdentifier?: number,
   ): Promise<void> {
-    const rawSub = {
+    const { topicFilter: parsedTopicFilter, shareName } = parseTopicFilter(
       topicFilter,
+    );
+    const rawSub = {
+      topicFilter: parsedTopicFilter,
       qos,
       noLocal,
       retainAsPublished,
       retainHandling,
       subscriptionIdentifier,
+      shareName,
     };
 
     // remove undefined values to match the Typescript definition
@@ -103,7 +108,10 @@ export class MqttPersistence implements IPersistence {
     clientId: ClientId,
     topicFilter: TopicFilter,
   ): Promise<void> {
-    this.trie.remove(topicFilter, { clientId });
+    const { topicFilter: parsedTopicFilter, shareName } = parseTopicFilter(
+      topicFilter,
+    );
+    this.trie.remove(parsedTopicFilter, { clientId, shareName });
     await this.storage.deleteSubscription(clientId, topicFilter);
   }
 
@@ -328,35 +336,68 @@ export class MqttPersistence implements IPersistence {
       }
     }
 
-    const clients = new Map<
+    const directClients = new Map<
       ClientId,
       { maxQos: QoS; retainAsPublished: boolean }
     >();
+    const sharedGroups = new Map<string, TrieSubscription[]>();
 
     for (const sub of this.trie.match(topic)) {
       sub.retainAsPublished = sub.retainAsPublished ?? true;
       if (sub.noLocal && sub.clientId === publisherClientId) continue;
 
-      let target = clients.get(sub.clientId);
-      if (!target) {
-        target = {
-          maxQos: sub.qos,
-          retainAsPublished: sub.retainAsPublished,
-        };
-        clients.set(sub.clientId, target);
+      if (sub.shareName) {
+        // Het is een Shared Subscription
+        if (!sharedGroups.has(sub.shareName)) {
+          sharedGroups.set(sub.shareName, []);
+        }
+        sharedGroups.get(sub.shareName)!.push(sub);
       } else {
-        if (sub.qos > target.maxQos) target.maxQos = sub.qos;
-        if (sub.retainAsPublished) target.retainAsPublished = true;
+        let target = directClients.get(sub.clientId);
+        if (!target) {
+          target = {
+            maxQos: sub.qos,
+            retainAsPublished: sub.retainAsPublished,
+          };
+          directClients.set(sub.clientId, target);
+        } else {
+          if (sub.qos > target.maxQos) target.maxQos = sub.qos;
+          if (sub.retainAsPublished) target.retainAsPublished = true;
+        }
       }
     }
 
-    for (const [clientId, opts] of clients) {
+    for (const [clientId, opts] of directClients) {
       const newPacket = structuredClone(packet);
       if (!(opts.retainAsPublished ?? true)) newPacket.retain = false;
 
       const originalQos = packet.qos || 0;
       newPacket.qos = originalQos < opts.maxQos ? originalQos : opts.maxQos;
       await this.dispatch(clientId, newPacket);
+    }
+
+    for (const [shareName, candidates] of sharedGroups) {
+      // selects active candidates
+      const activeCandidates = candidates.filter((c) =>
+        this.clientHandlerList.has(c.clientId)
+      );
+      if (activeCandidates.length === 0) continue;
+
+      // select 1 client using Round-Robin
+      const currentIndex = this.sharedGroupCounters.get(shareName) || 0;
+      const selectedClient =
+        activeCandidates[currentIndex % activeCandidates.length];
+      this.sharedGroupCounters.set(shareName, currentIndex + 1);
+      if (selectedClient === undefined) continue;
+
+      const newPacket = structuredClone(packet);
+      if (!(selectedClient.retainAsPublished ?? true)) newPacket.retain = false;
+      const originalQos = packet.qos || 0;
+      newPacket.qos = originalQos < selectedClient.qos
+        ? originalQos
+        : selectedClient.qos;
+
+      await this.dispatch(selectedClient.clientId, newPacket);
     }
   }
 

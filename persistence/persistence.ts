@@ -25,6 +25,7 @@ export type ClientSubscription = {
   retainAsPublished?: boolean;
   retainHandling?: TRetainHandling;
   subscriptionIdentifier?: number;
+  shareName?: string | undefined;
 };
 
 /**

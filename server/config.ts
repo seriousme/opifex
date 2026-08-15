@@ -18,7 +18,7 @@ export const defaultConfiguration = {
     receiveMaximum: 65535,
     retainAvailable: true,
     serverKeepAlive: 100, // 100 seconds
-    sharedSubscriptionAvailable: false,
+    sharedSubscriptionAvailable: true,
     subscriptionIdentifierAvailable: true,
     topicAliasMaximum: 5,
     wildcardSubscriptionAvailable: true,

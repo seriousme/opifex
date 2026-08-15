@@ -33,14 +33,25 @@ async function authorizedToSubscribe(
  * Validates a single subscription topic filter against server configuration.
  * Returns an error ReasonCode if invalid, or null if valid.
  */
-function validateSubscriptionTopic(
-  sub: Subscription,
+function validateSubscription(
+  isProtocolV5: boolean,
+  sub: SubscriptionV5,
   cfg: Context["config"]["context"],
 ): TReasonCode | null {
   if (
     cfg.wildcardSubscriptionAvailable === false && hasWildcards(sub.topicFilter)
   ) {
     return ReasonCode.wildcardSubscriptionsNotSupported;
+  }
+
+  if (sub.topicFilter.startsWith("$share/")) {
+    if (cfg.sharedSubscriptionAvailable === false || !isProtocolV5) {
+      return ReasonCode.sharedSubscriptionsNotSupported;
+    }
+    // noLocal is not allowed on shared subscriptions
+    if (sub.noLocal) {
+      return ReasonCode.topicFilterInvalid;
+    }
   }
 
   if (
@@ -82,7 +93,7 @@ export async function handleSubscribe(
 
   for (const sub of packet.subscriptions) {
     // TopicFilter Validation
-    const validationError = validateSubscriptionTopic(sub, cfg);
+    const validationError = validateSubscription(isProtocolV5, sub, cfg);
     if (validationError !== null) {
       if (!isProtocolV5) {
         await ctx.close(false);

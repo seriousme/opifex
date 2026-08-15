@@ -190,10 +190,12 @@ export async function subscribe5(
   };
 
   subscriber.send(subscribePacket);
+  logger.debug("subscribe helper: sent subscription request");
 
   const { value: packet } = await subscriber.next();
   assert.equal(packet.type, PacketType.suback, "Expected SUBACK");
   assert.equal(packet.id, id, "SUBACK ID should match SUBSCRIBE ID");
+  logger.debug("subscribe helper: received SubAck");
 
   if (checkAcks) {
     const results = packet.returnCodes || packet.reasonCodes;
@@ -202,6 +204,7 @@ export async function subscribe5(
       assert.equal(results[i], subscriptions[i].qos);
     }
   }
+  logger.debug("subscribe helper: acks ok");
   return packet;
 }
 
@@ -268,7 +271,7 @@ export async function publish(
     retain,
     properties,
   });
-
+  logger.debug("publish helper: sent publish");
   if (!checkAcks || qos === 0) return;
 
   const { value: ackPacket } = await publisher.next();
@@ -276,6 +279,7 @@ export async function publish(
   assert.equal(ackPacket.type, expectedAckType, "received expected ack");
   assert.equal(ackPacket.protocolLevel, level, "received expected level");
   assert.equal(ackPacket.id, id, "packetid matches");
+  logger.debug("publish helper: received pubAck");
 
   if (qos === 1) return ackPacket;
 

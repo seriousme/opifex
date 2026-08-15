@@ -26,3 +26,25 @@ export function topicFilterToRegExp(topicFilter: string): RegExp {
 
   return new RegExp(`^${regexStr}$`);
 }
+
+/**
+ * Parses a Topic filter for a "shared subscription" into the share name and the regular Topic Filter
+ *
+ * @param topicFilter - The MQTT topic filter string to parse (e.g. "$share/sharename/rest/of/topic/filter")).
+ * @returns an object that contains the regular topicFilter and he share name (if present)
+ */
+export function parseTopicFilter(topicFilter: string): {
+  topicFilter: string;
+  shareName?: string;
+} {
+  if (topicFilter.startsWith("$share/")) {
+    const nextSlashIndex = topicFilter.indexOf("/", 7);
+    if (nextSlashIndex !== -1) {
+      return {
+        topicFilter: topicFilter.slice(nextSlashIndex + 1),
+        shareName: topicFilter.slice(7, nextSlashIndex),
+      };
+    }
+  }
+  return { topicFilter };
+}
