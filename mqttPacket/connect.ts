@@ -111,7 +111,7 @@ export function encode(
   }
   const cleanSession = packet.clean !== false;
   if (!cleanSession && (clientId === "")) {
-    throw new EncoderError("Client id required for clean session");
+    throw new EncoderError("Client id required for non-clean session");
   }
   const connectFlags = (usernameFlag ? BitMask.bit7 : 0) +
     (passwordFlag ? BitMask.bit6 : 0) +
