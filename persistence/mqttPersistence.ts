@@ -241,6 +241,31 @@ export class MqttPersistence implements IPersistence {
     }
   }
 
+  getPendingOutgoingPacket(
+    clientId: ClientId,
+    packetId: PacketId,
+  ): Promise<ExtPublishPacket | null> {
+    return this.storage.getPendingPacket(
+      clientId,
+      PacketDirection.Outgoing,
+      packetId,
+    );
+  }
+
+  async updatePendingOutgoingPacket(
+    clientId: ClientId,
+    packetId: PacketId,
+    dup: boolean,
+  ): Promise<boolean> {
+    logger.debug(`updatePendingOutGoingPacket: id ${packetId} , dup ${dup}`);
+    return await this.storage.updatePendingPacket(
+      clientId,
+      PacketDirection.Outgoing,
+      packetId,
+      dup,
+    );
+  }
+
   async *listPendingOutgoingPackets(
     clientId: ClientId,
   ): AsyncIterableIterator<ExtPublishPacket> {

@@ -69,12 +69,14 @@ export type AllStatements = {
   // Pending Incoming Packets
   saveIncoming: sqlite.StatementSync;
   getIncoming: sqlite.StatementSync;
+  updateIncomingDup: sqlite.StatementSync;
   deleteIncoming: sqlite.StatementSync;
   listIncoming: sqlite.StatementSync;
 
   // Pending Outgoing Packets
   saveOutgoing: sqlite.StatementSync;
   getOutgoing: sqlite.StatementSync;
+  updateOutgoingDup: sqlite.StatementSync;
   deleteOutgoing: sqlite.StatementSync;
   listOutgoing: sqlite.StatementSync;
 
@@ -150,6 +152,12 @@ export function prepareAllStatements(db: sqlite.DatabaseSync): AllStatements {
       WHERE client_id = ? AND packet_id = ?
     `),
 
+    updateIncomingDup: db.prepare(`
+      UPDATE pending_incoming 
+      SET packet = json_set(packet, '$.dup', json(?)) 
+      WHERE client_id = ? AND packet_id = ?
+    `),
+
     deleteIncoming: db.prepare(`
       DELETE FROM pending_incoming 
       WHERE client_id = ? AND packet_id = ?
@@ -174,6 +182,12 @@ export function prepareAllStatements(db: sqlite.DatabaseSync): AllStatements {
     getOutgoing: db.prepare(`
       SELECT packet, payload
       FROM pending_outgoing 
+      WHERE client_id = ? AND packet_id = ?
+    `),
+
+    updateOutgoingDup: db.prepare(`
+      UPDATE pending_outgoing 
+      SET packet = json_set(packet, '$.dup', json(?)) 
       WHERE client_id = ? AND packet_id = ?
     `),
 

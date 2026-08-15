@@ -194,6 +194,23 @@ export class SqliteStorage implements IStorageProvider {
     return Promise.resolve(deserializePacket(row.packet, row.payload));
   }
 
+  updatePendingPacket(
+    clientId: ClientId,
+    direction: PacketDirection,
+    packetId: PacketId,
+    dup: boolean,
+  ): Promise<boolean> {
+    const stmt = direction === PacketDirection.Incoming
+      ? this.statements.updateIncomingDup
+      : this.statements.updateOutgoingDup;
+
+    // Pass "true" of "false" as JSON literal , passing a boolean would make it 1 or 0
+    const info = stmt.run(dup ? "true" : "false", clientId, packetId);
+
+    // info.changes returns number of updated records
+    return Promise.resolve(info.changes > 0);
+  }
+
   deletePendingPacket(
     clientId: ClientId,
     direction: PacketDirection,

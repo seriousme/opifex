@@ -152,6 +152,19 @@ export class MemoryStorage implements IStorageProvider {
     return Promise.resolve(entry?.packet ?? null);
   }
 
+  updatePendingPacket(
+    clientId: ClientId,
+    direction: PacketDirection,
+    packetId: PacketId,
+    dup: boolean,
+  ): Promise<boolean> {
+    const entry = this.getPacketTable(clientId, direction).get(packetId);
+    if (entry !== undefined) {
+      entry.packet.dup = dup;
+    }
+    return Promise.resolve(entry !== undefined);
+  }
+
   deletePendingPacket(
     clientId: ClientId,
     direction: PacketDirection,

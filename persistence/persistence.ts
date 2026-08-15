@@ -95,6 +95,15 @@ export interface IPersistence {
     clientId: ClientId,
     packet: ExtPublishPacket,
   ): Promise<void>;
+  getPendingOutgoingPacket(
+    clientId: ClientId,
+    packetId: PacketId,
+  ): Promise<ExtPublishPacket | null>;
+  updatePendingOutgoingPacket(
+    clientId: ClientId,
+    packetId: PacketId,
+    dup: boolean,
+  ): Promise<boolean>;
   listPendingOutgoingPackets(
     clientId: ClientId,
   ): AsyncIterableIterator<ExtPublishPacket>;

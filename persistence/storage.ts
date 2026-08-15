@@ -51,6 +51,12 @@ export interface IStorageProvider {
     direction: PacketDirection,
     packetId: PacketId,
   ): Promise<ExtPublishPacket | null>;
+  updatePendingPacket(
+    clientId: ClientId,
+    direction: PacketDirection,
+    packetId: PacketId,
+    dup: boolean,
+  ): Promise<boolean>;
   deletePendingPacket(
     clientId: ClientId,
     direction: PacketDirection,

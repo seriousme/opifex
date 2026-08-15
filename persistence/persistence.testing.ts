@@ -1159,4 +1159,36 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
     cleanup();
   });
+
+  test("Outgoing packet dup update works", async () => {
+    const { persistence, cleanup } = factory();
+    const client = "client1";
+    const id = 127;
+    await persistence.registerClient(client, () => Promise.resolve());
+    // Non-expired packet (expires far in the future)
+    const dupPacket = createPacket("test/topic", "valid payload", {
+      id,
+      qos: 1,
+      protocolLevel: MQTTLevel.v5,
+      properties: { messageExpiryInterval: 60 },
+      expiresAtMs: Date.now() + 60 * 1000,
+    });
+
+    // Add packet to outgoing pending queue
+    await persistence.addPendingOutgoingPacket(client, dupPacket);
+    const packetNoDup = await persistence.getPendingOutgoingPacket(client, id);
+    assert.strictEqual(packetNoDup?.dup ?? false, false);
+    // Update the dup
+    const result = await persistence.updatePendingOutgoingPacket(
+      client,
+      id,
+      true,
+    );
+    assert.strictEqual(result, true);
+    const packetWithDup = await persistence.getPendingOutgoingPacket(
+      client,
+      id,
+    );
+    assert.strictEqual(packetWithDup?.dup, true);
+  });
 }
