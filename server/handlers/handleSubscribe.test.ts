@@ -11,6 +11,7 @@ import {
   isAuthenticatedBroker,
   ping,
   publish,
+  publish5,
   startMockServer,
   subscribe,
   subscribe5,
@@ -655,7 +656,7 @@ test("SUBSCRIBE v5 returns topicFilterInvalid when topic levels exceed maxTopicL
   await connect5(mqttConn);
 
   const subAck = await subscribe5(mqttConn, [{
-    topicFilter: "level1/level2/level3",
+    topicFilter: "level1/level2",
     qos: 0,
   }], {
     id: 5,
@@ -737,4 +738,248 @@ test("SUBSCRIBE v5 with retainHandling = 1 sends retained message on new sub, sk
 
   await ping(subscriber);
   await disconnect5(subscriber);
+});
+
+// ============================================================================
+// Shared Subscriptions & Options Tests
+// ============================================================================
+
+test("SUBSCRIBE v5 returns sharedSubscriptionsNotSupported when shared subscriptions are disabled", async () => {
+  const { mqttConn } = startMockServer({
+    configuration: { context: { sharedSubscriptionAvailable: false } },
+  });
+
+  await connect5(mqttConn);
+
+  const subAck = await subscribe5(mqttConn, [{
+    topicFilter: "$share/group/sensors/temperature",
+    qos: 0,
+  }], {
+    id: 200,
+    checkAcks: false,
+  });
+
+  assert.strictEqual(subAck.type, PacketType.suback);
+  assert.strictEqual(subAck.id, 200);
+  assert.deepStrictEqual(
+    subAck.reasonCodes,
+    [ReasonCode.sharedSubscriptionsNotSupported],
+    "Expected sharedSubscriptionsNotSupported (0x8E) in v5",
+  );
+
+  await disconnect5(mqttConn);
+});
+
+test("SUBSCRIBE v4 closes connection on shared subscription when shared subscriptions are disabled", async () => {
+  const { mqttConn } = startMockServer({
+    configuration: { context: { sharedSubscriptionAvailable: false } },
+  });
+
+  await connect(mqttConn);
+
+  await subscribe(mqttConn, [{
+    topicFilter: "$share/group/sensors/temperature",
+    qos: 0,
+  }], {
+    id: 201,
+    checkAcks: false,
+  });
+
+  await mqttConn.next();
+  assert.strictEqual(
+    mqttConn.isClosed,
+    true,
+    "Expected connection to be closed in v4",
+  );
+});
+
+test("SUBSCRIBE v5 returns topicFilterInvalid when noLocal is set on a shared subscription", async () => {
+  const { mqttConn } = startMockServer({
+    configuration: { context: { sharedSubscriptionAvailable: true } },
+  });
+
+  await connect5(mqttConn);
+
+  const subAck = await subscribe5(mqttConn, [{
+    topicFilter: "$share/group/sensors/temperature",
+    qos: 1,
+    noLocal: true,
+  }], {
+    id: 202,
+    checkAcks: false,
+  });
+
+  assert.strictEqual(subAck.type, PacketType.suback);
+  assert.strictEqual(subAck.id, 202);
+  assert.deepStrictEqual(
+    subAck.reasonCodes,
+    [ReasonCode.topicFilterInvalid],
+    "Expected topicFilterInvalid (0x8F) when noLocal is true on shared subscription",
+  );
+
+  await disconnect5(mqttConn);
+});
+
+test("SUBSCRIBE v4 closes connection when a shared subscription is used", async () => {
+  const { mqttConn } = startMockServer({
+    configuration: { context: { sharedSubscriptionAvailable: true } },
+  });
+
+  await connect(mqttConn);
+
+  await subscribe(mqttConn, [{
+    topicFilter: "$share/group/sensors/temperature",
+    qos: 1,
+  }], {
+    id: 203,
+    checkAcks: false,
+  });
+
+  await mqttConn.next();
+  assert.strictEqual(
+    mqttConn.isClosed,
+    true,
+    "Expected connection to be closed in v4",
+  );
+});
+
+// ============================================================================
+// Additional MQTT v4 Validation Edge Cases
+// ============================================================================
+
+test("SUBSCRIBE v4 closes connection when topicFilter is empty", async () => {
+  const { mqttConn } = startMockServer();
+
+  await connect(mqttConn);
+
+  await subscribe(mqttConn, [{ topicFilter: "", qos: 0 }], {
+    id: 204,
+    checkAcks: false,
+  });
+
+  await mqttConn.next();
+  assert.strictEqual(
+    mqttConn.isClosed,
+    true,
+    "Expected connection to be closed in v4 for empty topic filter",
+  );
+});
+
+test("SUBSCRIBE v4 closes connection when topic levels exceed maxTopicLevels", async () => {
+  const { mqttConn } = startMockServer({
+    configuration: { context: { maxTopicLevels: 1 } },
+  });
+
+  await connect(mqttConn);
+
+  await subscribe(mqttConn, [{ topicFilter: "level1/level2", qos: 0 }], {
+    id: 205,
+    checkAcks: false,
+  });
+
+  await mqttConn.next();
+  assert.strictEqual(
+    mqttConn.isClosed,
+    true,
+    "Expected connection to be closed in v4 when exceeding maxTopicLevels",
+  );
+});
+
+// ============================================================================
+// Subscription Flags Behavior Tests (noLocal & retainAsPublished)
+// ============================================================================
+
+test("SUBSCRIBE v5 with noLocal = true does not deliver own published messages", async () => {
+  const { mqttConn: client, mqttServer } = startMockServer();
+  mqttServer.handlers.isAuthenticated = isAuthenticatedBroker;
+
+  await connect5(client, { clientId: "nolocal-client" });
+
+  await subscribe5(client, [{
+    topicFilter: "nolocal/test",
+    qos: 1,
+    noLocal: true,
+  }], { id: 206 });
+
+  // Publish message on the same connection
+  await publish5(client, "nolocal/test", 0, {
+    payload: "self-published-msg",
+    id: 50,
+  });
+
+  // Check with PING that no PUBLISH packet is delivered back
+  await ping(client);
+
+  await disconnect5(client);
+});
+
+test("SUBSCRIBE v5 with retainAsPublished = false strips retain flag on delivery", async () => {
+  const { mqttConn: publisher, mqttServer } = startMockServer();
+
+  await connect5(publisher);
+
+  const subscriber = addMockClient(mqttServer);
+  await connect5(subscriber);
+
+  // Subscribe with retainAsPublished: false
+  await subscribe5(subscriber, [{
+    topicFilter: "rap/test",
+    qos: 1,
+    retainAsPublished: false,
+  }], { id: 207 });
+
+  // Publish with retain: true
+  await publish5(publisher, "rap/test", 1, {
+    payload: "retained-content",
+    retain: true,
+    id: 60,
+  });
+
+  const { value: publishPkt } = await subscriber.next();
+  assert.strictEqual(publishPkt.type, PacketType.publish);
+  assert.strictEqual(
+    publishPkt.retain,
+    false,
+    "Expected retain flag to be cleared on delivery when retainAsPublished is false",
+  );
+
+  await disconnect5(publisher);
+  await disconnect5(subscriber);
+});
+
+// ============================================================================
+// Combined Validation and Authorization Results Test
+// ============================================================================
+
+test("SUBSCRIBE v5 handles mixed validation errors and authorization failures in strict order", async () => {
+  const { mqttConn } = startMockServer({
+    configuration: { context: { sharedSubscriptionAvailable: false } },
+  });
+
+  await connect5(mqttConn);
+
+  const subAck = await subscribe5(mqttConn, [
+    { topicFilter: "topic/authorized", qos: 1 },
+    { topicFilter: "invalid/#/topic", qos: 0 },
+    { topicFilter: "topic/unauthorized", qos: 2 },
+    { topicFilter: "$share/group/test", qos: 1 },
+  ], {
+    id: 208,
+    checkAcks: false,
+  });
+
+  assert.strictEqual(subAck.type, PacketType.suback);
+  assert.strictEqual(subAck.id, 208);
+  assert.deepStrictEqual(
+    subAck.reasonCodes,
+    [
+      ReasonCode.grantedQos1,
+      ReasonCode.topicFilterInvalid,
+      ReasonCode.notAuthorized,
+      ReasonCode.sharedSubscriptionsNotSupported,
+    ],
+    "Expected exact sequence of reason codes matching subscription packet order",
+  );
+
+  await disconnect5(mqttConn);
 });

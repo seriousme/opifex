@@ -488,7 +488,7 @@ test("Will Packet: Topic level count exceeding maxTopicLevels fails validation",
 
   const connack = await connect5(mqttConn, {
     will: {
-      topic: "level1/level2/level3", // 3 levels exceeds limit of 1
+      topic: "level1/level2", // 2 levels exceeds limit of 1
       payload: txtEncoder.encode("payload"),
       qos: 0,
       retain: false,

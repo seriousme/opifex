@@ -350,7 +350,7 @@ test("PUBLISH v5 with topic level count exceeding maxTopicLevels receives topicN
 
   await connect5(mqttConn);
 
-  await publish5(mqttConn, "level1/level2/level3", 1, {
+  await publish5(mqttConn, "level1/level2", 1, {
     id: 3,
     payload: "test",
     checkAcks: false,
