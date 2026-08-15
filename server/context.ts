@@ -13,6 +13,7 @@ import type {
   ExtPublishPacket,
   IPersistence,
   ProtocolLevel,
+  PublishPacket,
   PubrelPacket,
   SockConn,
   Topic,
@@ -219,12 +220,33 @@ export class Context {
         PacketNameByType[packet.type]
       } to client ${this.clientId!}`,
     );
-    if ((!this.mqttConn.isClosed)) {
-      logger.debug(`ctx.send: ${JSON.stringify(packet, null, 2)}`);
-      await this.mqttConn.send(packet);
-      if (this.mqttConn.isClosed) {
-        await this.close();
+    logger.debug(`ctx.send: ${JSON.stringify(packet, null, 2)}`);
+    const result = await this.mqttConn.send(packet);
+    if (result.sent === true) {
+      return;
+    }
+    if (result.reason === "connectionClosed") {
+      // mqttCon signaled that the connection was closed
+      this.close();
+      return;
+    }
+    if (result.reason === "packetTooLarge") {
+      if (packet.type === PacketType.publish) {
+        const pubPacket = packet as PublishPacket;
+        // just ignore qos 0
+        if (pubPacket.qos === 0) {
+          return;
+        }
+        //
+        this.persistence.deletePendingOutgoingPacket(
+          this.clientId!,
+          pubPacket.id!,
+        );
+        return;
       }
+      // control packets that are too large means closing the connection
+      this.close();
+      return;
     }
   }
 
@@ -266,9 +288,7 @@ export class Context {
       const { topicName, topicAlias } = this.outgoingTopicAliasManager
         .processTopic(packet.topic);
       packet.topic = topicName;
-      if (topicAlias !== undefined) {
-        packet.properties.topicAlias = topicAlias;
-      }
+      packet.properties.topicAlias = topicAlias;
     }
     return this.send(packet);
   }

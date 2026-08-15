@@ -7,6 +7,7 @@ import {
   connect5,
   delay,
   disconnect5,
+  ping,
   publish5,
   receiveMessages5,
   startMockServer,
@@ -733,28 +734,34 @@ test("Server Topic Alias", async () => {
 });
 
 test("Maximum Packet Size Handling", async () => {
-  const { mqttConn } = startMockServer();
+  const { mqttConn: subscriber, mqttServer } = startMockServer();
+  const publisher = addMockClient(mqttServer);
   const maxPacketSize = 64;
 
-  await connect5(mqttConn, {
+  await connect5(subscriber, {
     clientId: "maxPacketClient",
     properties: { maximumPacketSize: maxPacketSize },
   });
-  await subscribe5(mqttConn, [{ topicFilter: topics[0], qos: 2 }]);
+  await subscribe5(subscriber, [{ topicFilter: topics[0], qos: 2 }]);
 
+  await connect5(publisher, {
+    clientId: "publisher",
+  });
   // Messages smaller than maximum packet size should be processed normally
   const smallPayload = "a".repeat(Math.floor(maxPacketSize / 2));
-  await publish5(mqttConn, topics[0], 0, { payload: smallPayload });
+  await publish5(publisher, topics[0], 0, { payload: smallPayload });
 
-  const { value: smallMsg } = await mqttConn.next();
+  const { value: smallMsg } = await subscriber.next();
   assert.strictEqual(smallMsg.type, PacketType.publish);
 
   // Messages exceeding MaximumPacketSize must not be delivered
   const hugePayload = "a".repeat(maxPacketSize * 2);
-  await publish5(mqttConn, topics[0], 1, { payload: hugePayload, id: 10 });
+  await publish5(publisher, topics[0], 1, { payload: hugePayload, id: 10 });
 
-  await delay(100); // Short delay to verify no new packet is received
-  await disconnect5(mqttConn);
+  // run ping to ensure no other packet was delivered
+  await ping(subscriber);
+  await disconnect5(subscriber);
+  await disconnect5(publisher);
 });
 
 test("Server Keep Alive Enforcement", async () => {

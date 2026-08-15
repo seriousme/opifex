@@ -130,7 +130,7 @@ function validatePublishPacket(
       packet.topic = aliasedTopic!;
     }
     // reset the topicAlias so we don't accidentally send it down the line
-    delete (packet.properties!.topicAlias);
+    packet.properties!.topicAlias = undefined;
   }
 
   return null;

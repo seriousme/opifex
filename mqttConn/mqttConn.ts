@@ -29,7 +29,15 @@ export const MqttConnError = {
   UnexpectedEof: "Unexpected EOF",
 } as const;
 
-const DEFAULT_MAX_PACKETSIZE = 2 * 1024; // 2Kb
+const DEFAULT_MAX_PACKETSIZE = 4 * 1024; // 4Kb
+
+export type SendResult =
+  | { sent: true }
+  | {
+    sent: false;
+    reason: "packetTooLarge" | "connectionClosed";
+    size?: number;
+  };
 
 /**
  * Interface for MQTT connection handling
@@ -42,7 +50,7 @@ export interface IMqttConn extends AsyncIterable<AnyPacket> {
   /** Reason for connection closure if any */
   readonly reason: string | undefined;
   /** Send an MQTT packet */
-  send(data: AnyPacket): Promise<void>;
+  send(data: AnyPacket): Promise<SendResult>;
   /** Close the connection */
   close(): void;
 }
@@ -216,14 +224,23 @@ export class MqttConn implements IMqttConn {
     return this;
   }
 
-  /**
+  /*
    * Send an MQTT packet
    * @param data Packet to send
    */
-  async send(data: AnyPacket): Promise<void> {
+  async send(data: AnyPacket): Promise<SendResult> {
     if (!this._isClosed) {
+      const encoded = encode(data, this.codecOpts);
+      if (encoded.byteLength > this.codecOpts.maxOutgoingPacketSize) {
+        return {
+          sent: false,
+          reason: "packetTooLarge",
+          size: encoded.byteLength,
+        };
+      }
       try {
-        await this.conn.write(encode(data, this.codecOpts));
+        await this.conn.write(encoded);
+        return { sent: true };
       } catch (err) {
         if (err instanceof Error) {
           this._reason = err.message;
@@ -231,6 +248,7 @@ export class MqttConn implements IMqttConn {
         this.close();
       }
     }
+    return { sent: false, reason: "connectionClosed" };
   }
 
   /** Whether connection is closed */
