@@ -12,7 +12,7 @@ export function invalidmaxTopicLevels(
   for (const char of value) {
     if (char === "/") {
       slashCount++;
-      if (slashCount > maxTopicLevels) return true;
+      if (slashCount >= maxTopicLevels) return true;
     }
   }
   return false;
