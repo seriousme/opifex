@@ -230,15 +230,15 @@ export class MqttConn implements IMqttConn {
    */
   async send(data: AnyPacket): Promise<SendResult> {
     if (!this._isClosed) {
-      const encoded = encode(data, this.codecOpts);
-      if (encoded.byteLength > this.codecOpts.maxOutgoingPacketSize) {
-        return {
-          sent: false,
-          reason: "packetTooLarge",
-          size: encoded.byteLength,
-        };
-      }
       try {
+        const encoded = encode(data, this.codecOpts);
+        if (encoded.byteLength > this.codecOpts.maxOutgoingPacketSize) {
+          return {
+            sent: false,
+            reason: "packetTooLarge",
+            size: encoded.byteLength,
+          };
+        }
         await this.conn.write(encoded);
         return { sent: true };
       } catch (err) {
