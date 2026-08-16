@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { MQTTLevel, PacketType } from "../../server/deps.ts";
-import type { ConnectPacket, PublishPacket } from "../../server/deps.ts";
+import type {
+  AnyPacket,
+  ConnectPacket,
+  PublishPacket,
+} from "../../server/deps.ts";
 import {
   addMockClient,
   connect,
@@ -47,7 +51,10 @@ test("Basic test: Connect, Subscribe, and Publish", async () => {
   await disconnect(mqttConn3);
   const packets = await receiveMessages(mqttConn2);
   assert.equal(packets.length, 3);
-  assert.equal(packets.filter((p) => p.type === PacketType.publish).length, 3);
+  assert.equal(
+    packets.filter((p: AnyPacket) => p.type === PacketType.publish).length,
+    3,
+  );
 });
 
 test("Retained messages verification and clearance", async () => {
@@ -76,7 +83,10 @@ test("Retained messages verification and clearance", async () => {
 
   const packets = await receiveMessages(bConn);
   assert.strictEqual(packets.length, 3);
-  assert.equal(packets.filter((p) => p.type === PacketType.publish).length, 3);
+  assert.equal(
+    packets.filter((p: AnyPacket) => p.type === PacketType.publish).length,
+    3,
+  );
 
   // Clear retained messages by publishing empty payloads
   await publish(mqttConn, topics[1], 0, { retain: true, payload: "" });
