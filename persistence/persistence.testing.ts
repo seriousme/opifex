@@ -1190,5 +1190,6 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       id,
     );
     assert.strictEqual(packetWithDup?.dup, true);
+    cleanup();
   });
 }

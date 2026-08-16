@@ -214,7 +214,7 @@ export class Context {
   /**
    * Transmits an MQTT packet to the client.
    */
-  async send(packet: AnyPacket): Promise<void> {
+  async send(packet: AnyPacket): Promise<boolean> {
     logger.verbose(
       `ctx.send: Sending packet of type ${
         PacketNameByType[packet.type]
@@ -223,75 +223,82 @@ export class Context {
     logger.debug(`ctx.send: ${JSON.stringify(packet, null, 2)}`);
     const result = await this.mqttConn.send(packet);
     if (result.sent === true) {
-      return;
+      return true;
     }
     if (result.reason === "connectionClosed") {
       // mqttCon signaled that the connection was closed
       this.close();
-      return;
+      return false;
     }
     if (result.reason === "packetTooLarge") {
       if (packet.type === PacketType.publish) {
         const pubPacket = packet as PublishPacket;
         // just ignore qos 0
         if (pubPacket.qos === 0) {
-          return;
+          return false;
         }
         //
         this.persistence.deletePendingOutgoingPacket(
           this.clientId!,
           pubPacket.id!,
         );
-        return;
+        return false;
       }
       // control packets that are too large means closing the connection
       this.close();
-      return;
+      return false;
     }
+    return false;
   }
 
   /**
    * Dispatch publish packets to client
    */
-  dispatch(packet: ExtPublishPacket): Promise<void> {
+  async dispatch(packet: ExtPublishPacket): Promise<void> {
     // Fast-path short-circuit if client is no longer connected
     if (!this.connected || this.mqttConn.isClosed) {
-      return Promise.resolve();
+      return;
     }
-
+    const qos = packet.qos || 0;
     const packetExpired = packet.expiresAtMs
       ? Date.now() > packet.expiresAtMs
       : false;
     if (packetExpired) {
       // qos 0 we can just forget the packet
       // qos 1 & 2 we need to remove the packet from persistence
-      if ((packet.qos || 0) !== 0) {
-        this.persistence.deletePendingOutgoingPacket(
+      if (qos !== 0) {
+        await this.persistence.deletePendingOutgoingPacket(
           this.clientId!,
           packet.id!,
         );
       }
-      return Promise.resolve();
+      return;
     }
 
     packet.protocolLevel = this.protocolLevel;
-    // protocol < V5 ends here
-    if (packet.protocolLevel !== 5) {
-      return this.send(packet);
-    }
-
-    // V5 specifics
-    if (this.outgoingMaxTopicAlias > 0 && this.outgoingTopicAliasManager) {
-      if (!packet.properties) {
-        packet.properties = {};
+    if (packet.protocolLevel === 5) {
+      // V5 specifics
+      if (this.outgoingMaxTopicAlias > 0 && this.outgoingTopicAliasManager) {
+        if (!packet.properties) {
+          packet.properties = {};
+        }
+        const { topicName, topicAlias } = this.outgoingTopicAliasManager
+          .processTopic(packet.topic);
+        packet.topic = topicName;
+        packet.properties.topicAlias = topicAlias;
       }
-      const { topicName, topicAlias } = this.outgoingTopicAliasManager
-        .processTopic(packet.topic);
-      packet.topic = topicName;
-      packet.properties.topicAlias = topicAlias;
     }
-    return this.send(packet);
+    const sent = await this.send(packet);
+    // if packet was sent update its dup value
+    if (qos > 0 && sent && packet.dup !== true) {
+      await this.persistence.updatePendingOutgoingPacket(
+        this.clientId!,
+        packet.id!,
+        true,
+      );
+    }
   }
+
   /**
    * Helper to setup the timers
    */

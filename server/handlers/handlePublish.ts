@@ -129,8 +129,6 @@ function validatePublishPacket(
     } else {
       packet.topic = aliasedTopic!;
     }
-    // reset the topicAlias so we don't accidentally send it down the line
-    packet.properties!.topicAlias = undefined;
   }
 
   return null;

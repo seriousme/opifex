@@ -18,6 +18,17 @@ import { assert, parseTopicFilter, Trie } from "./deps.ts";
 import { MAX_PACKET_ID } from "./persistence.ts";
 import { logger } from "./deps.ts";
 
+function clonePacket(packet: ExtPublishPacket): ExtPublishPacket {
+  const newPacket = structuredClone(packet);
+  // reset session specific settings
+  newPacket.dup = false;
+  if (newPacket.protocolLevel === 5 && newPacket.properties) {
+    newPacket.properties.subscriptionIdentifiers = undefined;
+    newPacket.properties.topicAlias = undefined;
+  }
+  return newPacket;
+}
+
 export class MqttPersistence implements IPersistence {
   private clientHandlerList = new Map<ClientId, Handler>();
   private trie = new Trie<TrieSubscription>();
@@ -393,7 +404,7 @@ export class MqttPersistence implements IPersistence {
     }
 
     for (const [clientId, opts] of directClients) {
-      const newPacket = structuredClone(packet);
+      const newPacket = clonePacket(packet);
       if (!(opts.retainAsPublished ?? true)) newPacket.retain = false;
 
       const originalQos = packet.qos || 0;
@@ -415,7 +426,7 @@ export class MqttPersistence implements IPersistence {
       this.sharedGroupCounters.set(shareName, currentIndex + 1);
       if (selectedClient === undefined) continue;
 
-      const newPacket = structuredClone(packet);
+      const newPacket = clonePacket(packet);
       if (!(selectedClient.retainAsPublished ?? true)) newPacket.retain = false;
       const originalQos = packet.qos || 0;
       newPacket.qos = originalQos < selectedClient.qos
@@ -468,7 +479,7 @@ export class MqttPersistence implements IPersistence {
       ) {
         if (seen.has(packet.topic)) continue; //dedupe
         seen.add(packet.topic);
-        const newPacket = structuredClone(packet);
+        const newPacket = clonePacket(packet);
         if (!(sub.retainAsPublished ?? true)) newPacket.retain = false;
         await this.dispatch(clientId, newPacket);
       }
