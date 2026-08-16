@@ -437,29 +437,24 @@ export class MqttPersistence implements IPersistence {
     }
   }
 
-  async dispatch(
+  private async dispatch(
     clientId: ClientId,
     packet: ExtPublishPacket,
   ): Promise<void> {
-    const handler = this.clientHandlerList.get(clientId);
     logger.debug(`dispatch ${clientId}, ${packet.topic}, ${packet.qos}`);
-    const qos = packet.qos || 0;
-    if (qos === 0) {
-      packet.id = 0;
-      if (!this.matchSubscriptions(clientId, packet)) {
-        // client is no longer subscribed
-        return;
-      }
-      if (handler) handler(packet);
-      return;
-    }
 
+    const qos = packet.qos || 0;
     if (!this.matchSubscriptions(clientId, packet)) {
       // client is no longer subscribed
       return;
     }
-    packet.id = await this.nextPacketId(clientId);
-    await this.addPendingOutgoingPacket(clientId, packet);
+    if (qos !== 0) {
+      packet.id = await this.nextPacketId(clientId);
+      await this.addPendingOutgoingPacket(clientId, packet);
+    }
+
+    const handler = this.clientHandlerList.get(clientId);
+    // don't await the handler to allow for parallelism
     if (handler) handler(packet);
   }
 
