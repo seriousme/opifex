@@ -148,3 +148,24 @@ test("Client detects when the echo server abruptly closes its end", async () => 
     clientReader.releaseLock();
   }
 });
+
+test("Repeated close and cancel calls are idempotent", async () => {
+  const { input, output } = createWebStreamPair();
+
+  const inputWriter = input.writable.getWriter();
+  const inputReader = input.readable.getReader();
+  const outputWriter = output.writable.getWriter();
+  const outputReader = output.readable.getReader();
+
+  await Promise.allSettled([
+    inputWriter.close(),
+    outputWriter.close(),
+    inputReader.cancel(),
+    outputReader.cancel(),
+  ]);
+
+  inputWriter.releaseLock();
+  inputReader.releaseLock();
+  outputWriter.releaseLock();
+  outputReader.releaseLock();
+});

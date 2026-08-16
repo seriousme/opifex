@@ -13,6 +13,8 @@ export function createWebStreamPair(): {
 
   let aClosed = false;
   let bClosed = false;
+  let aControllerClosed = false;
+  let bControllerClosed = false;
 
   const aReadable = new ReadableStream({
     start(controller) {
@@ -68,39 +70,58 @@ export function createWebStreamPair(): {
     },
   );
 
+  function closePeerOnce(
+    side: "a" | "b",
+    controller: ReadableStreamDefaultController | null,
+  ) {
+    if (!controller) return;
+    const isClosed = side === "a" ? aControllerClosed : bControllerClosed;
+    if (isClosed) return;
+    if (side === "a") {
+      aControllerClosed = true;
+    } else {
+      bControllerClosed = true;
+    }
+    try {
+      controller.close();
+    } catch {
+      // ignore duplicate shutdown attempts; Node throws if the controller is already closed
+    }
+  }
+
+  function errorPeerOnce(
+    side: "a" | "b",
+    controller: ReadableStreamDefaultController | null,
+    reason: unknown,
+  ) {
+    if (!controller) return;
+    const isClosed = side === "a" ? aControllerClosed : bControllerClosed;
+    if (isClosed) return;
+    if (side === "a") {
+      aControllerClosed = true;
+    } else {
+      bControllerClosed = true;
+    }
+    try {
+      controller.error(reason);
+    } catch {
+      // ignore duplicate shutdown attempts; Node throws if the controller is already closed
+    }
+  }
+
   function tryCloseBoth() {
-    if (aClosed && bController) {
-      try {
-        bController.close();
-      } catch (_) {
-        // swallow errors
-      }
+    if (aClosed) {
+      closePeerOnce("b", bController);
     }
 
-    if (bClosed && aController) {
-      try {
-        aController?.close();
-      } catch (_) {
-        // swallow errors
-      }
+    if (bClosed) {
+      closePeerOnce("a", aController);
     }
   }
 
   function tryErrorBoth(reason: unknown) {
-    if (aController) {
-      try {
-        aController.error(reason);
-      } catch (_) {
-        // swallow errors
-      }
-    }
-    if (bController) {
-      try {
-        bController.error(reason);
-      } catch (_) {
-        // swallow errors
-      }
-    }
+    errorPeerOnce("a", aController, reason);
+    errorPeerOnce("b", bController, reason);
   }
 
   return {
