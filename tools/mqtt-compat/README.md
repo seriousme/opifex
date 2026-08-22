@@ -41,6 +41,7 @@ python3 /tmp/paho/interoperability/client_test.py Test.test_retained_messages
 ```
 
 Version 5:
+
 ```bash
 python3 /tmp/paho/interoperability/client_test5.py Test.test_retained_messages
 ```

@@ -51,3 +51,5 @@ export {
   LogLevel,
   OutboundTopicAliasManager,
 } from "../utils/mod.ts";
+
+export { QueueMode } from "./config.ts";

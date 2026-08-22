@@ -783,38 +783,48 @@ test("Server Keep Alive Enforcement", async () => {
 });
 
 test("Flow Control - Client Receive Maximum", async () => {
-  const { mqttConn } = startMockServer();
+  const { mqttConn: subscriber, mqttServer } = startMockServer();
+  const publisher = addMockClient(mqttServer);
   const clientReceiveMaximum = 2;
 
-  await connect5(mqttConn, {
+  await connect5(subscriber, {
     clientId: "flowControlClient1",
     properties: { receiveMaximum: clientReceiveMaximum },
   });
-  await subscribe5(mqttConn, [{ topicFilter: topics[0], qos: 2 }]);
+  await subscribe5(subscriber, [{ topicFilter: topics[0], qos: 2 }]);
 
+  await connect5(publisher, {
+    clientId: "publisher",
+  });
   // Send 1 more than the allowed maximum number of unacknowledged messages
   for (let i = 1; i <= clientReceiveMaximum + 1; i++) {
-    await publish5(mqttConn, topics[0], 1, { payload: `flow msg ${i}`, id: i });
+    await publish5(publisher, topics[0], 1, {
+      payload: `flow msg ${i}`,
+      id: i,
+    });
   }
 
   // Receive the initial allowed messages
-  const { value: msg1 } = await mqttConn.next();
-  const { value: msg2 } = await mqttConn.next();
+  const { value: msg1 } = await subscriber.next();
+  const { value: msg2 } = await subscriber.next();
   assert.strictEqual(msg1.type, PacketType.publish);
   assert.strictEqual(msg2.type, PacketType.publish);
+  // ensure that there are no more messages
+  await ping(subscriber);
 
   // Send PUBACK to free up a slot
-  await mqttConn.send({
+  await subscriber.send({
     type: PacketType.puback,
     protocolLevel: 5,
     id: msg1.id,
   });
 
   // Now the 3rd message should be received
-  const { value: msg3 } = await mqttConn.next();
+  const { value: msg3 } = await subscriber.next();
   assert.strictEqual(msg3.type, PacketType.publish);
 
-  await disconnect5(mqttConn);
+  await disconnect5(subscriber);
+  await disconnect5(publisher);
 });
 
 test("Flow Control - Exceeding Server Receive Maximum", async () => {

@@ -5,6 +5,7 @@ import {
   OutboundTopicAliasManager,
   PacketNameByType,
   PacketType,
+  QueueMode,
   Timer,
 } from "./deps.ts";
 import type {
@@ -12,6 +13,7 @@ import type {
   ConnectPacket,
   ExtPublishPacket,
   IPersistence,
+  PacketId,
   ProtocolLevel,
   PublishPacket,
   PubrelPacket,
@@ -155,13 +157,29 @@ export class Context {
   /** Timer to handle V5 delayed will delivery */
   willTimer?: Timer;
 
-  /** Timer enforcing a deadline for the client to send a CONNECT packet after establishing a socket connection. */
+  /**
+   * Timer enforcing a deadline for the client to send a CONNECT packet
+   * after establishing a socket connection.
+   */
   preconnectTimer?: Timer;
 
   /**
-   * V5, max number of inflight packets for this client
+   *  max number of inflight packets for this client,
+   *  in V5 client can set this lower than maxInflightMessages
+   *  theoretical max is maxInt
    */
   receiveMaximum = 0xFFFF;
+
+  /**
+   * inflighPackets, how many publish packets have been sent and are waiting for ack
+   */
+  inflightPackets = 0;
+
+  /**
+   * set of Id's of publish packets waiting to be send to the client
+   */
+  queuedPacketIds: Set<PacketId> = new Set();
+
   /**
    * V5,max topicAliases ,0 = none
    */
@@ -251,15 +269,42 @@ export class Context {
     return false;
   }
 
+  async processAck(packetId: PacketId): Promise<boolean> {
+    const packetExists = await this.persistence.deletePendingOutgoingPacket(
+      this.clientId!,
+      packetId,
+    );
+    logger.debug("processAck:", packetId, packetExists);
+    if (packetExists) {
+      this.inflightPackets--;
+      const queue = this.queuedPacketIds;
+      if (queue.size > 0) {
+        const id = queue.keys().next().value;
+        const packet = await this.persistence.getPendingOutgoingPacket(
+          this.clientId!,
+          id!,
+        );
+        if (packet) {
+          await this.dispatch(packet);
+        }
+      }
+    }
+    return packetExists;
+  }
+
   /**
    * Dispatch publish packets to client
    */
   async dispatch(packet: ExtPublishPacket): Promise<void> {
+    logger.debug("dispatch:", packet.id);
+    const cfg = this.config.context;
     // Fast-path short-circuit if client is no longer connected
     if (!this.connected || this.mqttConn.isClosed) {
       return;
     }
     const qos = packet.qos || 0;
+
+    // filter out expired packets
     const packetExpired = packet.expiresAtMs
       ? Date.now() > packet.expiresAtMs
       : false;
@@ -273,6 +318,44 @@ export class Context {
         );
       }
       return;
+    }
+
+    // handle queuing
+    if (this.inflightPackets === this.receiveMaximum) {
+      // client is full
+      // qos 0 we can just forget the packet
+      if (qos === 0) {
+        return;
+      }
+      const queue = this.queuedPacketIds;
+      if (queue.size === cfg.maxQueuedMessages) {
+        // queue is also full
+        if (cfg.queueStrategy === QueueMode.DiscardOldest) {
+          // remove the oldest packet in queue
+          const oldest = queue.keys().next().value;
+          if (oldest !== undefined) {
+            if (
+              await this.persistence.deletePendingOutgoingPacket(
+                this.clientId!,
+                oldest,
+              )
+            ) {
+              queue.delete(oldest);
+            }
+          }
+          queue.add(packet.id!);
+        }
+        // if queueMode = DiscardNewest => just drop the packet.
+        return;
+      }
+      // queue is not full, add the packet
+      queue.add(packet.id!);
+      return;
+    }
+
+    // update inflight
+    if (qos > 0) {
+      this.inflightPackets++;
     }
 
     packet.protocolLevel = this.protocolLevel;
@@ -372,9 +455,11 @@ export class Context {
     }
 
     // Receive Maximum
-    if (opts.receiveMaximum !== undefined) {
-      this.receiveMaximum = opts.receiveMaximum;
-    }
+    const maxInflight = cfg.maxInflightMessages;
+    this.receiveMaximum = Math.min(
+      opts.receiveMaximum ?? maxInflight,
+      maxInflight,
+    );
   }
 
   /**
