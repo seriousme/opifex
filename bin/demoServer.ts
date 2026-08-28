@@ -9,7 +9,7 @@ import { TcpServer } from "../node/tcpServer.ts";
 import type {
   ConnectPacket,
   Context,
-  IsAuthenticatedResult,
+  AuthenticatedResult,
   Topic,
 } from "../server/mod.ts";
 import { ReasonCode } from "../server/mod.ts";
@@ -54,7 +54,7 @@ function isAuthenticated(
   username: string,
   password: Uint8Array,
   connectPacket: ConnectPacket,
-): IsAuthenticatedResult {
+): AuthenticatedResult {
   const pwd = utf8Decoder.decode(password);
   logger.info(
     `Verifying authentication of client '${clientId}' with username '${username}'`,
