@@ -36,7 +36,7 @@ test("handleConnack sets connected state on success", async () => {
     returnCode: AuthenticationResult.ok,
   } as ConnackPacket;
 
-  await handleConnack(packet, ctx as never);
+  await handleConnack(ctx as never, packet);
 
   assert.deepStrictEqual(
     ctx.connectionState,
@@ -54,7 +54,7 @@ test("handleConnack resolves connect promise on success", async () => {
     returnCode: AuthenticationResult.ok,
   } as ConnackPacket;
 
-  await handleConnack(packet, ctx as never);
+  await handleConnack(ctx as never, packet);
 
   const result = await ctx.unresolvedConnect.promise;
   assert.deepStrictEqual(result, 0, "Should resolve with success code 0");
@@ -69,7 +69,7 @@ test("handleConnack rejects on bad username/password", async () => {
     returnCode: AuthenticationResult.badUsernameOrPassword,
   } as ConnackPacket;
 
-  await handleConnack(packet, ctx as never);
+  await handleConnack(ctx as never, packet);
 
   assert.deepStrictEqual(
     ctx.connectionState,
@@ -93,7 +93,7 @@ test("handleConnack rejects on not authorized", async () => {
     returnCode: AuthenticationResult.notAuthorized,
   } as ConnackPacket;
 
-  await handleConnack(packet, ctx as never);
+  await handleConnack(ctx as never, packet);
 
   assert.deepStrictEqual(
     ctx.connectionState,
@@ -116,7 +116,7 @@ test("handleConnack handles MQTT v5 reason codes", async () => {
     reasonCode: 0,
   } as ConnackPacket;
 
-  await handleConnack(packet, ctx as never);
+  await handleConnack(ctx as never, packet);
 
   assert.deepStrictEqual(
     ctx.connectionState,
@@ -142,7 +142,7 @@ test("handleConnack resets ping timer on success", async () => {
     returnCode: AuthenticationResult.ok,
   } as ConnackPacket;
 
-  await handleConnack(packet, ctx as never);
+  await handleConnack(ctx as never, packet);
 
   assert.deepStrictEqual(timerReset, true, "Ping timer should be reset");
 });
@@ -164,7 +164,7 @@ test("handleConnack clears ping timer on failure", async () => {
     returnCode: AuthenticationResult.badUsernameOrPassword,
   } as ConnackPacket;
 
-  await handleConnack(packet, ctx as never);
+  await handleConnack(ctx as never, packet);
   assert.deepStrictEqual(timerCleared, true, "Ping timer should be cleared");
   await assert.rejects(
     ctx.unresolvedConnect.promise,

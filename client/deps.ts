@@ -1,5 +1,6 @@
 export type {
   AnyPacket,
+  AuthPacket,
   ConnackPacket,
   ConnectPacket,
   DisconnectPacket,

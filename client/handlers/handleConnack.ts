@@ -5,11 +5,11 @@ import type { ConnackPacket, TReasonCode } from "../deps.ts";
 
 /**
  * Handles the CONNACK packet received from the MQTT broker
- * @param packet - The CONNACK packet containing the connection acknowledgment
  * @param ctx - The connection context
+ * @param packet - The CONNACK packet containing the connection acknowledgment
  * @returns Promise that resolves when handling is complete
  */
-export async function handleConnack(packet: ConnackPacket, ctx: Context) {
+export async function handleConnack(ctx: Context, packet: ConnackPacket) {
   const isVersion5 = packet.protocolLevel === 5;
   const result = isVersion5 ? packet.reasonCode : packet.returnCode;
   if (result === 0) {

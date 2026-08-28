@@ -1,5 +1,6 @@
 import type { Context } from "../context.ts";
 import { ConnectionState } from "../ConnectionState.ts";
+import { handleAuth } from "./handleAuth.ts";
 import { handleConnack } from "./handleConnack.ts";
 import { handlePublish } from "./handlePublish.ts";
 import { handlePuback } from "./handlePuback.ts";
@@ -12,6 +13,7 @@ import { handleDisconnect } from "./handleDisconnect.ts";
 import { logger, PacketNameByType, PacketType } from "../deps.ts";
 import type {
   AnyPacket,
+  AuthPacket,
   ConnackPacket,
   DisconnectPacket,
   PubackPacket,
@@ -37,14 +39,21 @@ export async function handlePacket(
   logger.debug({ received: PacketNameByType[packet.type], packet });
   if (ctx.connectionState !== ConnectionState.connected) {
     if (packet.type === PacketType.connack) {
-      handleConnack(packet as ConnackPacket, ctx);
-    } else {
-      throw new Error(
-        `Received ${PacketNameByType[packet.type]} packet before connect`,
-      );
+      handleConnack(ctx, packet as ConnackPacket);
+      return;
     }
+    if (packet.type === PacketType.auth) {
+      await handleAuth(ctx, packet as AuthPacket);
+      return;
+    }
+    throw new Error(
+      `Received ${PacketNameByType[packet.type]} packet before connect`,
+    );
   } else {
     switch (packet.type) {
+      case PacketType.auth:
+        await handleAuth(ctx, packet as AuthPacket);
+        break;
       case PacketType.pingres:
         break;
       case PacketType.publish:

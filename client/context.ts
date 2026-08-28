@@ -4,6 +4,7 @@ import {
   MqttConn,
   MQTTLevel,
   PacketType,
+  ReasonCode,
   Timer,
 } from "./deps.ts";
 import type {
@@ -17,6 +18,7 @@ import type {
   SockConn,
   SubscribePacket,
   TAuthenticationResult,
+  TReasonCode,
   UnsubscribePacket,
 } from "./deps.ts";
 
@@ -25,6 +27,13 @@ import type { TConnectionState } from "./ConnectionState.ts";
 import { ConnectionState } from "./ConnectionState.ts";
 import type { Client } from "./client.ts";
 import { assert } from "../utils/assert.ts";
+
+/** Possible results from authHandler */
+export type AuthenticatedResult = {
+  reasonCode: TReasonCode;
+  reasonString?: string;
+  authData?: Uint8Array;
+};
 
 export class Context {
   mqttConn?: MqttConn;
@@ -63,6 +72,15 @@ export class Context {
         break;
     }
   }
+
+  authHandler(
+    _ctx: Context,
+    authMethod: string,
+    authData: Uint8Array,
+  ): AuthenticatedResult | Promise<AuthenticatedResult> {
+    return this.#client.onAuth(authMethod, authData);
+  }
+
   setPingTimer(interval: number) {
     if (this.pingTimer) {
       this.pingTimer.clear();
