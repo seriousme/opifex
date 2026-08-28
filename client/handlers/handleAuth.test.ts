@@ -116,11 +116,12 @@ test("handleAuth transitions state and sends response packet on continueAuthenti
   const ctx = createMockContext();
   ctx.connectionState = ConnectionState.connected;
 
-  ctx.authHandler =  () => Promise.resolve({
-    reasonCode: ReasonCode.continueAuthentication,
-    authData: new Uint8Array([4, 5, 6]),
-    reasonString: "Continue",
-  });
+  ctx.authHandler = () =>
+    Promise.resolve({
+      reasonCode: ReasonCode.continueAuthentication,
+      authData: new Uint8Array([4, 5, 6]),
+      reasonString: "Continue",
+    });
 
   const packet: AuthPacket = {
     type: PacketType.auth,

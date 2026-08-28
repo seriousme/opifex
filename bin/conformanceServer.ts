@@ -8,9 +8,9 @@
 import { parseArgs } from "node:util";
 import { TcpServer } from "../node/tcpServer.ts";
 import type {
+  AuthenticatedResult,
   ConnectPacket,
   Context,
-  AuthenticatedResult,
   Topic,
 } from "../server/mod.ts";
 import { ReasonCode } from "../server/mod.ts";

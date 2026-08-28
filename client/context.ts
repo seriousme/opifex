@@ -4,7 +4,6 @@ import {
   MqttConn,
   MQTTLevel,
   PacketType,
-  ReasonCode,
   Timer,
 } from "./deps.ts";
 import type {
