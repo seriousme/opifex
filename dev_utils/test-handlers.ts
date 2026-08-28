@@ -1,6 +1,6 @@
 import { ReasonCode } from "../server/mod.ts";
 import { logger } from "../utils/mod.ts";
-import type { Context, IsAuthenticatedResult, Topic } from "../server/mod.ts";
+import type { AuthenticatedResult, Context, Topic } from "../server/mod.ts";
 
 const utf8Decoder = new TextDecoder();
 const userTable = new Map();
@@ -13,7 +13,7 @@ function isAuthenticated(
   clientId: string,
   username: string,
   password: Uint8Array,
-): IsAuthenticatedResult {
+): AuthenticatedResult {
   const pwd = utf8Decoder.decode(password);
   logger.debug(
     `Verifying authentication of client '${clientId}' with username '${username}'`,
@@ -32,6 +32,18 @@ function isAuthenticated(
   return {
     reasonCode: ReasonCode.badUserNameOrPassword,
     reasonString: "Bad username or password",
+  };
+}
+
+function processAuth(
+  _ctx: Context,
+  _clientId: string,
+  _authMethod: string,
+  _authData: Uint8Array,
+) {
+  return {
+    reasonCode: ReasonCode.badAuthenticationMethod,
+    reasonString: "Authentication method not supported",
   };
 }
 
@@ -56,13 +68,14 @@ function isAuthorizedToSubscribe(ctx: Context, topic: Topic): boolean {
 
 export const handlers = {
   isAuthenticated,
+  processAuth,
   isAuthorizedToPublish,
   isAuthorizedToSubscribe,
 };
 
 export function isAuthenticatedBroker(
   ctx: Context,
-): IsAuthenticatedResult {
+): AuthenticatedResult {
   ctx.isBroker = true;
   return { reasonCode: ReasonCode.success };
 }

@@ -30,6 +30,16 @@ const defaultIsAuthenticated = (
   _password: Uint8Array,
 ) => ({ reasonCode: ReasonCode.success });
 
+const defaultProcessAuth = (
+  _ctx: Context,
+  _clientId: string,
+  _authMethod: string,
+  _authData: Uint8Array,
+) => ({
+  reasonCode: ReasonCode.badAuthenticationMethod,
+  reasonString: "Authentication method not supported",
+});
+
 /**
  * Default authorization handler that unconditionally permits all topic operations.
  * @param {Context} _ctx - The connection context.
@@ -82,6 +92,7 @@ export class MqttServer {
     this.handlers = {
       preconnect: handlers?.preconnect || defaultPreconnect,
       isAuthenticated: handlers?.isAuthenticated || defaultIsAuthenticated,
+      processAuth: handlers?.processAuth || defaultProcessAuth,
       isAuthorizedToPublish: handlers?.isAuthorizedToPublish ||
         defaultIsAuthorized,
       isAuthorizedToSubscribe: handlers?.isAuthorizedToSubscribe ||

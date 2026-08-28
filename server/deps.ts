@@ -7,6 +7,7 @@ export type {
 export { MemoryPersistence } from "../persistence/memory/memoryPersistence.ts";
 export type {
   AnyPacket,
+  AuthPacket,
   ClientId,
   ConnackPacket,
   ConnackProperties,
@@ -51,5 +52,3 @@ export {
   LogLevel,
   OutboundTopicAliasManager,
 } from "../utils/mod.ts";
-
-export { QueueMode } from "./config.ts";

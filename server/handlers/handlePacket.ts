@@ -1,7 +1,9 @@
+import { SessionState } from "../context.ts";
 import type { Context } from "../context.ts";
 import { PacketNameByType, PacketType } from "../deps.ts";
 import type {
   AnyPacket,
+  AuthPacket,
   PubackPacket,
   PubcompPacket,
   PublishPacket,
@@ -20,6 +22,7 @@ import { handlePubcomp } from "./handlePubcomp.ts";
 import { handleSubscribe } from "./handleSubscribe.ts";
 import { handleUnsubscribe } from "./handleUnsubscribe.ts";
 import { handleDisconnect } from "./handleDisconnect.ts";
+import { handleAuth } from "./handleAuth.ts";
 import { logger } from "../deps.ts";
 
 /**
@@ -35,7 +38,7 @@ export async function handlePacket(
 ): Promise<void> {
   logger.debug("handling", PacketNameByType[packet.type]);
   logger.debug(JSON.stringify(packet, null, 2));
-  if (!ctx.connected) {
+  if (ctx.state === SessionState.connecting) {
     if (packet.type === PacketType.connect) {
       await handleConnect(ctx, packet);
     } else {
@@ -71,6 +74,9 @@ export async function handlePacket(
         break;
       case PacketType.disconnect:
         handleDisconnect(ctx);
+        break;
+      case PacketType.auth:
+        handleAuth(ctx, packet as AuthPacket);
         break;
       default:
         throw new Error(

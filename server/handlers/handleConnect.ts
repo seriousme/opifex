@@ -1,7 +1,7 @@
 import type {
+  AuthenticatedResult,
   ConnectOptions,
   Context,
-  IsAuthenticatedResult,
 } from "../context.ts";
 import {
   AuthenticationResult,
@@ -77,17 +77,9 @@ function buildConnackProperties(
     subscriptionIdentifierAvailable: cfg.subscriptionIdentifierAvailable,
     sharedSubscriptionAvailable: cfg.sharedSubscriptionAvailable,
     serverKeepAlive: cfg.serverKeepAlive,
-
-    // Conditionally included fields
-    ...(opts.assignedClientIdentifier && {
-      assignedClientIdentifier: opts.assignedClientIdentifier,
-    }),
-    ...(opts.sessionExpiryInterval !== undefined && {
-      sessionExpiryInterval: opts.sessionExpiryInterval,
-    }),
-    ...(opts.reasonString && cfg.provideReasonStrings && {
-      reasonString: opts.reasonString,
-    }),
+    assignedClientIdentifier: opts.assignedClientIdentifier,
+    sessionExpiryInterval: opts.sessionExpiryInterval,
+    reasonString: opts.reasonString,
   };
 }
 
@@ -97,7 +89,7 @@ function buildConnackProperties(
 async function authenticateClient(
   ctx: Context,
   packet: ConnectPacket,
-): Promise<IsAuthenticatedResult> {
+): Promise<AuthenticatedResult> {
   if (ctx.handlers.isAuthenticated) {
     return await ctx.handlers.isAuthenticated(
       ctx,
@@ -179,6 +171,18 @@ async function validateConnectPacket(
       if (expiryInterval) {
         will.expiresAtMs = Date.now() + expiryInterval * 1000;
       }
+
+      const authMethod = packet.properties?.authenticationMethod;
+      const authData = packet.properties?.authenticationData;
+
+      // both need to be either present or absent, one is not enough
+      if ((authMethod !== undefined) !== (authData !== undefined)) {
+        return {
+          reasonCode: ReasonCode.badAuthenticationMethod,
+          reasonString:
+            "Bad authentication method or missing authentication data",
+        };
+      }
     }
   }
 
@@ -221,6 +225,8 @@ export async function handleConnect(
 
   const { reasonCode, reasonString } = authResult;
   const isSuccess = reasonCode === ReasonCode.success;
+
+  // hier moet Auth tussenkomen
 
   // Establish Session on Success
   let sessionPresent = false;

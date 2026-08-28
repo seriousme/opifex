@@ -5,7 +5,6 @@ import {
   OutboundTopicAliasManager,
   PacketNameByType,
   PacketType,
-  QueueMode,
   Timer,
 } from "./deps.ts";
 import type {
@@ -22,6 +21,7 @@ import type {
   TReasonCode,
 } from "./deps.ts";
 
+import { QueueMode } from "./config.ts";
 import type { Configuration } from "./config.ts";
 
 /** Unique identifier for an MQTT client. */
@@ -33,16 +33,28 @@ export const SysPrefix = "$";
 /** Standard UTF-8 encoder used across the server to convert strings to byte arrays. */
 export const utf8Encoder = new TextEncoder();
 
-export type IsAuthenticatedResult = {
+/** Possible results from isAuthenticated and processAuth handler */
+export type AuthenticatedResult = {
   reasonCode: TReasonCode;
   reasonString?: string;
+  authData?: Uint8Array;
 };
+
+export const SessionState = {
+  connecting: 0,
+  authenticating: 1,
+  connected: 2,
+} as const;
+
+export type SessionState = typeof SessionState[keyof typeof SessionState];
+
 /**
  * Handlers are hooks that the server will call
  * and let you influence the servers behaviour.
  * The following handlers can be configured:
  * - preconnect()
  * - isAuthenticated()
+ * - processAuth()
  * - isAuthorizedToPublish()
  * - isAuthorizedToSubscribe()
  */
@@ -63,7 +75,7 @@ export type Handlers = {
    * @param {string} username - The username provided by the client.
    * @param {Uint8Array} password - The password bytes provided by the client.
    * @param {ConnectPacket} connectPacket - The raw connect packet
-   * @returns {IsAuthenticatedResult} The result of the authentication attempt.
+   * @returns {AuthResult} The result of the authentication attempt.
    */
   isAuthenticated?(
     ctx: Context,
@@ -71,7 +83,22 @@ export type Handlers = {
     username: string,
     password: Uint8Array,
     connectPacket: ConnectPacket,
-  ): IsAuthenticatedResult | Promise<IsAuthenticatedResult>;
+  ): AuthenticatedResult | Promise<AuthenticatedResult>;
+
+  /**
+   * Hook to authenticate a client connection attempt.
+   * @param {Context} ctx - The connection context.
+   * @param {ClientId} clientId - The client identifier.
+   * @param {string} authMethod - The authentication method provided by the client.
+   * @param {Uint8Array} authData- The authentication data provided by the client.
+   * @returns {AuthenticationResult} The result of the authentication attempt.
+   */
+  processAuth?(
+    ctx: Context,
+    clientId: ClientId,
+    authMethod: string,
+    authData: Uint8Array,
+  ): AuthenticatedResult | Promise<AuthenticatedResult>;
 
   /**
    * Hook to authorize a message publication to a specific topic.
@@ -115,8 +142,8 @@ export class Context {
   /** the client id is set after succesful connect */
   clientId: ClientId | null = null;
 
-  /** Indicates whether the client has successfully completed the MQTT CONNECT handshake. */
-  connected = false;
+  /** Indicates the current state of the client  */
+  state: SessionState = SessionState.connecting;
 
   /** Indicates whether the client asked for a clean session */
   cleanSession = false;
@@ -218,7 +245,7 @@ export class Context {
    */
   private initializePreconnectTimer(preconnectTimeoutMs: number): void {
     this.preconnectTimer = new Timer(() => {
-      if (!this.connected) {
+      if (this.state !== SessionState.connected) {
         logger.warn(
           `Preconnect timeout: client at ${this.mqttConn.remoteAddress} failed to connect within ${
             preconnectTimeoutMs / 1000
@@ -233,12 +260,25 @@ export class Context {
    * Transmits an MQTT packet to the client.
    */
   async send(packet: AnyPacket): Promise<boolean> {
+    const cfg = this.config.context;
     logger.verbose(
       `ctx.send: Sending packet of type ${
         PacketNameByType[packet.type]
       } to client ${this.clientId!}`,
     );
     logger.debug(`ctx.send: ${JSON.stringify(packet, null, 2)}`);
+    // strip reasonString from properties unless allowed by config
+    if ("properties" in packet && packet.properties) {
+      const props = packet.properties;
+      if (
+        "reasonString" in props &&
+        props.reasonString &&
+        !cfg.provideReasonStrings
+      ) {
+        props.reasonString = undefined;
+      }
+    }
+    // send the packet
     const result = await this.mqttConn.send(packet);
     if (result.sent === true) {
       return true;
@@ -269,6 +309,10 @@ export class Context {
     return false;
   }
 
+  /**
+   * Dispatch the next publish packet in queue (if exists),
+   * when a ack packet on an already sent publish arrives
+   */
   async processAck(packetId: PacketId): Promise<boolean> {
     const packetExists = await this.persistence.deletePendingOutgoingPacket(
       this.clientId!,
@@ -299,7 +343,7 @@ export class Context {
     logger.debug("dispatch:", packet.id);
     const cfg = this.config.context;
     // Fast-path short-circuit if client is no longer connected
-    if (!this.connected || this.mqttConn.isClosed) {
+    if (this.state !== SessionState.connected || this.mqttConn.isClosed) {
       return;
     }
     const qos = packet.qos || 0;
@@ -523,7 +567,7 @@ export class Context {
       this.dispatch.bind(this),
     );
 
-    this.connected = true;
+    this.state = SessionState.connected;
     Context.clientList.set(clientId, this);
 
     // Start the timers
@@ -572,18 +616,18 @@ export class Context {
    * If executewill=true triggers the registered Will packet logic.
    */
   async close(executewill = true): Promise<void> {
-    logger.debug(`server closing context ${this.connected}`);
+    logger.debug(`server closing context while state = ${this.state}`);
     if (this.preconnectTimer) {
       this.preconnectTimer.clear();
     }
-    if (this.connected) {
+    if (this.state === SessionState.connected) {
       if (this.cleanSession && !this.sessionEndsTimer) {
         // [MQTT-3.1.2-6] State data associated with this Session MUST NOT be reused in any subsequent Session
         if (this.clientId) {
           await this.persistence.deregisterClient(this.clientId);
         }
       }
-      this.connected = false;
+      this.state = SessionState.connecting;
       if (typeof this.timer === "object") {
         this.timer.clear();
       }
@@ -659,7 +703,7 @@ export class Context {
 
     logger.verbose(`ctx:handleRedelivery for ${this.clientId}`);
     for await (const packet of p.listPendingOutgoingPackets(clientId)) {
-      if (!this.connected) {
+      if (this.state !== SessionState.connected) {
         break;
       }
       packet.dup = true;
@@ -667,7 +711,7 @@ export class Context {
     }
     // we only need to resend QoS2 PubRel acks
     for await (const packetId of p.listPendingAcks(clientId)) {
-      if (!this.connected) {
+      if (this.state !== SessionState.connected) {
         break;
       }
       const pubrel: PubrelPacket = {
