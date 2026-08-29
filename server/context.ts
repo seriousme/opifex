@@ -132,6 +132,8 @@ export type ConnectOptions = {
   topicAliasMaximum?: number | undefined;
   maximumOutgoingPacketSize?: number | undefined;
   receiveMaximum?: number | undefined;
+  assignedClientIdentifier?: string | undefined;
+  keepAlive?: number | undefined;
 };
 
 /**
@@ -215,8 +217,12 @@ export class Context {
 
   /** V5 server topic aliases */
   incomingTopicAliases: Map<number, Topic> = new Map();
+
   /** V5 client topic aliases */
   outgoingTopicAliasManager: undefined | OutboundTopicAliasManager;
+
+  connectOptions: undefined | ConnectOptions = undefined;
+  //
   /**
    * Initializes a new instance of the connection Context.
    */
@@ -510,11 +516,11 @@ export class Context {
    * Finalizes the client connection state, registers the client in persistence,
    * kicks out existing duplicate sessions, and broadcasts the client connection event.
    */
-  async connect(
+  prepareConnect(
     packet: ConnectPacket,
     clientId: string,
     connectOpts: ConnectOptions = {},
-  ): Promise<boolean> {
+  ): void {
     logger.verbose("ctx:connect connecting", clientId);
     const cfg = this.config.context;
     // configure protocol and state
@@ -522,6 +528,7 @@ export class Context {
     this.cleanSession = packet.clean || false;
     this.protocolLevel = packet.protocolLevel;
     this.incomingMaxTopicAlias = cfg.topicAliasMaximum;
+    this.connectOptions = connectOpts;
 
     this.applyConnectOptions(connectOpts);
 
@@ -536,7 +543,11 @@ export class Context {
         ...packet.will,
       };
     }
+  }
 
+  async connect(): Promise<boolean> {
+    const connectOpts = this.connectOptions || {};
+    const clientId = this.clientId!;
     // Cleanup preconnect timer
     if (this.preconnectTimer) {
       this.preconnectTimer.clear();
@@ -572,7 +583,7 @@ export class Context {
 
     // Start the timers
     this.setupConnectionTimers(
-      packet.keepAlive,
+      connectOpts.keepAlive,
       connectOpts.sessionExpiryInterval,
       connectOpts.willDelayInterval,
     );

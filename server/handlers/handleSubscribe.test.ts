@@ -516,40 +516,26 @@ test("SUBSCRIBE does not trigger retained messages when all subscriptions fail a
   await disconnect(subscriber);
 });
 
-test(
-  "SUBSCRIBE handles error thrown inside isAuthorizedToSubscribe gracefully",
-  { skip: true },
-  async () => {
-    const { mqttConn, mqttServer } = startMockServer();
+test("SUBSCRIBE handles error thrown inside isAuthorizedToSubscribe gracefully", async () => {
+  const { mqttConn, mqttServer } = startMockServer();
 
-    // Force authorization handler to throw an error
-    mqttServer.handlers.isAuthorizedToSubscribe = () => {
-      throw new Error("Authorization handler internal failure");
-    };
+  // Force authorization handler to throw an error
+  mqttServer.handlers.isAuthorizedToSubscribe = () => {
+    throw new Error("Authorization handler internal failure");
+  };
 
-    await connect(mqttConn);
-
-    const subscribePacket: AnyPacket = {
-      type: PacketType.subscribe,
-      protocolLevel: MQTTLevel.v4,
-      id: 105,
-      subscriptions: [
-        { topicFilter: "sensors/temperature", qos: 0 },
-      ],
-    };
-
-    // The assertion verifies whether the exception bubble-up matches expected server context behavior
-    await assert.rejects(
-      async () => {
-        mqttConn.send(subscribePacket);
-        await mqttConn.next();
-      },
-      (err: Error) => {
-        return err.message.includes("Authorization handler internal failure");
-      },
-    );
-  },
-);
+  await connect(mqttConn);
+  const subAck = await subscribe(mqttConn, [{
+    topicFilter: "sensors/temperature",
+    qos: 0,
+  }], {
+    id: 105,
+    checkAcks: false,
+  });
+  // Expect SUBACK with 128 (0x80)
+  assert.deepStrictEqual(subAck.type, PacketType.suback);
+  assert.deepStrictEqual(subAck.returnCodes, [128]);
+});
 
 // ============================================================================
 // Wildcard Restriction Tests

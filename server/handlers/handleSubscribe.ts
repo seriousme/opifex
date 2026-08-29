@@ -1,8 +1,10 @@
+import { SessionState } from "../context.ts";
 import type { Context } from "../context.ts";
 import {
   hasWildcards,
   invalidmaxTopicLevels,
   invalidTopicFilter,
+  logger,
   PacketType,
   ReasonCode,
 } from "../deps.ts";
@@ -23,8 +25,20 @@ async function authorizedToSubscribe(
   ctx: Context,
   topicFilter: Topic,
 ): Promise<boolean> {
-  if (ctx.handlers.isAuthorizedToSubscribe) {
-    return await ctx.handlers.isAuthorizedToSubscribe(ctx, topicFilter);
+  if (ctx.state === SessionState.authenticating) {
+    return false;
+  }
+  try {
+    if (ctx.handlers.isAuthorizedToSubscribe) {
+      return await ctx.handlers.isAuthorizedToSubscribe(ctx, topicFilter);
+    }
+  } catch (err) {
+    let message = "unknown error";
+    if (err instanceof Error) {
+      message = err.message;
+    }
+    logger.error(`isAuthorizedToSubscribe failed with error "${message}`);
+    return false;
   }
   return true;
 }

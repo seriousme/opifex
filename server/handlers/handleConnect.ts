@@ -4,39 +4,14 @@ import type {
   Context,
 } from "../context.ts";
 import {
-  AuthenticationResult,
   invalidmaxTopicLevels,
   invalidTopic,
+  logger,
   PacketType,
   ReasonCode,
 } from "../deps.ts";
-import type {
-  ConnackProperties,
-  ConnectPacket,
-  ExtPublishPacket,
-  TReasonCode,
-} from "../deps.ts";
-
-/**
- * Maps MQTT v5 ReasonCodes to MQTT v3.1.1 ReturnCodes (AuthenticationResult)
- */
-const V4_RETURN_CODE_MAP: Record<number, number> = {
-  [ReasonCode.success]: AuthenticationResult.ok, // 0x00
-  [ReasonCode.unsupportedProtocolVersion]:
-    AuthenticationResult.unacceptableProtocol, // 0x01
-  [ReasonCode.clientIdentifierNotValid]: AuthenticationResult.rejectedUsername, // 0x02
-  [ReasonCode.badUserNameOrPassword]:
-    AuthenticationResult.badUsernameOrPassword, // 0x04
-  [ReasonCode.badAuthenticationMethod]:
-    AuthenticationResult.badUsernameOrPassword, // 0x04
-  [ReasonCode.notAuthorized]: AuthenticationResult.notAuthorized, // 0x05
-  [ReasonCode.banned]: AuthenticationResult.notAuthorized, // 0x05
-};
-
-function reasonToReturnCode(reasonCode: number): number {
-  return V4_RETURN_CODE_MAP[reasonCode] ??
-    AuthenticationResult.serverUnavailable; // 0x03
-}
+import type { ConnectPacket, ExtPublishPacket } from "../deps.ts";
+import { completeConnect } from "./completeConnect.ts";
 
 /**
  * Extracts options from MQTT v5 packet properties.
@@ -54,50 +29,53 @@ function extractConnectOptions(packet: ConnectPacket): ConnectOptions {
     receiveMaximum: packet.properties?.receiveMaximum,
   };
 }
-/**
- * Builds MQTT v5 CONNACK properties.
- */
-function buildConnackProperties(
-  ctx: Context,
-  opts: {
-    assignedClientIdentifier?: string | undefined;
-    reasonString?: string | undefined;
-    sessionExpiryInterval?: number | undefined;
-  },
-): ConnackProperties {
-  const cfg = ctx.config.context;
-
-  return {
-    receiveMaximum: cfg.receiveMaximum,
-    maximumQos: cfg.maximumQos,
-    retainAvailable: cfg.retainAvailable,
-    maximumPacketSize: cfg.maximumIncomingPacketSize,
-    topicAliasMaximum: cfg.topicAliasMaximum,
-    wildcardSubscriptionAvailable: cfg.wildcardSubscriptionAvailable,
-    subscriptionIdentifierAvailable: cfg.subscriptionIdentifierAvailable,
-    sharedSubscriptionAvailable: cfg.sharedSubscriptionAvailable,
-    serverKeepAlive: cfg.serverKeepAlive,
-    assignedClientIdentifier: opts.assignedClientIdentifier,
-    sessionExpiryInterval: opts.sessionExpiryInterval,
-    reasonString: opts.reasonString,
-  };
-}
 
 /**
  * Checks if client credentials are valid.
  */
 async function authenticateClient(
   ctx: Context,
+  clientId: string,
   packet: ConnectPacket,
 ): Promise<AuthenticatedResult> {
+  const isProtocolV5 = packet.protocolLevel === 5;
+  const authMethod = isProtocolV5
+    ? packet.properties?.authenticationMethod
+    : undefined;
+
   if (ctx.handlers.isAuthenticated) {
-    return await ctx.handlers.isAuthenticated(
-      ctx,
-      packet.clientId || "",
-      packet.username || "",
-      packet.password || new Uint8Array(0),
-      packet,
-    );
+    try {
+      const result = await ctx.handlers.isAuthenticated(
+        ctx,
+        clientId,
+        packet.username || "",
+        packet.password || new Uint8Array(0),
+        packet,
+      );
+      if (
+        isProtocolV5 && result.reasonCode === ReasonCode.success &&
+        authMethod !== undefined && ctx.handlers.processAuth
+      ) {
+        const authData = packet.properties?.authenticationData;
+        return await ctx.handlers.processAuth(
+          ctx,
+          clientId,
+          authMethod,
+          authData!,
+        );
+      }
+      return result;
+    } catch (err) {
+      let message = "unknown error";
+      if (err instanceof Error) {
+        message = err.message;
+      }
+      logger.error(`Authentication failed with error "${message}`);
+      return {
+        reasonCode: ReasonCode.unspecifiedError,
+        reasonString: "Authentication failed",
+      };
+    }
   }
   return { reasonCode: ReasonCode.success };
 }
@@ -109,7 +87,7 @@ async function validateConnectPacket(
   ctx: Context,
   packet: ConnectPacket,
   sessionExpiryInterval: number,
-): Promise<{ reasonCode: TReasonCode; reasonString?: string } | null> {
+): Promise<AuthenticatedResult | null> {
   const cfg = ctx.config.context;
 
   // Protocol version check
@@ -175,8 +153,12 @@ async function validateConnectPacket(
       const authMethod = packet.properties?.authenticationMethod;
       const authData = packet.properties?.authenticationData;
 
-      // both need to be either present or absent, one is not enough
-      if ((authMethod !== undefined) !== (authData !== undefined)) {
+      if (
+        // both need to be either present or absent, one is not enough
+        (authMethod !== undefined) !== (authData !== undefined) ||
+        // authMethod without a handler won't work
+        (authMethod !== undefined || !ctx.handlers.processAuth)
+      ) {
         return {
           reasonCode: ReasonCode.badAuthenticationMethod,
           reasonString:
@@ -201,10 +183,10 @@ export async function handleConnect(
 
   // Assign Client ID if missing
   let clientId = packet.clientId;
-  let assignedClientIdentifier: string | undefined;
+  let assignedClientIdentifier = undefined;
   if (!clientId) {
-    assignedClientIdentifier = `Opifex-${crypto.randomUUID()}`;
-    clientId = assignedClientIdentifier;
+    clientId = `Opifex-${crypto.randomUUID()}`;
+    assignedClientIdentifier = clientId;
   }
 
   // Extract connect options for v5
@@ -214,6 +196,8 @@ export async function handleConnect(
     connectOpts.sessionExpiryInterval || 0,
     cfg.maxSessionExpiryInterval,
   );
+  connectOpts.keepAlive = packet.keepAlive;
+  connectOpts.assignedClientIdentifier = assignedClientIdentifier;
 
   // Validate Packet & Authenticate Client
   const validationError = await validateConnectPacket(
@@ -221,47 +205,30 @@ export async function handleConnect(
     packet,
     connectOpts.sessionExpiryInterval,
   );
-  const authResult = validationError ?? await authenticateClient(ctx, packet);
+  const authResult = validationError ??
+    await authenticateClient(ctx, clientId, packet);
+  const { reasonCode, reasonString, authData } = authResult;
+  const requireAuth = reasonCode === ReasonCode.continueAuthentication;
 
-  const { reasonCode, reasonString } = authResult;
-  const isSuccess = reasonCode === ReasonCode.success;
-
-  // hier moet Auth tussenkomen
-
-  // Establish Session on Success
-  let sessionPresent = false;
-  if (isSuccess) {
-    sessionPresent = await ctx.connect(
-      packet,
-      clientId,
-      connectOpts,
-    );
-  }
-
-  // Send CONNACK
-  await ctx.send({
-    type: PacketType.connack,
-    protocolLevel: packet.protocolLevel,
-    sessionPresent,
-    ...(isProtocolV5
-      ? {
-        reasonCode,
-        properties: buildConnackProperties(ctx, {
-          assignedClientIdentifier,
-          reasonString,
-          sessionExpiryInterval: connectOpts.sessionExpiryInterval,
-        }),
-      }
-      : { returnCode: reasonToReturnCode(reasonCode) }),
-  });
-
-  // Finalize or Terminate Connection
-  if (!isSuccess) {
-    await ctx.close(false);
+  ctx.prepareConnect(packet, clientId, connectOpts);
+  if (isProtocolV5 && requireAuth) {
+    const authMethod = packet.properties?.authenticationMethod;
+    await ctx.send({
+      type: PacketType.auth,
+      protocolLevel: 5,
+      reasonCode,
+      properties: {
+        authenticationMethod: authMethod,
+        authenticationData: authData,
+      },
+    });
     return;
   }
 
-  if (sessionPresent) {
-    await ctx.handleRedelivery();
-  }
+  await completeConnect(
+    ctx,
+    packet.protocolLevel || 4,
+    reasonCode,
+    reasonString,
+  );
 }

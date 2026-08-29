@@ -2,6 +2,7 @@ import { SessionState } from "../context.ts";
 import type { AuthenticatedResult, Context } from "../context.ts";
 import { PacketType, ReasonCode } from "../deps.ts";
 import type { AuthPacket } from "../deps.ts";
+import { completeConnect } from "./completeConnect.ts";
 
 /**
  * Handle success
@@ -57,17 +58,27 @@ export async function handleAuth(
     if (!(authMethod && authData)) {
       return await ctx.close(false);
     }
+    if (ctx.state === SessionState.connected) {
+      ctx.state = SessionState.authenticating;
+    }
     const result = await ctx.handlers.processAuth(
       ctx,
       ctx.clientId!,
       authMethod,
       authData,
     );
-    if (result.reasonCode === ReasonCode.success) {
-      ctx.state = SessionState.connected;
+    // we need more data
+    if (result.reasonCode === ReasonCode.continueAuthentication) {
       return handleResult(ctx, authMethod, result);
     }
-    if (result.reasonCode === ReasonCode.continueAuthentication) {
+    // we are done but were still connecting
+    if (ctx.state === SessionState.connecting) {
+      await completeConnect(ctx, 5, result.reasonCode, result.reasonString);
+      return;
+    }
+    // we are done but were reauthentication in flight
+    if (result.reasonCode === ReasonCode.success) {
+      ctx.state = SessionState.connected;
       return handleResult(ctx, authMethod, result);
     }
     return handleError(ctx, result);

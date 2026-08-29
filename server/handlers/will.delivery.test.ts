@@ -12,9 +12,7 @@ import {
 
 const txtEncoder = new TextEncoder();
 
-test("MQTT-3.1.2.5: will message delivered on ungraceful disconnect", {
-  skip: false,
-}, async () => {
+test("MQTT-3.1.2.5: will message delivered on ungraceful disconnect", async () => {
   const willTopic = "will/topic";
   const payload = txtEncoder.encode("goodbye");
   const { mqttConn: subscriber, mqttServer } = startMockServer();
@@ -63,9 +61,7 @@ test("MQTT-3.1.2.5: will message delivered on ungraceful disconnect", {
   await disconnect(subscriber);
 });
 
-test("MQTT-3.1.2.5: will message NOT delivered on graceful DISCONNECT", {
-  skip: false,
-}, async () => {
+test("MQTT-3.1.2.5: will message NOT delivered on graceful DISCONNECT", async () => {
   const willTopic = "will/topic2";
   const payload = txtEncoder.encode("goodbye");
   const { mqttConn: subscriber, mqttServer } = startMockServer();
@@ -95,9 +91,7 @@ test("MQTT-3.1.2.5: will message NOT delivered on graceful DISCONNECT", {
   await disconnect(subscriber);
 });
 
-test("MQTT-3.1.2.5: will message delivered with correct QoS", {
-  skip: false,
-}, async () => {
+test("MQTT-3.1.2.5: will message delivered with correct QoS", async () => {
   const willTopic = "will/qos";
   const payload = txtEncoder.encode("goodbye");
   const { mqttConn: subscriber, mqttServer } = startMockServer();
@@ -145,9 +139,7 @@ test("MQTT-3.1.2.5: will message delivered with correct QoS", {
   await disconnect(subscriber);
 });
 
-test("MQTT-3.1.2.5: will message stored as retained when retain=true", {
-  skip: false,
-}, async () => {
+test("MQTT-3.1.2.5: will message stored as retained when retain=true", async () => {
   const willTopic = "will/retained";
   const payload = txtEncoder.encode("Retained message");
 
@@ -197,9 +189,7 @@ test("MQTT-3.1.2.5: will message stored as retained when retain=true", {
   await disconnect(subscriber);
 });
 
-test("MQTT-3.1.2.5: will message to $ topic is rejected", {
-  skip: false,
-}, async () => {
+test("MQTT-3.1.2.5: will message to $ topic is rejected", async () => {
   const willTopic = "$SYS/will";
   const payload = txtEncoder.encode("System Will");
   const { mqttConn: subscriber, mqttServer } = startMockServer();

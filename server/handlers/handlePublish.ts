@@ -1,7 +1,8 @@
-import { SysPrefix } from "../context.ts";
+import { SessionState, SysPrefix } from "../context.ts";
 import {
   invalidmaxTopicLevels,
   invalidTopic,
+  logger,
   PacketType,
   ReasonCode,
 } from "../deps.ts";
@@ -75,8 +76,20 @@ async function authorizedToPublish(ctx: Context, topic: Topic) {
   if (topic.startsWith(SysPrefix) && !ctx.isBroker) {
     return false;
   }
+  if (ctx.state === SessionState.authenticating) {
+    return false;
+  }
   if (ctx.handlers.isAuthorizedToPublish) {
-    return await ctx.handlers.isAuthorizedToPublish(ctx, topic);
+    try {
+      return await ctx.handlers.isAuthorizedToPublish(ctx, topic);
+    } catch (err) {
+      let message = "unknown error";
+      if (err instanceof Error) {
+        message = err.message;
+      }
+      logger.error(`isAuthorizedToPublish failed with error "${message}`);
+      return false;
+    }
   }
   return true;
 }
