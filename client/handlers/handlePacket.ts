@@ -47,7 +47,7 @@ export async function handlePacket(
       return;
     }
     throw new Error(
-      `Received ${PacketNameByType[packet.type]} packet before connect`,
+      `Received ${PacketNameByType[packet.type]} packet while connecting`,
     );
   } else {
     switch (packet.type) {

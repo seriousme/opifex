@@ -19,6 +19,7 @@ export type {
   SubscribePacket,
   TAuthenticationResult,
   Topic,
+  TPacketType,
   TReasonCode,
   UnsubackPacket,
   UnsubscribePacket,

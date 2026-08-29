@@ -17,6 +17,7 @@ import type {
   SockConn,
   SubscribePacket,
   TAuthenticationResult,
+  TPacketType,
   TReasonCode,
   UnsubscribePacket,
 } from "./deps.ts";
@@ -26,6 +27,17 @@ import type { TConnectionState } from "./ConnectionState.ts";
 import { ConnectionState } from "./ConnectionState.ts";
 import type { Client } from "./client.ts";
 import { assert } from "../utils/assert.ts";
+
+/**
+ * packets not allowed during authentication
+ */
+function blockedDuringAuthentication(pktType: TPacketType) {
+  return (
+    pktType === PacketType.publish ||
+    pktType === PacketType.subscribe ||
+    pktType === PacketType.unsubscribe
+  );
+}
 
 /** Possible results from authHandler */
 export type AuthenticatedResult = {
@@ -105,7 +117,10 @@ export class Context {
   }
 
   async disconnect() {
-    if (this.connectionState !== ConnectionState.connected) {
+    if (
+      this.connectionState !== ConnectionState.connected &&
+      this.connectionState !== ConnectionState.authenticating
+    ) {
       throw "Not connected";
     }
     if (this.mqttConn) {
@@ -121,13 +136,20 @@ export class Context {
 
   async send(packet: AnyPacket) {
     logger.debug({ send: packet });
-    if (
-      this.connectionState === ConnectionState.connected &&
-      !this.mqttConn?.isClosed
-    ) {
-      await this.mqttConn?.send(packet);
-      this.pingTimer?.reset();
-      return;
+    if (!this.mqttConn?.isClosed) {
+      if (this.connectionState === ConnectionState.connected) {
+        await this.mqttConn?.send(packet);
+        this.pingTimer?.reset();
+        return;
+      }
+      if (
+        this.connectionState === ConnectionState.authenticating &&
+        !blockedDuringAuthentication(packet.type)
+      ) {
+        await this.mqttConn?.send(packet);
+        this.pingTimer?.reset();
+        return;
+      }
     }
     logger.debug("not connected");
     this.pingTimer?.clear();
