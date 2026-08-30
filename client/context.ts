@@ -135,9 +135,17 @@ export class Context {
   }
 
   async send(packet: AnyPacket) {
-    logger.debug({ send: packet });
+    logger.debug("client.ctx.send", this.#connectionState, { packet });
     if (!this.mqttConn?.isClosed) {
       if (this.connectionState === ConnectionState.connected) {
+        await this.mqttConn?.send(packet);
+        this.pingTimer?.reset();
+        return;
+      }
+      if (
+        this.connectionState === ConnectionState.connecting &&
+        packet.type === PacketType.auth
+      ) {
         await this.mqttConn?.send(packet);
         this.pingTimer?.reset();
         return;
@@ -167,6 +175,7 @@ export class Context {
     connectPacket: ConnectPacket,
   ): Promise<boolean> {
     this.mqttConn = new MqttConn({ conn });
+    this.mqttConn.codecOpts.protocolLevel = connectPacket.protocolLevel;
     try {
       logger.debug("Send connect packet", connectPacket);
       await this.connect(connectPacket);
