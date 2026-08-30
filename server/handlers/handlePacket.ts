@@ -41,11 +41,17 @@ export async function handlePacket(
   if (ctx.state === SessionState.connecting) {
     if (packet.type === PacketType.connect) {
       await handleConnect(ctx, packet);
-    } else {
-      throw new Error(
-        `Received ${PacketNameByType[packet.type]} packet before connect`,
-      );
+      ctx.timer?.reset();
+      return;
     }
+    if (packet.type === PacketType.auth) {
+      await handleAuth(ctx, packet as AuthPacket);
+      ctx.timer?.reset();
+      return;
+    }
+    throw new Error(
+      `Received ${PacketNameByType[packet.type]} packet before connect`,
+    );
   } else {
     switch (packet.type) {
       case PacketType.pingreq:

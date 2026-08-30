@@ -1,9 +1,10 @@
 import type { MqttConn } from "../mqttConn/mqttConn.ts";
 import { withTimeout } from "./timers.ts";
 import { delay } from "./timers.ts";
-import { MQTTLevel, PacketType } from "../mqttPacket/mod.ts";
+import { MQTTLevel, PacketType, ReasonCode } from "../mqttPacket/mod.ts";
 import type {
   AnyPacket,
+  AuthPacket,
   ConnackPacket,
   ConnectPacket,
   DisconnectProperties,
@@ -52,7 +53,7 @@ async function baseConnect(mqttConn: MqttConn, {
   will = undefined as ConnectPacket["will"],
   properties = {},
   checkAck = true,
-} = {}): Promise<ConnackPacket> {
+} = {}): Promise<ConnackPacket | AuthPacket> {
   mqttConn.codecOpts.protocolLevel = level;
   const connectPacket: ConnectPacket = {
     type: PacketType.connect,
@@ -127,6 +128,27 @@ export async function connect5(mqttConn: MqttConn, {
     properties,
     checkAck,
   }) as ConnackPacketV5;
+}
+
+export async function auth(mqttConn: MqttConn, {
+  reasonCode = ReasonCode.continueAuthentication,
+  authMethod = "SCRAM-SHA-256",
+  authData = new Uint8Array([1]),
+  noMethod = false,
+  noData = false,
+} = {}) {
+  const authPacket: AuthPacket = {
+    type: PacketType.auth,
+    protocolLevel: 5,
+    reasonCode,
+    properties: {
+      authenticationMethod: noMethod ? undefined : authMethod,
+      authenticationData: noData ? undefined : authData,
+    },
+  };
+  await mqttConn.send(authPacket);
+  const { value } = await mqttConn.next();
+  return value;
 }
 
 export async function subscribe(

@@ -5,14 +5,16 @@
 ### Changed
 
 - feat: replace BYOD stream by Default Readable/Writable stream
+- feat: support MQTT v5
 - feat(server): close connection on unauthorized publish (was ignore)
 - feat(server): add preconnect timeout
 - feat(server): set default max incoming message size to 2Kb (was 2Mb)
-- feat: limit max number of topic and topicFilter levels to 50
+- feat(server): limit max number of topic and topicFilter levels to 50
 - feat(server): add TLS client and server
 - feat(server): add WebSocket client and server
 - feat(server): refactor server persistence and add sqlite based persistence
 - feat(server): add a preconnect handler
+- feat(server): add a processAuth handler to handle v5 auth messages
 - feat(server): add Eclipse paho compatibility testing
 - chore: add many more tests
 - chore: remove .vscode files from repo

@@ -58,6 +58,7 @@ export async function handleAuth(
     if (!(authMethod && authData)) {
       return await ctx.close(false);
     }
+
     if (ctx.state === SessionState.connected) {
       ctx.state = SessionState.authenticating;
     }

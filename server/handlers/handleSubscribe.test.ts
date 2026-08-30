@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { AnyPacket, PublishPacket } from "../deps.ts";
-import { MQTTLevel, PacketType, ReasonCode } from "../deps.ts";
+import type { PublishPacket } from "../deps.ts";
+import { PacketType, ReasonCode } from "../deps.ts";
 import {
   addMockClient,
   connect,

@@ -1,0 +1,309 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { Context, SessionState } from "../context.ts";
+import type { AuthPacket } from "../deps.ts";
+import { PacketType, ReasonCode } from "../deps.ts";
+import { connect5, auth, startMockServer } from "../../dev_utils/mod.ts";
+import { handleAuth } from "./handleAuth.ts";
+import { handlePublish } from "./handlePublish.ts";
+import { handleSubscribe } from "./handleSubscribe.ts";
+import { handleUnsubscribe } from "./handleUnsubscribe.ts";
+
+const authPacket: AuthPacket = {
+  type: PacketType.auth,
+  protocolLevel: 5,
+  reasonCode: ReasonCode.continueAuthentication,
+};
+
+test("Auth packet with no handler, closes connection", async () => {
+  const { mqttConn } = startMockServer();
+
+  // Connect first
+  await connect5(mqttConn);
+
+  // Send AUTH packet
+  await auth(mqttConn);
+  await mqttConn.next();
+
+  assert.strictEqual(mqttConn.isClosed, true);
+});
+
+test("Auth packet without authenticationMethod or authenticationData closes connection", async () => {
+  const { mqttConn } = startMockServer({
+    handlers: {
+      processAuth() {
+        return { reasonCode: ReasonCode.success };
+      },
+    },
+  });
+
+  await connect5(mqttConn, { clientId: "test" });
+  const ctx = Context.clientList.get("test")!;
+
+  // Missing authenticationMethod and authenticationData
+  const invalidAuthPacket: AuthPacket = {
+    type: PacketType.auth,
+    protocolLevel: 5,
+    reasonCode: ReasonCode.continueAuthentication,
+    properties: {},
+  };
+
+  await handleAuth(ctx, invalidAuthPacket);
+  await mqttConn.next();
+  assert.strictEqual(mqttConn.isClosed, true);
+});
+
+test("Auth packet triggers continueAuthentication response", async () => {
+  const { mqttConn } = startMockServer({
+    handlers: {
+      processAuth(_ctx, _clientId, authMethod, authData) {
+        assert.strictEqual(authMethod, "SCRAM-SHA-256");
+        assert.deepStrictEqual(authData, new Uint8Array([1, 2, 3]));
+        return {
+          reasonCode: ReasonCode.continueAuthentication,
+          authData: new Uint8Array([4, 5, 6]),
+          reasonString: "Continue auth",
+        };
+      },
+    },
+  });
+
+  await connect5(mqttConn);
+
+  const incomingAuthPacket: AuthPacket = {
+    type: PacketType.auth,
+    protocolLevel: 5,
+    reasonCode: ReasonCode.continueAuthentication,
+    properties: {
+      authenticationMethod: "SCRAM-SHA-256",
+      authenticationData: new Uint8Array([1, 2, 3]),
+    },
+  };
+
+  await mqttConn.send(incomingAuthPacket);
+
+  const { value: response } = await mqttConn.next();
+  assert.strictEqual(response?.type, PacketType.auth);
+  assert.strictEqual(response?.reasonCode, ReasonCode.continueAuthentication);
+  assert.strictEqual(
+    response?.properties?.authenticationMethod,
+    "SCRAM-SHA-256",
+  );
+  assert.deepStrictEqual(
+    response?.properties?.authenticationData,
+    new Uint8Array([4, 5, 6]),
+  );
+  assert.strictEqual(mqttConn.isClosed, false);
+});
+
+test("Connect packet completes initial connection with auth data", async () => {
+  const { mqttConn } = startMockServer({
+    handlers: {
+      processAuth() {
+        return {
+          reasonCode: ReasonCode.success,
+        };
+      },
+    },
+  });
+
+  await connect5(mqttConn, {
+    clientId: "test",
+    properties: {
+      authenticationMethod: "SCRAM-SHA-256",
+      authenticationData: new Uint8Array([1]),
+    },
+  });
+});
+
+test("Auth packet completes initial connection when in connecting state", async () => {
+  const { mqttConn } = startMockServer({
+    handlers: {
+      processAuth(
+        _ctx: Context,
+        _clientId: string,
+        _authMethod: string,
+        authData: Uint8Array,
+      ) {
+        if (authData[0] === 2) {
+          return {
+            reasonCode: ReasonCode.success,
+          };
+        }
+        return {
+          reasonCode: ReasonCode.continueAuthentication,
+          authData: new Uint8Array([12]),
+        };
+      },
+    },
+  });
+
+  const authResponse = await connect5(mqttConn, {
+    clientId: "test",
+    properties: {
+      authenticationMethod: "SCRAM-SHA-256",
+      authenticationData: new Uint8Array([1]),
+    },
+    checkAck: false,
+  });
+
+  assert.strictEqual(authResponse?.type, PacketType.auth);
+  assert.strictEqual(
+    authResponse?.reasonCode,
+    ReasonCode.continueAuthentication,
+  );
+  assert.deepEqual(
+    authResponse?.properties?.authenticationData,
+    new Uint8Array([12]),
+  );
+
+  await mqttConn.send({
+    type: PacketType.auth,
+    protocolLevel: 5,
+    reasonCode: ReasonCode.continueAuthentication,
+    properties: {
+      authenticationMethod: "SCRAM-SHA-256",
+      authenticationData: new Uint8Array([2]),
+    },
+  });
+
+  const { value: connack } = await mqttConn.next();
+  assert.strictEqual(connack?.type, PacketType.connack);
+  assert.strictEqual(
+    connack?.reasonCode,
+    ReasonCode.success,
+  );
+});
+
+test("Auth packet re-authentication success transitions state back to connected", async () => {
+  const { mqttConn } = startMockServer({
+    handlers: {
+      processAuth() {
+        return {
+          reasonCode: ReasonCode.success,
+          authData: new Uint8Array([9, 9]),
+          reasonString: "Re-auth successful",
+        };
+      },
+    },
+  });
+
+  await connect5(mqttConn, { clientId: "test" });
+  const ctx = Context.clientList.get("test")!;
+  assert.strictEqual(ctx.state, SessionState.connected);
+
+  const incomingAuthPacket: AuthPacket = {
+    type: PacketType.auth,
+    protocolLevel: 5,
+    reasonCode: ReasonCode.continueAuthentication,
+    properties: {
+      authenticationMethod: "SCRAM-SHA-256",
+      authenticationData: new Uint8Array([1, 2]),
+    },
+  };
+
+  await handleAuth(ctx, incomingAuthPacket);
+
+  assert.strictEqual(ctx.state, SessionState.connected);
+  const { value: response } = await mqttConn.next();
+  assert.strictEqual(response?.type, PacketType.auth);
+  assert.strictEqual(response?.reasonCode, ReasonCode.success);
+  assert.deepStrictEqual(
+    response?.properties?.authenticationData,
+    new Uint8Array([9, 9]),
+  );
+});
+
+test("Auth packet re-authentication failure sends DISCONNECT and closes connection", async () => {
+  const { mqttConn } = startMockServer({
+    handlers: {
+      processAuth() {
+        return {
+          reasonCode: ReasonCode.notAuthorized,
+          reasonString: "Re-auth failed",
+        };
+      },
+    },
+  });
+
+  await connect5(mqttConn, { clientId: "test" });
+  const ctx = Context.clientList.get("test")!;
+
+  const incomingAuthPacket: AuthPacket = {
+    type: PacketType.auth,
+    protocolLevel: 5,
+    reasonCode: ReasonCode.continueAuthentication,
+    properties: {
+      authenticationMethod: "SCRAM-SHA-256",
+      authenticationData: new Uint8Array([1]),
+    },
+  };
+
+  await handleAuth(ctx, incomingAuthPacket);
+
+  const { value: response } = await mqttConn.next();
+  assert.strictEqual(response?.type, PacketType.disconnect);
+  assert.strictEqual(response?.reasonCode, ReasonCode.notAuthorized);
+  await mqttConn.next();
+  assert.strictEqual(mqttConn.isClosed, true);
+});
+
+test("Packets are blocked/rejected while state is authenticating", async () => {
+  const { mqttConn } = startMockServer({
+    handlers: {
+      isAuthorizedToPublish() {
+        return true;
+      },
+      isAuthorizedToSubscribe() {
+        return true;
+      },
+    },
+  });
+
+  await connect5(mqttConn, { clientId: "test" });
+  const ctx = Context.clientList.get("test")!;
+
+  // Transition session state to authenticating
+  ctx.state = SessionState.authenticating;
+
+  // Publish attempt must be rejected with notAuthorized
+  await handlePublish(ctx, {
+    type: PacketType.publish,
+    protocolLevel: 5,
+    topic: "test/topic",
+    qos: 1,
+    id: 1,
+    payload: new Uint8Array(),
+  });
+
+  const { value: pubResp } = await mqttConn.next();
+  assert.strictEqual(pubResp?.type, PacketType.puback);
+  assert.strictEqual(pubResp?.reasonCode, ReasonCode.notAuthorized);
+
+  // Subscribe attempt must be rejected with notAuthorized
+  await handleSubscribe(ctx, {
+    type: PacketType.subscribe,
+    protocolLevel: 5,
+    id: 2,
+    subscriptions: [{ topicFilter: "test/topic", qos: 0 }],
+  });
+
+  const { value: subResp } = await mqttConn.next();
+  assert.strictEqual(subResp?.type, PacketType.suback);
+  assert.strictEqual(subResp?.reasonCodes[0], ReasonCode.notAuthorized);
+
+  // Unsubscribe attempt must return noSubscriptionExisted
+  await handleUnsubscribe(ctx, {
+    type: PacketType.unsubscribe,
+    protocolLevel: 5,
+    id: 3,
+    topicFilters: ["test/topic"],
+  });
+
+  const { value: unsubResp } = await mqttConn.next();
+  assert.strictEqual(unsubResp?.type, PacketType.unsuback);
+  assert.strictEqual(
+    unsubResp?.reasonCodes[0],
+    ReasonCode.noSubscriptionExisted,
+  );
+});

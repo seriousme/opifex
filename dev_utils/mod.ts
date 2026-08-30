@@ -9,6 +9,7 @@ export {
 } from "./timers.ts";
 export { addMockClient, startMockServer } from "./mockServer.ts";
 export {
+  auth,
   checkNoPacket,
   connect,
   connect5,
