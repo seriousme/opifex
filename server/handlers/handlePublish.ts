@@ -34,16 +34,15 @@ async function handlePublishError(
   }
   // in v5 we can message the client
   //
-  const cfg = ctx.config.context;
-  const addReasonString = cfg.provideReasonStrings === true;
-  const properties = (reasonString && addReasonString) ? { reasonString } : {};
 
   if (reasonsToDisconnect.includes(reasonCode)) {
     await ctx.send({
       type: PacketType.disconnect,
       protocolLevel: ctx.protocolLevel,
       reasonCode,
-      properties,
+      properties: {
+        reasonString,
+      },
     });
     await ctx.close(false);
     return;
@@ -61,7 +60,9 @@ async function handlePublishError(
     protocolLevel: ctx.protocolLevel,
     id,
     reasonCode,
-    properties,
+    properties: {
+      reasonString,
+    },
   });
   return;
 }

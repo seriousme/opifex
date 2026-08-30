@@ -62,6 +62,22 @@ test("Publish with missing isAuthorizedToPublish handler authorizes publish", as
   await disconnect(mqttConn);
 });
 
+test("Publish with isAuthorizedToPublish handler throwing error rejects publish", async () => {
+  const { mqttConn, mqttServer } = startMockServer();
+  mqttServer.handlers.isAuthorizedToPublish = () => {
+    throw Error("kaboom");
+  };
+
+  await connect(mqttConn);
+  await publish(mqttConn, "topic/kaboom", 1, {
+    id: 3,
+    payload: "test",
+    checkAcks: false,
+  });
+  await mqttConn.next();
+  assert.equal(mqttConn.isClosed, true, "expect connection to be closed");
+});
+
 test("PUBLISH to unauthorized topic is rejected", async () => {
   const { mqttConn } = startMockServer();
 
