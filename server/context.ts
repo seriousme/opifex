@@ -44,6 +44,8 @@ export const SessionState = {
   connecting: 0,
   authenticating: 1,
   connected: 2,
+  closing: 3,
+  disconnected: 4,
 } as const;
 
 export type SessionState = typeof SessionState[keyof typeof SessionState];
@@ -145,7 +147,7 @@ export class Context {
   clientId: ClientId | null = null;
 
   /** Indicates the current state of the client  */
-  state: SessionState = SessionState.connecting;
+  state: SessionState = SessionState.disconnected;
 
   /** Indicates whether the client asked for a clean session */
   cleanSession = false;
@@ -522,6 +524,7 @@ export class Context {
     connectOpts: ConnectOptions = {},
   ): void {
     logger.verbose("ctx:connect connecting", clientId);
+    this.state = SessionState.connecting;
     const cfg = this.config.context;
     // configure protocol and state
     this.clientId = clientId;
@@ -628,17 +631,21 @@ export class Context {
    */
   async close(executewill = true): Promise<void> {
     logger.debug(`server closing context while state = ${this.state}`);
+    if (this.state === SessionState.closing) {
+      return;
+    }
     if (this.preconnectTimer) {
       this.preconnectTimer.clear();
     }
+
     if (this.state === SessionState.connected) {
+      this.state = SessionState.closing;
       if (this.cleanSession && !this.sessionEndsTimer) {
         // [MQTT-3.1.2-6] State data associated with this Session MUST NOT be reused in any subsequent Session
         if (this.clientId) {
           await this.persistence.deregisterClient(this.clientId);
         }
       }
-      this.state = SessionState.connecting;
       if (typeof this.timer === "object") {
         this.timer.clear();
       }
@@ -668,6 +675,7 @@ export class Context {
     if (!this.mqttConn.isClosed) {
       this.mqttConn.close();
     }
+    this.state = SessionState.closing;
   }
 
   /**

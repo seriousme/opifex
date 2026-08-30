@@ -38,19 +38,26 @@ export async function handlePacket(
 ): Promise<void> {
   logger.debug("handling", PacketNameByType[packet.type]);
   logger.debug(JSON.stringify(packet, null, 2));
-  if (ctx.state === SessionState.connecting) {
+  if (ctx.state === SessionState.disconnected) {
     if (packet.type === PacketType.connect) {
       await handleConnect(ctx, packet);
       ctx.timer?.reset();
       return;
     }
+    throw new Error(
+      `Received ${PacketNameByType[packet.type]} packet before connect`,
+    );
+  }
+  if (ctx.state === SessionState.connecting) {
     if (packet.type === PacketType.auth) {
       await handleAuth(ctx, packet as AuthPacket);
       ctx.timer?.reset();
       return;
     }
     throw new Error(
-      `Received ${PacketNameByType[packet.type]} packet before connect`,
+      `Received unexpected ${
+        PacketNameByType[packet.type]
+      } packet before connect completed`,
     );
   } else {
     switch (packet.type) {
