@@ -64,7 +64,7 @@ export type Handlers = {
   /**
    * Default preconnect handler that unconditionally permits all connections.
    * @param {SockConn} conn - The connection context.
-   * @returns {boolean} fakse will close the connection
+   * @returns {boolean} false will close the connection
    */
   preconnect?(
     conn: SockConn,
@@ -338,6 +338,8 @@ export class Context {
         );
         if (packet) {
           await this.dispatch(packet);
+        } else {
+          queue.delete(id!);
         }
       }
     }
@@ -726,7 +728,7 @@ export class Context {
         break;
       }
       packet.dup = true;
-      this.dispatch(packet);
+      await this.dispatch(packet);
     }
     // we only need to resend QoS2 PubRel acks
     for await (const packetId of p.listPendingAcks(clientId)) {
@@ -738,7 +740,7 @@ export class Context {
         type: PacketType.pubrel,
         id: packetId,
       };
-      this.send(pubrel);
+      await this.send(pubrel);
     }
   }
 }

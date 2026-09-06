@@ -383,7 +383,7 @@ export class MqttPersistence implements IPersistence {
       if (sub.noLocal && sub.clientId === publisherClientId) continue;
 
       if (sub.shareName) {
-        // Het is een Shared Subscription
+        // It is a Shared Subscription
         if (!sharedGroups.has(sub.shareName)) {
           sharedGroups.set(sub.shareName, []);
         }
@@ -455,7 +455,11 @@ export class MqttPersistence implements IPersistence {
 
     const handler = this.clientHandlerList.get(clientId);
     // don't await the handler to allow for parallelism
-    if (handler) handler(packet);
+    if (handler) {
+      Promise.resolve(handler(packet)).catch((err) => {
+        logger.error(`Error delivering packet to ${clientId}:`, err);
+      });
+    }
   }
 
   // --- Unified Retained Logic ---

@@ -13,7 +13,7 @@ import type { Configuration, ConfigurationInput } from "./config.ts";
  */
 const defaultPreconnect = (
   _conn: SockConn,
-) => true;
+) => (true) as const;
 
 /**
  * Default authentication handler that unconditionally permits all connections.
@@ -28,17 +28,18 @@ const defaultIsAuthenticated = (
   _clientId: string,
   _username: string,
   _password: Uint8Array,
-) => ({ reasonCode: ReasonCode.success });
+) => ({ reasonCode: ReasonCode.success }) as const;
 
 const defaultProcessAuth = (
   _ctx: Context,
   _clientId: string,
   _authMethod: string,
   _authData: Uint8Array,
-) => ({
-  reasonCode: ReasonCode.badAuthenticationMethod,
-  reasonString: "Authentication method not supported",
-});
+) =>
+  ({
+    reasonCode: ReasonCode.badAuthenticationMethod,
+    reasonString: "Authentication method not supported",
+  }) as const;
 
 /**
  * Default authorization handler that unconditionally permits all topic operations.
@@ -46,7 +47,7 @@ const defaultProcessAuth = (
  * @param {Topic} _topic - The topic being accessed.
  * @returns {boolean} Always returns true.
  */
-const defaultIsAuthorized = (_ctx: Context, _topic: Topic) => true;
+const defaultIsAuthorized = (_ctx: Context, _topic: Topic) => (true) as const;
 
 /**
  * Configuration options for creating an MqttServer instance.
@@ -131,7 +132,7 @@ export class MqttServer {
       logger.debug(`Error while serving:${err}`);
     } finally {
       logger.debug(`done serving for ${ctx.clientId}`);
-      ctx.close();
+      await ctx.close();
     }
   }
 
@@ -139,13 +140,13 @@ export class MqttServer {
    * Close the server and all active client connections.
    * @param {boolean} cleanUp - If true, clean up client sessions on close.
    */
-  close(cleanUp: boolean = false): void {
+  async close(cleanUp: boolean = false): Promise<void> {
     logger.debug(`stopping mqttServer`);
     for (const [clientid, ctx] of Context.clientList) {
       logger.debug(`closing session for clientid: ${clientid}`);
-      ctx.close();
+      await ctx.close();
       if (cleanUp) {
-        ctx.clean();
+        await ctx.clean();
       }
     }
   }
