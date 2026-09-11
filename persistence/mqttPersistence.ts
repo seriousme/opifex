@@ -462,12 +462,12 @@ export class MqttPersistence implements IPersistence {
     }
   }
 
-  // --- Unified Retained Logic ---
   async handleRetained(
     clientId: ClientId,
     subscriptions: ClientSubscription[],
   ): Promise<void> {
-    if (!this.clientHandlerList.get(clientId)) {
+    const handler = this.clientHandlerList.get(clientId);
+    if (!handler) {
       return;
     }
 
@@ -480,7 +480,7 @@ export class MqttPersistence implements IPersistence {
         seen.add(packet.topic);
         const newPacket = clonePacket(packet);
         if (!(sub.retainAsPublished ?? true)) newPacket.retain = false;
-        await this.dispatch(clientId, newPacket);
+        await handler(newPacket);
       }
     }
   }
