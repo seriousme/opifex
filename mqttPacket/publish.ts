@@ -2,11 +2,11 @@ import type {
   CodecOpts,
   Dup,
   Payload,
-  ProtocolLevelNoV5,
   QoS,
   Topic,
   TPacketType,
 } from "./types.ts";
+import type { ProtocolLevelNoV5 } from "./protocolLevels.ts";
 import type { PublishProperties } from "./Properties.ts";
 import { PacketType } from "./PacketType.ts";
 import { BitMask } from "./BitMask.ts";

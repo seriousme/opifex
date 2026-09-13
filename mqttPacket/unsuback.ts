@@ -1,10 +1,5 @@
-import type {
-  CodecOpts,
-  PacketId,
-  ProtocolLevelNoV5,
-  TPacketType,
-  TReasonCode,
-} from "./types.ts";
+import type { CodecOpts, PacketId, TPacketType, TReasonCode } from "./types.ts";
+import type { ProtocolLevelNoV5 } from "./protocolLevels.ts";
 import type { UnsubackProperties } from "./Properties.ts";
 import { PacketType } from "./PacketType.ts";
 import { Decoder, hasEmptyFlags } from "./decoder.ts";

@@ -8,6 +8,7 @@ import type {
   ConnackPacket,
   ConnectPacket,
   DisconnectProperties,
+  ProtocolLevel,
   PublishProperties,
   QoS,
   Topic,
@@ -44,7 +45,7 @@ export async function checkNoPacket(mqttConn: MqttConn, timeoutMs = 10) {
 }
 
 async function baseConnect(mqttConn: MqttConn, {
-  level = MQTTLevel.v4,
+  level = MQTTLevel.v4 as ProtocolLevel,
   clientId = `testClient-${clientIdCounter++}`,
   username = "IoTester_1",
   password = "strong_password",
@@ -66,7 +67,7 @@ async function baseConnect(mqttConn: MqttConn, {
     password: password !== "" ? txtEncoder.encode(password) : undefined,
     will,
   };
-  if (connectPacket.protocolLevel === 5) {
+  if (connectPacket.protocolLevel === MQTTLevel.v5) {
     connectPacket.properties = properties;
   }
   logger.verbose("connectHelper: sending connect");
@@ -85,6 +86,7 @@ async function baseConnect(mqttConn: MqttConn, {
   mqttConn.codecOpts.protocolLevel = level;
   return connack;
 }
+
 export async function connect(mqttConn: MqttConn, {
   level = MQTTLevel.v4,
   clientId = `testClient-${clientIdCounter++}`,
@@ -273,7 +275,7 @@ export async function publish(
   topic: Topic,
   qos: QoS,
   {
-    level = MQTTLevel.v4,
+    level = MQTTLevel.v4 as ProtocolLevel,
     id = 22,
     payload = "payload",
     retain = false,

@@ -75,7 +75,7 @@ test("encode/decode minimal auth V5", () => {
 
 test("encode/decode auth V5", () => {
   const packet: AuthPacket = {
-    protocolLevel: 5,
+    protocolLevel: MQTTLevel.v5,
     type: PacketType.auth,
     reasonCode: ReasonCode.continueAuthentication,
     properties: {

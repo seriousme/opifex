@@ -1,9 +1,5 @@
-import type {
-  CodecOpts,
-  PacketId,
-  ProtocolLevelNoV5,
-  TPacketType,
-} from "./types.ts";
+import type { CodecOpts, PacketId, TPacketType } from "./types.ts";
+import type { ProtocolLevelNoV5 } from "./protocolLevels.ts";
 import { ReasonCode, type TReasonCode } from "./ReasonCode.ts";
 import type { PubackProperties } from "./Properties.ts";
 import { PacketType } from "./PacketType.ts";

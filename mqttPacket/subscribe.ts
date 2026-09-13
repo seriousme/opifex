@@ -1,12 +1,12 @@
 import type {
   CodecOpts,
   PacketId,
-  ProtocolLevelNoV5,
   QoS,
   TopicFilter,
   TPacketType,
   TRetainHandling,
 } from "./types.ts";
+import type { ProtocolLevelNoV5 } from "./protocolLevels.ts";
 import type { SubscribeProperties } from "./Properties.ts";
 import { PacketType } from "./PacketType.ts";
 import { BitMask } from "./BitMask.ts";

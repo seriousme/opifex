@@ -1,11 +1,11 @@
 import type {
   CodecOpts,
   PacketId,
-  ProtocolLevelNoV5,
   ReturnCodes,
   TPacketType,
   TReasonCode,
 } from "./types.ts";
+import type { ProtocolLevelNoV5 } from "./protocolLevels.ts";
 import type { SubackProperties } from "./Properties.ts";
 import { PacketType } from "./PacketType.ts";
 import { Encoder } from "./encoder.ts";

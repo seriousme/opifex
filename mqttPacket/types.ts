@@ -3,6 +3,7 @@ import type { PacketType } from "./PacketType.ts";
 import type { RetainHandling } from "./RetainHandling.ts";
 import type { AuthenticationResult } from "./AuthenticationResult.ts";
 import type { ReasonCode } from "./ReasonCode.ts";
+import type { ProtocolLevel } from "./protocolLevels.ts";
 
 /**
  * Type to limit bit mask to valid values
@@ -23,15 +24,6 @@ export type TAuthenticationResult =
  * Type to limit reason code to valid values
  */
 export type TReasonCode = typeof ReasonCode[keyof typeof ReasonCode];
-
-/**
- * Protocol version
- * 3.1 = 3
- * 3.1.1 = 4
- * 5.0 = 5
- */
-export type ProtocolLevel = 3 | 4 | 5 | undefined;
-export type ProtocolLevelNoV5 = Exclude<ProtocolLevel, 5>;
 
 /**
  * Quality of Service level

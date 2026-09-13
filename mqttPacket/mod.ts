@@ -10,7 +10,7 @@ export type { AnyPacket } from "./codec.ts";
 
 export type { ConnectPacket } from "./connect.ts";
 export type { ConnackPacket } from "./connack.ts";
-export type { PublishPacket } from "./publish.ts";
+export type { PublishPacket, PublishPacketV5 } from "./publish.ts";
 export type {
   SubscribePacket,
   Subscription,
@@ -49,7 +49,6 @@ export type {
   Dup,
   PacketId,
   Payload,
-  ProtocolLevel,
   QoS,
   ReturnCodes,
   TAuthenticationResult,
@@ -77,3 +76,5 @@ export type {
   UnsubscribeProperties,
   WillProperties,
 } from "./Properties.ts";
+
+export type { ProtocolLevel, ProtocolLevelNoV5 } from "./protocolLevels.ts";

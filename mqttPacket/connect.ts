@@ -2,12 +2,11 @@ import type {
   ClientId,
   CodecOpts,
   Payload,
-  ProtocolLevel,
-  ProtocolLevelNoV5,
   QoS,
   Topic,
   TPacketType,
 } from "./types.ts";
+import type { ProtocolLevel, ProtocolLevelNoV5 } from "./protocolLevels.ts";
 import type { ConnectProperties, WillProperties } from "./Properties.ts";
 import { PropertySetType } from "./Properties.ts";
 import { PacketType } from "./PacketType.ts";

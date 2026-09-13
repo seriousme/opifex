@@ -2,12 +2,17 @@
  *  MQTT protocol levels
  */
 
-import type { ProtocolLevel } from "./types.ts";
-
-/** available MQTT Protocol levels */
+/** available MQTT Protocol levels
+ * 3.1 = 3
+ * 3.1.1 = 4
+ * 5.0 = 5
+ */
 export const MQTTLevel = {
-  unknown: undefined as ProtocolLevel,
-  v3: 3 as ProtocolLevel,
-  v4: 4 as ProtocolLevel,
-  v5: 5 as ProtocolLevel,
+  unknown: undefined,
+  v3: 3,
+  v4: 4,
+  v5: 5,
 } as const;
+
+export type ProtocolLevel = (typeof MQTTLevel)[keyof typeof MQTTLevel];
+export type ProtocolLevelNoV5 = Exclude<ProtocolLevel, 5>;
