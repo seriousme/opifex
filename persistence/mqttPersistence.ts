@@ -191,9 +191,9 @@ export class MqttPersistence implements IPersistence {
       shareName,
     );
     this.trie.remove(topicFilter, {
-          clientId,
-          shareName: shareName,
-        });
+      clientId,
+      shareName: shareName,
+    });
     const allSubs = await Array.fromAsync(
       this.storage.listSubscriptions(clientId),
     );
