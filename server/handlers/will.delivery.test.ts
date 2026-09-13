@@ -9,9 +9,6 @@ import {
   startMockServer,
   subscribe,
 } from "../../dev_utils/mod.ts";
-import { logger, LogLevel } from "../deps.ts";
-
-logger.level(LogLevel.debug);
 
 const txtEncoder = new TextEncoder();
 

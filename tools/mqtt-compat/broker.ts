@@ -9,11 +9,9 @@
 // Usage: MQTT_PORT=1883 node tools/mqtt-compat/broker.js
 import { TcpServer } from "../../node/tcpServer.ts";
 import type { Context, Topic } from "../../server/mod.ts";
-import { logger, LogLevel } from "../../utils/mod.ts";
+import { logger } from "../../utils/mod.ts";
 import { isAuthenticatedBroker as isAuthenticated } from "../../dev_utils/mod.ts";
 import { SqlitePersistence } from "../../persistence/sqlite/sqlitePersistence.ts";
-
-logger.level(LogLevel.debug);
 
 const port = Number(process.env.MQTT_PORT) || 1883;
 const persistence = new SqlitePersistence();
