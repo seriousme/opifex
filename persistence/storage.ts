@@ -3,9 +3,10 @@ import type {
   ClientRegistrationResult,
   ClientSubscription,
   ExtPublishPacket,
+  ShareName,
 } from "./persistence.ts";
 
-export type TrieSubscription = ClientSubscription & { clientId: ClientId };
+export type StoredSubscription = ClientSubscription & { clientId: ClientId };
 export const PacketDirection = {
   Incoming: 0,
   Outgoing: 1,
@@ -34,11 +35,12 @@ export interface IStorageProvider {
   deleteSubscription(
     clientId: ClientId,
     topicFilter: TopicFilter,
+    shareName: ShareName,
   ): Promise<void>;
   listSubscriptions(
     clientId: ClientId,
   ): AsyncIterableIterator<ClientSubscription>;
-  listAllSubscriptions(): AsyncIterableIterator<TrieSubscription>;
+  listAllSubscriptions(): AsyncIterableIterator<StoredSubscription>;
 
   // --- Pending Packet Storage (Incoming & Outgoing) ---
   savePendingPacket(

@@ -16,8 +16,9 @@ export function initializeDatabase(filename: string): sqlite.DatabaseSync {
     CREATE TABLE IF NOT EXISTS subscriptions (
       client_id         TEXT NOT NULL,
       topic             TEXT NOT NULL,
+      share_name        TEXT NOT NULL,
       subscription_data TEXT NOT NULL,
-      PRIMARY KEY (client_id, topic)
+      PRIMARY KEY (client_id, topic, share_name)
     );
 
     CREATE TABLE IF NOT EXISTS pending_incoming (
@@ -59,6 +60,7 @@ export type AllStatements = {
   // Sessions
   saveSession: sqlite.StatementSync;
   getSession: sqlite.StatementSync;
+  listAllSessions: sqlite.StatementSync;
 
   // Subscriptions
   saveSubscription: sqlite.StatementSync;
@@ -113,27 +115,32 @@ export function prepareAllStatements(db: sqlite.DatabaseSync): AllStatements {
       WHERE client_id = ?
     `),
 
+    listAllSessions: db.prepare(`
+      SELECT client_id, session_data 
+      FROM client_sessions 
+    `),
+
     // Subscriptions
     saveSubscription: db.prepare(`
-      INSERT INTO subscriptions (client_id, topic, subscription_data) 
-      VALUES (?, ?, ?)
-      ON CONFLICT(client_id, topic) DO UPDATE SET 
+      INSERT INTO subscriptions (client_id, topic, share_name, subscription_data) 
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(client_id, topic, share_name) DO UPDATE SET 
         subscription_data = excluded.subscription_data
     `),
 
     deleteSubscription: db.prepare(`
       DELETE FROM subscriptions 
-      WHERE client_id = ? AND topic = ?
+      WHERE client_id = ? AND topic = ? AND share_name = ?
     `),
 
     listSubscriptions: db.prepare(`
-      SELECT topic, subscription_data 
+      SELECT topic, share_name, subscription_data 
       FROM subscriptions 
       WHERE client_id = ?
     `),
 
     listAllSubscriptions: db.prepare(`
-      SELECT client_id, topic, subscription_data 
+      SELECT client_id, topic, share_name, subscription_data 
       FROM subscriptions
     `),
 

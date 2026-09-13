@@ -349,19 +349,21 @@ export class Context {
   /**
    * Dispatch publish packets to client
    */
-  async dispatch(packet: ExtPublishPacket): Promise<void> {
-    logger.debug("dispatch:", packet.id);
+  async dispatch(extPacket: ExtPublishPacket): Promise<void> {
+    logger.debug("ctx.dispatch:", extPacket.id);
     const cfg = this.config.context;
     // Fast-path short-circuit if client is no longer connected
     if (this.state !== SessionState.connected || this.mqttConn.isClosed) {
       return;
     }
-    const qos = packet.qos || 0;
 
+    // get the publish packet back from the envelope
+    const { expiresAtMs, ...rest } = extPacket;
+    const packet = rest as PublishPacket;
+
+    const qos = packet.qos || 0;
     // filter out expired packets
-    const packetExpired = packet.expiresAtMs
-      ? Date.now() > packet.expiresAtMs
-      : false;
+    const packetExpired = expiresAtMs ? Date.now() > expiresAtMs : false;
     if (packetExpired) {
       // qos 0 we can just forget the packet
       // qos 1 & 2 we need to remove the packet from persistence
@@ -412,7 +414,9 @@ export class Context {
       this.inflightPackets++;
     }
 
-    packet.protocolLevel = this.protocolLevel;
+    if (this.protocolLevel) {
+      packet.protocolLevel = this.protocolLevel;
+    }
     if (packet.protocolLevel === 5) {
       // V5 specifics
       if (this.outgoingMaxTopicAlias > 0 && this.outgoingTopicAliasManager) {
@@ -544,7 +548,7 @@ export class Context {
     if (packet.will) {
       this.will = {
         type: PacketType.publish,
-        protocolLevel: this.protocolLevel,
+        protocolLevel: 5,
         ...packet.will,
       };
     }
@@ -690,6 +694,7 @@ export class Context {
         this.handlers.isAuthorizedToPublish &&
         await this.handlers.isAuthorizedToPublish(this, this.will.topic)
       ) {
+        logger.debug("ctx.handleWill:", this.will);
         await this.publish(this.will);
       }
     }
@@ -705,7 +710,7 @@ export class Context {
   ): Promise<void> {
     const packet: ExtPublishPacket = {
       type: PacketType.publish,
-      protocolLevel: this.protocolLevel,
+      protocolLevel: 5,
       topic,
       retain,
       payload: utf8Encoder.encode(payload),

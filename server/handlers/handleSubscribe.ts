@@ -4,14 +4,15 @@ import {
   hasWildcards,
   invalidmaxTopicLevels,
   invalidTopicFilter,
+  joinTopicFilter,
   logger,
   PacketType,
+  parseTopicFilter,
   ReasonCode,
 } from "../deps.ts";
 import type {
+  ClientSubscription,
   SubscribePacket,
-  Subscription,
-  SubscriptionV5,
   Topic,
   TReasonCode,
 } from "../deps.ts";
@@ -49,7 +50,7 @@ async function authorizedToSubscribe(
  */
 function validateSubscription(
   isProtocolV5: boolean,
-  sub: SubscriptionV5,
+  sub: ClientSubscription,
   cfg: Context["config"]["context"],
 ): TReasonCode | null {
   if (
@@ -58,7 +59,7 @@ function validateSubscription(
     return ReasonCode.wildcardSubscriptionsNotSupported;
   }
 
-  if (sub.topicFilter.startsWith("$share/")) {
+  if (sub.shareName !== "") {
     if (cfg.sharedSubscriptionAvailable === false || !isProtocolV5) {
       return ReasonCode.sharedSubscriptionsNotSupported;
     }
@@ -95,19 +96,24 @@ export async function handleSubscribe(
     : undefined;
 
   // Pre-fetch existing subscriptions to evaluate Retain Handling logic (retainHandling === 1)
-  const existingTopicFilters = new Set<string>();
-  for await (
-    const existingSub of ctx.persistence.listSubscriptions(ctx.clientId!)
-  ) {
-    existingTopicFilters.add(existingSub.topicFilter);
+  const existingTopicFilters = new Set();
+  for await (const sub of ctx.persistence.listSubscriptions(ctx.clientId!)) {
+    existingTopicFilters.add(joinTopicFilter(sub.topicFilter, sub.shareName));
   }
 
-  const retainedSubscriptions: Subscription[] = [];
+  const retainedSubscriptions: ClientSubscription[] = [];
   const results: TReasonCode[] = [];
 
   for (const sub of packet.subscriptions) {
+    const clientSub = sub as ClientSubscription;
+    // split topicFilter into topicFilter and shareName
+    const { topicFilter, shareName } = parseTopicFilter(
+      sub.topicFilter,
+    );
+    clientSub.topicFilter = topicFilter;
+    clientSub.shareName = shareName;
     // TopicFilter Validation
-    const validationError = validateSubscription(isProtocolV5, sub, cfg);
+    const validationError = validateSubscription(isProtocolV5, clientSub, cfg);
     if (validationError !== null) {
       if (!isProtocolV5) {
         await ctx.close(false);
@@ -118,7 +124,7 @@ export async function handleSubscribe(
     }
 
     // Authorization Check
-    if (!await authorizedToSubscribe(ctx, sub.topicFilter)) {
+    if (!await authorizedToSubscribe(ctx, clientSub.topicFilter)) {
       results.push(
         isProtocolV5 ? ReasonCode.notAuthorized : V4SubscriptionFailure,
       );
@@ -126,27 +132,25 @@ export async function handleSubscribe(
     }
 
     // Register Subscription
-    const subV5 = sub as Partial<SubscriptionV5>;
-    const isNewSubscription = !existingTopicFilters.has(sub.topicFilter);
+    const filterKey = sub.topicFilter;
+    const isNewSubscription = !existingTopicFilters.has(filterKey);
 
+    if (subscriptionIdentifier) {
+      clientSub.subscriptionIdentifier = subscriptionIdentifier;
+    }
     await ctx.persistence.subscribe(
       ctx.clientId!,
-      sub.topicFilter,
-      sub.qos,
-      subV5.noLocal,
-      subV5.retainAsPublished,
-      subV5.retainHandling,
-      subscriptionIdentifier,
+      clientSub,
     );
 
-    existingTopicFilters.add(sub.topicFilter);
+    existingTopicFilters.add(filterKey);
 
     // Collect Subscriptions Requiring Retained Messages
     if (
-      subV5.retainHandling !== 2 &&
-      (subV5.retainHandling !== 1 || isNewSubscription)
+      clientSub.retainHandling !== 2 &&
+      (clientSub.retainHandling !== 1 || isNewSubscription)
     ) {
-      retainedSubscriptions.push(sub);
+      retainedSubscriptions.push(clientSub);
     }
 
     // Success code (Granted QoS)

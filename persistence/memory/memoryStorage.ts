@@ -8,10 +8,11 @@ import type {
   ClientRegistrationResult,
   ClientSubscription,
   ExtPublishPacket,
+  ShareName,
 } from "../persistence.ts";
-import type { IStorageProvider, TrieSubscription } from "../storage.ts";
+import type { IStorageProvider, StoredSubscription } from "../storage.ts";
 import { PacketDirection } from "../storage.ts";
-import { topicFilterToRegExp } from "../deps.ts";
+import { joinTopicFilter, topicFilterToRegExp } from "../deps.ts";
 
 type pendingTableEntry = {
   seqId: number;
@@ -78,20 +79,23 @@ export class MemoryStorage implements IStorageProvider {
 
   // --- Subscriptions ---
   saveSubscription(clientId: ClientId, sub: ClientSubscription): Promise<void> {
+    const key = joinTopicFilter(sub.topicFilter, sub.shareName);
     let clientSubs = this.subscriptionTable.get(clientId);
     if (!clientSubs) {
       clientSubs = new Map();
       this.subscriptionTable.set(clientId, clientSubs);
     }
-    clientSubs.set(sub.topicFilter, sub);
+    clientSubs.set(key, sub);
     return Promise.resolve();
   }
 
   deleteSubscription(
     clientId: ClientId,
     topicFilter: TopicFilter,
+    shareName: ShareName,
   ): Promise<void> {
-    this.subscriptionTable.get(clientId)?.delete(topicFilter);
+    const key = joinTopicFilter(topicFilter, shareName);
+    this.subscriptionTable.get(clientId)?.delete(key);
     return Promise.resolve();
   }
 
@@ -106,7 +110,7 @@ export class MemoryStorage implements IStorageProvider {
     }
   }
 
-  async *listAllSubscriptions(): AsyncIterableIterator<TrieSubscription> {
+  async *listAllSubscriptions(): AsyncIterableIterator<StoredSubscription> {
     for (const [clientId, clientSubs] of this.subscriptionTable.entries()) {
       for (const sub of clientSubs.values()) {
         yield { ...sub, clientId };

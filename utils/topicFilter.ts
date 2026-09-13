@@ -35,7 +35,7 @@ export function topicFilterToRegExp(topicFilter: string): RegExp {
  */
 export function parseTopicFilter(topicFilter: string): {
   topicFilter: string;
-  shareName?: string;
+  shareName: string;
 } {
   if (topicFilter.startsWith("$share/")) {
     const nextSlashIndex = topicFilter.indexOf("/", 7);
@@ -46,5 +46,47 @@ export function parseTopicFilter(topicFilter: string): {
       };
     }
   }
-  return { topicFilter };
+  return { topicFilter, shareName: "" };
+}
+
+/** the inverse of parseTopicFilter */
+export function joinTopicFilter(
+  topicFilter: string,
+  shareName: string,
+): string {
+  if (shareName !== "") {
+    return `$share/${shareName}/${topicFilter}`;
+  }
+  return topicFilter;
+}
+
+/**
+ * check if 2 topicFilters overlap
+ *
+ * @param filterA - the first filter.
+ * @param filterB - the second filter.
+ * @returns true if the filters partially overlap
+ */
+export function topicFiltersOverlap(filterA: string, filterB: string): boolean {
+  if (filterA === filterB || filterA === "#" || filterB === "#") return true;
+
+  const segsA = filterA.split("/");
+  const segsB = filterB.split("/");
+  const minLen = Math.min(segsA.length, segsB.length);
+
+  for (let i = 0; i < minLen; i++) {
+    const a = segsA[i];
+    const b = segsB[i];
+
+    if (a === "#" || b === "#") return true;
+    if (a === "+" || b === "+") continue;
+    if (a !== b) return false;
+  }
+
+  // Exact match on lengths
+  if (segsA.length === segsB.length) return true;
+
+  // If one filter is longer, it overlaps only if its next segment is '#'
+  const longer = segsA.length > segsB.length ? segsA : segsB;
+  return longer[minLen] === "#";
 }

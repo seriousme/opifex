@@ -3,7 +3,7 @@ import { initializeDatabase } from "./sqliteDatabase.ts";
 import { SqlitePersistence } from "./sqlitePersistence.ts";
 import { SqliteStorage } from "./sqliteStorage.ts";
 import { PacketDirection } from "../storage.ts";
-import { MQTTLevel, PacketType } from "../deps.ts";
+import { PacketType } from "../deps.ts";
 import assert from "node:assert/strict";
 
 const utf8Encoder = new TextEncoder();
@@ -17,14 +17,19 @@ test("SqlitePersistence - Trie is correctly rebuilt (restored) from the database
   storage.saveSession("Client_B", { existingSession: true });
   storage.saveSubscription("Client_A", {
     topicFilter: "sensor/temperature",
+    shareName: "",
     qos: 1,
   });
-  storage.saveSubscription("Client_B", { topicFilter: "sensor/#", qos: 2 });
+  storage.saveSubscription("Client_B", {
+    topicFilter: "sensor/#",
+    shareName: "",
+    qos: 2,
+  });
   const persistence = await SqlitePersistence.start(sharedDb);
   const topic = "sensor/temperature";
   await persistence.publish("Client_C", {
     type: PacketType.publish,
-    protocolLevel: MQTTLevel.v4,
+    protocolLevel: 5,
     topic,
     payload: utf8Encoder.encode("25 degrees"),
     qos: 2,

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { AnyPacket } from "../deps.ts";
+import type { AnyPacket, ProtocolLevel } from "../deps.ts";
 import { AuthenticationResult, MQTTLevel, PacketType } from "../deps.ts";
 import { startMockServer } from "../../dev_utils/mod.ts";
 
@@ -9,7 +9,7 @@ const txtEncoder = new TextEncoder();
 const baseConnectPacket: AnyPacket = {
   type: PacketType.connect,
   protocolName: "MQTT",
-  protocolLevel: MQTTLevel.v4,
+  protocolLevel: MQTTLevel.v4 as ProtocolLevel,
   clientId: "testClient",
   clean: true,
   keepAlive: 0,

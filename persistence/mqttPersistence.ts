@@ -1,37 +1,103 @@
-import type {
-  ClientId,
-  PacketId,
-  QoS,
-  TopicFilter,
-  TRetainHandling,
-} from "./deps.ts";
+import type { ClientId, PacketId, QoS, TopicFilter } from "./deps.ts";
 import type {
   ClientRegistrationResult,
   ClientSubscription,
   ExtPublishPacket,
   Handler,
   IPersistence,
+  ShareName,
 } from "./persistence.ts";
-import type { IStorageProvider, TrieSubscription } from "./storage.ts";
+import type { IStorageProvider } from "./storage.ts";
 import { PacketDirection } from "./storage.ts";
-import { assert, parseTopicFilter, Trie } from "./deps.ts";
+import { assert, logger, topicFiltersOverlap, Trie } from "./deps.ts";
 import { MAX_PACKET_ID } from "./persistence.ts";
-import { logger } from "./deps.ts";
+
+type ConsolidatedSubscription =
+  & Omit<
+    ClientSubscription,
+    "qos" | "subscriptionIdentifier" | "retainHandling"
+  >
+  & {
+    maxQos: QoS;
+    subscriptionIdentifiers: number[];
+  };
+
+type TrieSub = ConsolidatedSubscription & { clientId: ClientId };
+
+/**
+ * Calculates pre-consolidated routing rules for overlapping filters of a SINGLE client.
+ */
+function consolidateClientSubscriptions(
+  clientSubs: ClientSubscription[],
+): ConsolidatedSubscription[] {
+  const consolidated: ConsolidatedSubscription[] = [];
+
+  for (const targetSub of clientSubs) {
+    let maxQos = targetSub.qos;
+    let retainAsPublished = targetSub.retainAsPublished ?? true;
+    let noLocal = targetSub.noLocal ?? false;
+    const subIds = new Set<number>();
+
+    if (targetSub.subscriptionIdentifier) {
+      subIds.add(targetSub.subscriptionIdentifier);
+    }
+
+    // Compare targetSub against all other subscriptions for this client to detect overlap
+    for (const otherSub of clientSubs) {
+      if (targetSub.topicFilter === otherSub.topicFilter) continue;
+
+      // If the two filters overlap on potential topics
+      if (
+        targetSub.shareName === otherSub.shareName &&
+        topicFiltersOverlap(targetSub.topicFilter, otherSub.topicFilter)
+      ) {
+        maxQos = Math.max(maxQos, otherSub.qos) as QoS;
+        if (otherSub.retainAsPublished) retainAsPublished = true;
+        // noLocal is only preserved if both filters requested noLocal
+        noLocal = noLocal && (otherSub.noLocal ?? false);
+
+        if (otherSub.subscriptionIdentifier) {
+          subIds.add(otherSub.subscriptionIdentifier);
+        }
+      }
+    }
+
+    consolidated.push({
+      topicFilter: targetSub.topicFilter,
+      maxQos,
+      retainAsPublished,
+      noLocal,
+      subscriptionIdentifiers: Array.from(subIds),
+      shareName: targetSub.shareName,
+    });
+  }
+
+  return consolidated;
+}
 
 function clonePacket(packet: ExtPublishPacket): ExtPublishPacket {
-  const newPacket = structuredClone(packet);
-  // reset session specific settings
-  newPacket.dup = false;
-  if (newPacket.protocolLevel === 5 && newPacket.properties) {
-    newPacket.properties.subscriptionIdentifiers = undefined;
-    newPacket.properties.topicAlias = undefined;
+  if ((packet.protocolLevel === 5) && packet.properties) {
+    const newPacket = {
+      ...packet,
+      dup: false,
+    };
+    newPacket.properties = {
+      ...packet.properties,
+      subscriptionIdentifiers: undefined,
+      topicAlias: undefined,
+    };
+    return newPacket;
   }
+  const newPacket = {
+    ...packet,
+    dup: false,
+  };
   return newPacket;
 }
 
 export class MqttPersistence implements IPersistence {
   private clientHandlerList = new Map<ClientId, Handler>();
-  private trie = new Trie<TrieSubscription>();
+  private trie = new Trie<TrieSub>();
   private packetIdCounters = new Map<ClientId, number>();
   private storage: IStorageProvider;
   private sharedGroupCounters = new Map<string, number>();
@@ -43,16 +109,27 @@ export class MqttPersistence implements IPersistence {
   async initialize(): Promise<void> {
     await this.storage.initialize();
     // Warm up the fast matching Trie on startup
-    for await (const sub of this.storage.listAllSubscriptions()) {
-      this.trie.add(sub.topicFilter, sub);
+    for await (const { clientId } of this.storage.listAllSessions()) {
+      const clientSubs = await Array.fromAsync(
+        this.storage.listSubscriptions(clientId),
+      );
+      const consolidatedSubs = consolidateClientSubscriptions(clientSubs);
+      for (const sub of consolidatedSubs) {
+        this.trie.remove(sub.topicFilter, {
+          clientId,
+          shareName: sub.shareName,
+        });
+        const trieSub = { ...sub, clientId } as TrieSub;
+        this.trie.add(sub.topicFilter, trieSub);
+      }
     }
   }
 
   async registerClient(
     clientId: ClientId,
-    handler: Handler,
+    clientDispatch: Handler,
   ): Promise<ClientRegistrationResult> {
-    this.clientHandlerList.set(clientId, handler);
+    this.clientHandlerList.set(clientId, clientDispatch);
     let session = await this.storage.getSession(clientId);
     if (session) {
       session.existingSession = true;
@@ -83,90 +160,60 @@ export class MqttPersistence implements IPersistence {
   // --- Subscriptions ---
   async subscribe(
     clientId: ClientId,
-    topicFilter: TopicFilter,
-    qos: QoS,
-    noLocal?: boolean,
-    retainAsPublished?: boolean,
-    retainHandling?: TRetainHandling,
-    subscriptionIdentifier?: number,
+    subscription: ClientSubscription,
   ): Promise<void> {
-    const { topicFilter: parsedTopicFilter, shareName } = parseTopicFilter(
-      topicFilter,
+    await this.storage.saveSubscription(clientId, subscription);
+
+    const clientSubs = await Array.fromAsync(
+      this.storage.listSubscriptions(clientId),
     );
-    const rawSub = {
-      topicFilter: parsedTopicFilter,
-      qos,
-      noLocal,
-      retainAsPublished,
-      retainHandling,
-      subscriptionIdentifier,
-      shareName,
-    };
-
-    // remove undefined values to match the Typescript definition
-    const sub = Object.fromEntries(
-      Object.entries(rawSub).filter(([_, value]) => value !== undefined),
-    ) as ClientSubscription;
-
-    await this.storage.saveSubscription(clientId, sub);
-
-    const trieSub = { ...sub, clientId } as TrieSubscription;
-    this.trie.remove(topicFilter, { clientId, topicFilter });
-    this.trie.add(topicFilter, trieSub);
+    const consolidatedSubs = consolidateClientSubscriptions(clientSubs);
+    for (const sub of consolidatedSubs) {
+      if (sub) {
+        this.trie.remove(sub.topicFilter, {
+          clientId,
+          shareName: sub.shareName,
+        });
+        const trieSub = { ...sub, clientId } as TrieSub;
+        this.trie.add(sub.topicFilter, trieSub);
+      }
+    }
   }
 
   async unsubscribe(
     clientId: ClientId,
     topicFilter: TopicFilter,
+    shareName: ShareName,
   ): Promise<void> {
-    const { topicFilter: parsedTopicFilter, shareName } = parseTopicFilter(
+    await this.storage.deleteSubscription(
+      clientId,
       topicFilter,
+      shareName,
     );
-    this.trie.remove(parsedTopicFilter, { clientId, shareName });
-    await this.storage.deleteSubscription(clientId, topicFilter);
+    this.trie.remove(topicFilter, {
+          clientId,
+          shareName: shareName,
+        });
+    const allSubs = await Array.fromAsync(
+      this.storage.listSubscriptions(clientId),
+    );
+    const consolidatedSubs = consolidateClientSubscriptions(allSubs);
+    for (const sub of consolidatedSubs) {
+      if (sub) {
+        this.trie.remove(sub.topicFilter, {
+          clientId,
+          shareName: sub.shareName,
+        });
+        const trieSub = { ...sub, clientId } as TrieSub;
+        this.trie.add(sub.topicFilter, trieSub);
+      }
+    }
   }
 
   listSubscriptions(
     clientId: ClientId,
   ): AsyncIterableIterator<ClientSubscription> {
     return this.storage.listSubscriptions(clientId);
-  }
-
-  /**
-   * check if the client is still subscribed to the packets topic
-   * as things could have changed, e.g. between enqueing and resending offline packets
-   * and add subscriptionIdentifiers
-   */
-  private matchSubscriptions(
-    clientId: ClientId,
-    packet: ExtPublishPacket,
-  ): boolean {
-    let maxQos = 0;
-    const subIds = [];
-    let matched = false;
-    for (const sub of this.trie.match(packet.topic)) {
-      if (sub.clientId === clientId) {
-        matched = true;
-        if (sub.subscriptionIdentifier) {
-          subIds.push(sub.subscriptionIdentifier);
-        }
-        if (sub.qos > maxQos) {
-          maxQos = sub.qos;
-        }
-      }
-    }
-    if (subIds.length > 0 && packet.protocolLevel === 5) {
-      if (packet.properties === undefined) {
-        packet.properties = {};
-      }
-      packet.properties.subscriptionIdentifiers = subIds;
-    }
-    const originalQos = packet.qos || 0;
-    packet.qos = (originalQos < maxQos ? originalQos : maxQos) as QoS;
-    logger.debug(
-      `matchSubscriptions: topic ${packet.topic}, matched ${matched}`,
-    );
-    return matched;
   }
 
   async addPendingIncomingPacket(
@@ -287,12 +334,11 @@ export class MqttPersistence implements IPersistence {
       )
     ) {
       // Clean up
-      // - orphaned pending packet since client unsubscribed while offline
       // - expired packets
       const packetExpired = packet.expiresAtMs
         ? Date.now() > packet.expiresAtMs
         : false;
-      if (!this.matchSubscriptions(clientId, packet) || packetExpired) {
+      if (packetExpired) {
         if (packet.id) {
           await this.storage.deletePendingPacket(
             clientId,
@@ -374,14 +420,12 @@ export class MqttPersistence implements IPersistence {
 
     const directClients = new Map<
       ClientId,
-      { maxQos: QoS; retainAsPublished: boolean }
+      TrieSub
     >();
-    const sharedGroups = new Map<string, TrieSubscription[]>();
+    const sharedGroups = new Map<string, TrieSub[]>();
 
     for (const sub of this.trie.match(topic)) {
-      sub.retainAsPublished = sub.retainAsPublished ?? true;
       if (sub.noLocal && sub.clientId === publisherClientId) continue;
-
       if (sub.shareName) {
         // It is a Shared Subscription
         if (!sharedGroups.has(sub.shareName)) {
@@ -389,27 +433,21 @@ export class MqttPersistence implements IPersistence {
         }
         sharedGroups.get(sub.shareName)!.push(sub);
       } else {
-        let target = directClients.get(sub.clientId);
-        if (!target) {
-          target = {
-            maxQos: sub.qos,
-            retainAsPublished: sub.retainAsPublished,
-          };
-          directClients.set(sub.clientId, target);
-        } else {
-          if (sub.qos > target.maxQos) target.maxQos = sub.qos;
-          if (sub.retainAsPublished) target.retainAsPublished = true;
+        // only one match per client is enough as we already pre-consolidated the subscriptions
+        if (!directClients.has(sub.clientId)) {
+          directClients.set(sub.clientId, sub);
         }
       }
     }
 
-    for (const [clientId, opts] of directClients) {
-      const newPacket = clonePacket(packet);
-      if (!(opts.retainAsPublished ?? true)) newPacket.retain = false;
-
-      const originalQos = packet.qos || 0;
-      newPacket.qos = originalQos < opts.maxQos ? originalQos : opts.maxQos;
-      await this.dispatch(clientId, newPacket);
+    for (const [clientId, sub] of directClients) {
+      await this.dispatch(
+        clientId,
+        packet,
+        sub.maxQos,
+        sub.retainAsPublished,
+        sub.subscriptionIdentifiers,
+      );
     }
 
     for (const [shareName, candidates] of sharedGroups) {
@@ -425,38 +463,55 @@ export class MqttPersistence implements IPersistence {
         activeCandidates[currentIndex % activeCandidates.length];
       this.sharedGroupCounters.set(shareName, currentIndex + 1);
       if (selectedClient === undefined) continue;
-
-      const newPacket = clonePacket(packet);
-      if (!(selectedClient.retainAsPublished ?? true)) newPacket.retain = false;
-      const originalQos = packet.qos || 0;
-      newPacket.qos = originalQos < selectedClient.qos
-        ? originalQos
-        : selectedClient.qos;
-
-      await this.dispatch(selectedClient.clientId, newPacket);
+      await this.dispatch(
+        selectedClient.clientId,
+        packet,
+        selectedClient.maxQos,
+        selectedClient.retainAsPublished,
+        [],
+      );
     }
   }
 
   private async dispatch(
     clientId: ClientId,
     packet: ExtPublishPacket,
+    maxQos: QoS,
+    retainAsPublished: boolean | undefined,
+    subscriptionIdentifiers: number[],
   ): Promise<void> {
-    logger.debug(`dispatch ${clientId}, ${packet.topic}, ${packet.qos}`);
+    logger.debug(
+      "mqttpersistence: dispatch",
+      {
+        clientId,
+        topic: packet.topic,
+        maxQos,
+        retainAsPublished,
+        subscriptionIdentifiers,
+      },
+    );
 
-    const qos = packet.qos || 0;
-    if (!this.matchSubscriptions(clientId, packet)) {
-      // client is no longer subscribed
-      return;
+    const newPacket = clonePacket(packet);
+    if (!retainAsPublished) newPacket.retain = false;
+    newPacket.qos = Math.min(packet.qos ?? 0, maxQos) as QoS;
+
+    const qos = newPacket.qos;
+    if (subscriptionIdentifiers.length > 0) {
+      newPacket.protocolLevel = 5;
+      if (!newPacket.properties) {
+        newPacket.properties = {};
+      }
+      newPacket.properties.subscriptionIdentifiers = subscriptionIdentifiers;
     }
     if (qos !== 0) {
-      packet.id = await this.nextPacketId(clientId);
-      await this.addPendingOutgoingPacket(clientId, packet);
+      newPacket.id = await this.nextPacketId(clientId);
+      await this.addPendingOutgoingPacket(clientId, newPacket);
     }
 
-    const handler = this.clientHandlerList.get(clientId);
-    // don't await the handler to allow for parallelism
-    if (handler) {
-      Promise.resolve(handler(packet)).catch((err) => {
+    const clientDispatch = this.clientHandlerList.get(clientId);
+    // don't await the clientDispatch to allow for parallelism
+    if (clientDispatch) {
+      Promise.resolve(clientDispatch(newPacket)).catch((err) => {
         logger.error(`Error delivering packet to ${clientId}:`, err);
       });
     }
@@ -466,21 +521,38 @@ export class MqttPersistence implements IPersistence {
     clientId: ClientId,
     subscriptions: ClientSubscription[],
   ): Promise<void> {
-    const handler = this.clientHandlerList.get(clientId);
-    if (!handler) {
+    const clientDispatch = this.clientHandlerList.get(clientId);
+    if (!clientDispatch) {
       return;
     }
 
-    const seen = new Set();
+    const allSubs = await Array.fromAsync(
+      this.storage.listSubscriptions(clientId),
+    );
+    const consolidatedSubs = consolidateClientSubscriptions(allSubs);
+
+    const seenTopics = new Set<string>();
+
     for (const sub of subscriptions) {
       for await (
         const packet of this.storage.listRetainedMatches(sub.topicFilter)
       ) {
-        if (seen.has(packet.topic)) continue; //dedupe
-        seen.add(packet.topic);
-        const newPacket = clonePacket(packet);
-        if (!(sub.retainAsPublished ?? true)) newPacket.retain = false;
-        await handler(newPacket);
+        // Deduplicate retained messages per topic delivered in this batch
+        if (seenTopics.has(packet.topic)) continue;
+
+        seenTopics.add(packet.topic);
+        for (const consSub of consolidatedSubs) {
+          if (topicFiltersOverlap(consSub.topicFilter, packet.topic)) {
+            await this.dispatch(
+              clientId,
+              packet,
+              consSub.maxQos,
+              consSub.retainAsPublished,
+              consSub.subscriptionIdentifiers,
+            );
+            break;
+          }
+        }
       }
     }
   }

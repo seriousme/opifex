@@ -1,4 +1,9 @@
-import { PacketType, ReasonCode } from "../deps.ts";
+import {
+  joinTopicFilter,
+  PacketType,
+  parseTopicFilter,
+  ReasonCode,
+} from "../deps.ts";
 import type { TReasonCode, UnsubscribePacket } from "../deps.ts";
 import { SessionState } from "../context.ts";
 import type { Context } from "../context.ts";
@@ -18,15 +23,19 @@ export async function handleUnsubscribe(
 
   const subscriptions = new Set();
   for await (const sub of ctx.persistence.listSubscriptions(ctx.clientId!)) {
-    subscriptions.add(sub.topicFilter);
+    subscriptions.add(joinTopicFilter(sub.topicFilter, sub.shareName));
   }
 
   const reasonCodes: TReasonCode[] = [];
 
-  for (const topicFilter of packet.topicFilters) {
-    if (subscriptions.has(topicFilter) && !isAuthenticating) {
+  for (const packetTopicFilter of packet.topicFilters) {
+    // split topicFilter into topicFilter and shareName
+    const { topicFilter, shareName } = parseTopicFilter(
+      packetTopicFilter,
+    );
+    if (subscriptions.has(packetTopicFilter) && !isAuthenticating) {
       reasonCodes.push(ReasonCode.success);
-      await ctx.persistence.unsubscribe(ctx.clientId!, topicFilter);
+      await ctx.persistence.unsubscribe(ctx.clientId!, topicFilter, shareName);
     } else {
       reasonCodes.push(ReasonCode.noSubscriptionExisted);
     }

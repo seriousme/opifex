@@ -10,6 +10,7 @@ import type { Context } from "../context.ts";
 import type {
   ExtPublishPacket,
   PacketId,
+  PublishPacket,
   QoS,
   Topic,
   TReasonCode,
@@ -101,7 +102,7 @@ async function authorizedToPublish(ctx: Context, topic: Topic) {
  */
 function validatePublishPacket(
   ctx: Context,
-  packet: ExtPublishPacket,
+  packet: PublishPacket,
 ): { reasonCode: TReasonCode; message: string } | null {
   const cfg = ctx.config.context;
   const isProtocolV5 = packet.protocolLevel === 5;
@@ -151,18 +152,19 @@ function validatePublishPacket(
 /**
  * Handles MQTT PUBLISH packets
  * @param ctx - The connection context
- * @param packet - The PUBLISH packet to process
+ * @param extPacket - The PUBLISH packet to process
  * @returns Promise that resolves when packet is processed
  * @throws Error if packet processing fails
  */
 export async function handlePublish(
   ctx: Context,
-  packet: ExtPublishPacket,
+  packet: PublishPacket,
 ): Promise<void> {
-  const qos = packet.qos || 0;
-  const id = packet.id;
+  const extPacket = packet as ExtPublishPacket;
+  const qos = extPacket.qos || 0;
+  const id = extPacket.id;
 
-  const validationError = validatePublishPacket(ctx, packet);
+  const validationError = validatePublishPacket(ctx, extPacket);
   if (validationError) {
     return await handlePublishError(
       ctx,
@@ -173,32 +175,33 @@ export async function handlePublish(
     );
   }
 
-  if (!await authorizedToPublish(ctx, packet.topic)) {
+  if (!await authorizedToPublish(ctx, extPacket.topic)) {
     await handlePublishError(
       ctx,
       id,
       qos,
       ReasonCode.notAuthorized,
-      `Client not authorized to publish to ${packet.topic}`,
+      `Client not authorized to publish to ${extPacket.topic}`,
     );
     return;
   }
 
   if (
-    (packet.protocolLevel === 5) && packet.properties?.messageExpiryInterval
+    (extPacket.protocolLevel === 5) &&
+    extPacket.properties?.messageExpiryInterval
   ) {
-    packet.expiresAtMs = Date.now() +
-      packet.properties.messageExpiryInterval * 1000;
+    extPacket.expiresAtMs = Date.now() +
+      extPacket.properties.messageExpiryInterval * 1000;
   }
   if (qos === 0) {
-    await ctx.publish(packet);
+    await ctx.publish(extPacket);
     return;
   }
 
   // qos 1
   if (qos === 1) {
     // publish the packet
-    await ctx.publish(packet);
+    await ctx.publish(extPacket);
     // send the pubAck
     await ctx.send({
       type: PacketType.puback,
@@ -223,7 +226,7 @@ Identifier as being a new publication.
     */
 
   // we take responsibility for the packet
-  await ctx.persistence.addPendingIncomingPacket(ctx.clientId!, packet);
+  await ctx.persistence.addPendingIncomingPacket(ctx.clientId!, extPacket);
   await ctx.send({
     type: PacketType.pubrec,
     protocolLevel: ctx.protocolLevel,

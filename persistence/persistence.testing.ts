@@ -24,7 +24,7 @@ function createPacket(
 ): ExtPublishPacket {
   return {
     type: PacketType.publish,
-    protocolLevel: MQTTLevel.v4,
+    protocolLevel: MQTTLevel.v5,
     topic,
     payload: utf8Encoder.encode(payload),
     qos: 0,
@@ -81,7 +81,11 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { persistence, cleanup } = factory();
       await persistence.registerClient("client1", () => Promise.resolve());
 
-      await persistence.subscribe("client1", "test/topic", 1);
+      await persistence.subscribe("client1", {
+        topicFilter: "test/topic",
+        shareName: "",
+        qos: 1,
+      });
 
       const subs = await Array.fromAsync(
         persistence.listSubscriptions("client1"),
@@ -99,6 +103,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
       const subscriptionData: ClientSubscription = {
         topicFilter: "test/topic",
+        shareName: "",
         qos: 1,
         noLocal: true,
         retainAsPublished: true,
@@ -108,12 +113,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
       await persistence.subscribe(
         "client1",
-        subscriptionData.topicFilter,
-        subscriptionData.qos,
-        subscriptionData.noLocal,
-        subscriptionData.retainAsPublished,
-        subscriptionData.retainHandling,
-        subscriptionData.subscriptionIdentifier,
+        subscriptionData,
       );
 
       const subs = await Array.fromAsync(
@@ -128,14 +128,18 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { persistence, cleanup } = factory();
       await persistence.registerClient("client1", () => Promise.resolve());
 
-      await persistence.subscribe("client1", "test/topic", 1);
-      await persistence.unsubscribe("client1", "test/topic");
+      await persistence.subscribe("client1", {
+        topicFilter: "test/topic",
+        shareName: "",
+        qos: 1,
+      });
+      await persistence.unsubscribe("client1", "test/topic", "");
 
       const subs = await Array.fromAsync(
         persistence.listSubscriptions("client1"),
       );
       const match = subs.find((s) => s.topicFilter === "test/topic");
-      assert(match === undefined);
+      assert.equal(match, undefined);
       cleanup();
     });
 
@@ -144,7 +148,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       await persistence.registerClient("client1", () => Promise.resolve());
 
       // Should not throw
-      await persistence.unsubscribe("client1", "nonexistent/topic");
+      await persistence.unsubscribe("client1", "nonexistent/topic", "");
       const subs = await Array.fromAsync(
         persistence.listSubscriptions("client1"),
       );
@@ -158,7 +162,11 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { persistence, cleanup } = factory();
       const { received } = await createReceiver(persistence, "client1");
 
-      await persistence.subscribe("client1", "test/topic", 0);
+      await persistence.subscribe("client1", {
+        topicFilter: "test/topic",
+        shareName: "",
+        qos: 0,
+      });
       await persistence.publish(
         "client1",
         createPacket("test/topic", "hello"),
@@ -186,7 +194,11 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { persistence, cleanup } = factory();
       const { received } = await createReceiver(persistence, "client1");
 
-      await persistence.subscribe("client1", "sensors/+/temp", 0);
+      await persistence.subscribe("client1", {
+        topicFilter: "sensors/+/temp",
+        shareName: "",
+        qos: 0,
+      });
       await persistence.publish(
         "client1",
         createPacket("sensors/room1/temp", "22"),
@@ -208,7 +220,11 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { persistence, cleanup } = factory();
       const { received } = await createReceiver(persistence, "client1");
 
-      await persistence.subscribe("client1", "sensors/#", 0);
+      await persistence.subscribe("client1", {
+        topicFilter: "sensors/#",
+        shareName: "",
+        qos: 0,
+      });
       await persistence.publish(
         "client1",
         createPacket("sensors/temp", "22"),
@@ -230,9 +246,21 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { persistence, cleanup } = factory();
       const { received } = await createReceiver(persistence, "client1");
 
-      await persistence.subscribe("client1", "test/+", 1);
-      await persistence.subscribe("client1", "test/#", 2);
-      await persistence.subscribe("client1", "test/topic", 0);
+      await persistence.subscribe("client1", {
+        topicFilter: "test/+",
+        qos: 1,
+        shareName: "",
+      });
+      await persistence.subscribe("client1", {
+        topicFilter: "test/#",
+        qos: 2,
+        shareName: "",
+      });
+      await persistence.subscribe("client1", {
+        topicFilter: "test/topic",
+        shareName: "",
+        qos: 0,
+      });
 
       await persistence.publish(
         "client1",
@@ -256,8 +284,16 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
         "client2",
       );
 
-      await persistence.subscribe("client1", "test/topic", 0);
-      await persistence.subscribe("client2", "test/topic", 1);
+      await persistence.subscribe("client1", {
+        topicFilter: "test/topic",
+        shareName: "",
+        qos: 0,
+      });
+      await persistence.subscribe("client2", {
+        topicFilter: "test/topic",
+        shareName: "",
+        qos: 1,
+      });
 
       await persistence.publish(
         "some-publisher",
@@ -286,17 +322,22 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
         "client1",
       );
       // Register subscription in Trie first
-      await persistence.subscribe("client1", "test/topic", 0);
+      await persistence.subscribe("client1", {
+        topicFilter: "test/topic",
+        shareName: "",
+        qos: 0,
+      });
 
       await persistence.handleRetained("client1", [{
         topicFilter: "test/topic",
+        shareName: "",
         qos: 0,
       }]);
       assert.strictEqual(received1.length, 1);
 
       await persistence.publish("publisher", {
         type: PacketType.publish,
-        protocolLevel: MQTTLevel.v4,
+        protocolLevel: MQTTLevel.v5,
         topic: "test/topic",
         payload: new Uint8Array(0),
         retain: true,
@@ -307,10 +348,15 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
         "client2",
       );
       // Register subscription in Trie first
-      await persistence.subscribe("client2", "test/topic", 0);
+      await persistence.subscribe("client2", {
+        topicFilter: "test/topic",
+        shareName: "",
+        qos: 0,
+      });
 
       await persistence.handleRetained("client2", [{
         topicFilter: "test/topic",
+        shareName: "",
         qos: 0,
       }]);
       assert.strictEqual(received2.length, 0);
@@ -335,9 +381,14 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
       const { received } = await createReceiver(persistence, "client1");
       // Register subscription in Trie first
-      await persistence.subscribe("client1", "sensor/+", 0);
+      await persistence.subscribe("client1", {
+        topicFilter: "sensor/+",
+        shareName: "",
+        qos: 0,
+      });
       await persistence.handleRetained("client1", [{
         topicFilter: "sensor/+",
+        shareName: "",
         qos: 0,
       }]);
 
@@ -381,7 +432,11 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const outgoingAckId = 33;
 
       await persistence.registerClient(client, () => Promise.resolve());
-      await persistence.subscribe(client, "test/topic", 1);
+      await persistence.subscribe(client, {
+        topicFilter: "test/topic",
+        shareName: "",
+        qos: 1,
+      });
       await persistence.addPendingIncomingPacket(client, incomingQoS0pkt);
       await persistence.addPendingIncomingPacket(client, incomingQoS1pkt);
       await persistence.addPendingIncomingPacket(client, incomingQoS2pkt);
@@ -415,7 +470,11 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       assert.deepEqual(inPkt2, inPkts[1]);
 
       // Register subscription in Trie first
-      await persistence.subscribe(client, "outgoing/+", 1);
+      await persistence.subscribe(client, {
+        topicFilter: "outgoing/+",
+        shareName: "",
+        qos: 1,
+      });
 
       const outPkts = await Array.fromAsync(
         persistence.listPendingOutgoingPackets(client),
@@ -444,7 +503,11 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       });
       const outgoingAckId = 33;
       await persistence.registerClient("client1", () => Promise.resolve());
-      await persistence.subscribe("client1", "test/topic", 1);
+      await persistence.subscribe("client1", {
+        topicFilter: "test/topic",
+        shareName: "",
+        qos: 1,
+      });
       await persistence.addPendingIncomingPacket("client1", incomingPacket);
       await persistence.addPendingOutgoingPacket("client1", outgoingPacket);
       await persistence.addPendingAck("client1", outgoingAckId);
@@ -481,7 +544,11 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { persistence, cleanup } = factory();
       await persistence.registerClient("client1", () => Promise.resolve());
 
-      await persistence.subscribe("client1", "", 0);
+      await persistence.subscribe("client1", {
+        topicFilter: "",
+        qos: 0,
+        shareName: "",
+      });
       const subs = await Array.fromAsync(
         persistence.listSubscriptions("client1"),
       );
@@ -495,7 +562,11 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { received } = await createReceiver(persistence, "client1");
 
       const specialTopic = "test/日本語/émoji/🔥";
-      await persistence.subscribe("client1", specialTopic, 0);
+      await persistence.subscribe("client1", {
+        topicFilter: specialTopic,
+        shareName: "",
+        qos: 0,
+      });
       await persistence.publish(
         "client1",
         createPacket(specialTopic, "data"),
@@ -510,7 +581,11 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { received } = await createReceiver(persistence, "client1");
 
       const longTopic = "a/".repeat(100) + "end";
-      await persistence.subscribe("client1", longTopic, 0);
+      await persistence.subscribe("client1", {
+        topicFilter: longTopic,
+        shareName: "",
+        qos: 0,
+      });
       await persistence.publish(
         "client1",
         createPacket(longTopic, "data"),
@@ -527,8 +602,11 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       for (let i = 0; i < 100; i++) {
         await persistence.subscribe(
           "client1",
-          `topic/${i}`,
-          i % 3 as 0 | 1 | 2,
+          {
+            topicFilter: `topic/${i}`,
+            shareName: "",
+            qos: i % 3 as 0 | 1 | 2,
+          },
         );
       }
 
@@ -544,8 +622,12 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       await persistence.registerClient("client1", () => Promise.resolve());
 
       for (let i = 0; i < 50; i++) {
-        await persistence.subscribe("client1", "test/topic", 1);
-        await persistence.unsubscribe("client1", "test/topic");
+        await persistence.subscribe("client1", {
+          topicFilter: "test/topic",
+          shareName: "",
+          qos: 1,
+        });
+        await persistence.unsubscribe("client1", "test/topic", "");
       }
 
       const subs = await Array.fromAsync(
@@ -579,7 +661,11 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const packet = createPacket("test", "data", { id: 1, qos: 1 });
       await persistence.addPendingOutgoingPacket("client1", packet);
       // Register subscription in Trie first
-      await persistence.subscribe("client1", "test", 1);
+      await persistence.subscribe("client1", {
+        topicFilter: "test",
+        shareName: "",
+        qos: 1,
+      });
       const packets = await Array.fromAsync(
         persistence.listPendingOutgoingPackets("client1"),
       );
@@ -658,7 +744,11 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
           `client${i}`,
         );
         allReceived.push(received);
-        await persistence.subscribe(`client${i}`, "broadcast", 0);
+        await persistence.subscribe(`client${i}`, {
+          topicFilter: "broadcast",
+          shareName: "",
+          qos: 0,
+        });
       }
 
       // Publish 10 messages
@@ -690,7 +780,11 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       // Interleave subscribes and publishes
       for (let i = 0; i < 20; i++) {
         operations.push(
-          persistence.subscribe("client1", `topic/${i}`, 0),
+          persistence.subscribe("client1", {
+            topicFilter: `topic/${i}`,
+            shareName: "",
+            qos: 0,
+          }),
         );
         operations.push(
           persistence.publish(
@@ -721,7 +815,11 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
                 `client-${cycle}-${i}`,
                 () => Promise.resolve(),
               );
-              await persistence.subscribe(`client-${cycle}-${i}`, "test/#", 0);
+              await persistence.subscribe(`client-${cycle}-${i}`, {
+                topicFilter: "test/#",
+                shareName: "",
+                qos: 0,
+              });
               await persistence.deregisterClient(`client-${cycle}-${i}`);
             })(),
           );
@@ -829,7 +927,11 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
     test(`${name} - handles large payloads`, async () => {
       const { persistence, cleanup } = factory();
       const { received } = await createReceiver(persistence, "client1");
-      await persistence.subscribe("client1", "large", 0);
+      await persistence.subscribe("client1", {
+        topicFilter: "large",
+        shareName: "",
+        qos: 0,
+      });
 
       // 1MB payload
       const largePayload = new Uint8Array(1024 * 1024);
@@ -839,7 +941,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
 
       const packet: ExtPublishPacket = {
         type: PacketType.publish,
-        protocolLevel: MQTTLevel.v4,
+        protocolLevel: MQTTLevel.v5,
         topic: "large",
         payload: largePayload,
         qos: 0,
@@ -858,7 +960,7 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const largePayload = new Uint8Array(100 * 1024); // 100KB
       const packet: ExtPublishPacket = {
         type: PacketType.publish,
-        protocolLevel: MQTTLevel.v4,
+        protocolLevel: MQTTLevel.v5,
         topic: "large/retained",
         payload: largePayload,
         qos: 0,
@@ -872,9 +974,14 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
         "client1",
       );
       // Register subscription in Trie first
-      await persistence.subscribe("client1", "large/retained", 0);
+      await persistence.subscribe("client1", {
+        topicFilter: "large/retained",
+        shareName: "",
+        qos: 0,
+      });
       await persistence.handleRetained("client1", [{
         topicFilter: "large/retained",
+        shareName: "",
         qos: 0,
       }]);
       assert.strictEqual(received.length, 1);
@@ -891,7 +998,11 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { persistence, cleanup } = factory();
       const { received } = await createReceiver(persistence, "client1");
 
-      await persistence.subscribe("client1", "#", 0);
+      await persistence.subscribe("client1", {
+        topicFilter: "#",
+        shareName: "",
+        qos: 0,
+      });
 
       await persistence.publish("sender", createPacket("a", "1"));
       await persistence.publish("sender", createPacket("a/b", "2"));
@@ -910,8 +1021,16 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
           "client1",
         );
 
-        await persistence.subscribe("client1", "+/+", 0);
-        await persistence.subscribe("client1", "#", 0);
+        await persistence.subscribe("client1", {
+          topicFilter: "+/+",
+          shareName: "",
+          qos: 0,
+        });
+        await persistence.subscribe("client1", {
+          topicFilter: "#",
+          shareName: "",
+          qos: 0,
+        });
 
         await persistence.publish("sender", createPacket("$topic", "1"));
         assert.strictEqual(received.length, 0);
@@ -923,7 +1042,11 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { persistence, cleanup } = factory();
       const { received } = await createReceiver(persistence, "client1");
 
-      await persistence.subscribe("client1", "a/+/c", 0);
+      await persistence.subscribe("client1", {
+        topicFilter: "a/+/c",
+        shareName: "",
+        qos: 0,
+      });
 
       await persistence.publish("sender", createPacket("a/b/c", "1"));
       await persistence.publish("sender", createPacket("a//c", "2")); // Empty middle level - still matches
@@ -937,8 +1060,16 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { persistence, cleanup } = factory();
       const { received } = await createReceiver(persistence, "client1");
 
-      await persistence.subscribe("client1", "a/#", 0);
-      await persistence.subscribe("client1", "a/b/#", 1);
+      await persistence.subscribe("client1", {
+        topicFilter: "a/#",
+        shareName: "",
+        qos: 0,
+      });
+      await persistence.subscribe("client1", {
+        topicFilter: "a/b/#",
+        shareName: "",
+        qos: 1,
+      });
 
       await persistence.publish(
         "sender",
@@ -961,9 +1092,12 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       // Subscribe with noLocal = true
       await persistence.subscribe(
         "client1",
-        "chat/room1",
-        0, // QoS
-        true, // noLocal = true
+        {
+          topicFilter: "chat/room1",
+          shareName: "",
+          qos: 0,
+          noLocal: true,
+        },
       );
 
       // Client 1 publishes a message to the channel
@@ -983,7 +1117,12 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { persistence, cleanup } = factory();
       const { received } = await createReceiver(persistence, "client1");
 
-      await persistence.subscribe("client1", "chat/room1", 0, true); // noLocal = true
+      await persistence.subscribe("client1", {
+        topicFilter: "chat/room1",
+        shareName: "",
+        qos: 0,
+        noLocal: true,
+      });
 
       // Client 2 publishes a message
       await persistence.publish(
@@ -1010,7 +1149,13 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { received } = await createReceiver(persistence, "client1");
 
       // Subscribe with retainAsPublished = false (default behavior)
-      await persistence.subscribe("client1", "status/update", 0, false, false);
+      await persistence.subscribe("client1", {
+        topicFilter: "status/update",
+        shareName: "",
+        qos: 0,
+        noLocal: false,
+        retainAsPublished: false,
+      });
 
       await persistence.publish(
         "publisher",
@@ -1031,7 +1176,13 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { received } = await createReceiver(persistence, "client1");
 
       // Subscribe with retainAsPublished = true
-      await persistence.subscribe("client1", "status/update", 0, false, true);
+      await persistence.subscribe("client1", {
+        topicFilter: "status/update",
+        shareName: "",
+        qos: 0,
+        noLocal: false,
+        retainAsPublished: true,
+      });
 
       await persistence.publish(
         "publisher",
@@ -1055,14 +1206,18 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       const { received } = await createReceiver(persistence, "client1");
 
       // Subscribe with subscription identifier = 42
+      const subscriptionData: ClientSubscription = {
+        topicFilter: "sensor/temp",
+        shareName: "",
+        qos: 0,
+        noLocal: false,
+        retainAsPublished: false,
+        retainHandling: 0,
+        subscriptionIdentifier: 42,
+      };
       await persistence.subscribe(
         "client1",
-        "sensor/temp",
-        0,
-        false,
-        false,
-        0,
-        42, // subscriptionIdentifier
+        subscriptionData,
       );
 
       await persistence.publish(
@@ -1078,42 +1233,16 @@ export function runPersistenceTestSuite(options: PersistenceFactoryOptions) {
       );
       cleanup();
     });
-
-    test(`${name} - MQTT v5 - subscriptionIdentifier is ignored if protocol level is v4`, async () => {
-      const { persistence, cleanup } = factory();
-      const { received } = await createReceiver(persistence, "client1");
-
-      await persistence.subscribe(
-        "client1",
-        "sensor/temp",
-        0,
-        false,
-        false,
-        0,
-        42,
-      );
-
-      // Publish using legacy MQTT v4 (protocolLevel: 4)
-      await persistence.publish(
-        "publisher",
-        createPacket("sensor/temp", "24", { protocolLevel: MQTTLevel.v4 }),
-      );
-
-      assert.strictEqual(received.length, 1);
-      // properties.subscriptionIdentifiers should not be populated on a non-v5 packet
-      const packet = received[0] as PublishPacketV5;
-      assert.strictEqual(
-        packet.properties?.subscriptionIdentifiers,
-        undefined,
-      );
-      cleanup();
-    });
   });
 
   test("Message expiry removes expired packets when listing pending packets", async () => {
     const { persistence, cleanup } = factory();
     await persistence.registerClient("client1", () => Promise.resolve());
-    await persistence.subscribe("client1", "test/topic", 1);
+    await persistence.subscribe("client1", {
+      topicFilter: "test/topic",
+      shareName: "",
+      qos: 1,
+    });
 
     // Non-expired packet (expires far in the future)
     const validPacket = createPacket("test/topic", "valid payload", {

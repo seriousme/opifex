@@ -3,6 +3,8 @@
  */
 
 import { MQTTLevel } from "./deps.ts";
+import type { ProtocolLevel } from "./deps.ts";
+
 export const QueueMode = {
   DiscardNewest: 0, // when maxQueued messages has been reached do not accept new ones
   DiscardOldest: 1, // when maxQueued messages has been reached discard the oldest message to make room
@@ -21,7 +23,7 @@ export const defaultConfiguration = {
     maximumQos: 2, // maximum QoS level accepted by the server
     maxTopicLevels: 50, // topic levels on Topics and TopicFilters, keep this resonably small to avoid risk on DoS
     preconnectTimeoutMs: 3000, // if the client does not complete connect within this time, hangup
-    protocols: [MQTTLevel.v4, MQTTLevel.v5],
+    protocols: [MQTTLevel.v4 as ProtocolLevel, MQTTLevel.v5 as ProtocolLevel],
     provideReasonStrings: false, // provide reasonStrings in ack and disconnect messages
     queueStrategy: QueueMode.DiscardNewest, // see definition of QueueMode
     receiveMaximum: 20, // maximum incoming messages on the server per client waiting for pubComp

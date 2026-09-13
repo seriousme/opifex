@@ -4,9 +4,10 @@ import type {
   ClientRegistrationResult,
   ClientSubscription,
   ExtPublishPacket,
+  ShareName,
 } from "../persistence.ts";
 import { PacketDirection } from "../storage.ts";
-import type { IStorageProvider, TrieSubscription } from "../storage.ts";
+import type { IStorageProvider, StoredSubscription } from "../storage.ts";
 import { topicFilterToRegExp } from "../deps.ts";
 import {
   deleteClientState,
@@ -84,7 +85,7 @@ export class SqliteStorage implements IStorageProvider {
     { clientId: ClientId; session: ClientRegistrationResult }
   > {
     for (
-      const row of this.statements.listAllSubscriptions
+      const row of this.statements.listAllSessions
         .iterate() as IterableIterator<
           { client_id: string; session_data: string }
         >
@@ -109,6 +110,7 @@ export class SqliteStorage implements IStorageProvider {
     this.statements.saveSubscription.run(
       clientId,
       sub.topicFilter,
+      sub.shareName,
       JSON.stringify(subData),
     );
     return Promise.resolve();
@@ -117,8 +119,9 @@ export class SqliteStorage implements IStorageProvider {
   deleteSubscription(
     clientId: ClientId,
     topicFilter: TopicFilter,
+    shareName: ShareName,
   ): Promise<void> {
-    this.statements.deleteSubscription.run(clientId, topicFilter);
+    this.statements.deleteSubscription.run(clientId, topicFilter, shareName);
     return Promise.resolve();
   }
 
@@ -127,26 +130,30 @@ export class SqliteStorage implements IStorageProvider {
   ): AsyncIterableIterator<ClientSubscription> {
     const rows = this.statements.listSubscriptions.all(clientId) as Array<{
       topic: string;
+      share_name: string;
       subscription_data: string;
     }>;
 
     for (const row of rows) {
       const sub = JSON.parse(row.subscription_data);
       sub.topicFilter = row.topic;
+      sub.shareName = row.share_name;
       yield sub;
     }
   }
 
-  async *listAllSubscriptions(): AsyncIterableIterator<TrieSubscription> {
+  async *listAllSubscriptions(): AsyncIterableIterator<StoredSubscription> {
     const rows = this.statements.listAllSubscriptions.all() as Array<{
       client_id: string;
       topic: string;
+      share_name: string;
       subscription_data: string;
     }>;
 
     for (const row of rows) {
       const sub = JSON.parse(row.subscription_data);
       sub.topicFilter = row.topic;
+      sub.shareName = row.share_name;
       sub.clientId = row.client_id;
       yield sub;
     }

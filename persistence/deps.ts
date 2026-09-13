@@ -2,6 +2,7 @@ export type {
   ClientId,
   PacketId,
   PublishPacket,
+  PublishPacketV5,
   QoS,
   Subscription,
   Topic,
@@ -14,6 +15,8 @@ export {
   assert,
   logger,
   LogLevel,
+  joinTopicFilter,
   parseTopicFilter,
+  topicFiltersOverlap,
   topicFilterToRegExp,
 } from "../utils/mod.ts";

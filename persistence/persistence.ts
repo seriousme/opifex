@@ -5,7 +5,7 @@
 import type {
   ClientId,
   PacketId,
-  PublishPacket,
+  PublishPacketV5,
   QoS,
   TopicFilter,
   TRetainHandling,
@@ -14,18 +14,23 @@ import type {
 /**
  * extended publish packet also contains meta data
  */
-export type ExtPublishPacket = PublishPacket & {
+export type ExtPublishPacket = PublishPacketV5 & {
   expiresAtMs?: number;
 };
 
+/**
+ * The MQTT topic share to subscribe/unsubscribe to
+ */
+export type ShareName = string;
+
 export type ClientSubscription = {
   topicFilter: TopicFilter;
+  shareName: ShareName;
   qos: QoS;
   noLocal?: boolean;
   retainAsPublished?: boolean;
   retainHandling?: TRetainHandling;
   subscriptionIdentifier?: number;
-  shareName?: string | undefined;
 };
 
 /**
@@ -61,14 +66,13 @@ export interface IPersistence {
   // subscription management
   subscribe(
     clientId: ClientId,
-    topicFilter: TopicFilter,
-    qos: QoS,
-    noLocal?: boolean,
-    retainAsPublished?: boolean,
-    retainHandling?: TRetainHandling,
-    subscriptionIdentifier?: number,
+    subscription: ClientSubscription,
   ): Promise<void>;
-  unsubscribe(clientId: ClientId, topicFilter: TopicFilter): Promise<void>;
+  unsubscribe(
+    clientId: ClientId,
+    topicFilter: TopicFilter,
+    shareName: ShareName,
+  ): Promise<void>;
   listSubscriptions(
     clientId: ClientId,
   ): AsyncIterableIterator<ClientSubscription>;

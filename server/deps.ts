@@ -1,6 +1,7 @@
 export type { SockAddr, SockConn } from "../socket/socket.ts";
 export { MqttConn } from "../mqttConn/mqttConn.ts";
 export type {
+  ClientSubscription,
   ExtPublishPacket,
   IPersistence,
 } from "../persistence/persistence.ts";
@@ -20,6 +21,7 @@ export type {
   PubackPacket,
   PubcompPacket,
   PublishPacket,
+  PublishPacketV5,
   PubrecPacket,
   PubrelPacket,
   QoS,
@@ -48,7 +50,9 @@ export {
   invalidmaxTopicLevels,
   invalidTopic,
   invalidTopicFilter,
+  joinTopicFilter,
   logger,
   LogLevel,
   OutboundTopicAliasManager,
+  parseTopicFilter,
 } from "../utils/mod.ts";
