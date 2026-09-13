@@ -9,70 +9,35 @@ import type {
 } from "./persistence.ts";
 import type { IStorageProvider } from "./storage.ts";
 import { PacketDirection } from "./storage.ts";
-import { assert, logger, topicFiltersOverlap, Trie } from "./deps.ts";
+import { assert, logger, Trie } from "./deps.ts";
 import { MAX_PACKET_ID } from "./persistence.ts";
 
-type ConsolidatedSubscription =
-  & Omit<
-    ClientSubscription,
-    "qos" | "subscriptionIdentifier" | "retainHandling"
-  >
-  & {
-    maxQos: QoS;
-    subscriptionIdentifiers: number[];
-  };
+type TrieSub = ClientSubscription & { clientId: ClientId };
 
-type TrieSub = ConsolidatedSubscription & { clientId: ClientId };
+type ClientTrieSubs = Map<ClientId, TrieSub[]>;
+type consolidatedSubs = {
+  maxQos: QoS;
+  retainAsPublished: boolean;
+  subscriptionIdentifiers: number[];
+};
 
-/**
- * Calculates pre-consolidated routing rules for overlapping filters of a SINGLE client.
- */
-function consolidateClientSubscriptions(
-  clientSubs: ClientSubscription[],
-): ConsolidatedSubscription[] {
-  const consolidated: ConsolidatedSubscription[] = [];
-
-  for (const targetSub of clientSubs) {
-    let maxQos = targetSub.qos;
-    let retainAsPublished = targetSub.retainAsPublished ?? true;
-    let noLocal = targetSub.noLocal ?? false;
-    const subIds = new Set<number>();
-
-    if (targetSub.subscriptionIdentifier) {
-      subIds.add(targetSub.subscriptionIdentifier);
+// consolidate the subscriptions
+function consolidateSubs(subs: TrieSub[]): consolidatedSubs {
+  let maxQos: QoS = 0;
+  let retainAsPublished: boolean = true;
+  const subscriptionIdentifiers: number[] = [];
+  for (const sub of subs) {
+    if (sub.qos > maxQos) maxQos = sub.qos;
+    if (sub.subscriptionIdentifier) {
+      subscriptionIdentifiers.push(sub.subscriptionIdentifier);
     }
-
-    // Compare targetSub against all other subscriptions for this client to detect overlap
-    for (const otherSub of clientSubs) {
-      if (targetSub.topicFilter === otherSub.topicFilter) continue;
-
-      // If the two filters overlap on potential topics
-      if (
-        targetSub.shareName === otherSub.shareName &&
-        topicFiltersOverlap(targetSub.topicFilter, otherSub.topicFilter)
-      ) {
-        maxQos = Math.max(maxQos, otherSub.qos) as QoS;
-        if (otherSub.retainAsPublished) retainAsPublished = true;
-        // noLocal is only preserved if both filters requested noLocal
-        noLocal = noLocal && (otherSub.noLocal ?? false);
-
-        if (otherSub.subscriptionIdentifier) {
-          subIds.add(otherSub.subscriptionIdentifier);
-        }
-      }
-    }
-
-    consolidated.push({
-      topicFilter: targetSub.topicFilter,
-      maxQos,
-      retainAsPublished,
-      noLocal,
-      subscriptionIdentifiers: Array.from(subIds),
-      shareName: targetSub.shareName,
-    });
+    if (sub.retainAsPublished === false) retainAsPublished = false;
   }
-
-  return consolidated;
+  return {
+    maxQos,
+    retainAsPublished,
+    subscriptionIdentifiers,
+  };
 }
 
 function clonePacket(packet: ExtPublishPacket): ExtPublishPacket {
@@ -108,17 +73,9 @@ export class MqttPersistence implements IPersistence {
 
   async initialize(): Promise<void> {
     await this.storage.initialize();
-    // Warm up the fast matching Trie on startup
+    // Load the fast matching Trie on startup
     for await (const { clientId } of this.storage.listAllSessions()) {
-      const clientSubs = await Array.fromAsync(
-        this.storage.listSubscriptions(clientId),
-      );
-      const consolidatedSubs = consolidateClientSubscriptions(clientSubs);
-      for (const sub of consolidatedSubs) {
-        this.trie.remove(sub.topicFilter, {
-          clientId,
-          shareName: sub.shareName,
-        });
+      for await (const sub of this.storage.listSubscriptions(clientId)) {
         const trieSub = { ...sub, clientId } as TrieSub;
         this.trie.add(sub.topicFilter, trieSub);
       }
@@ -163,21 +120,12 @@ export class MqttPersistence implements IPersistence {
     subscription: ClientSubscription,
   ): Promise<void> {
     await this.storage.saveSubscription(clientId, subscription);
-
-    const clientSubs = await Array.fromAsync(
-      this.storage.listSubscriptions(clientId),
-    );
-    const consolidatedSubs = consolidateClientSubscriptions(clientSubs);
-    for (const sub of consolidatedSubs) {
-      if (sub) {
-        this.trie.remove(sub.topicFilter, {
-          clientId,
-          shareName: sub.shareName,
-        });
-        const trieSub = { ...sub, clientId } as TrieSub;
-        this.trie.add(sub.topicFilter, trieSub);
-      }
-    }
+    this.trie.remove(subscription.topicFilter, {
+      clientId,
+      shareName: subscription.shareName,
+    });
+    const trieSub = { ...subscription, clientId } as TrieSub;
+    this.trie.add(subscription.topicFilter, trieSub);
   }
 
   async unsubscribe(
@@ -194,20 +142,6 @@ export class MqttPersistence implements IPersistence {
       clientId,
       shareName: shareName,
     });
-    const allSubs = await Array.fromAsync(
-      this.storage.listSubscriptions(clientId),
-    );
-    const consolidatedSubs = consolidateClientSubscriptions(allSubs);
-    for (const sub of consolidatedSubs) {
-      if (sub) {
-        this.trie.remove(sub.topicFilter, {
-          clientId,
-          shareName: sub.shareName,
-        });
-        const trieSub = { ...sub, clientId } as TrieSub;
-        this.trie.add(sub.topicFilter, trieSub);
-      }
-    }
   }
 
   listSubscriptions(
@@ -418,43 +352,53 @@ export class MqttPersistence implements IPersistence {
       }
     }
 
-    const directClients = new Map<
-      ClientId,
-      TrieSub
-    >();
-    const sharedGroups = new Map<string, TrieSub[]>();
+    const directClients: ClientTrieSubs = new Map();
+    const sharedGroups = new Map<string, ClientTrieSubs>();
 
     for (const sub of this.trie.match(topic)) {
       if (sub.noLocal && sub.clientId === publisherClientId) continue;
       if (sub.shareName) {
-        // It is a Shared Subscription
-        if (!sharedGroups.has(sub.shareName)) {
-          sharedGroups.set(sub.shareName, []);
+        // Shared Subscription
+        let shareClients = sharedGroups.get(sub.shareName);
+        if (!shareClients) {
+          shareClients = new Map();
+          sharedGroups.set(sub.shareName, shareClients);
         }
-        sharedGroups.get(sub.shareName)!.push(sub);
+        let shareClientSubs = shareClients.get(sub.clientId);
+        if (!shareClientSubs) {
+          shareClientSubs = [];
+          shareClients.set(sub.clientId, shareClientSubs);
+        }
+        shareClientSubs.push(sub);
       } else {
-        // only one match per client is enough as we already pre-consolidated the subscriptions
+        // Standard subscription
         if (!directClients.has(sub.clientId)) {
-          directClients.set(sub.clientId, sub);
+          directClients.set(sub.clientId, []);
         }
+        directClients.get(sub.clientId)!.push(sub);
       }
     }
 
-    for (const [clientId, sub] of directClients) {
+    for (const [clientId, subs] of directClients) {
+      const { maxQos, retainAsPublished, subscriptionIdentifiers } =
+        consolidateSubs(subs);
       await this.dispatch(
         clientId,
         packet,
-        sub.maxQos,
-        sub.retainAsPublished,
-        sub.subscriptionIdentifiers,
+        maxQos,
+        retainAsPublished,
+        subscriptionIdentifiers,
       );
     }
 
-    for (const [shareName, candidates] of sharedGroups) {
+    for (const [shareName, shareClients] of sharedGroups) {
       // selects active candidates
-      const activeCandidates = candidates.filter((c) =>
-        this.clientHandlerList.has(c.clientId)
-      );
+      const activeCandidates: ClientId[] = [];
+      for (const clientId of shareClients.keys()) {
+        if (this.clientHandlerList.has(clientId)) {
+          activeCandidates.push(clientId);
+        }
+      }
       if (activeCandidates.length === 0) continue;
 
       // select 1 client using Round-Robin
@@ -463,12 +407,14 @@ export class MqttPersistence implements IPersistence {
         activeCandidates[currentIndex % activeCandidates.length];
       this.sharedGroupCounters.set(shareName, currentIndex + 1);
       if (selectedClient === undefined) continue;
+      const { maxQos, retainAsPublished, subscriptionIdentifiers } =
+        consolidateSubs(shareClients.get(selectedClient)!);
       await this.dispatch(
-        selectedClient.clientId,
+        selectedClient,
         packet,
-        selectedClient.maxQos,
-        selectedClient.retainAsPublished,
-        [],
+        maxQos,
+        retainAsPublished,
+        subscriptionIdentifiers,
       );
     }
   }
@@ -526,10 +472,11 @@ export class MqttPersistence implements IPersistence {
       return;
     }
 
-    const allSubs = await Array.fromAsync(
-      this.storage.listSubscriptions(clientId),
-    );
-    const consolidatedSubs = consolidateClientSubscriptions(allSubs);
+    const tempTrie: Trie<TrieSub> = new Trie();
+    for await (const sub of this.storage.listSubscriptions(clientId)) {
+      if (sub.shareName !== "") continue;
+      tempTrie.add(sub.topicFilter, { clientId, ...sub });
+    }
 
     const seenTopics = new Set<string>();
 
@@ -539,20 +486,17 @@ export class MqttPersistence implements IPersistence {
       ) {
         // Deduplicate retained messages per topic delivered in this batch
         if (seenTopics.has(packet.topic)) continue;
-
         seenTopics.add(packet.topic);
-        for (const consSub of consolidatedSubs) {
-          if (topicFiltersOverlap(consSub.topicFilter, packet.topic)) {
-            await this.dispatch(
-              clientId,
-              packet,
-              consSub.maxQos,
-              consSub.retainAsPublished,
-              consSub.subscriptionIdentifiers,
-            );
-            break;
-          }
-        }
+        const subs = tempTrie.match(packet.topic);
+        const { maxQos, retainAsPublished, subscriptionIdentifiers } =
+          consolidateSubs(subs);
+        await this.dispatch(
+          clientId,
+          packet,
+          maxQos,
+          retainAsPublished,
+          subscriptionIdentifiers,
+        );
       }
     }
   }

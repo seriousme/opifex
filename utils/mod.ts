@@ -9,7 +9,6 @@ export { BufferedAsyncIterable } from "./bufferedAsyncIterable.ts";
 export {
   joinTopicFilter,
   parseTopicFilter,
-  topicFiltersOverlap,
   topicFilterToRegExp,
 } from "./topicFilter.ts";
 export { OutboundTopicAliasManager } from "./outboundTopicAliasManager.ts";
