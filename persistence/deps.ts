@@ -17,6 +17,5 @@ export {
   logger,
   LogLevel,
   parseTopicFilter,
-  topicFiltersOverlap,
   topicFilterToRegExp,
 } from "../utils/mod.ts";
