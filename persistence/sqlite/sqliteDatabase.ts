@@ -8,6 +8,9 @@ import type { ClientId } from "../../mqttPacket/types.ts";
 export function initializeDatabase(filename: string): sqlite.DatabaseSync {
   const db = new sqlite.DatabaseSync(filename);
   db.exec(`
+    PRAGMA journal_mode = WAL;
+    PRAGMA synchronous = NORMAL;
+    
     CREATE TABLE IF NOT EXISTS client_sessions (
       client_id    TEXT PRIMARY KEY,
       session_data TEXT NOT NULL
