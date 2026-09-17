@@ -80,11 +80,7 @@ export class MemoryStorage implements IStorageProvider {
   // --- Subscriptions ---
   saveSubscription(clientId: ClientId, sub: ClientSubscription): Promise<void> {
     const key = joinTopicFilter(sub.topicFilter, sub.shareName);
-    let clientSubs = this.subscriptionTable.get(clientId);
-    if (!clientSubs) {
-      clientSubs = new Map();
-      this.subscriptionTable.set(clientId, clientSubs);
-    }
+    const clientSubs = this.subscriptionTable.getOrInsert(clientId, new Map());
     clientSubs.set(key, sub);
     return Promise.resolve();
   }
@@ -123,12 +119,7 @@ export class MemoryStorage implements IStorageProvider {
     const table = direction === PacketDirection.Incoming
       ? this.pendingIncomingTable
       : this.pendingOutgoingTable;
-    let clientPackets = table.get(clientId);
-    if (!clientPackets) {
-      clientPackets = new Map();
-      table.set(clientId, clientPackets);
-    }
-    return clientPackets;
+    return table.getOrInsert(clientId, new Map());
   }
 
   savePendingPacket(
@@ -192,12 +183,7 @@ export class MemoryStorage implements IStorageProvider {
 
   // --- ACKs ---
   private getAckSet(clientId: ClientId): Set<PacketId> {
-    let ackSet = this.pendingAckOutgoingTable.get(clientId);
-    if (!ackSet) {
-      ackSet = new Set();
-      this.pendingAckOutgoingTable.set(clientId, ackSet);
-    }
-    return ackSet;
+    return this.pendingAckOutgoingTable.getOrInsert(clientId, new Set());
   }
 
   savePendingAck(clientId: ClientId, packetId: PacketId): Promise<void> {

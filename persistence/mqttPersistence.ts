@@ -359,23 +359,11 @@ export class MqttPersistence implements IPersistence {
       if (sub.noLocal && sub.clientId === publisherClientId) continue;
       if (sub.shareName) {
         // Shared Subscription
-        let shareClients = sharedGroups.get(sub.shareName);
-        if (!shareClients) {
-          shareClients = new Map();
-          sharedGroups.set(sub.shareName, shareClients);
-        }
-        let shareClientSubs = shareClients.get(sub.clientId);
-        if (!shareClientSubs) {
-          shareClientSubs = [];
-          shareClients.set(sub.clientId, shareClientSubs);
-        }
-        shareClientSubs.push(sub);
+        const shareClients = sharedGroups.getOrInsert(sub.shareName, new Map());
+        shareClients.getOrInsert(sub.clientId, []).push(sub);
       } else {
         // Standard subscription
-        if (!directClients.has(sub.clientId)) {
-          directClients.set(sub.clientId, []);
-        }
-        directClients.get(sub.clientId)!.push(sub);
+        directClients.getOrInsert(sub.clientId, []).push(sub);
       }
     }
 
