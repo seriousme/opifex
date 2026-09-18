@@ -1,4 +1,4 @@
-import { MqttPersistence } from "../mqttPersistence.ts";
+import { MqttPersistence } from "../basicPersistence.ts";
 import { MemoryStorage } from "./memoryStorage.ts";
 
 export class MemoryPersistence extends MqttPersistence {

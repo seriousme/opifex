@@ -1,4 +1,4 @@
-import { MqttPersistence } from "../mqttPersistence.ts";
+import { MqttPersistence } from "../basicPersistence.ts";
 import { SqliteStorage } from "./sqliteStorage.ts";
 import type sqlite from "node:sqlite";
 
