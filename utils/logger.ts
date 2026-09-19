@@ -73,6 +73,7 @@ export class Logger {
   debug: typeof console.log = noop;
 
   /** Creates a wrapper function that evaluates lazy log arguments before invoking the target logging function. */
+  // deno-lint-ignore no-explicit-any
   private createLogFn(targetFn: (...args: any[]) => void) {
     return (...args: LogArgument[]) => {
       const evaluated = args.map((
