@@ -11,6 +11,7 @@ import type { IStorageProvider } from "./storage.ts";
 import { PacketDirection } from "./storage.ts";
 import { assert, logger, Trie } from "./deps.ts";
 import { MAX_PACKET_ID } from "./persistence.ts";
+import '../utils/getOrInsertPolyFill.ts'
 
 type TrieSub = ClientSubscription & { clientId: ClientId };
 

@@ -13,6 +13,7 @@ import type {
 import type { IStorageProvider, StoredSubscription } from "../storage.ts";
 import { PacketDirection } from "../storage.ts";
 import { joinTopicFilter, topicFilterToRegExp } from "../deps.ts";
+import '../../utils/getOrInsertPolyFill.ts'
 
 type pendingTableEntry = {
   seqId: number;
