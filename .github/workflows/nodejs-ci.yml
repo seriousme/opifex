@@ -13,7 +13,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: ["lts/*", "node"]
+        node-version: ["26", "node"]
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: Use Node.js ${{ matrix.node-version }}
