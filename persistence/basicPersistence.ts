@@ -209,7 +209,7 @@ export class MqttPersistence implements IPersistence {
     clientId: ClientId,
     packetId: PacketId,
   ): Promise<boolean> {
-    logger.debug(`delete PendingIncomingPacket: id ${packetId}`);
+    logger.debug("delete PendingIncomingPacket: id", packetId);
 
     return this.storage.deletePendingPacket(
       clientId,
@@ -249,7 +249,7 @@ export class MqttPersistence implements IPersistence {
     packetId: PacketId,
     dup: boolean,
   ): Promise<boolean> {
-    logger.debug(`updatePendingOutGoingPacket: id ${packetId} , dup ${dup}`);
+    logger.debug("updatePendingOutGoingPacket: id", packetId, ", dup", dup);
     return await this.storage.updatePendingPacket(
       clientId,
       PacketDirection.Outgoing,
@@ -446,7 +446,7 @@ export class MqttPersistence implements IPersistence {
     // don't await the clientDispatch to allow for parallelism
     if (clientDispatch) {
       Promise.resolve(clientDispatch(newPacket)).catch((err) => {
-        logger.error(`Error delivering packet to ${clientId}:`, err);
+        logger.error("Error delivering packet to", clientId, ":", err);
       });
     }
   }

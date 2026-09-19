@@ -180,7 +180,10 @@ export class Client {
     let lastMessage = new Error();
     let tryConnect = true;
     while (tryConnect) {
-      logger.debug(`${isReconnect ? "re" : ""}connecting, attempt ${attempt}`);
+      logger.debug(
+        isReconnect ? "reconnecting, attempt" : "connecting, attempt",
+        attempt,
+      );
       try {
         const conn = await this.createConn();
         // if we get this far we have a connection

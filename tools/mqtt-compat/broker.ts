@@ -37,7 +37,7 @@ const tcpServer = new TcpServer({ port }, {
   },
 });
 tcpServer.start();
-logger.info(`Server started on port ${tcpServer.port}`);
+logger.info("Server started on port", tcpServer.port);
 
 function shutdown() {
   tcpServer.stop();

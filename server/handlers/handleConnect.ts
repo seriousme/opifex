@@ -70,7 +70,7 @@ async function authenticateClient(
       if (err instanceof Error) {
         message = err.message;
       }
-      logger.error(`Authentication failed with error "${message}`);
+      logger.error("Authentication failed with error", message);
       return {
         reasonCode: ReasonCode.unspecifiedError,
         reasonString: "Authentication failed",

@@ -36,8 +36,11 @@ export async function handlePacket(
   ctx: Context,
   packet: AnyPacket,
 ): Promise<void> {
-  logger.debug("handling", PacketNameByType[packet.type]);
-  logger.debug(JSON.stringify(packet, null, 2));
+  logger.debug("server/handlePacket", PacketNameByType[packet.type]);
+  logger.debug(
+    "server/handlePacket",
+    () => JSON.stringify(packet, null, 2),
+  );
   if (ctx.state === SessionState.disconnected) {
     if (packet.type === PacketType.connect) {
       await handleConnect(ctx, packet);

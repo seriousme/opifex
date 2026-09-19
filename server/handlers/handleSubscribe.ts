@@ -38,7 +38,7 @@ async function authorizedToSubscribe(
     if (err instanceof Error) {
       message = err.message;
     }
-    logger.error(`isAuthorizedToSubscribe failed with error "${message}`);
+    logger.error("isAuthorizedToSubscribe failed with error", message);
     return false;
   }
   return true;

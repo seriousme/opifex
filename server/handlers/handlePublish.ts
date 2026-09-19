@@ -89,7 +89,7 @@ async function authorizedToPublish(ctx: Context, topic: Topic) {
       if (err instanceof Error) {
         message = err.message;
       }
-      logger.error(`isAuthorizedToPublish failed with error "${message}`);
+      logger.error("isAuthorizedToPublish failed with error", message);
       return false;
     }
   }

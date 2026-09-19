@@ -165,3 +165,25 @@ test("should not be the same as a newly instantiated Logger", () => {
     "The singleton instance must be unique from new Logger() instances",
   );
 });
+
+test("should perform lazy evaluation of log arguments", () => {
+  const testLogger = new Logger();
+  testLogger.level(LogLevel.debug);
+
+  let evaluationCount = 0;
+
+  const lazyArg = () => {
+    evaluationCount++;
+    return "Lazy evaluated message";
+  };
+
+  // Call debug with a lazy argument
+  testLogger.debug(lazyArg);
+
+  // The lazy argument should have been evaluated exactly once
+  assert.strictEqual(
+    evaluationCount,
+    1,
+    "The lazy argument should be evaluated exactly once",
+  );
+});

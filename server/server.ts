@@ -121,7 +121,7 @@ export class MqttServer {
       this.handlers,
     );
     if (conn.remoteAddr?.transport === "tcp") {
-      logger.debug(`socket connected from ${conn.remoteAddr.hostname}`);
+      logger.debug("socket connected from", conn.remoteAddr.hostname);
     }
     try {
       for await (const packet of ctx.mqttConn) {
@@ -129,9 +129,9 @@ export class MqttServer {
         await handlePacket(ctx, packet);
       }
     } catch (err) {
-      logger.debug(`Error while serving:${err}`);
+      logger.debug("Error while serving:", err);
     } finally {
-      logger.debug(`done serving for ${ctx.clientId}`);
+      logger.debug("done serving for", ctx.clientId);
       await ctx.close();
     }
   }
@@ -141,9 +141,9 @@ export class MqttServer {
    * @param {boolean} cleanUp - If true, clean up client sessions on close.
    */
   async close(cleanUp: boolean = false): Promise<void> {
-    logger.debug(`stopping mqttServer`);
+    logger.debug("stopping mqttServer");
     for (const [clientid, ctx] of Context.clientList) {
-      logger.debug(`closing session for clientid: ${clientid}`);
+      logger.debug("closing session for clientid:", clientid);
       await ctx.close();
       if (cleanUp) {
         await ctx.clean();

@@ -129,4 +129,4 @@ const tcpServer = new TcpServer({ port, hostname }, {
   },
 });
 tcpServer.start();
-logger.info(`Server started on port ${tcpServer.port}`);
+logger.info("Server started on port", tcpServer.port);

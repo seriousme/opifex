@@ -190,7 +190,7 @@ export class Context {
         `Caught something that is not an instance of Error: ${err}`,
       );
       queueMicrotask(() => this.#client.onError(err));
-      logger.debug(`error ${err}`);
+      logger.debug("error", err);
       if (!this.mqttConn.isClosed) {
         this.mqttConn.close();
       }

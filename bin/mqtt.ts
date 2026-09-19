@@ -229,7 +229,7 @@ async function subscribe() {
   } catch (err) {
     if (err instanceof Error) {
       const errorWithCode = err as Error & { code?: string };
-      logger.info(`Error: ${errorWithCode.message || errorWithCode.code}`);
+      logger.info("Error:", errorWithCode.message || errorWithCode.code);
     }
   }
 }
@@ -283,7 +283,7 @@ async function publish() {
   } catch (err) {
     if (err instanceof Error) {
       const errorWithCode = err as Error & { code?: string };
-      logger.info(`Error: ${errorWithCode.message || errorWithCode.code}`);
+      logger.info("Error:", errorWithCode.message || errorWithCode.code);
     }
   }
 }

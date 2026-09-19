@@ -274,7 +274,7 @@ export class Context {
         PacketNameByType[packet.type]
       } to client ${this.clientId!}`,
     );
-    logger.debug(`ctx.send: ${JSON.stringify(packet, null, 2)}`);
+    logger.debug("ctx.send", () => JSON.stringify(packet, null, 2));
     // strip reasonString from properties unless allowed by config
     if ("properties" in packet && packet.properties) {
       const props = packet.properties;
@@ -458,7 +458,7 @@ export class Context {
     }
 
     if (keepAlive > 0) {
-      logger.debug(`Setting keepalive to ${keepAlive * 1500} ms`);
+      logger.debug("Setting keepalive to", keepAlive * 1500, "ms");
       this.timer = new Timer(() => {
         this.close();
       }, keepAlive * 1500);
@@ -604,7 +604,7 @@ export class Context {
     const remoteAddress = this.mqttConn.remoteAddress !== "unknown"
       ? ` from ${this.mqttConn.remoteAddress}`
       : "";
-    logger.info(`Connected "${clientId}"${remoteAddress}`);
+    logger.info("Connected", clientId, remoteAddress);
 
     return existingSession;
   }
@@ -636,7 +636,7 @@ export class Context {
    * If executewill=true triggers the registered Will packet logic.
    */
   async close(executewill = true): Promise<void> {
-    logger.debug(`server closing context while state = ${this.state}`);
+    logger.debug("server closing context while state =", this.state);
     if (this.state === SessionState.closing) {
       return;
     }
@@ -727,7 +727,7 @@ export class Context {
     const clientId = this.clientId!;
     const p = this.persistence;
 
-    logger.verbose(`ctx:handleRedelivery for ${this.clientId}`);
+    logger.verbose("ctx:handleRedelivery for", this.clientId);
     for await (const packet of p.listPendingOutgoingPackets(clientId)) {
       if (this.state !== SessionState.connected) {
         break;

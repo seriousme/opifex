@@ -21,6 +21,8 @@ export const LogLevel = {
  */
 export type TLogLevel = typeof LogLevel[keyof typeof LogLevel];
 
+type LogArgument = unknown | (() => unknown);
+
 /**
  * Simple logger class providing level-configurable output routing.
  * @class Logger
@@ -48,6 +50,17 @@ export class Logger {
   /** Native console reference used to step through highly specific operations. */
   private defaultDebug = console.log;
 
+  /** Flag indicating if error messages should be logged. */
+  isError = true;
+  /** Flag indicating if warning messages should be logged. */
+  isWarn = true;
+  /** Flag indicating if informational messages should be logged. */
+  isInfo = true;
+  /** Flag indicating if verbose messages should be logged. */
+  isVerbose = false;
+  /** Flag indicating if debug messages should be logged. */
+  isDebug = false;
+
   /** Log an error message to the standard error stream. */
   error: typeof console.log = this.defaultError;
   /** Log a warning message if the active log level permits. */
@@ -59,6 +72,16 @@ export class Logger {
   /** Log debug parameters and objects if the active log level permits. */
   debug: typeof console.log = noop;
 
+  /** Creates a wrapper function that evaluates lazy log arguments before invoking the target logging function. */
+  private createLogFn(targetFn: (...args: any[]) => void) {
+    return (...args: LogArgument[]) => {
+      const evaluated = args.map((
+        arg,
+      ) => (typeof arg === "function" ? arg() : arg));
+      targetFn(...evaluated);
+    };
+  }
+
   /** Create a new Logger instance. */
   constructor() {}
 
@@ -67,10 +90,16 @@ export class Logger {
    * @param {TLogLevel} logLevel - The minimum numeric severity level threshold to output.
    */
   level(logLevel: TLogLevel) {
-    this.warn = logLevel > 0 ? this.defaultWarn : noop;
-    this.info = logLevel > 1 ? this.defaultInfo : noop;
-    this.verbose = logLevel > 2 ? this.defaultVerbose : noop;
-    this.debug = logLevel > 3 ? this.defaultDebug : noop;
+    this.isWarn = logLevel >= LogLevel.warn;
+    this.isInfo = logLevel >= LogLevel.info;
+    this.isVerbose = logLevel >= LogLevel.verbose;
+    this.isDebug = logLevel >= LogLevel.debug;
+    this.warn = this.isWarn ? this.createLogFn(this.defaultWarn) : noop;
+    this.info = this.isInfo ? this.createLogFn(this.defaultInfo) : noop;
+    this.verbose = this.isVerbose
+      ? this.createLogFn(this.defaultVerbose)
+      : noop;
+    this.debug = this.isDebug ? this.createLogFn(this.defaultDebug) : noop;
   }
 }
 
