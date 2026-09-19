@@ -49,7 +49,7 @@
     },
     "./wsClient": {
       "deno": "./web/wsClient.ts",
-      "browser": "./dist/web/wsClient.ts",
+      "browser": "./dist/web/wsClient.js",
       "default": null
     },
     "./tcpServer": {
