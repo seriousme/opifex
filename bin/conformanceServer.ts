@@ -58,8 +58,18 @@ function isAuthenticated(
   connectPacket: ConnectPacket,
 ): AuthenticatedResult {
   const pwd = utf8Decoder.decode(password);
-  logger.info("Verifying authentication of client", clientId, "with username", username);
-  logger.debug("Client", clientId, "connecting with protocol level", connectPacket.protocolLevel);
+  logger.info(
+    "Verifying authentication of client",
+    clientId,
+    "with username",
+    username,
+  );
+  logger.debug(
+    "Client",
+    clientId,
+    "connecting with protocol level",
+    connectPacket.protocolLevel,
+  );
 
   if (!checkUsername) {
     // allow all users access
@@ -89,7 +99,12 @@ function isAuthenticated(
  * @returns {boolean} True if authorized
  */
 function isAuthorizedToPublish(ctx: Context, topic: Topic): boolean {
-  logger.debug("Checking authorization of client", ctx.clientId, "to publish on topic", topic);
+  logger.debug(
+    "Checking authorization of client",
+    ctx.clientId,
+    "to publish on topic",
+    topic,
+  );
   return true;
 }
 
@@ -100,7 +115,12 @@ function isAuthorizedToPublish(ctx: Context, topic: Topic): boolean {
  * @returns {boolean} True if authorized
  */
 function isAuthorizedToSubscribe(ctx: Context, topic: Topic): boolean {
-  logger.debug("Checking authorization of client", ctx.clientId, "to subscribe to topic", topic);
+  logger.debug(
+    "Checking authorization of client",
+    ctx.clientId,
+    "to subscribe to topic",
+    topic,
+  );
   return true;
 }
 
