@@ -138,8 +138,7 @@ can be found in the [examples](/examples/) folder.
 
 6. Server behavior can be customized by passing a
    ([ConfigurationInput object](server/config.ts)) object
-   via`MqttServerOptions.configuration`,
-   see the example above.
+   via`MqttServerOptions.configuration`, see the example above.
 
 7. The demo server listens to a platform specific socket and runs the `serve()`
    method from the server module on the platform independent streams of every
