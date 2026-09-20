@@ -1,9 +1,5 @@
-import type {
-  CodecOpts,
-  ProtocolLevelNoV5,
-  TAuthenticationResult,
-  TPacketType,
-} from "./types.ts";
+import type { CodecOpts, TAuthenticationResult, TPacketType } from "./types.ts";
+import type { ProtocolLevelNoV5 } from "./protocolLevels.ts";
 import { PacketType } from "./PacketType.ts";
 import { BitMask } from "./BitMask.ts";
 import { Encoder } from "./encoder.ts";

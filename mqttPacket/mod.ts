@@ -10,9 +10,12 @@ export type { AnyPacket } from "./codec.ts";
 
 export type { ConnectPacket } from "./connect.ts";
 export type { ConnackPacket } from "./connack.ts";
-export type { PublishPacket } from "./publish.ts";
-export type { Subscription } from "./subscribe.ts";
-export type { SubscribePacket } from "./subscribe.ts";
+export type { PublishPacket, PublishPacketV5 } from "./publish.ts";
+export type {
+  SubscribePacket,
+  Subscription,
+  SubscriptionV5,
+} from "./subscribe.ts";
 export type { SubackPacket } from "./suback.ts";
 export type { UnsubscribePacket } from "./unsubscribe.ts";
 export type { UnsubackPacket } from "./unsuback.ts";
@@ -35,7 +38,7 @@ export {
   AuthenticationResult,
   AuthenticationResultByNumber,
 } from "./AuthenticationResult.ts";
-export { invalidTopic, invalidTopicFilter, invalidUTF8 } from "./validators.ts";
+export { invalidUTF8 } from "./validators.ts";
 export { decodeLength, encodeLength } from "./length.ts";
 export { getLengthDecoder } from "../mqttPacket/length.ts";
 
@@ -46,7 +49,6 @@ export type {
   Dup,
   PacketId,
   Payload,
-  ProtocolLevel,
   QoS,
   ReturnCodes,
   TAuthenticationResult,
@@ -57,3 +59,22 @@ export type {
   TRetainHandling,
   UTF8StringPair,
 } from "./types.ts";
+
+export type {
+  AuthProperties,
+  ConnackProperties,
+  ConnectProperties,
+  DisconnectProperties,
+  PubackProperties,
+  PubcompProperties,
+  PublishProperties,
+  PubrecProperties,
+  PubrelProperties,
+  SubackProperties,
+  SubscribeProperties,
+  UnsubackProperties,
+  UnsubscribeProperties,
+  WillProperties,
+} from "./Properties.ts";
+
+export type { ProtocolLevel, ProtocolLevelNoV5 } from "./protocolLevels.ts";

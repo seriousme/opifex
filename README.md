@@ -17,10 +17,33 @@ The following MQTT versions are supported:
 | -------------- | ------------- | --------------- | --------------- |
 | Packet/encoder | ✅            | ✅              | ✅              |
 | Client         | ✅            | ✅              | ✅ <sup>1</sup> |
-| Server         | ❌            | ✅              | ❌              |
+| Server         | ❌            | ✅              | ✅              |
 
-<sup>1</sup> The client api fully supports MQTTv5, the CLI only supports a
+<sup>1</sup> The client API fully supports MQTTv5, the CLI only supports a
 subset
+
+Version 5 support includes:
+
+- Client Topic Alias ✅
+- Server Topic Alias ✅
+- Subscription Identifiers ✅
+- Subscription options (NoLocal, RetainAsPublished, RetainHandling) ✅
+- Message expiry interval ✅
+- Will delay ✅
+- Assigned Client Identifier ✅
+- Client receive maximum ✅
+- Server receive maximum ✅
+- Shared Subscriptions ✅
+
+# Transports
+
+The following transports are currently supported:
+
+- plain TCP
+- TLS
+- WebSockets
+
+You can add your own transports.
 
 # Persistence
 
@@ -47,8 +70,8 @@ can be done with CLI options then the next step is to clone the demo server
 and/or the client scripts and modify them to your liking.
 
 If you want to port the platform independent client and server libs to other
-types of transports (e.g. Unix sockets or websocketstream) then it's recommended
-to clone and modify the platform specific code in `/node` or `/deno` as well.
+types of transports (e.g. Unix sockets) then it's recommended to clone and
+modify the platform specific code in `/node` , `/deno` or `/web` as well.
 
 If you want to port the platform independent client and server libs to another
 platform then the platform specific code in `/node` or `/deno` might serve as
@@ -65,7 +88,11 @@ import { TcpServer}
 
 ```typescript
 import { TcpServer } from "@seriousme/opifex/tcpServer";
-const server = new TcpServer({ port: 1883 }, {});
+
+const server = new TcpServer({ port: 1883 }, {
+  // just an example on how to configure the server
+  configuration: { context: { maximumConnectPacketSize: 3000 } },
+});
 server.start();
 console.log(
   `MQTT server running on port: ${server.port}, address: ${server.address}`,
@@ -101,16 +128,23 @@ can be found in the [examples](/examples/) folder.
    keep track of its state and associated timers.
 
 5. Persistence of data is handled by a pluggable persistence module
-   ([persistence](persistence)) which currently offers memory persistence
-   ([persistence/memory](persistence/memory)) and a platform specific sqlite
-   persistence ([persistence/sqlite](persistence/sqlite)) but can be extended
-   with other database backed persistence supported by third party modules.
+   ([persistence](persistence)) which currently offers single process
+   persistence which you can replace by something more scalable (e.g. redis
+   based clusters etc) This is backed by two storage providers:
+   - ([persistence/memory](persistence/memory))
+   - ([persistence/sqlite](persistence/sqlite)) (based on node:sqlite) but can
+     be extended with other database backed persistence supported by third party
+     modules.
 
-6. The demo server listens to a platform specific socket and runs the `serve()`
+6. Server behavior can be customized by passing a
+   ([ConfigurationInput object](server/config.ts)) object
+   via`MqttServerOptions.configuration`, see the example above.
+
+7. The demo server listens to a platform specific socket and runs the `serve()`
    method from the server module on the platform independent streams of every
    connection.
 
-7. The demo client opens a platform specific socket and passes the resulting
+8. The demo client opens a platform specific socket and passes the resulting
    platform independent streams to the client module.
 
 ## Exports

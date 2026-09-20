@@ -8,12 +8,13 @@
 import { parseArgs } from "node:util";
 import { TcpServer } from "../node/tcpServer.ts";
 import type {
+  AuthenticatedResult,
   ConnectPacket,
   Context,
-  TAuthenticationResult,
+  ShareName,
   Topic,
 } from "../server/mod.ts";
-import { AuthenticationResult } from "../server/mod.ts";
+import { ReasonCode } from "../server/mod.ts";
 import { logger, LogLevel } from "../utils/mod.ts";
 
 /**
@@ -48,7 +49,7 @@ const checkUsername = true;
  * @param {string} username - Username to authenticate
  * @param {Uint8Array} password - Password as byte array
  * @param {ConnectPacket} connectPacket - The raw connect packet
- * @returns {TAuthenticationResult} Authentication result
+ * @returns {IsAuthenticationResult} Authentication result
  */
 function isAuthenticated(
   _ctx: Context,
@@ -56,31 +57,40 @@ function isAuthenticated(
   username: string,
   password: Uint8Array,
   connectPacket: ConnectPacket,
-): TAuthenticationResult {
+): AuthenticatedResult {
   const pwd = utf8Decoder.decode(password);
   logger.info(
-    `Verifying authentication of client '${clientId}' with username '${username}'`,
+    "Verifying authentication of client",
+    clientId,
+    "with username",
+    username,
   );
   logger.debug(
-    `Client '${clientId}' connecting with protocol level ${connectPacket.protocolLevel}`,
+    "Client",
+    clientId,
+    "connecting with protocol level",
+    connectPacket.protocolLevel,
   );
 
   if (!checkUsername) {
     // allow all users access
-    return AuthenticationResult.ok;
+    return { reasonCode: ReasonCode.success };
   }
   // is the username valid according to MQTT specification
   if (!strictUsername.test(username)) {
-    return AuthenticationResult.badUsernameOrPassword;
+    return { reasonCode: ReasonCode.badUserNameOrPassword };
   }
   // Does user and password match an entry in userTable
   if (userTable.has(username)) {
     const pass = userTable.get(username);
     if (pwd === pass) {
-      return AuthenticationResult.ok;
+      return { reasonCode: ReasonCode.success };
     }
   }
-  return AuthenticationResult.notAuthorized;
+  return {
+    reasonCode: ReasonCode.notAuthorized,
+    reasonString: "Authentication failed",
+  };
 }
 
 /**
@@ -91,7 +101,10 @@ function isAuthenticated(
  */
 function isAuthorizedToPublish(ctx: Context, topic: Topic): boolean {
   logger.debug(
-    `Checking authorization of client '${ctx.clientId}' to publish on topic '${topic}'`,
+    "Checking authorization of client",
+    ctx.clientId,
+    "to publish on topic",
+    topic,
   );
   return true;
 }
@@ -102,9 +115,18 @@ function isAuthorizedToPublish(ctx: Context, topic: Topic): boolean {
  * @param {Topic} topic - Topic to subscribe to
  * @returns {boolean} True if authorized
  */
-function isAuthorizedToSubscribe(ctx: Context, topic: Topic): boolean {
+function isAuthorizedToSubscribe(
+  ctx: Context,
+  topic: Topic,
+  shareName: ShareName,
+): boolean {
   logger.debug(
-    `Checking authorization of client '${ctx.clientId}' to subscribe to topic '${topic}'`,
+    "Checking authorization of client",
+    ctx.clientId,
+    "to subscribe to topic",
+    topic,
+    "using shareName",
+    shareName,
   );
   return true;
 }
@@ -128,4 +150,4 @@ const tcpServer = new TcpServer({ port, hostname }, {
   },
 });
 tcpServer.start();
-logger.info(`Server started on port ${tcpServer.port}`);
+logger.info("Server started on port", tcpServer.port);

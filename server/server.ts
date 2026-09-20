@@ -1,8 +1,10 @@
-import { AuthenticationResult, logger, MemoryPersistence } from "./deps.ts";
+import { logger, MemoryPersistence, ReasonCode } from "./deps.ts";
 import { Context } from "./context.ts";
 import type { Handlers } from "./context.ts";
-import type { IPersistence, SockConn, Topic } from "./deps.ts";
+import type { IPersistence, ShareName, SockConn, Topic } from "./deps.ts";
 import { handlePacket } from "./handlers/handlePacket.ts";
+import { createConfiguration } from "./config.ts";
+import type { Configuration, ConfigurationInput } from "./config.ts";
 
 /**
  * Default preconnect handler that unconditionally permits all connections.
@@ -11,7 +13,7 @@ import { handlePacket } from "./handlers/handlePacket.ts";
  */
 const defaultPreconnect = (
   _conn: SockConn,
-) => true;
+) => (true) as const;
 
 /**
  * Default authentication handler that unconditionally permits all connections.
@@ -19,22 +21,48 @@ const defaultPreconnect = (
  * @param {string} _clientId - The client identifier.
  * @param {string} _username - The username provided by the client.
  * @param {Uint8Array} _password - The password provided by the client.
- * @returns {AuthenticationResult} Always returns AuthenticationResult.ok.
+ * @returns {IsAuthenticatedResult} Always returns ReasonCode.success.
  */
 const defaultIsAuthenticated = (
   _ctx: Context,
   _clientId: string,
   _username: string,
   _password: Uint8Array,
-) => AuthenticationResult.ok;
+) => ({ reasonCode: ReasonCode.success }) as const;
+
+const defaultProcessAuth = (
+  _ctx: Context,
+  _clientId: string,
+  _authMethod: string,
+  _authData: Uint8Array,
+) =>
+  ({
+    reasonCode: ReasonCode.badAuthenticationMethod,
+    reasonString: "Authentication method not supported",
+  }) as const;
 
 /**
- * Default authorization handler that unconditionally permits all topic operations.
+ * Default authorization handler that unconditionally permits all publish operations.
  * @param {Context} _ctx - The connection context.
  * @param {Topic} _topic - The topic being accessed.
  * @returns {boolean} Always returns true.
  */
-const defaultIsAuthorized = (_ctx: Context, _topic: Topic) => true;
+const defaultIsAuthorizedToPublish = (_ctx: Context, _topic: Topic) =>
+  (true) as const;
+
+/**
+ * Default authorization handler that unconditionally permits all subscribe operations.
+ * @param {Context} _ctx - The connection context.
+ * @param {Topic} _topic - The topic being accessed.
+ * @param {ShareName} _shareName - The share name being accessed when using shared subscriptions
+ * @returns {boolean} Always returns true.
+ */
+
+const defaultIsAuthorizedToSubscribe = (
+  _ctx: Context,
+  _topic: Topic,
+  _shareName: ShareName,
+) => (true) as const;
 
 /**
  * Configuration options for creating an MqttServer instance.
@@ -44,6 +72,8 @@ export type MqttServerOptions = {
   persistence?: IPersistence;
   /** Optional custom handlers for authentication and authorization. */
   handlers?: Handlers;
+  /** Optional configuration data */
+  configuration?: ConfigurationInput;
 };
 
 /** * The MqttServer class provides an MQTT server with configurable persistence and
@@ -62,6 +92,8 @@ export class MqttServer {
   handlers: Handlers;
   /** The persistence layer used for storing sessions and messages. */
   persistence: IPersistence;
+  /** The persistence layer used for storing sessions and messages. */
+  configuration: Configuration;
 
   /**
    * Initializes a new instance of the MqttServer.
@@ -70,16 +102,19 @@ export class MqttServer {
   constructor({
     persistence,
     handlers,
+    configuration,
   }: MqttServerOptions) {
     this.persistence = persistence || new MemoryPersistence();
     this.handlers = {
       preconnect: handlers?.preconnect || defaultPreconnect,
       isAuthenticated: handlers?.isAuthenticated || defaultIsAuthenticated,
+      processAuth: handlers?.processAuth || defaultProcessAuth,
       isAuthorizedToPublish: handlers?.isAuthorizedToPublish ||
-        defaultIsAuthorized,
+        defaultIsAuthorizedToPublish,
       isAuthorizedToSubscribe: handlers?.isAuthorizedToSubscribe ||
-        defaultIsAuthorized,
+        defaultIsAuthorizedToSubscribe,
     };
+    this.configuration = createConfiguration(configuration);
   }
 
   /**
@@ -94,9 +129,14 @@ export class MqttServer {
         return;
       }
     }
-    const ctx = new Context(this.persistence, conn, this.handlers);
+    const ctx = new Context(
+      this.configuration,
+      this.persistence,
+      conn,
+      this.handlers,
+    );
     if (conn.remoteAddr?.transport === "tcp") {
-      logger.debug(`socket connected from ${conn.remoteAddr.hostname}`);
+      logger.debug("socket connected from", conn.remoteAddr.hostname);
     }
     try {
       for await (const packet of ctx.mqttConn) {
@@ -104,10 +144,10 @@ export class MqttServer {
         await handlePacket(ctx, packet);
       }
     } catch (err) {
-      logger.debug(`Error while serving:${err}`);
+      logger.debug("Error while serving:", err);
     } finally {
-      logger.debug(`done serving for ${ctx.clientId}`);
-      ctx.close();
+      logger.debug("done serving for", ctx.clientId);
+      await ctx.close();
     }
   }
 
@@ -115,13 +155,13 @@ export class MqttServer {
    * Close the server and all active client connections.
    * @param {boolean} cleanUp - If true, clean up client sessions on close.
    */
-  close(cleanUp: boolean = false): void {
-    logger.debug(`stopping mqttServer`);
+  async close(cleanUp: boolean = false): Promise<void> {
+    logger.debug("stopping mqttServer");
     for (const [clientid, ctx] of Context.clientList) {
-      logger.debug(`closing session for clientid: ${clientid}`);
-      ctx.close();
+      logger.debug("closing session for clientid:", clientid);
+      await ctx.close();
       if (cleanUp) {
-        ctx.clean();
+        await ctx.clean();
       }
     }
   }

@@ -1,10 +1,4 @@
-import type {
-  Topic,
-  TopicFilter,
-  TPacketType,
-  TReasonCode,
-  UTF8StringPair,
-} from "./types.ts";
+import type { TPacketType, TReasonCode, UTF8StringPair } from "./types.ts";
 
 import type {
   Mqttv5PropertyTypes,
@@ -24,13 +18,7 @@ import {
 } from "./Properties.ts";
 
 import { encodeLength } from "./length.ts";
-import {
-  DEFAULT_MAX_TOPIC_LEVELS,
-  invalidmaxTopicLevels,
-  invalidTopic,
-  invalidTopicFilter,
-  invalidUTF8,
-} from "./validators.ts";
+import { invalidUTF8 } from "./validators.ts";
 import { isValidReasonCode } from "./ReasonCode.ts";
 
 const utf8Encoder = new TextEncoder();
@@ -60,12 +48,6 @@ export class Encoder {
 
   /** marker to rewind to */
   private marker: number;
-
-  /**
-   * max number of levels in topics and topicFilters
-   * added as classmember so it can be reconfigured
-   */
-  maxTopicLevels = DEFAULT_MAX_TOPIC_LEVELS;
 
   /**
    * Creates a new Encoder instance
@@ -178,48 +160,6 @@ export class Encoder {
    */
   setUtf8StringPair([name, value]: UTF8StringPair): this {
     this.setUtf8String(name);
-    this.setUtf8String(value);
-    return this;
-  }
-
-  /**
-   * Adds an MQTT topic string to the buffer
-   * @param value - Topic string to add
-   * @throws {EncoderError} If topic is invalid
-   * @returns The encoder instance for chaining
-   */
-  setTopic(value: Topic): this {
-    if (invalidmaxTopicLevels(value, this.maxTopicLevels)) {
-      throw new EncoderError(
-        `Topic must contain a maximum of ${this.maxTopicLevels} levels`,
-      );
-    }
-    if (invalidTopic(value)) {
-      throw new EncoderError(
-        "Topic must contain more than 1 byte and no wildcards",
-      );
-    }
-    this.setUtf8String(value);
-    return this;
-  }
-
-  /**
-   * Adds an MQTT topic filter string to the buffer
-   * @param value - Topic filter string to add
-   * @throws {EncoderError} If topic filter is invalid
-   * @returns The encoder instance for chaining
-   */
-  setTopicFilter(value: TopicFilter): this {
-    if (invalidmaxTopicLevels(value, this.maxTopicLevels)) {
-      throw new EncoderError(
-        `TopicFilter must contain a maximum of ${this.maxTopicLevels} levels`,
-      );
-    }
-    if (invalidTopicFilter(value)) {
-      throw new EncoderError(
-        "Topicfilter must contain valid UTF-8 and contain more than 1 byte and valid wildcards",
-      );
-    }
     this.setUtf8String(value);
     return this;
   }

@@ -8,7 +8,10 @@ import type { PublishPacket, QoS } from "@seriousme/opifex/mqttPacket";
 logger.level(LogLevel.info);
 
 test("Test pubSub using TCP client and server using memoryPersistence", async function () {
-  const server = new TcpServer({ port: 0 }, {});
+  const server = new TcpServer({ port: 0 }, {
+    // just an example on how to configure the server
+    configuration: { context: { maximumConnectPacketSize: 3000 } },
+  });
   server.start();
 
   assert.deepStrictEqual(
@@ -27,7 +30,7 @@ test("Test pubSub using TCP client and server using memoryPersistence", async fu
 
   const client = new TcpClient();
   await client.connect(params);
-  logger.info(`Client connected to server at ${client.url}`);
+  logger.info("Client connected to server at", client.url);
 
   const publishSet: { topic: string; qos: QoS }[] = [
     { topic: "t0@q0", qos: 0 },
@@ -50,17 +53,17 @@ test("Test pubSub using TCP client and server using memoryPersistence", async fu
   });
 
   // the IIFE ensures message reception runs in parallel
-  logger.info(`Start receiving`);
+  logger.info("Start receiving");
   const received: PublishPacket[] = [];
   (async function () {
     for await (const item of client.messages()) {
-      logger.verbose(`Receiving: ${item.topic} -- ${item.qos}`);
+      logger.verbose("Receiving:", item.topic, "--", item.qos);
       received.push(item);
     }
   })();
   // end of IIFE
   for (const item of publishSet) {
-    logger.verbose(`Publishing: ${item.topic} -- ${item.qos}`);
+    logger.verbose("Publishing:", item.topic, "--", item.qos);
     await client.publish({
       topic: item.topic,
       qos: item.qos,
@@ -69,18 +72,18 @@ test("Test pubSub using TCP client and server using memoryPersistence", async fu
   }
 
   await delay(100);
-  logger.info(`Disconnect client`);
+  logger.info("Disconnect client");
   await client.disconnect();
 
-  logger.info(`Check completeness`);
+  logger.info("Check completeness");
   for (const item of publishSet) {
     const found = received.find((f) =>
       f.topic == item.topic && f.qos === item.qos
     );
-    logger.verbose(`Found: ${item.topic} -- ${item.qos}`);
+    logger.verbose("Found:", item.topic, "--", item.qos);
     assert(found, `${item.topic} -- ${item.qos}`);
   }
 
-  logger.info(`Stop server`);
+  logger.info("Stop server");
   server.stop();
 });

@@ -8,12 +8,10 @@
 //
 // Usage: MQTT_PORT=1883 node tools/mqtt-compat/broker.js
 import { TcpServer } from "../../node/tcpServer.ts";
-import type { Context, Topic } from "../../server/mod.ts";
-import { logger, LogLevel } from "../../utils/mod.ts";
+import type { Context, ShareName, Topic } from "../../server/mod.ts";
+import { logger } from "../../utils/mod.ts";
 import { isAuthenticatedBroker as isAuthenticated } from "../../dev_utils/mod.ts";
 import { SqlitePersistence } from "../../persistence/sqlite/sqlitePersistence.ts";
-
-logger.level(LogLevel.debug);
 
 const port = Number(process.env.MQTT_PORT) || 1883;
 const persistence = new SqlitePersistence();
@@ -24,7 +22,11 @@ const persistence = new SqlitePersistence();
 
 const NO_SUBSCRIBE_TOPIC = "test/nosubscribe";
 
-function isAuthorizedToSubscribe(ctx: Context, topic: Topic): boolean {
+function isAuthorizedToSubscribe(
+  ctx: Context,
+  topic: Topic,
+  _shareName: ShareName,
+): boolean {
   logger.debug(
     `Checking authorization of client '${ctx.clientId}' to subscribe to topic '${topic}'`,
   );
@@ -39,7 +41,7 @@ const tcpServer = new TcpServer({ port }, {
   },
 });
 tcpServer.start();
-logger.info(`Server started on port ${tcpServer.port}`);
+logger.info("Server started on port", tcpServer.port);
 
 function shutdown() {
   tcpServer.stop();

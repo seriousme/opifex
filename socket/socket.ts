@@ -81,29 +81,37 @@ export class Conn {
     return result;
   }
 
-  write(data: Uint8Array): Promise<number> {
+  async write(data: Uint8Array): Promise<number> {
     if (this.closed) {
       return Promise.reject(new Error("Connection closed"));
     }
-    this.writer.write(data);
-    return Promise.resolve(data.length);
+    try {
+      await this.writer.write(data);
+      return data.length;
+    } catch (err) {
+      this.closed = true;
+      throw err;
+    }
   }
 
   close() {
     if (!this.closed) {
+      this.closed = true;
+
       // deno-coverage-ignore-start
-      if (!this.writer.closed) {
-        try {
-          this.writer.close();
-        } catch (_err) { /* swallow */ }
-      }
+      void this.writer.close().catch(() => {
+        // ignore duplicate/late close attempts; the stream may already be closed
+      });
       // deno-coverage-ignore-stop
+
       try {
-        this.reader.cancel();
+        void this.reader.cancel().catch(() => {
+          // ignore duplicate/late cancel attempts; the stream may already be closed
+        });
         this.reader?.releaseLock();
         // deno-coverage-ignore
       } catch (_err) { /* swallow */ }
-      this.closed = true;
+
       try {
         this.closer();
       } catch (_err) { /* swallow */ }

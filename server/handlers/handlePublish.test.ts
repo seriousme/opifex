@@ -1,16 +1,19 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { AnyPacket } from "../deps.ts";
-import { MQTTLevel, PacketType } from "../deps.ts";
+
 import {
   connect,
+  connect5,
   disconnect,
+  disconnect5,
   isAuthenticatedBroker,
   ping,
+  publish,
+  publish5,
   startMockServer,
 } from "../../dev_utils/mod.ts";
 
-const txtEncoder = new TextEncoder();
+import { PacketType, ReasonCode } from "../deps.ts";
 
 test("PUBLISH QoS 0 does not receive acknowledgment", async () => {
   const { mqttConn } = startMockServer();
@@ -18,16 +21,7 @@ test("PUBLISH QoS 0 does not receive acknowledgment", async () => {
   await connect(mqttConn);
 
   // Publish QoS 0
-  const publishPacket: AnyPacket = {
-    type: PacketType.publish,
-    protocolLevel: MQTTLevel.v4,
-    topic: "test/topic",
-    payload: txtEncoder.encode("hello"),
-    qos: 0,
-    retain: false,
-    dup: false,
-  };
-  mqttConn.send(publishPacket);
+  await publish(mqttConn, "hello", 0);
 
   // Send PINGREQ to verify no PUBACK was queued before it
   // QoS 0 should not produce PUBACK, next response should be PINGRES
@@ -42,23 +36,7 @@ test("PUBLISH QoS 1 receives PUBACK", async () => {
   await connect(mqttConn);
 
   // Publish QoS 1
-  const publishPacket: AnyPacket = {
-    type: PacketType.publish,
-    protocolLevel: MQTTLevel.v4,
-    topic: "test/topic",
-    payload: txtEncoder.encode("hello"),
-    qos: 1,
-    retain: false,
-    dup: false,
-    id: 1,
-  };
-  mqttConn.send(publishPacket);
-
-  const { value: puback } = await mqttConn.next();
-  assert.deepStrictEqual(puback.type, PacketType.puback, "Expected PUBACK");
-  if (puback.type === PacketType.puback) {
-    assert.deepStrictEqual(puback.id, 1, "PUBACK ID should match PUBLISH ID");
-  }
+  await publish(mqttConn, "test/topic", 1);
 
   await disconnect(mqttConn);
 });
@@ -69,24 +47,7 @@ test("PUBLISH QoS 2 receives PUBREC", async () => {
   await connect(mqttConn);
 
   // Publish QoS 2
-  const publishPacket: AnyPacket = {
-    type: PacketType.publish,
-    protocolLevel: MQTTLevel.v4,
-    topic: "test/topic",
-    payload: txtEncoder.encode("hello"),
-    qos: 2,
-    retain: false,
-    dup: false,
-    id: 2,
-  };
-  mqttConn.send(publishPacket);
-
-  const { value: pubrec } = await mqttConn.next();
-  assert.deepStrictEqual(pubrec.type, PacketType.pubrec, "Expected PUBREC");
-  if (pubrec.type === PacketType.pubrec) {
-    assert.deepStrictEqual(pubrec.id, 2, "PUBREC ID should match PUBLISH ID");
-  }
-
+  await publish(mqttConn, "test/topic", 2, { id: 2, payload: "hello" });
   await disconnect(mqttConn);
 });
 
@@ -96,23 +57,25 @@ test("Publish with missing isAuthorizedToPublish handler authorizes publish", as
 
   await connect(mqttConn);
   // Try to publish to unauthorized topic
-  const publishPacket: AnyPacket = {
-    type: PacketType.publish,
-    protocolLevel: MQTTLevel.v4,
-    topic: "topic/unauthorized",
-    payload: txtEncoder.encode("test"),
-    qos: 1,
-    retain: false,
-    dup: false,
-    id: 3,
-  };
-  mqttConn.send(publishPacket);
-  const { value: puback } = await mqttConn.next();
-  assert.deepStrictEqual(puback.type, PacketType.puback, "Expected PUBACK");
-  if (puback.type === PacketType.puback) {
-    assert.deepStrictEqual(puback.id, 3, "PUBACK ID should match PUBLISH ID");
-  }
+  await publish(mqttConn, "topic/unauthorized", 1, { id: 3, payload: "test" });
+
   await disconnect(mqttConn);
+});
+
+test("Publish with isAuthorizedToPublish handler throwing error rejects publish", async () => {
+  const { mqttConn, mqttServer } = startMockServer();
+  mqttServer.handlers.isAuthorizedToPublish = () => {
+    throw Error("kaboom");
+  };
+
+  await connect(mqttConn);
+  await publish(mqttConn, "topic/kaboom", 1, {
+    id: 3,
+    payload: "test",
+    checkAcks: false,
+  });
+  await mqttConn.next();
+  assert.equal(mqttConn.isClosed, true, "expect connection to be closed");
 });
 
 test("PUBLISH to unauthorized topic is rejected", async () => {
@@ -121,17 +84,11 @@ test("PUBLISH to unauthorized topic is rejected", async () => {
   await connect(mqttConn);
 
   // Try to publish to unauthorized topic
-  const publishPacket: AnyPacket = {
-    type: PacketType.publish,
-    protocolLevel: MQTTLevel.v4,
-    topic: "topic/unauthorized",
-    payload: txtEncoder.encode("test"),
-    qos: 1,
-    retain: false,
-    dup: false,
+  await publish(mqttConn, "topic/unauthorized", 1, {
     id: 3,
-  };
-  mqttConn.send(publishPacket);
+    payload: "test",
+    checkAcks: false,
+  });
 
   await mqttConn.next();
   assert.equal(mqttConn.isClosed, true, "expect connection to be closed");
@@ -143,17 +100,12 @@ test("PUBLISH to $SYS topic is rejected", async () => {
   await connect(mqttConn);
 
   // Try to publish to $SYS topic
-  const publishPacket: AnyPacket = {
-    type: PacketType.publish,
-    protocolLevel: MQTTLevel.v4,
-    topic: "$SYS/broker/clients",
-    payload: txtEncoder.encode("test"),
-    qos: 1,
-    retain: false,
-    dup: false,
+  await publish(mqttConn, "$SYS/broker/clients", 1, {
     id: 3,
-  };
-  mqttConn.send(publishPacket);
+    payload: "test",
+    checkAcks: false,
+  });
+
   await mqttConn.next();
   assert.equal(mqttConn.isClosed, true, "expect connection to be closed");
 });
@@ -165,18 +117,355 @@ test("PUBLISH to $SYS topic is allowed for brokers", async () => {
 
   await connect(mqttConn, { clientId: "broker1" });
   // Try to publish to $SYS topic
-  const publishPacket: AnyPacket = {
-    type: PacketType.publish,
-    protocolLevel: MQTTLevel.v4,
-    topic: "$SYS/broker/clients",
-    payload: txtEncoder.encode("test"),
-    qos: 0,
-    retain: false,
-    dup: false,
+  await publish(mqttConn, "$SYS/broker/clients", 0, {
     id: 3,
-  };
-  mqttConn.send(publishPacket);
+    payload: "test",
+  });
   // connection should still be alive
   await ping(mqttConn);
   await disconnect(mqttConn);
+});
+
+// ============================================================================
+// Retain Not Supported Tests
+// ============================================================================
+
+test("PUBLISH with retain when retainAvailable is false closes connection in v4", async () => {
+  const { mqttConn } = startMockServer({
+    configuration: { context: { retainAvailable: false } },
+  });
+
+  await connect(mqttConn);
+
+  // Send publish with retain flag enabled
+  await publish(mqttConn, "test/topic", 1, {
+    id: 1,
+    payload: "test",
+    retain: true,
+    checkAcks: false,
+  });
+
+  // Protocol level 4 should close the connection on retain error
+  await mqttConn.next();
+  assert.equal(mqttConn.isClosed, true, "expect connection to be closed in v4");
+});
+
+test("PUBLISH v5 with retain when retainAvailable is false receives PUBACK with retainNotSupported (QoS 1)", async () => {
+  const { mqttConn } = startMockServer({
+    configuration: { context: { retainAvailable: false } },
+  });
+
+  await connect5(mqttConn);
+
+  // Send publish with retain flag enabled
+  await publish5(mqttConn, "test/topic", 1, {
+    id: 1,
+    payload: "test",
+    retain: true,
+    checkAcks: false,
+  });
+
+  const { value: pubAck } = await mqttConn.next();
+  assert.equal(pubAck.type, PacketType.puback, "Expected PUBACK packet");
+  assert.equal(pubAck.id, 1);
+  assert.equal(
+    pubAck.reasonCode,
+    ReasonCode.unspecifiedError,
+    "Expected retainNotSupported (0x9A) reasonCode in v5",
+  );
+
+  await disconnect5(mqttConn);
+});
+
+test("PUBLISH v5 with retain when retainAvailable is false receives PUBREC with retainNotSupported (QoS 2)", async () => {
+  const { mqttConn } = startMockServer({
+    configuration: { context: { retainAvailable: false } },
+  });
+
+  await connect5(mqttConn);
+
+  // Send publish with retain flag enabled
+  await publish5(mqttConn, "test/topic", 2, {
+    id: 2,
+    payload: "test",
+    retain: true,
+    checkAcks: false,
+  });
+
+  const { value: pubRec } = await mqttConn.next();
+  assert.equal(pubRec.type, PacketType.pubrec, "Expected PUBREC packet");
+  assert.equal(pubRec.id, 2);
+  assert.equal(
+    pubRec.reasonCode,
+    ReasonCode.unspecifiedError,
+    "Expected retainNotSupported (0x9A) reasonCode in v5",
+  );
+
+  await disconnect5(mqttConn);
+});
+
+// ============================================================================
+// MQTT v5 Specific Authorization Tests
+// ============================================================================
+
+test("PUBLISH v5 QoS 0 to unauthorized topic is silently dropped", async () => {
+  const { mqttConn } = startMockServer();
+
+  await connect5(mqttConn);
+
+  // QoS 0 gets no error response message according to v5 spec
+  await publish5(mqttConn, "topic/unauthorized", 0, {
+    payload: "test",
+    checkAcks: false,
+  });
+
+  // Verify connection is still open by executing a successful PING
+  await ping(mqttConn);
+  await disconnect5(mqttConn);
+});
+
+test("PUBLISH v5 QoS 1 to unauthorized topic receives PUBACK with notAuthorized", async () => {
+  const { mqttConn } = startMockServer();
+
+  await connect5(mqttConn);
+
+  await publish5(mqttConn, "topic/unauthorized", 1, {
+    id: 10,
+    payload: "test",
+    checkAcks: false,
+  });
+
+  const { value: pubAck } = await mqttConn.next();
+  assert.equal(pubAck.type, PacketType.puback, "Expected PUBACK");
+  assert.equal(pubAck.id, 10);
+  assert.equal(
+    pubAck.reasonCode,
+    ReasonCode.notAuthorized,
+    "Expected notAuthorized (0x87) reasonCode",
+  );
+
+  await disconnect5(mqttConn);
+});
+
+test("PUBLISH v5 QoS 2 to unauthorized topic receives PUBREC with notAuthorized", async () => {
+  const { mqttConn } = startMockServer();
+
+  await connect5(mqttConn);
+
+  await publish5(mqttConn, "topic/unauthorized", 2, {
+    id: 11,
+    payload: "test",
+    checkAcks: false,
+  });
+
+  const { value: pubRec } = await mqttConn.next();
+  assert.equal(pubRec.type, PacketType.pubrec, "Expected PUBREC");
+  assert.equal(pubRec.id, 11);
+  assert.equal(
+    pubRec.reasonCode,
+    ReasonCode.notAuthorized,
+    "Expected notAuthorized (0x87) reasonCode",
+  );
+
+  await disconnect5(mqttConn);
+});
+
+test("PUBLISH v5 includes reasonString when provideReasonStrings is enabled", async () => {
+  const { mqttConn } = startMockServer({
+    configuration: { context: { provideReasonStrings: true } },
+  });
+
+  await connect5(mqttConn);
+
+  await publish5(mqttConn, "topic/unauthorized", 1, {
+    id: 12,
+    payload: "test",
+    checkAcks: false,
+  });
+
+  const { value: pubAck } = await mqttConn.next();
+  assert.equal(pubAck.type, PacketType.puback);
+  assert.equal(pubAck.reasonCode, ReasonCode.notAuthorized);
+  assert.equal(
+    pubAck.properties?.reasonString,
+    "Client not authorized to publish to topic/unauthorized",
+  );
+
+  await disconnect5(mqttConn);
+});
+
+// ============================================================================
+// Invalid Topic & Topic Alias Tests
+// ============================================================================
+
+test("PUBLISH v4 with invalid topic containing wildcards closes connection", async () => {
+  const { mqttConn } = startMockServer();
+
+  await connect(mqttConn);
+
+  await publish(mqttConn, "invalid/+/topic", 1, {
+    id: 1,
+    payload: "test",
+    checkAcks: false,
+  });
+
+  await mqttConn.next();
+  assert.equal(mqttConn.isClosed, true, "expect connection to be closed in v4");
+});
+
+test("PUBLISH v5 QoS 1 with invalid topic containing wildcards receives PUBACK with topicNameInvalid", async () => {
+  const { mqttConn } = startMockServer();
+
+  await connect5(mqttConn);
+
+  await publish5(mqttConn, "invalid/+/topic", 1, {
+    id: 1,
+    payload: "test",
+    checkAcks: false,
+  });
+
+  const { value: pubAck } = await mqttConn.next();
+  assert.equal(pubAck.type, PacketType.puback);
+  assert.equal(pubAck.id, 1);
+  assert.equal(
+    pubAck.reasonCode,
+    ReasonCode.topicNameInvalid,
+    "Expected topicNameInvalid (0x90) reasonCode",
+  );
+
+  await disconnect5(mqttConn);
+});
+
+test("PUBLISH v5 QoS 2 with invalid topic containing wildcards receives PUBREC with topicNameInvalid", async () => {
+  const { mqttConn } = startMockServer();
+
+  await connect5(mqttConn);
+
+  await publish5(mqttConn, "invalid/#", 2, {
+    id: 2,
+    payload: "test",
+    checkAcks: false,
+  });
+
+  const { value: pubRec } = await mqttConn.next();
+  assert.equal(pubRec.type, PacketType.pubrec);
+  assert.equal(pubRec.id, 2);
+  assert.equal(
+    pubRec.reasonCode,
+    ReasonCode.topicNameInvalid,
+    "Expected topicNameInvalid (0x90) reasonCode",
+  );
+
+  await disconnect5(mqttConn);
+});
+
+test("PUBLISH v5 with topic level count exceeding maxTopicLevels receives topicNameInvalid", async () => {
+  const { mqttConn } = startMockServer({
+    configuration: { context: { maxTopicLevels: 1 } },
+  });
+
+  await connect5(mqttConn);
+
+  await publish5(mqttConn, "level1/level2", 1, {
+    id: 3,
+    payload: "test",
+    checkAcks: false,
+  });
+
+  const { value: pubAck } = await mqttConn.next();
+  assert.equal(pubAck.type, PacketType.puback);
+  assert.equal(
+    pubAck.reasonCode,
+    ReasonCode.topicNameInvalid,
+    "Expected topicNameInvalid (0x90) reasonCode",
+  );
+
+  await disconnect5(mqttConn);
+});
+
+test("PUBLISH v5 with empty topic and no topic alias receives topicNameInvalid", async () => {
+  const { mqttConn } = startMockServer();
+
+  await connect5(mqttConn);
+
+  await publish5(mqttConn, "", 1, {
+    id: 4,
+    payload: "test",
+    checkAcks: false,
+  });
+
+  const { value: pubAck } = await mqttConn.next();
+  assert.equal(pubAck.type, PacketType.puback);
+  assert.equal(
+    pubAck.reasonCode,
+    ReasonCode.topicNameInvalid,
+    "Expected topicNameInvalid (0x90) reasonCode",
+  );
+
+  await disconnect5(mqttConn);
+});
+
+test("PUBLISH v5 with topic alias works", async () => {
+  const { mqttConn } = startMockServer();
+
+  await connect5(mqttConn);
+  // Topic with topicAlias
+  await publish5(mqttConn, "topic/alias", 1, {
+    id: 4,
+    payload: "test",
+    properties: { topicAlias: 1 },
+  });
+  // Empty topic with topicAlias
+  await publish5(mqttConn, "", 1, {
+    id: 5,
+    payload: "test",
+    properties: { topicAlias: 1 },
+  });
+
+  await disconnect5(mqttConn);
+});
+
+test("PUBLISH v5 with invalid topic alias results in disconnect", async () => {
+  const { mqttConn } = startMockServer();
+
+  await connect5(mqttConn);
+  // Empty topic with unknown topicAlias
+  await publish5(mqttConn, "", 1, {
+    id: 5,
+    payload: "test",
+    properties: { topicAlias: 1 },
+    checkAcks: false,
+  });
+  const { value: disc } = await mqttConn.next();
+  assert.equal(disc.type, PacketType.disconnect);
+  assert.equal(
+    disc.reasonCode,
+    ReasonCode.topicAliasInvalid,
+    "Expected topicAliasInvalid (0x94) reasonCode",
+  );
+});
+
+test("PUBLISH v5 omits reasonString when provideReasonStrings is false", async () => {
+  const { mqttConn } = startMockServer({
+    configuration: { context: { provideReasonStrings: false } },
+  });
+
+  await connect5(mqttConn);
+
+  await publish5(mqttConn, "topic/unauthorized", 1, {
+    id: 6,
+    payload: "test",
+    checkAcks: false,
+  });
+
+  const { value: pubAck } = await mqttConn.next();
+  assert.equal(pubAck.type, PacketType.puback);
+  assert.equal(pubAck.reasonCode, ReasonCode.notAuthorized);
+  assert.equal(
+    pubAck.properties?.reasonString,
+    undefined,
+    "Expected reasonString to be omitted when provideReasonStrings is false",
+  );
+
+  await disconnect5(mqttConn);
 });

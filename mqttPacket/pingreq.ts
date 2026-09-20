@@ -1,6 +1,7 @@
 import { PacketType } from "./PacketType.ts";
 import { hasEmptyFlags, isEmptyBuf } from "./decoder.ts";
-import type { CodecOpts, ProtocolLevel, TPacketType } from "./types.ts";
+import type { CodecOpts, TPacketType } from "./types.ts";
+import type { ProtocolLevel } from "./protocolLevels.ts";
 
 /**
  * PingreqPacket is a packet that is sent to the server to keep the connection alive

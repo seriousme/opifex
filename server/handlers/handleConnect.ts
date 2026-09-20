@@ -1,121 +1,234 @@
-import type { Context } from "../context.ts";
-import { AuthenticationResult, logger, PacketType, Timer } from "../deps.ts";
-import type { ConnectPacket, TAuthenticationResult } from "../deps.ts";
+import type {
+  AuthenticatedResult,
+  ConnectOptions,
+  Context,
+} from "../context.ts";
+import {
+  invalidmaxTopicLevels,
+  invalidTopic,
+  logger,
+  PacketType,
+  ReasonCode,
+} from "../deps.ts";
+import type { ConnectPacket, ExtPublishPacket } from "../deps.ts";
+import { completeConnect } from "./completeConnect.ts";
 
 /**
- * Checks if the client is authenticated based on the provided credentials
- * @param ctx - The connection context
- * @param packet - The MQTT CONNECT packet
- * @returns Authentication result indicating if the client is authenticated
+ * Extracts options from MQTT v5 packet properties.
  */
-async function isAuthenticated(
-  ctx: Context,
-  packet: ConnectPacket,
-): Promise<TAuthenticationResult> {
-  if (ctx.handlers.isAuthenticated) {
-    return await ctx.handlers.isAuthenticated(
-      ctx,
-      packet.clientId || "",
-      packet.username || "",
-      packet.password || new Uint8Array(0),
-      packet,
-    );
+function extractConnectOptions(packet: ConnectPacket): ConnectOptions {
+  if (packet.protocolLevel !== 5) {
+    return {};
   }
-  return AuthenticationResult.ok;
+
+  return {
+    sessionExpiryInterval: packet.properties?.sessionExpiryInterval,
+    willDelayInterval: packet.will?.properties?.willDelayInterval,
+    topicAliasMaximum: packet.properties?.topicAliasMaximum,
+    maximumOutgoingPacketSize: packet.properties?.maximumPacketSize,
+    receiveMaximum: packet.properties?.receiveMaximum,
+  };
 }
 
 /**
- * Validates the CONNECT packet
- * @param ctx - The connection context
- * @param packet - The MQTT CONNECT packet to validate
- * @returns Authentication result indicating if the CONNECT packet is valid
+ * Checks if client credentials are valid.
  */
-
-async function validateConnect(
-  ctx: Context,
-  packet: ConnectPacket,
-): Promise<TAuthenticationResult> {
-  if (packet.protocolLevel !== 4) {
-    return AuthenticationResult.unacceptableProtocol;
-  }
-
-  return await isAuthenticated(ctx, packet);
-}
-
-/**
- * Processes the validated CONNECT packet
- * @param packet - The MQTT CONNECT packet
- * @param ctx - The connection context
- * @param clientId - The client ID
- */
-async function processValidatedConnect(
-  returnCode: TAuthenticationResult,
-  packet: ConnectPacket,
+async function authenticateClient(
   ctx: Context,
   clientId: string,
-): Promise<boolean> {
-  if (returnCode === AuthenticationResult.ok) {
-    if (packet.will) {
-      ctx.will = {
-        type: PacketType.publish,
-        protocolLevel: ctx.protocolLevel,
-        qos: packet.will.qos,
-        retain: packet.will.retain,
-        topic: packet.will.topic,
-        payload: packet.will.payload,
+  packet: ConnectPacket,
+): Promise<AuthenticatedResult> {
+  const isProtocolV5 = packet.protocolLevel === 5;
+  const authMethod = isProtocolV5
+    ? packet.properties?.authenticationMethod
+    : undefined;
+
+  if (ctx.handlers.isAuthenticated) {
+    try {
+      const result = await ctx.handlers.isAuthenticated(
+        ctx,
+        clientId,
+        packet.username || "",
+        packet.password || new Uint8Array(0),
+        packet,
+      );
+      if (
+        isProtocolV5 && result.reasonCode === ReasonCode.success &&
+        authMethod !== undefined && ctx.handlers.processAuth
+      ) {
+        const authData = packet.properties?.authenticationData;
+        return await ctx.handlers.processAuth(
+          ctx,
+          clientId,
+          authMethod,
+          authData!,
+        );
+      }
+      return result;
+    } catch (err) {
+      let message = "unknown error";
+      if (err instanceof Error) {
+        message = err.message;
+      }
+      logger.error("Authentication failed with error", message);
+      return {
+        reasonCode: ReasonCode.unspecifiedError,
+        reasonString: "Authentication failed",
       };
     }
-    const existingSession = await ctx.connect(clientId, packet.clean || false);
-    logger.debug(
-      `Client has ${existingSession ? "an" : "no"} existing session`,
-    );
-    ctx.protocolLevel = packet.protocolLevel;
-    if (ctx.mqttConn) {
-      logger.debug(`Setting protocolLevel to ${ctx.protocolLevel}`);
-      ctx.mqttConn.codecOpts.protocolLevel = ctx.protocolLevel;
-    }
-
-    const keepAlive = packet.keepAlive || 0;
-    if (keepAlive > 0) {
-      logger.debug(`Setting keepalive to ${keepAlive * 1500} ms`);
-      ctx.timer = new Timer(() => {
-        ctx.close();
-      }, Math.floor(keepAlive * 1500));
-    }
-    return existingSession;
   }
-  return false;
+  return { reasonCode: ReasonCode.success };
 }
 
 /**
- * Handles the MQTT CONNECT packet
- * @param ctx - The connection context
- * @param packet - The MQTT CONNECT packet to handle
+ * Validates the CONNECT packet structure and Will configuration.
+ */
+async function validateConnectPacket(
+  ctx: Context,
+  packet: ConnectPacket,
+  sessionExpiryInterval: number,
+): Promise<AuthenticatedResult | null> {
+  const cfg = ctx.config.context;
+
+  // Protocol version check
+  if (!cfg.protocols.includes(packet.protocolLevel)) {
+    return {
+      reasonCode: ReasonCode.unsupportedProtocolVersion,
+      reasonString: `Protocol version ${packet.protocolLevel} is not supported`,
+    };
+  }
+
+  // Will message validation
+  if (packet.will) {
+    const isProtocolV5 = packet.protocolLevel === 5;
+    const will = packet.will as ExtPublishPacket;
+
+    if (
+      will.topic === "" || invalidTopic(will.topic) ||
+      invalidmaxTopicLevels(will.topic, cfg.maxTopicLevels)
+    ) {
+      return {
+        reasonCode: ReasonCode.topicNameInvalid,
+        reasonString: "Invalid will topic",
+      };
+    }
+
+    if (!cfg.retainAvailable && will.retain) {
+      return {
+        reasonCode: ReasonCode.retainNotSupported,
+        reasonString: "Publish will with retain=true is not supported",
+      };
+    }
+
+    const checkAuthz = ctx.handlers.isAuthorizedToPublish;
+    if (checkAuthz && !await checkAuthz(ctx, will.topic)) {
+      return {
+        reasonCode: ReasonCode.notAuthorized,
+        reasonString: `Client not authorized to publish will to ${will.topic}`,
+      };
+    }
+
+    const qos = will.qos || 0;
+    if (qos > cfg.maximumQos) {
+      return {
+        reasonCode: ReasonCode.qosNotSupported,
+        reasonString: `Server does not support publish will with QoS ${qos}`,
+      };
+    }
+
+    if (isProtocolV5) {
+      const requestedInterval = packet.will.properties?.willDelayInterval || 0;
+      if (requestedInterval > sessionExpiryInterval) {
+        return {
+          reasonCode: ReasonCode.payloadFormatInvalid,
+          reasonString:
+            "Will delay interval larger than allowed session expiry interval",
+        };
+      }
+      const expiryInterval = packet.will.properties?.messageExpiryInterval;
+      if (expiryInterval) {
+        will.expiresAtMs = Date.now() + expiryInterval * 1000;
+      }
+
+      const authMethod = packet.properties?.authenticationMethod;
+      const authData = packet.properties?.authenticationData;
+
+      if (
+        // both need to be either present or absent, one is not enough
+        (authMethod !== undefined) !== (authData !== undefined) ||
+        // authMethod without a handler won't work
+        (authMethod !== undefined || !ctx.handlers.processAuth)
+      ) {
+        return {
+          reasonCode: ReasonCode.badAuthenticationMethod,
+          reasonString:
+            "Bad authentication method or missing authentication data",
+        };
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Handles the MQTT CONNECT packet.
  */
 export async function handleConnect(
   ctx: Context,
   packet: ConnectPacket,
 ): Promise<void> {
-  const clientId = packet.clientId || `Opifex-${crypto.randomUUID()}`;
-  const returnCode = await validateConnect(ctx, packet);
-  const sessionPresent = await processValidatedConnect(
-    returnCode,
-    packet,
-    ctx,
-    clientId,
+  const isProtocolV5 = packet.protocolLevel === 5;
+  const cfg = ctx.config.context;
+
+  // Assign Client ID if missing
+  let clientId = packet.clientId;
+  let assignedClientIdentifier = undefined;
+  if (!clientId) {
+    clientId = `Opifex-${crypto.randomUUID()}`;
+    assignedClientIdentifier = clientId;
+  }
+
+  // Extract connect options for v5
+  const connectOpts = extractConnectOptions(packet);
+  // Limit session Expiry Interval to server maximum
+  connectOpts.sessionExpiryInterval = Math.min(
+    connectOpts.sessionExpiryInterval || 0,
+    cfg.maxSessionExpiryInterval,
   );
-  await ctx.send({
-    type: PacketType.connack,
-    protocolLevel: ctx.protocolLevel,
-    sessionPresent,
-    returnCode,
-  });
-  logger.debug("connect returnCode", returnCode);
-  if (returnCode !== AuthenticationResult.ok) {
-    await ctx.close(false);
+  connectOpts.keepAlive = packet.keepAlive;
+  connectOpts.assignedClientIdentifier = assignedClientIdentifier;
+
+  // Validate Packet & Authenticate Client
+  const validationError = await validateConnectPacket(
+    ctx,
+    packet,
+    connectOpts.sessionExpiryInterval,
+  );
+  const authResult = validationError ??
+    await authenticateClient(ctx, clientId, packet);
+  const { reasonCode, reasonString, authData } = authResult;
+  const requireAuth = reasonCode === ReasonCode.continueAuthentication;
+
+  ctx.prepareConnect(packet, clientId, connectOpts);
+  if (isProtocolV5 && requireAuth) {
+    const authMethod = packet.properties?.authenticationMethod;
+    await ctx.send({
+      type: PacketType.auth,
+      protocolLevel: 5,
+      reasonCode,
+      properties: {
+        authenticationMethod: authMethod,
+        authenticationData: authData,
+      },
+    });
     return;
   }
-  if (sessionPresent) {
-    await ctx.handleRedelivery();
-  }
+
+  await completeConnect(
+    ctx,
+    packet.protocolLevel || 4,
+    reasonCode,
+    reasonString,
+  );
 }

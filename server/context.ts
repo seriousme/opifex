@@ -2,6 +2,7 @@ import {
   logger,
   MqttConn,
   MQTTLevel,
+  OutboundTopicAliasManager,
   PacketNameByType,
   PacketType,
   Timer,
@@ -9,14 +10,20 @@ import {
 import type {
   AnyPacket,
   ConnectPacket,
+  ExtPublishPacket,
   IPersistence,
+  PacketId,
   ProtocolLevel,
   PublishPacket,
   PubrelPacket,
+  ShareName,
   SockConn,
-  TAuthenticationResult,
   Topic,
+  TReasonCode,
 } from "./deps.ts";
+
+import { QueueMode } from "./config.ts";
+import type { Configuration } from "./config.ts";
 
 /** Unique identifier for an MQTT client. */
 export type ClientId = string;
@@ -27,12 +34,30 @@ export const SysPrefix = "$";
 /** Standard UTF-8 encoder used across the server to convert strings to byte arrays. */
 export const utf8Encoder = new TextEncoder();
 
+/** Possible results from isAuthenticated and processAuth handler */
+export type AuthenticatedResult = {
+  reasonCode: TReasonCode;
+  reasonString?: string;
+  authData?: Uint8Array;
+};
+
+export const SessionState = {
+  connecting: 0,
+  authenticating: 1,
+  connected: 2,
+  closing: 3,
+  disconnected: 4,
+} as const;
+
+export type SessionState = typeof SessionState[keyof typeof SessionState];
+
 /**
  * Handlers are hooks that the server will call
  * and let you influence the servers behaviour.
  * The following handlers can be configured:
  * - preconnect()
  * - isAuthenticated()
+ * - processAuth()
  * - isAuthorizedToPublish()
  * - isAuthorizedToSubscribe()
  */
@@ -40,9 +65,7 @@ export type Handlers = {
   /**
    * Default preconnect handler that unconditionally permits all connections.
    * @param {SockConn} conn - The connection context.
-   * @param {SockAddr} localAddress- The local adress
-   * @param {SockAddr} remoteAddress- The remote adress
-   * @returns {boolean} fakse will close the connection
+   * @returns {boolean} false will close the connection
    */
   preconnect?(
     conn: SockConn,
@@ -55,7 +78,7 @@ export type Handlers = {
    * @param {string} username - The username provided by the client.
    * @param {Uint8Array} password - The password bytes provided by the client.
    * @param {ConnectPacket} connectPacket - The raw connect packet
-   * @returns {TAuthenticationResult} The result of the authentication attempt.
+   * @returns {AuthResult} The result of the authentication attempt.
    */
   isAuthenticated?(
     ctx: Context,
@@ -63,7 +86,22 @@ export type Handlers = {
     username: string,
     password: Uint8Array,
     connectPacket: ConnectPacket,
-  ): TAuthenticationResult | Promise<TAuthenticationResult>;
+  ): AuthenticatedResult | Promise<AuthenticatedResult>;
+
+  /**
+   * Hook to authenticate a client connection attempt.
+   * @param {Context} ctx - The connection context.
+   * @param {ClientId} clientId - The client identifier.
+   * @param {string} authMethod - The authentication method provided by the client.
+   * @param {Uint8Array} authData- The authentication data provided by the client.
+   * @returns {AuthenticationResult} The result of the authentication attempt.
+   */
+  processAuth?(
+    ctx: Context,
+    clientId: ClientId,
+    authMethod: string,
+    authData: Uint8Array,
+  ): AuthenticatedResult | Promise<AuthenticatedResult>;
 
   /**
    * Hook to authorize a message publication to a specific topic.
@@ -80,12 +118,27 @@ export type Handlers = {
    * Hook to authorize a subscription request to a specific topic.
    * @param {Context} ctx - The connection context.
    * @param {Topic} topic - The topic filter the client wants to subscribe to.
+   * @param {ShareName} shareName - The name of the share in case of shared subscriptions
    * @returns {boolean} True if the client is authorized to subscribe, false otherwise.
    */
   isAuthorizedToSubscribe?(
     ctx: Context,
     topic: Topic,
+    shareName: ShareName,
   ): boolean | Promise<boolean>;
+};
+
+/**
+ * V5 options that can be passed by handleConnect
+ */
+export type ConnectOptions = {
+  sessionExpiryInterval?: number | undefined;
+  willDelayInterval?: number | undefined;
+  topicAliasMaximum?: number | undefined;
+  maximumOutgoingPacketSize?: number | undefined;
+  receiveMaximum?: number | undefined;
+  assignedClientIdentifier?: string | undefined;
+  keepAlive?: number | undefined;
 };
 
 /**
@@ -96,8 +149,11 @@ export class Context {
   /** the client id is set after succesful connect */
   clientId: ClientId | null = null;
 
-  /** Indicates whether the client has successfully completed the MQTT CONNECT handshake. */
-  connected = false;
+  /** Indicates the current state of the client  */
+  state: SessionState = SessionState.disconnected;
+
+  /** Indicates whether the client asked for a clean session */
+  cleanSession = false;
 
   /** Indicates whether the client is considered a broker and allowed  to use $SYS topics etc */
   isBroker = false;
@@ -117,35 +173,82 @@ export class Context {
   /** The configured authentication and authorization lifecycle hooks. */
   handlers: Handlers;
 
+  /** Configuration data */
+  config: Configuration;
+
   /** Global registry mapping active client identifiers to their respective connection context. */
   static clientList: Map<ClientId, Context> = new Map();
 
   /** The optional Will packet configured by the client to be published if disconnected unexpectedly. */
-  will?: PublishPacket | undefined;
+  will?: ExtPublishPacket | undefined;
 
   /** The Keep Alive timer tracking the client activity timeout. */
   timer?: Timer;
 
-  /** Timer enforcing a deadline for the client to send a CONNECT packet after establishing a socket connection. */
+  /** Timer to keep track of when a V5 session ends */
+  sessionEndsTimer?: Timer;
+
+  /** Timer to handle V5 delayed will delivery */
+  willTimer?: Timer;
+
+  /**
+   * Timer enforcing a deadline for the client to send a CONNECT packet
+   * after establishing a socket connection.
+   */
   preconnectTimer?: Timer;
 
-  /** The default timeout limit in milliseconds for a client to complete the connection handshake. */
-  static preconnectTimeoutMs: number = 3000; // 3 seconds
+  /**
+   *  max number of inflight packets for this client,
+   *  in V5 client can set this lower than maxInflightMessages
+   *  theoretical max is maxInt
+   */
+  receiveMaximum = 0xFFFF;
 
+  /**
+   * inflighPackets, how many publish packets have been sent and are waiting for ack
+   */
+  inflightPackets = 0;
+
+  /**
+   * set of Id's of publish packets waiting to be send to the client
+   */
+  queuedPacketIds: Set<PacketId> = new Set();
+
+  /**
+   * V5,max topicAliases ,0 = none
+   */
+  outgoingMaxTopicAlias = 0;
+  incomingMaxTopicAlias = 0;
+
+  /** V5 server topic aliases */
+  incomingTopicAliases: Map<number, Topic> = new Map();
+
+  /** V5 client topic aliases */
+  outgoingTopicAliasManager: undefined | OutboundTopicAliasManager;
+
+  connectOptions: undefined | ConnectOptions = undefined;
+  //
   /**
    * Initializes a new instance of the connection Context.
    */
   constructor(
+    configuration: Configuration, // all settings
     persistence: IPersistence, // The server persistence layer implementation.
     conn: SockConn, // The underlying socket connection.
     handlers: Handlers, // The validation handlers
   ) {
+    this.config = configuration;
     this.persistence = persistence;
     this.conn = conn;
-    this.mqttConn = new MqttConn({ conn });
+    const cfg = this.config.context;
+    this.mqttConn = new MqttConn({
+      conn,
+      maxIncomingPacketSize: cfg.maximumIncomingPacketSize,
+      maxOutgoingPacketSize: cfg.maximumOutgoingPacketSize,
+    });
     this.handlers = handlers;
     this.protocolLevel = MQTTLevel.unknown;
-    this.initializePreconnectTimer(Context.preconnectTimeoutMs);
+    this.initializePreconnectTimer(cfg.preconnectTimeoutMs);
   }
 
   /**
@@ -153,7 +256,7 @@ export class Context {
    */
   private initializePreconnectTimer(preconnectTimeoutMs: number): void {
     this.preconnectTimer = new Timer(() => {
-      if (!this.connected) {
+      if (this.state !== SessionState.connected) {
         logger.warn(
           `Preconnect timeout: client at ${this.mqttConn.remoteAddress} failed to connect within ${
             preconnectTimeoutMs / 1000
@@ -167,65 +270,356 @@ export class Context {
   /**
    * Transmits an MQTT packet to the client.
    */
-  async send(packet: AnyPacket): Promise<void> {
+  async send(packet: AnyPacket): Promise<boolean> {
+    const cfg = this.config.context;
     logger.verbose(
       `ctx.send: Sending packet of type ${
         PacketNameByType[packet.type]
       } to client ${this.clientId!}`,
     );
-    if ((!this.mqttConn.isClosed)) {
-      logger.debug(`ctx.send: ${JSON.stringify(packet, null, 2)}`);
-      await this.mqttConn.send(packet);
-      if (this.mqttConn.isClosed) {
-        await this.close();
+    logger.debug("ctx.send", () => JSON.stringify(packet, null, 2));
+    // strip reasonString from properties unless allowed by config
+    if ("properties" in packet && packet.properties) {
+      const props = packet.properties;
+      if (
+        "reasonString" in props &&
+        props.reasonString &&
+        !cfg.provideReasonStrings
+      ) {
+        props.reasonString = undefined;
       }
     }
+    // send the packet
+    const result = await this.mqttConn.send(packet);
+    if (result.sent === true) {
+      return true;
+    }
+    if (result.reason === "connectionClosed") {
+      // mqttCon signaled that the connection was closed
+      this.close();
+      return false;
+    }
+    if (result.reason === "packetTooLarge") {
+      if (packet.type === PacketType.publish) {
+        const pubPacket = packet as PublishPacket;
+        // just ignore qos 0
+        if (pubPacket.qos === 0) {
+          return false;
+        }
+        //
+        this.persistence.deletePendingOutgoingPacket(
+          this.clientId!,
+          pubPacket.id!,
+        );
+        return false;
+      }
+      // control packets that are too large means closing the connection
+      this.close();
+      return false;
+    }
+    return false;
+  }
+
+  /**
+   * Dispatch the next publish packet in queue (if exists),
+   * when a ack packet on an already sent publish arrives
+   */
+  async processAck(packetId: PacketId): Promise<boolean> {
+    const packetExists = await this.persistence.deletePendingOutgoingPacket(
+      this.clientId!,
+      packetId,
+    );
+    logger.debug("processAck:", packetId, packetExists);
+    if (packetExists) {
+      this.inflightPackets--;
+      const queue = this.queuedPacketIds;
+      if (queue.size > 0) {
+        const id = queue.keys().next().value;
+        const packet = await this.persistence.getPendingOutgoingPacket(
+          this.clientId!,
+          id!,
+        );
+        if (packet) {
+          await this.dispatch(packet);
+        } else {
+          queue.delete(id!);
+        }
+      }
+    }
+    return packetExists;
+  }
+
+  /**
+   * Dispatch publish packets to client
+   */
+  async dispatch(extPacket: ExtPublishPacket): Promise<void> {
+    logger.debug("ctx.dispatch:", extPacket.id);
+    const cfg = this.config.context;
+    // Fast-path short-circuit if client is no longer connected
+    if (this.state !== SessionState.connected || this.mqttConn.isClosed) {
+      return;
+    }
+
+    // get the publish packet back from the envelope
+    const { expiresAtMs, ...rest } = extPacket;
+    const packet = rest as PublishPacket;
+
+    const qos = packet.qos || 0;
+    // filter out expired packets
+    const packetExpired = expiresAtMs ? Date.now() > expiresAtMs : false;
+    if (packetExpired) {
+      // qos 0 we can just forget the packet
+      // qos 1 & 2 we need to remove the packet from persistence
+      if (qos !== 0) {
+        await this.persistence.deletePendingOutgoingPacket(
+          this.clientId!,
+          packet.id!,
+        );
+      }
+      return;
+    }
+
+    // handle queuing
+    if (this.inflightPackets === this.receiveMaximum) {
+      // client is full
+      // qos 0 we can just forget the packet
+      if (qos === 0) {
+        return;
+      }
+      const queue = this.queuedPacketIds;
+      if (queue.size === cfg.maxQueuedMessages) {
+        // queue is also full
+        if (cfg.queueStrategy === QueueMode.DiscardOldest) {
+          // remove the oldest packet in queue
+          const oldest = queue.keys().next().value;
+          if (oldest !== undefined) {
+            if (
+              await this.persistence.deletePendingOutgoingPacket(
+                this.clientId!,
+                oldest,
+              )
+            ) {
+              queue.delete(oldest);
+            }
+          }
+          queue.add(packet.id!);
+        }
+        // if queueMode = DiscardNewest => just drop the packet.
+        return;
+      }
+      // queue is not full, add the packet
+      queue.add(packet.id!);
+      return;
+    }
+
+    // update inflight
+    if (qos > 0) {
+      this.inflightPackets++;
+    }
+
+    if (this.protocolLevel) {
+      packet.protocolLevel = this.protocolLevel;
+    }
+    if (packet.protocolLevel === 5) {
+      // V5 specifics
+      if (this.outgoingMaxTopicAlias > 0 && this.outgoingTopicAliasManager) {
+        if (!packet.properties) {
+          packet.properties = {};
+        }
+        const { topicName, topicAlias } = this.outgoingTopicAliasManager
+          .processTopic(packet.topic);
+        packet.topic = topicName;
+        packet.properties.topicAlias = topicAlias;
+      }
+    }
+    const sent = await this.send(packet);
+    // if packet was sent update its dup value
+    if (qos > 0 && sent && packet.dup !== true) {
+      await this.persistence.updatePendingOutgoingPacket(
+        this.clientId!,
+        packet.id!,
+        true,
+      );
+    }
+  }
+
+  /**
+   * Helper to setup the timers
+   */
+  private setupConnectionTimers(
+    keepAliveSeconds: number | undefined,
+    sessionExpiryInterval?: number,
+    willDelayInterval?: number,
+  ) {
+    const cfg = this.config.context;
+    const isProtocolV5 = this.protocolLevel === 5;
+    const clientId = this.clientId;
+
+    let keepAlive = keepAliveSeconds || 0;
+    if (isProtocolV5 && cfg.serverKeepAlive !== undefined) {
+      keepAlive = cfg.serverKeepAlive;
+    }
+
+    if (keepAlive > 0) {
+      logger.debug("Setting keepalive to", keepAlive * 1500, "ms");
+      this.timer = new Timer(() => {
+        this.close();
+      }, keepAlive * 1500);
+    }
+
+    if (isProtocolV5 && sessionExpiryInterval && clientId) {
+      this.sessionEndsTimer = new Timer(
+        () => {
+          this.persistence.deregisterClient(clientId);
+        },
+        sessionExpiryInterval * 1000,
+        true, // do not start the timer yet.
+      );
+    }
+
+    if (isProtocolV5 && willDelayInterval) {
+      this.willTimer = new Timer(
+        () => {
+          this.handleWill();
+        },
+        willDelayInterval * 1000,
+        true, // do not start the timer yet.
+      );
+    }
+  }
+
+  /**
+   * process V5 connectOptions
+   */
+  private applyConnectOptions(opts: ConnectOptions) {
+    const cfg = this.config.context;
+
+    // Topic Alias Maximum
+    if (opts.topicAliasMaximum !== undefined) {
+      this.outgoingMaxTopicAlias = Math.min(
+        opts.topicAliasMaximum,
+        cfg.topicAliasMaximum,
+      );
+      if (this.outgoingMaxTopicAlias > 0) {
+        this.outgoingTopicAliasManager = new OutboundTopicAliasManager(
+          this.outgoingMaxTopicAlias,
+        );
+      }
+    }
+
+    // Maximum Packet Size
+    if (opts.maximumOutgoingPacketSize !== undefined && this.mqttConn) {
+      this.mqttConn.codecOpts.maxOutgoingPacketSize = Math.min(
+        opts.maximumOutgoingPacketSize,
+        cfg.maximumOutgoingPacketSize,
+      );
+    }
+
+    // Receive Maximum
+    const maxInflight = cfg.maxInflightMessages;
+    this.receiveMaximum = Math.min(
+      opts.receiveMaximum ?? maxInflight,
+      maxInflight,
+    );
   }
 
   /**
    * Finalizes the client connection state, registers the client in persistence,
    * kicks out existing duplicate sessions, and broadcasts the client connection event.
    */
-  async connect(clientId: string, clean: boolean): Promise<boolean> {
+  prepareConnect(
+    packet: ConnectPacket,
+    clientId: string,
+    connectOpts: ConnectOptions = {},
+  ): void {
     logger.verbose("ctx:connect connecting", clientId);
+    this.state = SessionState.connecting;
+    const cfg = this.config.context;
+    // configure protocol and state
     this.clientId = clientId;
+    this.cleanSession = packet.clean || false;
+    this.protocolLevel = packet.protocolLevel;
+    this.incomingMaxTopicAlias = cfg.topicAliasMaximum;
+    this.connectOptions = connectOpts;
+
+    this.applyConnectOptions(connectOpts);
+
+    if (this.mqttConn) {
+      this.mqttConn.codecOpts.protocolLevel = this.protocolLevel;
+    }
+
+    if (packet.will) {
+      this.will = {
+        type: PacketType.publish,
+        protocolLevel: 5,
+        ...packet.will,
+      };
+    }
+  }
+
+  async connect(): Promise<boolean> {
+    const connectOpts = this.connectOptions || {};
+    const clientId = this.clientId!;
+    // Cleanup preconnect timer
     if (this.preconnectTimer) {
       this.preconnectTimer.clear();
     }
+
+    // Cleanup previous sessions and timers
     const existingActiveSession = Context.clientList.get(clientId);
     if (existingActiveSession) {
       logger.verbose(
         `ctx:connect: Existing session with ${clientId} exists, closing existing session`,
       );
+      if (this.sessionEndsTimer) this.sessionEndsTimer.clear();
+      if (this.willTimer) this.willTimer.clear();
       await existingActiveSession.close(false);
     }
-    if (clean) {
+
+    if (this.cleanSession) {
       logger.verbose(
         `ctx:connect: Clean session requested for ${clientId}, deregistering existing state`,
       );
       await this.persistence.deregisterClient(clientId);
     }
+
+    // Register client in persistence & clientList
     logger.verbose("ctx:connect: Registering client", clientId);
     const { existingSession } = await this.persistence.registerClient(
       clientId,
-      this.send.bind(this),
+      this.dispatch.bind(this),
     );
-    this.connected = true;
+
+    this.state = SessionState.connected;
     Context.clientList.set(clientId, this);
+
+    // Start the timers
+    this.setupConnectionTimers(
+      connectOpts.keepAlive,
+      connectOpts.sessionExpiryInterval,
+      connectOpts.willDelayInterval,
+    );
+
+    // Announce client connected
     logger.verbose("ctx:connect: Broadcasting client connection", clientId);
     await this.broadcast("$SYS/connect/clients", clientId);
-    logger.debug("Connected", clientId);
+
+    const remoteAddress = this.mqttConn.remoteAddress !== "unknown"
+      ? ` from ${this.mqttConn.remoteAddress}`
+      : "";
+    logger.info("Connected", clientId, remoteAddress);
+
     return existingSession;
   }
 
   /**
-   * Processes -inbound- publication requests
+   * Proces -inbound- publication requests
    */
-  async publish(packet: PublishPacket) {
+  async publish(packet: ExtPublishPacket) {
     logger.verbose(
       `ctx:publish processing incoming publish for topic "${packet.topic}"`,
     );
-    await this.persistence.publish(this.clientId!, packet.topic, packet);
+    await this.persistence.publish(this.clientId!, packet);
   }
 
   /**
@@ -245,38 +639,52 @@ export class Context {
    * If executewill=true triggers the registered Will packet logic.
    */
   async close(executewill = true): Promise<void> {
-    logger.debug(`server closing context ${this.connected}`);
+    logger.debug("server closing context while state =", this.state);
+    if (this.state === SessionState.closing) {
+      return;
+    }
     if (this.preconnectTimer) {
       this.preconnectTimer.clear();
     }
-    if (this.connected) {
-      logger.info(
-        `Closing ${this.clientId} while mqttConn is ${
-          this.mqttConn.isClosed ? "" : "not "
-        }closed because of "${this.mqttConn.reason || "normal disconnect"}"`,
-      );
-      this.connected = false;
+
+    if (this.state === SessionState.connected) {
+      this.state = SessionState.closing;
+      if (this.cleanSession && !this.sessionEndsTimer) {
+        // [MQTT-3.1.2-6] State data associated with this Session MUST NOT be reused in any subsequent Session
+        if (this.clientId) {
+          await this.persistence.deregisterClient(this.clientId);
+        }
+      }
       if (typeof this.timer === "object") {
         this.timer.clear();
       }
       if (executewill) {
-        await this.handleWill();
+        if (this.willTimer) {
+          this.willTimer.reset();
+        } else {
+          await this.handleWill();
+        }
       }
       if (this.clientId) {
         await this.persistence.disconnectClient(this.clientId);
         void this.broadcast("$SYS/disconnect/clients", this.clientId);
         Context.clientList.delete(this.clientId);
       }
-    } else {
-      logger.debug(
-        `closing connection from ${this.mqttConn.remoteAddress} because of "${
-          this.mqttConn.reason || "normal disconnect"
-        }"`,
-      );
     }
+    if (this.sessionEndsTimer) {
+      // delayed deregistration, start the timer
+      this.sessionEndsTimer.reset();
+    }
+
+    logger.info(
+      `closing connection from ${
+        this.clientId || this.mqttConn.remoteAddress
+      } because of "${this.mqttConn.reason || "normal disconnect"}"`,
+    );
     if (!this.mqttConn.isClosed) {
       this.mqttConn.close();
     }
+    this.state = SessionState.closing;
   }
 
   /**
@@ -289,6 +697,7 @@ export class Context {
         this.handlers.isAuthorizedToPublish &&
         await this.handlers.isAuthorizedToPublish(this, this.will.topic)
       ) {
+        logger.debug("ctx.handleWill:", this.will);
         await this.publish(this.will);
       }
     }
@@ -302,9 +711,9 @@ export class Context {
     payload: string, // The plain-text message string to encode.
     retain = false, // Specifies if the message should be retained.
   ): Promise<void> {
-    const packet: PublishPacket = {
+    const packet: ExtPublishPacket = {
       type: PacketType.publish,
-      protocolLevel: this.protocolLevel,
+      protocolLevel: 5,
       topic,
       retain,
       payload: utf8Encoder.encode(payload),
@@ -321,16 +730,17 @@ export class Context {
     const clientId = this.clientId!;
     const p = this.persistence;
 
-    logger.verbose(`ctx:handleRedelivery for ${this.clientId}`);
+    logger.verbose("ctx:handleRedelivery for", this.clientId);
     for await (const packet of p.listPendingOutgoingPackets(clientId)) {
-      if (!this.connected) {
+      if (this.state !== SessionState.connected) {
         break;
       }
-      this.send(packet);
+      packet.dup = true;
+      await this.dispatch(packet);
     }
     // we only need to resend QoS2 PubRel acks
     for await (const packetId of p.listPendingAcks(clientId)) {
-      if (!this.connected) {
+      if (this.state !== SessionState.connected) {
         break;
       }
       const pubrel: PubrelPacket = {
@@ -338,7 +748,7 @@ export class Context {
         type: PacketType.pubrel,
         id: packetId,
       };
-      this.send(pubrel);
+      await this.send(pubrel);
     }
   }
 }

@@ -1,12 +1,12 @@
 import type {
   CodecOpts,
   PacketId,
-  ProtocolLevelNoV5,
   QoS,
   TopicFilter,
   TPacketType,
   TRetainHandling,
 } from "./types.ts";
+import type { ProtocolLevelNoV5 } from "./protocolLevels.ts";
 import type { SubscribeProperties } from "./Properties.ts";
 import { PacketType } from "./PacketType.ts";
 import { BitMask } from "./BitMask.ts";
@@ -100,7 +100,7 @@ export function encode(
     );
   }
   for (const sub of packet.subscriptions) {
-    encoder.setTopicFilter(sub.topicFilter);
+    encoder.setUtf8String(sub.topicFilter);
     if (packet.protocolLevel === 5) {
       const {
         qos,
@@ -145,7 +145,7 @@ export function decode(
   // The payload of a SUBSCRIBE packet MUST contain at least one Topic Filter / Option pair.
   // A SUBSCRIBE packet with no payload is a protocol violation [MQTT-3.8.3-3].
   do {
-    const topicFilter = decoder.getTopicFilter();
+    const topicFilter = decoder.getUTF8String();
     const option = decoder.getByte();
     const qos = option & 0b11;
     if (qos !== 0 && qos !== 1 && qos !== 2) {

@@ -17,6 +17,8 @@ import type {
   SockConn,
   SubscribePacket,
   TAuthenticationResult,
+  TPacketType,
+  TReasonCode,
   UnsubscribePacket,
 } from "./deps.ts";
 
@@ -25,6 +27,24 @@ import type { TConnectionState } from "./ConnectionState.ts";
 import { ConnectionState } from "./ConnectionState.ts";
 import type { Client } from "./client.ts";
 import { assert } from "../utils/assert.ts";
+
+/**
+ * packets not allowed during authentication
+ */
+function blockedDuringAuthentication(pktType: TPacketType) {
+  return (
+    pktType === PacketType.publish ||
+    pktType === PacketType.subscribe ||
+    pktType === PacketType.unsubscribe
+  );
+}
+
+/** Possible results from authHandler */
+export type AuthenticatedResult = {
+  reasonCode: TReasonCode;
+  reasonString?: string;
+  authData?: Uint8Array;
+};
 
 export class Context {
   mqttConn?: MqttConn;
@@ -64,6 +84,25 @@ export class Context {
     }
   }
 
+  authHandler(
+    _ctx: Context,
+    authMethod: string,
+    authData: Uint8Array,
+  ): AuthenticatedResult | Promise<AuthenticatedResult> {
+    return this.#client.onAuth(authMethod, authData);
+  }
+
+  setPingTimer(interval: number) {
+    if (this.pingTimer) {
+      this.pingTimer.clear();
+    }
+    this.pingTimer = new Timer(
+      this.sendPing.bind(this),
+      interval * 1000,
+      true,
+    );
+  }
+
   async connect(packet: ConnectPacket) {
     this.connectionState = ConnectionState.connecting;
     if (packet.protocolLevel === MQTTLevel.unknown) {
@@ -73,16 +112,15 @@ export class Context {
     await this.mqttConn?.send(packet);
     const keepAlive = packet.keepAlive || 0;
     if (keepAlive > 0) {
-      this.pingTimer = new Timer(
-        this.sendPing.bind(this),
-        keepAlive * 1000,
-        true,
-      );
+      this.setPingTimer(keepAlive);
     }
   }
 
   async disconnect() {
-    if (this.connectionState !== ConnectionState.connected) {
+    if (
+      this.connectionState !== ConnectionState.connected &&
+      this.connectionState !== ConnectionState.authenticating
+    ) {
       throw "Not connected";
     }
     if (this.mqttConn) {
@@ -97,14 +135,29 @@ export class Context {
   }
 
   async send(packet: AnyPacket) {
-    logger.debug({ send: packet });
-    if (
-      this.connectionState === ConnectionState.connected &&
-      !this.mqttConn?.isClosed
-    ) {
-      await this.mqttConn?.send(packet);
-      this.pingTimer?.reset();
-      return;
+    logger.debug("client.ctx.send", this.#connectionState, { packet });
+    if (!this.mqttConn?.isClosed) {
+      if (this.connectionState === ConnectionState.connected) {
+        await this.mqttConn?.send(packet);
+        this.pingTimer?.reset();
+        return;
+      }
+      if (
+        this.connectionState === ConnectionState.connecting &&
+        packet.type === PacketType.auth
+      ) {
+        await this.mqttConn?.send(packet);
+        this.pingTimer?.reset();
+        return;
+      }
+      if (
+        this.connectionState === ConnectionState.authenticating &&
+        !blockedDuringAuthentication(packet.type)
+      ) {
+        await this.mqttConn?.send(packet);
+        this.pingTimer?.reset();
+        return;
+      }
     }
     logger.debug("not connected");
     this.pingTimer?.clear();
@@ -122,6 +175,7 @@ export class Context {
     connectPacket: ConnectPacket,
   ): Promise<boolean> {
     this.mqttConn = new MqttConn({ conn });
+    this.mqttConn.codecOpts.protocolLevel = connectPacket.protocolLevel;
     try {
       logger.debug("Send connect packet", connectPacket);
       await this.connect(connectPacket);
@@ -136,7 +190,7 @@ export class Context {
         `Caught something that is not an instance of Error: ${err}`,
       );
       queueMicrotask(() => this.#client.onError(err));
-      logger.debug(`error ${err}`);
+      logger.debug("error", err);
       if (!this.mqttConn.isClosed) {
         this.mqttConn.close();
       }

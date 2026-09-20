@@ -1,6 +1,11 @@
-import { AuthenticationResult } from "../server/mod.ts";
+import { ReasonCode } from "../server/mod.ts";
 import { logger } from "../utils/mod.ts";
-import type { Context, TAuthenticationResult, Topic } from "../server/mod.ts";
+import type {
+  AuthenticatedResult,
+  Context,
+  ShareName,
+  Topic,
+} from "../server/mod.ts";
 
 const utf8Decoder = new TextDecoder();
 const userTable = new Map();
@@ -13,7 +18,7 @@ function isAuthenticated(
   clientId: string,
   username: string,
   password: Uint8Array,
-): TAuthenticationResult {
+): AuthenticatedResult {
   const pwd = utf8Decoder.decode(password);
   logger.debug(
     `Verifying authentication of client '${clientId}' with username '${username}'`,
@@ -21,29 +26,56 @@ function isAuthenticated(
 
   if (!userTable.has(username)) {
     if (!strictUsername.test(username)) {
-      return AuthenticationResult.badUsernameOrPassword;
+      return { reasonCode: ReasonCode.success };
     }
   }
 
   const pass = userTable.get(username);
   if (pwd === pass) {
-    return AuthenticationResult.ok;
+    return { reasonCode: ReasonCode.success };
   }
-  return AuthenticationResult.badUsernameOrPassword;
+  return {
+    reasonCode: ReasonCode.badUserNameOrPassword,
+    reasonString: "Bad username or password",
+  };
+}
+
+function processAuth(
+  _ctx: Context,
+  _clientId: string,
+  _authMethod: string,
+  _authData: Uint8Array,
+) {
+  return {
+    reasonCode: ReasonCode.badAuthenticationMethod,
+    reasonString: "Authentication method not supported",
+  };
 }
 
 function isAuthorizedToPublish(ctx: Context, topic: Topic): boolean {
   logger.debug(
-    `Checking authorization of client '${ctx.clientId}' to publish on topic '${topic}'`,
+    "Checking authorization of client",
+    ctx.clientId,
+    "to publish on topic",
+    topic,
   );
   if (topic === "topic/unauthorized") {
     return false;
   }
   return true;
 }
-function isAuthorizedToSubscribe(ctx: Context, topic: Topic): boolean {
+function isAuthorizedToSubscribe(
+  ctx: Context,
+  topic: Topic,
+  shareName: ShareName,
+): boolean {
   logger.debug(
-    `Checking authorization of client '${ctx.clientId}' to subscribe to topic '${topic}'`,
+    "Checking authorization of client",
+    ctx.clientId,
+    "to subscribe to topic",
+    topic,
+    "using shareName",
+    shareName,
   );
   if (topic === "topic/unauthorized") {
     return false;
@@ -53,13 +85,14 @@ function isAuthorizedToSubscribe(ctx: Context, topic: Topic): boolean {
 
 export const handlers = {
   isAuthenticated,
+  processAuth,
   isAuthorizedToPublish,
   isAuthorizedToSubscribe,
 };
 
 export function isAuthenticatedBroker(
   ctx: Context,
-): TAuthenticationResult {
+): AuthenticatedResult {
   ctx.isBroker = true;
-  return AuthenticationResult.ok;
+  return { reasonCode: ReasonCode.success };
 }

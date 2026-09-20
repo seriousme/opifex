@@ -4,6 +4,7 @@ import {
   MemoryStore,
   MQTTLevel,
   PacketType,
+  ReasonCode,
 } from "./deps.ts";
 
 import type {
@@ -18,6 +19,7 @@ import type {
 import { noop } from "../utils/mod.ts";
 
 import { Context } from "./context.ts";
+import type { AuthenticatedResult } from "./context.ts";
 import type { TConnectionState } from "./ConnectionState.ts";
 import { BufferedAsyncIterable } from "./deps.ts";
 
@@ -108,6 +110,15 @@ function normalizeError(err: unknown): Error {
  * connection type that is supported by the subclass.
  */
 export class Client {
+  public onAuth: (
+    authMethod: string,
+    authData: Uint8Array,
+  ) => AuthenticatedResult = () => {
+    return {
+      reasonCode: ReasonCode.badAuthenticationMethod,
+      reasonString: "No authentication method configured",
+    };
+  };
   public onError: (err: Error) => void = noop;
   public onPacket: (pkt: PublishPacket) => void | Promise<void> = noop;
   public onConnected: () => void = noop;
@@ -169,7 +180,10 @@ export class Client {
     let lastMessage = new Error();
     let tryConnect = true;
     while (tryConnect) {
-      logger.debug(`${isReconnect ? "re" : ""}connecting, attempt ${attempt}`);
+      logger.debug(
+        isReconnect ? "reconnecting, attempt" : "connecting, attempt",
+        attempt,
+      );
       try {
         const conn = await this.createConn();
         // if we get this far we have a connection

@@ -4,10 +4,11 @@ import { Context, MqttServer } from "../server/mod.ts";
 import { handlers } from "./test-handlers.ts";
 import type { MqttServerOptions } from "../server/mod.ts";
 
-export function startMockServer(serverOpts: MqttServerOptions = { handlers }): {
+export function startMockServer(opts: MqttServerOptions = {}): {
   mqttConn: MqttConn;
   mqttServer: MqttServer;
 } {
+  const serverOpts = { handlers, ...opts };
   // start with a fresh clientlist
   Context.clientList.clear();
   // create a new MQTT server

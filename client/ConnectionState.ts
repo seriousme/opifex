@@ -13,6 +13,8 @@ export const ConnectionState = {
   disconnecting: "disconnecting",
   /** System has been disconnected */
   disconnected: "disconnected",
+  /** System is authenticating mid session */
+  authenticating: "authenticating",
 } as const;
 
 /**

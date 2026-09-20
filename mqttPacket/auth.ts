@@ -1,9 +1,10 @@
-import type { CodecOpts, TPacketType } from "./types.ts";
 import { PacketType } from "./PacketType.ts";
 import { Encoder, EncoderError } from "./encoder.ts";
 import { Decoder, DecoderError, hasEmptyFlags } from "./decoder.ts";
 import type { TReasonCode } from "./ReasonCode.ts";
 import type { AuthProperties } from "./Properties.ts";
+import type { CodecOpts, TPacketType } from "./types.ts";
+import { MQTTLevel } from "./protocolLevels.ts";
 
 // AuthPacket does not exist on protocol levels < 5
 export type AuthPacketV5 = {
@@ -56,7 +57,7 @@ export function decode(
   decoder.done();
   return {
     type: PacketType.auth,
-    protocolLevel: 5,
+    protocolLevel: MQTTLevel.v5,
     reasonCode,
     properties,
   };

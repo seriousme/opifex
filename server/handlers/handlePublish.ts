@@ -1,7 +1,72 @@
-import { SysPrefix } from "../context.ts";
-import { PacketType } from "../deps.ts";
+import { SessionState, SysPrefix } from "../context.ts";
+import {
+  invalidmaxTopicLevels,
+  invalidTopic,
+  logger,
+  PacketType,
+  ReasonCode,
+} from "../deps.ts";
 import type { Context } from "../context.ts";
-import type { PublishPacket, Topic } from "../deps.ts";
+import type {
+  ExtPublishPacket,
+  PacketId,
+  PublishPacket,
+  QoS,
+  Topic,
+  TReasonCode,
+} from "../deps.ts";
+
+const reasonsToDisconnect: TReasonCode[] = [
+  ReasonCode.topicAliasInvalid,
+];
+
+async function handlePublishError(
+  ctx: Context,
+  id: PacketId | undefined,
+  qos: QoS,
+  reasonCode: TReasonCode,
+  reasonString: string,
+) {
+  // in v4 we can only close the connection
+  if (ctx.protocolLevel === 4) {
+    // in V4 we can only close the connection
+    await ctx.close(false);
+    return;
+  }
+  // in v5 we can message the client
+  //
+
+  if (reasonsToDisconnect.includes(reasonCode)) {
+    await ctx.send({
+      type: PacketType.disconnect,
+      protocolLevel: ctx.protocolLevel,
+      reasonCode,
+      properties: {
+        reasonString,
+      },
+    });
+    await ctx.close(false);
+    return;
+  }
+
+  if (qos === 0) {
+    // no message for QoS 0
+    return;
+  }
+  // QoS 1 and 2 get a nice message
+
+  const pType = qos === 1 ? PacketType.puback : PacketType.pubrec;
+  await ctx.send({
+    type: pType,
+    protocolLevel: ctx.protocolLevel,
+    id,
+    reasonCode,
+    properties: {
+      reasonString,
+    },
+  });
+  return;
+}
 
 /**
  * Checks if a client is authorized to publish to a given topic
@@ -13,16 +78,81 @@ async function authorizedToPublish(ctx: Context, topic: Topic) {
   if (topic.startsWith(SysPrefix) && !ctx.isBroker) {
     return false;
   }
+  if (ctx.state === SessionState.authenticating) {
+    return false;
+  }
   if (ctx.handlers.isAuthorizedToPublish) {
-    return await ctx.handlers.isAuthorizedToPublish(ctx, topic);
+    try {
+      return await ctx.handlers.isAuthorizedToPublish(ctx, topic);
+    } catch (err) {
+      let message = "unknown error";
+      if (err instanceof Error) {
+        message = err.message;
+      }
+      logger.error("isAuthorizedToPublish failed with error", message);
+      return false;
+    }
   }
   return true;
 }
 
 /**
+ * Validates incoming PUBLISH packet rules prior to processing.
+ * Returns an error object if invalid, or null if valid.
+ */
+function validatePublishPacket(
+  ctx: Context,
+  packet: PublishPacket,
+): { reasonCode: TReasonCode; message: string } | null {
+  const cfg = ctx.config.context;
+  const isProtocolV5 = packet.protocolLevel === 5;
+  const hasTopicAlias = isProtocolV5 &&
+    packet.properties?.topicAlias !== undefined;
+
+  if (!cfg.retainAvailable && packet.retain) {
+    return {
+      reasonCode: ReasonCode.unspecifiedError,
+      message: "Server does not support retain",
+    };
+  }
+
+  const isInvalidTopic = (packet.topic.length === 0 && !hasTopicAlias) ||
+    invalidTopic(packet.topic) ||
+    invalidmaxTopicLevels(packet.topic, cfg.maxTopicLevels);
+
+  if (isInvalidTopic) {
+    return {
+      reasonCode: ReasonCode.topicNameInvalid,
+      message: "Invalid topic name",
+    };
+  }
+
+  if (hasTopicAlias) {
+    const topicAlias = packet.properties?.topicAlias;
+    const aliasedTopic = ctx.incomingTopicAliases.get(topicAlias!);
+    if (
+      (topicAlias === 0 || topicAlias! > cfg.topicAliasMaximum) ||
+      (packet.topic === "" && aliasedTopic === undefined)
+    ) {
+      return {
+        reasonCode: ReasonCode.topicAliasInvalid,
+        message: "Invalid topic alias",
+      };
+    }
+    if (packet.topic !== "") {
+      ctx.incomingTopicAliases.set(topicAlias!, packet.topic);
+    } else {
+      packet.topic = aliasedTopic!;
+    }
+  }
+
+  return null;
+}
+
+/**
  * Handles MQTT PUBLISH packets
  * @param ctx - The connection context
- * @param packet - The PUBLISH packet to process
+ * @param extPacket - The PUBLISH packet to process
  * @returns Promise that resolves when packet is processed
  * @throws Error if packet processing fails
  */
@@ -30,34 +160,58 @@ export async function handlePublish(
   ctx: Context,
   packet: PublishPacket,
 ): Promise<void> {
-  if (!await authorizedToPublish(ctx, packet.topic)) {
-    // in V4 we can only close the connection
-    await ctx.close();
+  const extPacket = packet as ExtPublishPacket;
+  const qos = extPacket.qos || 0;
+  const id = extPacket.id;
+
+  const validationError = validatePublishPacket(ctx, extPacket);
+  if (validationError) {
+    return await handlePublishError(
+      ctx,
+      id,
+      qos,
+      validationError.reasonCode,
+      validationError.message,
+    );
+  }
+
+  if (!await authorizedToPublish(ctx, extPacket.topic)) {
+    await handlePublishError(
+      ctx,
+      id,
+      qos,
+      ReasonCode.notAuthorized,
+      `Client not authorized to publish to ${extPacket.topic}`,
+    );
     return;
   }
 
-  const qos = packet.qos || 0;
+  if (
+    (extPacket.protocolLevel === 5) &&
+    extPacket.properties?.messageExpiryInterval
+  ) {
+    extPacket.expiresAtMs = Date.now() +
+      extPacket.properties.messageExpiryInterval * 1000;
+  }
   if (qos === 0) {
-    await ctx.publish(packet);
+    await ctx.publish(extPacket);
     return;
   }
 
-  if (packet.id !== undefined) {
-    // qos 1
-    if (qos === 1) {
-      const id = packet.id; // retain the id
-      // publish the packet
-      await ctx.publish(packet);
-      // send the pubAck
-      await ctx.send({
-        type: PacketType.puback,
-        protocolLevel: ctx.protocolLevel,
-        id,
-      });
-      return;
-    }
+  // qos 1
+  if (qos === 1) {
+    // publish the packet
+    await ctx.publish(extPacket);
+    // send the pubAck
+    await ctx.send({
+      type: PacketType.puback,
+      protocolLevel: ctx.protocolLevel,
+      id: id!,
+    });
+    return;
+  }
 
-    /*
+  /*
 In the QoS 2 delivery protocol, the Receiver
 
 - MUST respond with a PUBREC containing the Packet Identifier from the incoming PUBLISH Packet,
@@ -71,12 +225,11 @@ Identifier as being a new publication.
 [MQTT-4.3.3-2].
     */
 
-    // we take responsibility for the packet
-    await ctx.persistence.addPendingIncomingPacket(ctx.clientId!, packet);
-    await ctx.send({
-      type: PacketType.pubrec,
-      protocolLevel: ctx.protocolLevel,
-      id: packet.id,
-    });
-  }
+  // we take responsibility for the packet
+  await ctx.persistence.addPendingIncomingPacket(ctx.clientId!, extPacket);
+  await ctx.send({
+    type: PacketType.pubrec,
+    protocolLevel: ctx.protocolLevel,
+    id: id!,
+  });
 }

@@ -1,5 +1,6 @@
 export type {
   AnyPacket,
+  AuthPacket,
   ConnackPacket,
   ConnectPacket,
   DisconnectPacket,
@@ -18,6 +19,7 @@ export type {
   SubscribePacket,
   TAuthenticationResult,
   Topic,
+  TPacketType,
   TReasonCode,
   UnsubackPacket,
   UnsubscribePacket,

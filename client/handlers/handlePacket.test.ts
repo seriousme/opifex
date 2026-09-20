@@ -89,7 +89,7 @@ test("handlePacket rejects non-CONNACK before connected", async () => {
 
   await assert.rejects(
     handlePacket(ctx as never, packet),
-    /before connect/,
+    /while connecting/,
     "Should reject packets before CONNACK",
   );
 });

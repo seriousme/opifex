@@ -1,11 +1,7 @@
 import { PacketType } from "./PacketType.ts";
 import { Decoder, hasEmptyFlags, isEmptyBuf } from "./decoder.ts";
-import type {
-  CodecOpts,
-  ProtocolLevelNoV5,
-  TPacketType,
-  TReasonCode,
-} from "./types.ts";
+import type { CodecOpts, TPacketType, TReasonCode } from "./types.ts";
+import type { ProtocolLevelNoV5 } from "./protocolLevels.ts";
 import type { DisconnectProperties } from "./Properties.ts";
 import { Encoder } from "./encoder.ts";
 import { ReasonCode } from "./ReasonCode.ts";

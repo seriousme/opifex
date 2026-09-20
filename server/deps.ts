@@ -1,11 +1,18 @@
 export type { SockAddr, SockConn } from "../socket/socket.ts";
 export { MqttConn } from "../mqttConn/mqttConn.ts";
-export type { IPersistence } from "../persistence/persistence.ts";
+export type {
+  ClientSubscription,
+  ExtPublishPacket,
+  IPersistence,
+  ShareName,
+} from "../persistence/persistence.ts";
 export { MemoryPersistence } from "../persistence/memory/memoryPersistence.ts";
 export type {
   AnyPacket,
+  AuthPacket,
   ClientId,
   ConnackPacket,
+  ConnackProperties,
   ConnectPacket,
   DisconnectPacket,
   PacketId,
@@ -15,15 +22,17 @@ export type {
   PubackPacket,
   PubcompPacket,
   PublishPacket,
+  PublishPacketV5,
   PubrecPacket,
   PubrelPacket,
   QoS,
   SubackPacket,
   SubscribePacket,
   Subscription,
-  TAuthenticationResult,
+  SubscriptionV5,
   Topic,
   TopicFilter,
+  TReasonCode,
   UnsubackPacket,
   UnsubscribePacket,
 } from "../mqttPacket/mod.ts";
@@ -33,6 +42,18 @@ export {
   MQTTLevel,
   PacketNameByType,
   PacketType,
+  ReasonCode,
 } from "../mqttPacket/mod.ts";
 export { Timer } from "../timer/timer.ts";
-export { assert, logger, LogLevel } from "../utils/mod.ts";
+export {
+  assert,
+  hasWildcards,
+  invalidmaxTopicLevels,
+  invalidTopic,
+  invalidTopicFilter,
+  joinTopicFilter,
+  logger,
+  LogLevel,
+  OutboundTopicAliasManager,
+  parseTopicFilter,
+} from "../utils/mod.ts";

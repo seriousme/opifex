@@ -1,7 +1,9 @@
+import { SessionState } from "../context.ts";
 import type { Context } from "../context.ts";
 import { PacketNameByType, PacketType } from "../deps.ts";
 import type {
   AnyPacket,
+  AuthPacket,
   PubackPacket,
   PubcompPacket,
   PublishPacket,
@@ -20,6 +22,7 @@ import { handlePubcomp } from "./handlePubcomp.ts";
 import { handleSubscribe } from "./handleSubscribe.ts";
 import { handleUnsubscribe } from "./handleUnsubscribe.ts";
 import { handleDisconnect } from "./handleDisconnect.ts";
+import { handleAuth } from "./handleAuth.ts";
 import { logger } from "../deps.ts";
 
 /**
@@ -33,16 +36,32 @@ export async function handlePacket(
   ctx: Context,
   packet: AnyPacket,
 ): Promise<void> {
-  logger.debug("handling", PacketNameByType[packet.type]);
-  logger.debug(JSON.stringify(packet, null, 2));
-  if (!ctx.connected) {
+  logger.debug("server/handlePacket", PacketNameByType[packet.type]);
+  logger.debug(
+    "server/handlePacket",
+    () => JSON.stringify(packet, null, 2),
+  );
+  if (ctx.state === SessionState.disconnected) {
     if (packet.type === PacketType.connect) {
       await handleConnect(ctx, packet);
-    } else {
-      throw new Error(
-        `Received ${PacketNameByType[packet.type]} packet before connect`,
-      );
+      ctx.timer?.reset();
+      return;
     }
+    throw new Error(
+      `Received ${PacketNameByType[packet.type]} packet before connect`,
+    );
+  }
+  if (ctx.state === SessionState.connecting) {
+    if (packet.type === PacketType.auth) {
+      await handleAuth(ctx, packet as AuthPacket);
+      ctx.timer?.reset();
+      return;
+    }
+    throw new Error(
+      `Received unexpected ${
+        PacketNameByType[packet.type]
+      } packet before connect completed`,
+    );
   } else {
     switch (packet.type) {
       case PacketType.pingreq:
@@ -71,6 +90,9 @@ export async function handlePacket(
         break;
       case PacketType.disconnect:
         handleDisconnect(ctx);
+        break;
+      case PacketType.auth:
+        handleAuth(ctx, packet as AuthPacket);
         break;
       default:
         throw new Error(

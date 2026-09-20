@@ -2,13 +2,7 @@
  * @module persistence
  * @description Module for handling MQTT message persistence and client management
  */
-export type {
-  IBaseStore,
-  IPacketIdStore,
-  IPacketStore,
-  IStore,
-  ISubscriptionStore,
-} from "./store.ts";
+
 export type {
   ClientId,
   PacketId,

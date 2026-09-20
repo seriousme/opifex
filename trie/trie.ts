@@ -59,8 +59,9 @@ export class Trie<T> {
    */
   private _matchPrefix(parts: Parts): Array<T> {
     const [first, ...rest] = parts;
-    // deno-coverage-ignore
     if (first === undefined) return [];
+
+    // Direct lookup on the reserved topic node without evaluating top-level + or #
     return this.matchChild(first, rest);
   }
 
@@ -70,18 +71,31 @@ export class Trie<T> {
    * @returns Array of matched values
    */
   private _match(parts: Parts): Array<T> {
-    if (parts.length === 0) {
-      return this.#value;
+    let results: Array<T> = [];
+
+    // 1. Check if there is a multi-level wildcard ('#') at this level.
+    // In MQTT, 'a/#' matches 'a', 'a/b', 'a/b/c', etc.
+    const subtreeNode = this.#children.get(this.wildcardSubtree);
+    if (subtreeNode) {
+      results = results.concat(subtreeNode.#value);
     }
+
+    // 2. Base case: we reached the end of the topic parts.
+    if (parts.length === 0) {
+      return results.concat(this.#value);
+    }
+
     const [first, ...rest] = parts;
     // deno-coverage-ignore
     if (first === undefined) return [];
 
+    // 3. Exact matching child node
     const exact = this.matchChild(first, rest);
+
+    // 4. Single-level wildcard ('+') matching child node
     const single = this.matchChild(this.wildcardOne, rest);
-    const subtree = this.matchChild(this.wildcardSubtree, []);
-    const results = exact.concat(single, subtree);
-    return results;
+
+    return results.concat(exact, single);
   }
 
   /**
@@ -121,7 +135,12 @@ export class Trie<T> {
    * @param key The key to remove the value from
    * @param value The value to remove
    */
-  remove(key: string, value: T): void {
+  /**
+   * Removes a value from the trie at the specified key
+   * @param key The key to remove the value from
+   * @param value The value (or partial object) to remove
+   */
+  remove(key: string, value: Partial<T> | T): void {
     return this._remove(key.split(this.separator), value);
   }
 
@@ -130,7 +149,7 @@ export class Trie<T> {
    * @param parts Parts of the key to remove from
    * @param value The value to remove
    */
-  private _remove(parts: Parts, value: T): void {
+  private _remove(parts: Parts, value: Partial<T> | T): void {
     if (parts.length === 0) {
       const arr = this.#value;
       this.#value = arr.filter(this.filter(value));
@@ -143,27 +162,38 @@ export class Trie<T> {
     if (node) {
       node._remove(rest, value);
       if (node.#value.length === 0 && node.#children.size === 0) {
-        this.#children.delete(first!);
+        this.#children.delete(first);
       }
     }
   }
 
   /**
    * Creates a filter function for removing values
-   * @param value The value to filter against
-   * @returns Filter function
+   * Supports partial object matching when looseCompare is enabled or when matching objects.
+   * @param value The value (or partial value) to filter against
+   * @returns Filter function (returns true to KEEP the item, false to REMOVE it)
    */
-  private filter(value: T): (value: T, index: number, array: T[]) => boolean {
-    if (this.looseCompare && (typeof value === "object" && value !== null)) {
+  private filter(value: Partial<T> | T): (item: T) => boolean {
+    if (typeof value === "object" && value !== null) {
       return (item) => {
+        if (typeof item !== "object" || item === null) {
+          return true; // Keep if the stored item isn't an object but we are filtering by one
+        }
+
+        // Check if every key-value pair in our filter object matches the stored item
         for (const key in value) {
-          if (value[key] !== item[key]) {
-            return true;
+          if (Object.prototype.hasOwnProperty.call(value, key)) {
+            // If the stored item has a different value (or doesn't have the key), it's not a match
+            if (item[key] !== value[key]) {
+              return true; // Keep the item (no match)
+            }
           }
         }
-        return false;
+        return false; // Remove the item (it matches all criteria in the partial object)
       };
     }
+
+    // Fallback for primitives
     return (item) => item !== value;
   }
 }

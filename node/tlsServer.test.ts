@@ -58,17 +58,17 @@ test("Test pubSub using client and server", async () => {
   });
 
   // the IIFE ensures message reception runs in parallel
-  logger.verbose(`Start receiving`);
+  logger.verbose("Start receiving");
   const received: PublishPacket[] = [];
   (async () => {
     for await (const item of client.messages()) {
-      logger.verbose(`Receiving: ${item.topic} -- ${item.qos}`);
+      logger.verbose("Receiving:", item.topic, "--", item.qos);
       received.push(item);
     }
   })();
   // end of IIFE
   for (const item of publishSet) {
-    logger.verbose(`Publishing: ${item.topic} -- ${item.qos}`);
+    logger.verbose("Publishing:", item.topic, "--", item.qos);
     await client.publish({
       topic: item.topic,
       qos: item.qos,
@@ -77,18 +77,18 @@ test("Test pubSub using client and server", async () => {
   }
 
   await delay(100);
-  logger.verbose(`Disconnect client`);
+  logger.verbose("Disconnect client");
   await client.disconnect();
 
-  logger.verbose(`Check completeness`);
+  logger.verbose("Check completeness");
   for (const item of publishSet) {
     const found = received.find((f) =>
       f.topic == item.topic && f.qos === item.qos
     );
-    logger.verbose(`Found: ${item.topic} -- ${item.qos}`);
+    logger.verbose("Found:", item.topic, "--", item.qos);
     assert(found, `${item.topic} -- ${item.qos}`);
   }
 
-  logger.verbose(`Stop server`);
+  logger.verbose("Stop server");
   server.stop();
 });

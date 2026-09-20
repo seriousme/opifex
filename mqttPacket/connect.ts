@@ -2,12 +2,11 @@ import type {
   ClientId,
   CodecOpts,
   Payload,
-  ProtocolLevel,
-  ProtocolLevelNoV5,
   QoS,
   Topic,
   TPacketType,
 } from "./types.ts";
+import type { ProtocolLevel, ProtocolLevelNoV5 } from "./protocolLevels.ts";
 import type { ConnectProperties, WillProperties } from "./Properties.ts";
 import { PropertySetType } from "./Properties.ts";
 import { PacketType } from "./PacketType.ts";
@@ -111,7 +110,7 @@ export function encode(
   }
   const cleanSession = packet.clean !== false;
   if (!cleanSession && (clientId === "")) {
-    throw new EncoderError("Client id required for clean session");
+    throw new EncoderError("Client id required for non-clean session");
   }
   const connectFlags = (usernameFlag ? BitMask.bit7 : 0) +
     (passwordFlag ? BitMask.bit6 : 0) +
@@ -150,7 +149,8 @@ export function encode(
         codecOpts.maxOutgoingPacketSize,
       );
     }
-    encoder.setTopic(packet.will.topic).setByteArray(packet.will.payload);
+    encoder.setUtf8String(packet.will.topic);
+    encoder.setByteArray(packet.will.payload);
   }
 
   if (packet.username !== undefined) {
@@ -218,7 +218,7 @@ export function decode(
     if (isV5) {
       willProperties = decoder.getProperties(PropertySetType.will);
     }
-    willTopic = decoder.getTopic();
+    willTopic = decoder.getUTF8String();
     willPayload = decoder.getByteArray();
   }
 

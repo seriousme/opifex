@@ -5,11 +5,33 @@
 import type {
   ClientId,
   PacketId,
-  PublishPacket,
+  PublishPacketV5,
   QoS,
-  Topic,
   TopicFilter,
+  TRetainHandling,
 } from "./deps.ts";
+
+/**
+ * extended publish packet also contains meta data
+ */
+export type ExtPublishPacket = PublishPacketV5 & {
+  expiresAtMs?: number;
+};
+
+/**
+ * The MQTT topic share to subscribe/unsubscribe to
+ */
+export type ShareName = string;
+
+export type ClientSubscription = {
+  topicFilter: TopicFilter;
+  shareName: ShareName;
+  qos: QoS;
+  noLocal?: boolean;
+  retainAsPublished?: boolean;
+  retainHandling?: TRetainHandling;
+  subscriptionIdentifier?: number;
+};
 
 /**
  * Maximum packet ID value for MQTT messages (0xffff/65535)
@@ -17,7 +39,7 @@ import type {
 export const MAX_PACKET_ID = 0xffff;
 
 // Handler function type for processing publish packets
-export type Handler = (packet: PublishPacket) => void | Promise<void>;
+export type Handler = (packet: ExtPublishPacket) => void | Promise<void>;
 
 // The result returned by client registration
 export type ClientRegistrationResult = {
@@ -42,24 +64,31 @@ export interface IPersistence {
   disconnectClient(clientId: ClientId): Promise<void>;
 
   // subscription management
-  subscribe(clientId: ClientId, topic: TopicFilter, qos: QoS): Promise<void>;
-  unsubscribe(clientId: ClientId, topic: TopicFilter): Promise<void>;
+  subscribe(
+    clientId: ClientId,
+    subscription: ClientSubscription,
+  ): Promise<void>;
+  unsubscribe(
+    clientId: ClientId,
+    topicFilter: TopicFilter,
+    shareName: ShareName,
+  ): Promise<void>;
   listSubscriptions(
     clientId: ClientId,
-  ): AsyncIterableIterator<{ topicFilter: TopicFilter; qos: QoS }>;
+  ): AsyncIterableIterator<ClientSubscription>;
 
   // Incoming Packet management
   addPendingIncomingPacket(
     clientId: ClientId,
-    packet: PublishPacket,
+    packet: ExtPublishPacket,
   ): Promise<void>;
   getPendingIncomingPacket(
     clientId: ClientId,
     packetId: PacketId,
-  ): Promise<PublishPacket | null>;
+  ): Promise<ExtPublishPacket | null>;
   listPendingIncomingPackets(
     clientId: ClientId,
-  ): AsyncIterableIterator<PublishPacket>;
+  ): AsyncIterableIterator<ExtPublishPacket>;
   deletePendingIncomingPacket(
     clientId: ClientId,
     packetId: PacketId,
@@ -68,11 +97,20 @@ export interface IPersistence {
   // Outgoing Packet management
   addPendingOutgoingPacket(
     clientId: ClientId,
-    packet: PublishPacket,
+    packet: ExtPublishPacket,
   ): Promise<void>;
+  getPendingOutgoingPacket(
+    clientId: ClientId,
+    packetId: PacketId,
+  ): Promise<ExtPublishPacket | null>;
+  updatePendingOutgoingPacket(
+    clientId: ClientId,
+    packetId: PacketId,
+    dup: boolean,
+  ): Promise<boolean>;
   listPendingOutgoingPackets(
     clientId: ClientId,
-  ): AsyncIterableIterator<PublishPacket>;
+  ): AsyncIterableIterator<ExtPublishPacket>;
   deletePendingOutgoingPacket(
     clientId: ClientId,
     packetId: PacketId,
@@ -87,10 +125,12 @@ export interface IPersistence {
   // Message Delivery & Retained
   publish(
     clientId: ClientId,
-    topic: Topic,
-    packet: PublishPacket,
+    packet: ExtPublishPacket,
   ): Promise<void>;
-  handleRetained(clientId: ClientId): Promise<void>;
+  handleRetained(
+    clientId: ClientId,
+    subscriptions: ClientSubscription[],
+  ): Promise<void>;
 
   // Packet ID Generation
   nextPacketId(clientId: ClientId): Promise<PacketId>;

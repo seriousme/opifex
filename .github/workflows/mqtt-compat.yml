@@ -11,7 +11,7 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write # required to post/update the sticky comment
+  # pull-requests: write # required to post/update the sticky comment
 
 # Supersede in-flight runs for the same PR (or ref) so rapid pushes can't race
 # the sticky comment into duplicates or overwrite a newer result with a stale one.
@@ -106,20 +106,20 @@ jobs:
       # API call would 403 and fail the job for every external contributor. Forks
       # still get the job summary above. continue-on-error guards transient API
       # failures so a posting hiccup never reds the compat result.
-      - name: Sticky PR comment
-        if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        continue-on-error: true
-        uses: ./.github/actions/sticky-pr-comment
-        with:
-          file: report.md
-          tag: "<!-- MQTT_COMPAT_COMMENT -->"
+      # - name: Sticky PR comment
+      #   if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+      #   continue-on-error: true
+      #   uses: ./.github/actions/sticky-pr-comment
+      #   with:
+      #     file: report.md
+      #     tag: "<!-- MQTT_COMPAT_COMMENT -->"
 
-      - name: Upload result artifact
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: mqtt-compat-result
-          path: |
-            report.md
-            result.json
-          retention-days: 14
+      # - name: Upload result artifact
+      #   if: always()
+      #   uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      #   with:
+      #     name: mqtt-compat-result
+      #     path: |
+      #       report.md
+      #       result.json
+      #     retention-days: 14

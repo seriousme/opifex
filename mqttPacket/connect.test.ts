@@ -472,7 +472,7 @@ test("encode MQTTv4, clean=false,  no clientId", () => {
         protocolLevel: MQTTLevel.v4,
         clean: false,
       }, codecOptsUnknown),
-    /Client id required for clean session/,
+    /Client id required for non-clean session/,
   );
 });
 
