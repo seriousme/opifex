@@ -6,8 +6,8 @@
 
 Opifex aims to provide a MQTT server and MQTT client in Typescript to be used
 with [NodeJS](https://nodejs.org), [Deno](https://deno.land) or
-[Bun](https://bun.sh) It has _no_ third party dependencies, it only relies on
-built in modules.
+[Bun](https://bun.sh). It has _no_ third-party dependencies, it only relies on
+built-in modules.
 
 # Compatibility
 
@@ -39,15 +39,17 @@ Version 5 support includes:
 
 The following transports are currently supported:
 
-- plain TCP
-- TLS
-- WebSockets
+- plain TCP ✅
+- TLS ✅
+- WebSockets ✅ <sup>2</sup>
+
+<sup>2</sup> Deno + Browser only, NodeJS has no native websocket support.
 
 You can add your own transports.
 
 # Persistence
 
-Opifex offers plugable persistence, but one can provide its own persistence.
+Opifex offers pluggable persistence, but one can provide its own persistence.
 (see [Architecture](#architecture))
 
 The following types are currently provided:
@@ -82,16 +84,16 @@ but for historic reasons `/deno` still exists.
 
 ## Example
 
-A simple server example.
-
-import { TcpServer}
+A simple server example:
 
 ```typescript
 import { TcpServer } from "@seriousme/opifex/tcpServer";
 
 const server = new TcpServer({ port: 1883 }, {
-  // just an example on how to configure the server
-  configuration: { context: { maximumConnectPacketSize: 3000 } },
+  // just an example of how to configure the server
+  configuration: {
+    context: { maximumConnectPacketSize: 3000 },
+  },
 });
 server.start();
 console.log(
@@ -109,10 +111,10 @@ can be found in the [examples](/examples/) folder.
    encode and decode packets.
 
 2. On top of mqttPacket sits the MQTT connection module
-   ([mqttConn/mod.ts](mqttConn/mod.ts)) module that reads packets from a
-   Readable stream and writes them to Writable stream. It will take care of
-   incomplete and/or malformed packets. mqttConn provides an async iterable that
-   can be awaited for new packets.
+   ([mqttConn/mod.ts](mqttConn/mod.ts)) that reads packets from a Readable
+   stream and writes them to Writable stream. It will take care of incomplete
+   and/or malformed packets. mqttConn provides an async iterable that can be
+   awaited for new packets.
 
 3. On top of mqttConn live the MQTT server ([server/mod.ts](server/mod.ts)) and
    MQTT client ([client/mod.ts](client/mod.ts)) that take care of the MQTT
@@ -132,13 +134,14 @@ can be found in the [examples](/examples/) folder.
    persistence which you can replace by something more scalable (e.g. redis
    based clusters etc) This is backed by two storage providers:
    - ([persistence/memory](persistence/memory))
-   - ([persistence/sqlite](persistence/sqlite)) (based on node:sqlite) but can
-     be extended with other database backed persistence supported by third party
-     modules.
+   - ([persistence/sqlite](persistence/sqlite)) (based on node:sqlite)
+
+   but can be extended with other database backend persistence supported by
+   third-party modules.
 
 6. Server behavior can be customized by passing a
-   ([ConfigurationInput object](server/config.ts)) object
-   via`MqttServerOptions.configuration`, see the example above.
+   ([ConfigurationInput object](server/config.ts)) via
+   `MqttServerOptions.configuration`, see the example above.
 
 7. The demo server listens to a platform specific socket and runs the `serve()`
    method from the server module on the platform independent streams of every
@@ -158,7 +161,7 @@ can be found in the [examples](/examples/) folder.
 | @seriousme/opifex/wsServer    | Exports a MQTT over Websocket server (deno only)             |
 | @seriousme/opifex/server      | Exports a transport agnostic MQTT server                     |
 | @seriousme/opifex/client      | Exports a transport agnostic MQTT client                     |
-| @seriousme/opifex/persistence | Exports an Typescript interface for storage persistence      |
+| @seriousme/opifex/persistence | Exports a Typescript interface for storage persistence       |
 | @seriousme/opifex/mqttConn    | Exports MQTT connection handling                             |
 | @seriousme/opifex/mqttPacket  | Exports MQTT packet handling                                 |
 | @seriousme/opifex/utils       | Exports various utilities                                    |
