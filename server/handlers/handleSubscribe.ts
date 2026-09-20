@@ -12,6 +12,7 @@ import {
 } from "../deps.ts";
 import type {
   ClientSubscription,
+  ShareName,
   SubscribePacket,
   Topic,
   TReasonCode,
@@ -25,13 +26,18 @@ const V4SubscriptionFailure = 0x80;
 async function authorizedToSubscribe(
   ctx: Context,
   topicFilter: Topic,
+  shareName: ShareName,
 ): Promise<boolean> {
   if (ctx.state === SessionState.authenticating) {
     return false;
   }
   try {
     if (ctx.handlers.isAuthorizedToSubscribe) {
-      return await ctx.handlers.isAuthorizedToSubscribe(ctx, topicFilter);
+      return await ctx.handlers.isAuthorizedToSubscribe(
+        ctx,
+        topicFilter,
+        shareName,
+      );
     }
   } catch (err) {
     let message = "unknown error";
@@ -124,7 +130,13 @@ export async function handleSubscribe(
     }
 
     // Authorization Check
-    if (!await authorizedToSubscribe(ctx, clientSub.topicFilter)) {
+    if (
+      !await authorizedToSubscribe(
+        ctx,
+        clientSub.topicFilter,
+        clientSub.shareName,
+      )
+    ) {
       results.push(
         isProtocolV5 ? ReasonCode.notAuthorized : V4SubscriptionFailure,
       );

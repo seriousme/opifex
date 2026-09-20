@@ -1,7 +1,7 @@
 import { logger, MemoryPersistence, ReasonCode } from "./deps.ts";
 import { Context } from "./context.ts";
 import type { Handlers } from "./context.ts";
-import type { IPersistence, SockConn, Topic } from "./deps.ts";
+import type { IPersistence, ShareName, SockConn, Topic } from "./deps.ts";
 import { handlePacket } from "./handlers/handlePacket.ts";
 import { createConfiguration } from "./config.ts";
 import type { Configuration, ConfigurationInput } from "./config.ts";
@@ -42,12 +42,27 @@ const defaultProcessAuth = (
   }) as const;
 
 /**
- * Default authorization handler that unconditionally permits all topic operations.
+ * Default authorization handler that unconditionally permits all publish operations.
  * @param {Context} _ctx - The connection context.
  * @param {Topic} _topic - The topic being accessed.
  * @returns {boolean} Always returns true.
  */
-const defaultIsAuthorized = (_ctx: Context, _topic: Topic) => (true) as const;
+const defaultIsAuthorizedToPublish = (_ctx: Context, _topic: Topic) =>
+  (true) as const;
+
+/**
+ * Default authorization handler that unconditionally permits all subscribe operations.
+ * @param {Context} _ctx - The connection context.
+ * @param {Topic} _topic - The topic being accessed.
+ * @param {ShareName} _shareName - The share name being accessed when using shared subscriptions
+ * @returns {boolean} Always returns true.
+ */
+
+const defaultIsAuthorizedToSubscribe = (
+  _ctx: Context,
+  _topic: Topic,
+  _shareName: ShareName,
+) => (true) as const;
 
 /**
  * Configuration options for creating an MqttServer instance.
@@ -95,9 +110,9 @@ export class MqttServer {
       isAuthenticated: handlers?.isAuthenticated || defaultIsAuthenticated,
       processAuth: handlers?.processAuth || defaultProcessAuth,
       isAuthorizedToPublish: handlers?.isAuthorizedToPublish ||
-        defaultIsAuthorized,
+        defaultIsAuthorizedToPublish,
       isAuthorizedToSubscribe: handlers?.isAuthorizedToSubscribe ||
-        defaultIsAuthorized,
+        defaultIsAuthorizedToSubscribe,
     };
     this.configuration = createConfiguration(configuration);
   }

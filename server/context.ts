@@ -16,6 +16,7 @@ import type {
   ProtocolLevel,
   PublishPacket,
   PubrelPacket,
+  ShareName,
   SockConn,
   Topic,
   TReasonCode,
@@ -117,11 +118,13 @@ export type Handlers = {
    * Hook to authorize a subscription request to a specific topic.
    * @param {Context} ctx - The connection context.
    * @param {Topic} topic - The topic filter the client wants to subscribe to.
+   * @param {ShareName} shareName - The name of the share in case of shared subscriptions
    * @returns {boolean} True if the client is authorized to subscribe, false otherwise.
    */
   isAuthorizedToSubscribe?(
     ctx: Context,
     topic: Topic,
+    shareName: ShareName,
   ): boolean | Promise<boolean>;
 };
 

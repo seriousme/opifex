@@ -1,6 +1,11 @@
 import { ReasonCode } from "../server/mod.ts";
 import { logger } from "../utils/mod.ts";
-import type { AuthenticatedResult, Context, Topic } from "../server/mod.ts";
+import type {
+  AuthenticatedResult,
+  Context,
+  ShareName,
+  Topic,
+} from "../server/mod.ts";
 
 const utf8Decoder = new TextDecoder();
 const userTable = new Map();
@@ -49,16 +54,28 @@ function processAuth(
 
 function isAuthorizedToPublish(ctx: Context, topic: Topic): boolean {
   logger.debug(
-    `Checking authorization of client '${ctx.clientId}' to publish on topic '${topic}'`,
+    "Checking authorization of client",
+    ctx.clientId,
+    "to publish on topic",
+    topic,
   );
   if (topic === "topic/unauthorized") {
     return false;
   }
   return true;
 }
-function isAuthorizedToSubscribe(ctx: Context, topic: Topic): boolean {
+function isAuthorizedToSubscribe(
+  ctx: Context,
+  topic: Topic,
+  shareName: ShareName,
+): boolean {
   logger.debug(
-    `Checking authorization of client '${ctx.clientId}' to subscribe to topic '${topic}'`,
+    "Checking authorization of client",
+    ctx.clientId,
+    "to subscribe to topic",
+    topic,
+    "using shareName",
+    shareName,
   );
   if (topic === "topic/unauthorized") {
     return false;

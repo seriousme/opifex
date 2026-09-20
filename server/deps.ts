@@ -4,6 +4,7 @@ export type {
   ClientSubscription,
   ExtPublishPacket,
   IPersistence,
+  ShareName,
 } from "../persistence/persistence.ts";
 export { MemoryPersistence } from "../persistence/memory/memoryPersistence.ts";
 export type {

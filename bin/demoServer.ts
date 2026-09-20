@@ -10,6 +10,7 @@ import type {
   AuthenticatedResult,
   ConnectPacket,
   Context,
+  ShareName,
   Topic,
 } from "../server/mod.ts";
 import { ReasonCode } from "../server/mod.ts";
@@ -92,7 +93,10 @@ function isAuthenticated(
  */
 function isAuthorizedToPublish(ctx: Context, topic: Topic): boolean {
   logger.debug(
-    `Checking authorization of client '${ctx.clientId}' to publish on topic '${topic}'`,
+    "Checking authorization of client",
+    ctx.clientId,
+    "to publish on topic",
+    topic,
   );
   return true;
 }
@@ -103,9 +107,18 @@ function isAuthorizedToPublish(ctx: Context, topic: Topic): boolean {
  * @param {Topic} topic - Topic to subscribe to
  * @returns {boolean} True if authorized
  */
-function isAuthorizedToSubscribe(ctx: Context, topic: Topic): boolean {
+function isAuthorizedToSubscribe(
+  ctx: Context,
+  topic: Topic,
+  shareName: ShareName,
+): boolean {
   logger.debug(
-    `Checking authorization of client '${ctx.clientId}' to subscribe to topic '${topic}'`,
+    "Checking authorization of client",
+    ctx.clientId,
+    "to subscribe to topic",
+    topic,
+    "using shareName",
+    shareName,
   );
   return true;
 }

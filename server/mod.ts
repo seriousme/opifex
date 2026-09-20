@@ -3,7 +3,13 @@
  *  @module
  */
 export { ReasonCode } from "./deps.ts";
-export type { ConnectPacket, IPersistence, SockConn, Topic } from "./deps.ts";
+export type {
+  ConnectPacket,
+  IPersistence,
+  ShareName,
+  SockConn,
+  Topic,
+} from "./deps.ts";
 export { MqttServer } from "./server.ts";
 export type { MqttServerOptions } from "./server.ts";
 export { Context } from "./context.ts";

@@ -5,6 +5,7 @@ import type {
   AnyPacket,
   ConnectPacket,
   PublishPacket,
+  ShareName,
 } from "../../server/deps.ts";
 import {
   addMockClient,
@@ -188,7 +189,11 @@ test("Offline message queueing across clean=false reconnects", async () => {
 });
 
 test("Subscribe failure validation returns 0x80", async () => {
-  function isAuthorizedToSubscribe(_ctx: never, topic: string): boolean {
+  function isAuthorizedToSubscribe(
+    _ctx: never,
+    topic: string,
+    _shareName: ShareName,
+  ): boolean {
     return topic !== NO_SUBSCRIBE_TOPIC;
   }
 
