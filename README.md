@@ -133,14 +133,14 @@ can be found in the [examples](/examples/) folder.
    ([persistence](persistence)) which currently offers single process
    persistence which you can replace by something more scalable (e.g. redis
    based clusters etc) This is backed by two storage providers:
-   - ([persistence/memory](persistence/memory))
-   - ([persistence/sqlite](persistence/sqlite)) (based on node:sqlite)
+   - [memory](persistence/memory)
+   - [sqlite](persistence/sqlite), based on node:sqlite
 
    but can be extended with other database backend persistence supported by
    third-party modules.
 
 6. Server behavior can be customized by passing a
-   ([ConfigurationInput object](server/config.ts)) via
+   [ConfigurationInput object](server/config.ts) via
    `MqttServerOptions.configuration`, see the example above.
 
 7. The demo server listens to a platform specific socket and runs the `serve()`
