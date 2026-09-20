@@ -8,7 +8,10 @@ import type { PublishPacket, QoS } from "@seriousme/opifex/mqttPacket";
 logger.level(LogLevel.info);
 
 test("Test pubSub using TCP client and server using memoryPersistence", async function () {
-  const server = new TcpServer({ port: 0 }, {});
+  const server = new TcpServer({ port: 0 }, {
+    // just an example on how to configure the server
+    configuration: { context: { maximumConnectPacketSize: 3000 } },
+  });
   server.start();
 
   assert.deepStrictEqual(

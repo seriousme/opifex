@@ -19,8 +19,21 @@ The following MQTT versions are supported:
 | Client         | ✅            | ✅              | ✅ <sup>1</sup> |
 | Server         | ❌            | ✅              | ✅              |
 
-<sup>1</sup> The client api fully supports MQTTv5, the CLI only supports a
+<sup>1</sup> The client API fully supports MQTTv5, the CLI only supports a
 subset
+
+Version 5 support includes:
+
+- Client Topic Alias ✅
+- Server Topic Alias ✅
+- Subscription Identifiers ✅
+- Subscription options (NoLocal, RetainAsPublished, RetainHandling) ✅
+- Message expiry interval ✅
+- Will delay ✅
+- Assigned Client Identifier ✅
+- Client receive maximum ✅
+- Server receive maximum ✅
+- Shared Subscriptions ✅
 
 # Transports
 
@@ -75,7 +88,11 @@ import { TcpServer}
 
 ```typescript
 import { TcpServer } from "@seriousme/opifex/tcpServer";
-const server = new TcpServer({ port: 1883 }, {});
+
+const server = new TcpServer({ port: 1883 }, {
+  // just an example on how to configure the server
+  configuration: { context: { maximumConnectPacketSize: 3000 } },
+});
 server.start();
 console.log(
   `MQTT server running on port: ${server.port}, address: ${server.address}`,
@@ -119,11 +136,16 @@ can be found in the [examples](/examples/) folder.
      be extended with other database backed persistence supported by third party
      modules.
 
-6. The demo server listens to a platform specific socket and runs the `serve()`
+6. Server behavior can be customized by passing a
+   ([ConfigurationInput object](server/config.ts)) object
+   via`MqttServerOptions.configuration`,
+   see the example above.
+
+7. The demo server listens to a platform specific socket and runs the `serve()`
    method from the server module on the platform independent streams of every
    connection.
 
-7. The demo client opens a platform specific socket and passes the resulting
+8. The demo client opens a platform specific socket and passes the resulting
    platform independent streams to the client module.
 
 ## Exports
