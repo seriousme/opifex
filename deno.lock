@@ -1,0 +1,37 @@
+{
+  "version": "5",
+  "specifiers": {
+    "npm:@types/node-forge@^1.3.14": "1.3.14",
+    "npm:@types/node@^26.6.2": "26.6.2",
+    "npm:node-forge@^1.4.0": "1.4.0"
+  },
+  "npm": {
+    "@types/node-forge@1.3.14": {
+      "integrity": "sha512-mhVF2BnD4BO+jtOp7z1CdzaK4mbuK0LLQYAvdOLqHTavxFNq4zA1EmYkpnFjP8HOUzedfQkRnp0E2ulSAYSzAw==",
+      "dependencies": [
+        "@types/node"
+      ]
+    },
+    "@types/node@26.6.2": {
+      "integrity": "sha512-X1P21scMv4zGKLYqjdGjaKa7COa0RKVYYZZN/NfvLQ1JegxFhdhpZG/Lyn8AXx6CDUavKAd11v6BvfpkDByK8g==",
+      "dependencies": [
+        "undici-types"
+      ]
+    },
+    "node-forge@1.4.0": {
+      "integrity": "sha512-LarFH0+6VfriEhqMMcLX2F7SwSXeWwnEAJEsYm5QKWchiVYVvJyV9v7UDvUv+w5HO23ZpQTXDv/GxdDdMyOuoQ=="
+    },
+    "undici-types@8.9.0": {
+      "integrity": "sha512-KTDyRTYX8sWmKXAikPHHSyc63CRPETMctyjKFupcC6OBLXT3xsN0e9aF7m+mIXutFWpUXuedtowG7iLOzp0kQg=="
+    }
+  },
+  "workspace": {
+    "packageJson": {
+      "dependencies": [
+        "npm:@types/node-forge@^1.3.14",
+        "npm:@types/node@^26.6.2",
+        "npm:node-forge@^1.4.0"
+      ]
+    }
+  }
+}
