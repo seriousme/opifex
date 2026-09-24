@@ -4,6 +4,10 @@
 
 ### Changed
 
+## [2.0.0] 24-09-2026
+
+### Changed
+
 - feat: replace BYOD stream by Default Readable/Writable stream
 - feat: support MQTT v5
 - feat(server): close connection on unauthorized publish (was ignore)
