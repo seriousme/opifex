@@ -4,6 +4,12 @@
 
 ### Changed
 
+## [2.0.1] 24-09-2026
+
+ - fix: add deno.lock
+
+### Changed
+
 ## [2.0.0] 24-09-2026
 
 ### Changed
