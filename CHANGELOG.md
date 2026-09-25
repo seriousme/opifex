@@ -4,11 +4,17 @@
 
 ### Changed
 
-## [2.0.1] 25-09-2026
-
- - fix: update deno.lock
+## [2.0.2] 25-09-2026
 
 ### Changed
+
+- fix: deno fmt CHANGELOG.md
+
+## [2.0.1] 25-09-2026
+
+### Changed
+
+- fix: update deno.lock
 
 ## [2.0.0] 24-09-2026
 
