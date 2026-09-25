@@ -19,3 +19,4 @@ export {
   parseTopicFilter,
   topicFilterToRegExp,
 } from "../utils/mod.ts";
+export { getOrInsert } from "../utils/getOrInsertPolyFill.ts";

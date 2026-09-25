@@ -12,8 +12,7 @@ import type {
 } from "../persistence.ts";
 import type { IStorageProvider, StoredSubscription } from "../storage.ts";
 import { PacketDirection } from "../storage.ts";
-import { joinTopicFilter, topicFilterToRegExp } from "../deps.ts";
-import "../../utils/getOrInsertPolyFill.ts";
+import { getOrInsert, joinTopicFilter, topicFilterToRegExp } from "../deps.ts";
 
 type pendingTableEntry = {
   seqId: number;
@@ -81,7 +80,7 @@ export class MemoryStorage implements IStorageProvider {
   // --- Subscriptions ---
   saveSubscription(clientId: ClientId, sub: ClientSubscription): Promise<void> {
     const key = joinTopicFilter(sub.topicFilter, sub.shareName);
-    const clientSubs = this.subscriptionTable.getOrInsert(clientId, new Map());
+    const clientSubs = getOrInsert(this.subscriptionTable, clientId, new Map());
     clientSubs.set(key, sub);
     return Promise.resolve();
   }
@@ -120,7 +119,7 @@ export class MemoryStorage implements IStorageProvider {
     const table = direction === PacketDirection.Incoming
       ? this.pendingIncomingTable
       : this.pendingOutgoingTable;
-    return table.getOrInsert(clientId, new Map());
+    return getOrInsert(table, clientId, new Map());
   }
 
   savePendingPacket(
@@ -184,7 +183,7 @@ export class MemoryStorage implements IStorageProvider {
 
   // --- ACKs ---
   private getAckSet(clientId: ClientId): Set<PacketId> {
-    return this.pendingAckOutgoingTable.getOrInsert(clientId, new Set());
+    return getOrInsert(this.pendingAckOutgoingTable, clientId, new Set());
   }
 
   savePendingAck(clientId: ClientId, packetId: PacketId): Promise<void> {

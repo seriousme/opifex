@@ -4,6 +4,12 @@
 
 ### Changed
 
+## [2.0.3] 25-09-2026
+
+### Changed
+
+- fix: change getOrInsert polyfill so that it is accepted by JSR.io
+
 ## [2.0.2] 25-09-2026
 
 ### Changed

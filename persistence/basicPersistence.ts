@@ -9,9 +9,8 @@ import type {
 } from "./persistence.ts";
 import type { IStorageProvider } from "./storage.ts";
 import { PacketDirection } from "./storage.ts";
-import { assert, logger, Trie } from "./deps.ts";
+import { assert, getOrInsert, logger, Trie } from "./deps.ts";
 import { MAX_PACKET_ID } from "./persistence.ts";
-import "../utils/getOrInsertPolyFill.ts";
 
 type TrieSub = ClientSubscription & { clientId: ClientId };
 
@@ -360,11 +359,15 @@ export class MqttPersistence implements IPersistence {
       if (sub.noLocal && sub.clientId === publisherClientId) continue;
       if (sub.shareName) {
         // Shared Subscription
-        const shareClients = sharedGroups.getOrInsert(sub.shareName, new Map());
-        shareClients.getOrInsert(sub.clientId, []).push(sub);
+        const shareClients = getOrInsert(
+          sharedGroups,
+          sub.shareName,
+          new Map(),
+        );
+        getOrInsert(shareClients, sub.clientId, []).push(sub);
       } else {
         // Standard subscription
-        directClients.getOrInsert(sub.clientId, []).push(sub);
+        getOrInsert(directClients, sub.clientId, []).push(sub);
       }
     }
 
