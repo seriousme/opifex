@@ -13,10 +13,9 @@ import type {
   PublishPacket,
   QoS,
   Topic,
-  TReasonCode,
 } from "../deps.ts";
 
-const reasonsToDisconnect: TReasonCode[] = [
+const reasonsToDisconnect: ReasonCode[] = [
   ReasonCode.topicAliasInvalid,
 ];
 
@@ -24,7 +23,7 @@ async function handlePublishError(
   ctx: Context,
   id: PacketId | undefined,
   qos: QoS,
-  reasonCode: TReasonCode,
+  reasonCode: ReasonCode,
   reasonString: string,
 ) {
   // in v4 we can only close the connection
@@ -103,7 +102,7 @@ async function authorizedToPublish(ctx: Context, topic: Topic) {
 function validatePublishPacket(
   ctx: Context,
   packet: PublishPacket,
-): { reasonCode: TReasonCode; message: string } | null {
+): { reasonCode: ReasonCode; message: string } | null {
   const cfg = ctx.config.context;
   const isProtocolV5 = packet.protocolLevel === 5;
   const hasTopicAlias = isProtocolV5 &&

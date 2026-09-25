@@ -1,11 +1,11 @@
 import { exit } from "node:process";
 import { getArgs, importClientClass } from "./utils.ts";
 import { logger } from "../../utils/mod.ts";
-import type { TLogLevel } from "../../utils/logger.ts";
+import type { LogLevel } from "../../utils/logger.ts";
 import type { QoS } from "../../client/deps.ts";
 
 export async function runReceiver(
-  level: TLogLevel,
+  level: LogLevel,
   url: string,
   topic: string,
   qos: QoS,

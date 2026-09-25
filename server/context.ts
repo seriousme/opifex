@@ -16,10 +16,10 @@ import type {
   ProtocolLevel,
   PublishPacket,
   PubrelPacket,
+  ReasonCode,
   ShareName,
   SockConn,
   Topic,
-  TReasonCode,
 } from "./deps.ts";
 
 import { QueueMode } from "./config.ts";
@@ -36,7 +36,7 @@ export const utf8Encoder = new TextEncoder();
 
 /** Possible results from isAuthenticated and processAuth handler */
 export type AuthenticatedResult = {
-  reasonCode: TReasonCode;
+  reasonCode: ReasonCode;
   reasonString?: string;
   authData?: Uint8Array;
 };

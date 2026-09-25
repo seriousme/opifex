@@ -17,10 +17,7 @@ export type {
   ReturnCodes,
   SubackPacket,
   SubscribePacket,
-  TAuthenticationResult,
   Topic,
-  TPacketType,
-  TReasonCode,
   UnsubackPacket,
   UnsubscribePacket,
 } from "../mqttPacket/mod.ts";
@@ -38,7 +35,13 @@ export {
 } from "../mqttPacket/mod.ts";
 
 export { MqttConn } from "../mqttConn/mqttConn.ts";
-export type { SockConn } from "../socket/socket.ts";
+export type {
+  NetAddr,
+  SockAddr,
+  SockConn,
+  UnixAddr,
+  VsockAddr,
+} from "../socket/socket.ts";
 export { Timer } from "../timer/timer.ts";
 export { BufferedAsyncIterable, Deferred, logger } from "../utils/mod.ts";
 export { MemoryStore } from "./store/memoryStore.ts";

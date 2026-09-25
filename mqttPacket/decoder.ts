@@ -1,9 +1,4 @@
-import type {
-  TBitMask,
-  TPacketType,
-  TReasonCode,
-  UTF8StringPair,
-} from "./types.ts";
+import type { BitMask, UTF8StringPair } from "./types.ts";
 import { invalidUTF8 } from "./validators.ts";
 import { isValidReasonCode } from "./ReasonCode.ts";
 import type {
@@ -21,6 +16,9 @@ import {
   propertyToKind,
 } from "./Properties.ts";
 
+import type { PacketType } from "./PacketType.ts";
+import type { ReasonCode } from "./ReasonCode.ts";
+
 const utf8Decoder = new TextDecoder("utf-8");
 const userPropID = propertyToId.userProperty;
 const subIdentID = propertyToId.subscriptionIdentifier;
@@ -31,7 +29,7 @@ const subIdentsID = propertyToId.subscriptionIdentifiers;
  * @param mask - The bitmask to apply
  * @returns True if the flag is set, false otherwise
  */
-export function booleanFlag(byte: number, mask: TBitMask): boolean {
+export function booleanFlag(byte: number, mask: BitMask): boolean {
   return !!(byte & mask);
 }
 
@@ -71,7 +69,7 @@ export class DecoderError extends Error {
  * Decoder class for parsing MQTT packets
  */
 export class Decoder {
-  private packetType: TPacketType;
+  private packetType: PacketType;
   private buf: Uint8Array;
   private pos: number;
   private len: number;
@@ -81,7 +79,7 @@ export class Decoder {
    * @param buf - The buffer to decode
    * @param pos - Starting position in the buffer (default: 0)
    */
-  constructor(packetType: TPacketType, buf: Uint8Array, pos: number = 0) {
+  constructor(packetType: PacketType, buf: Uint8Array, pos: number = 0) {
     this.packetType = packetType;
     this.buf = buf;
     this.pos = pos;
@@ -289,12 +287,12 @@ export class Decoder {
    * @returns The decoded reason code
    * @throws {DecoderError} If reason code is invalid
    */
-  getReasonCode(): TReasonCode {
+  geReasonCode(): ReasonCode {
     const reasonCode = this.getByte();
     if (!isValidReasonCode(this.packetType, reasonCode)) {
       throw new DecoderError("Invalid reason code");
     }
-    return reasonCode as TReasonCode;
+    return reasonCode as ReasonCode;
   }
 
   /**

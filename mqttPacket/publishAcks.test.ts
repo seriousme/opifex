@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { decode, encode, MQTTLevel, PacketType, ReasonCode } from "./mod.ts";
-import type { CodecOpts, TPacketType, TReasonCode } from "./mod.ts";
+import type { CodecOpts } from "./mod.ts";
 
 const codecOptsV4: CodecOpts = {
   protocolLevel: MQTTLevel.v4,
@@ -24,9 +24,9 @@ const packetTypesToTest = [
 ];
 for (const item of packetTypesToTest) {
   const [ackType, label, reasonCode] = item as [
-    TPacketType,
+    PacketType,
     string,
-    TReasonCode,
+    ReasonCode,
   ];
   const ackTypeByte = (ackType << 4) + (ackType === PacketType.pubrel ? 2 : 0);
   test(`encode/decode ${label} v4`, () => {

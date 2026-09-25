@@ -51,12 +51,8 @@ export type {
   Payload,
   QoS,
   ReturnCodes,
-  TAuthenticationResult,
   Topic,
   TopicFilter,
-  TPacketType,
-  TReasonCode,
-  TRetainHandling,
   UTF8StringPair,
 } from "./types.ts";
 

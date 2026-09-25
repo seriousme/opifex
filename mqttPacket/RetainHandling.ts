@@ -9,3 +9,8 @@ export const RetainHandling = {
   ifSubscriptionNotExists: 1,
   noRetain: 2,
 } as const;
+
+/**
+ * helper type to limit retain handling values
+ */
+export type RetainHandling = typeof RetainHandling[keyof typeof RetainHandling];

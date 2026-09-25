@@ -51,13 +51,13 @@ test("encode string", () => {
 test("encode reasonCode", () => {
   const reasonCode = ReasonCode.success;
   const encoder = new Encoder(PacketType.connack);
-  encoder.setReasonCode(reasonCode);
+  encoder.seReasonCode(reasonCode);
   assert.deepStrictEqual(encoder.done(0), new Uint8Array([32, 1, reasonCode]));
 });
 
 test("encode invalid reasonCode", () => {
   const encoder = new Encoder(PacketType.connack);
   assert.throws(() => {
-    encoder.setReasonCode(ReasonCode.noMatchingSubscribers);
+    encoder.seReasonCode(ReasonCode.noMatchingSubscribers);
   }, /Reason code 16 not allowed for packet type 2/);
 });

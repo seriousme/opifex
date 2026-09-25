@@ -1,7 +1,7 @@
 import type { Context } from "../context.ts";
 import { ConnectionState } from "../ConnectionState.ts";
 import { AuthenticationResultByNumber, ReasonCodeByNumber } from "../deps.ts";
-import type { ConnackPacket, TReasonCode } from "../deps.ts";
+import type { ConnackPacket, ReasonCode } from "../deps.ts";
 
 /**
  * Handles the CONNACK packet received from the MQTT broker
@@ -38,7 +38,7 @@ export async function handleConnack(ctx: Context, packet: ConnackPacket) {
   }
 
   const errMsg = packet.protocolLevel === 5
-    ? ReasonCodeByNumber[result as TReasonCode]
+    ? ReasonCodeByNumber[result as ReasonCode]
     : AuthenticationResultByNumber[result];
 
   const err = new Error(

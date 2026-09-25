@@ -19,7 +19,7 @@ export const LogLevel = {
 /**
  * Union type representing the permitted numeric log level indices.
  */
-export type TLogLevel = typeof LogLevel[keyof typeof LogLevel];
+export type LogLevel = typeof LogLevel[keyof typeof LogLevel];
 
 type LogArgument = unknown | (() => unknown);
 
@@ -88,9 +88,9 @@ export class Logger {
 
   /**
    * Adjusts the current verbosity threshold, enabling or masking specific log outputs.
-   * @param {TLogLevel} logLevel - The minimum numeric severity level threshold to output.
+   * @param {LogLevel} logLevel - The minimum numeric severity level threshold to output.
    */
-  level(logLevel: TLogLevel) {
+  level(logLevel: LogLevel) {
     this.isWarn = logLevel >= LogLevel.warn;
     this.isInfo = logLevel >= LogLevel.info;
     this.isVerbose = logLevel >= LogLevel.verbose;

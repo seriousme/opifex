@@ -4,7 +4,7 @@ import {
   parseTopicFilter,
   ReasonCode,
 } from "../deps.ts";
-import type { TReasonCode, UnsubscribePacket } from "../deps.ts";
+import type { UnsubscribePacket } from "../deps.ts";
 import { SessionState } from "../context.ts";
 import type { Context } from "../context.ts";
 
@@ -26,7 +26,7 @@ export async function handleUnsubscribe(
     subscriptions.add(joinTopicFilter(sub.topicFilter, sub.shareName));
   }
 
-  const reasonCodes: TReasonCode[] = [];
+  const reasonCodes: ReasonCode[] = [];
 
   for (const packetTopicFilter of packet.topicFilters) {
     // split topicFilter into topicFilter and shareName

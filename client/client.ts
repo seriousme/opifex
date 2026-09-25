@@ -8,19 +8,20 @@ import {
 } from "./deps.ts";
 
 import type {
+  AuthenticationResult,
   ConnectPacket,
   IStore,
+  ProtocolLevel,
   PublishPacket,
   SockConn,
   SubscribePacket,
-  TAuthenticationResult,
 } from "./deps.ts";
 
 import { noop } from "../utils/mod.ts";
 
 import { Context } from "./context.ts";
 import type { AuthenticatedResult } from "./context.ts";
-import type { TConnectionState } from "./ConnectionState.ts";
+import type { ConnectionState } from "./ConnectionState.ts";
 import { BufferedAsyncIterable } from "./deps.ts";
 
 /**
@@ -32,18 +33,25 @@ function generateClientId(prefix: string): string {
   return `${prefix}-${Math.random().toString().slice(-10)}`;
 }
 
-type ConnectOptions = Omit<
+/** All properties of a connect packet, except for type and protocol name */
+export type ConnectOptions = Omit<
   ConnectPacket,
   "type" | "protocolName"
 >;
 
 /** ConnectParameters define how to connect */
 export type ConnectParameters = {
+  /** the URL to connect to */
   url?: URL | undefined;
+  /** any CA Certs to trust */
   caCerts?: string[] | undefined;
+  /** the clients certificate */
   cert?: string | undefined;
+  /** the clients private key*/
   key?: string | undefined;
+  /** number of retries before stopping connection attempts */
   numberOfRetries?: number | undefined;
+  /** connect options */
   options?: ConnectOptions | undefined;
 };
 
@@ -80,7 +88,7 @@ function backOffSleep(random: boolean, attempt: number): Promise<void> {
 /** the default MQTT URL to connect to */
 export const DEFAULT_URL = "mqtt://localhost:1883/";
 /** the default protocol level to connect with*/
-export const DEFAULT_PROTOCOLLEVEL = MQTTLevel.v4;
+export const DEFAULT_PROTOCOLLEVEL = MQTTLevel.v4 as ProtocolLevel;
 /** the default keepalive time */
 export const DEFAULT_KEEPALIVE = 60; // 60 seconds
 const DEFAULT_RETRIES = 3; // on first connect
@@ -119,21 +127,36 @@ export class Client {
       reasonString: "No authentication method configured",
     };
   };
+  /** callback for errors */
   public onError: (err: Error) => void = noop;
+  /** callback for publish packets */
   public onPacket: (pkt: PublishPacket) => void | Promise<void> = noop;
+  /** callback once connected */
   public onConnected: () => void = noop;
+  /** callback once disconnected */
   public onDisconnected: () => void = noop;
+  /** callback when reconnecting */
   public onReconnecting: () => void = noop;
 
+  /** clientId prefix used when automatically generating a client Id */
   protected clientIdPrefix = CLIENTID_PREFIX;
+  /** number of times to retry connect */
   protected numberOfRetries = DEFAULT_RETRIES;
+  /** the URL to connect to */
   protected connectUrl: URL = new URL(DEFAULT_URL);
+  /** the keepAlive value in number of seconds */
   protected keepAlive = DEFAULT_KEEPALIVE;
+  /** the requested protocol level */
   protected protocolLevel = DEFAULT_PROTOCOLLEVEL;
+  /** try auto reconnect if connection is lost */
   protected autoReconnect = true;
+  /** any CA Certs to trust */
   protected caCerts?: string[] | undefined;
+  /** the clients certificate */
   protected cert?: string | undefined;
+  /** the clients private key*/
   protected key?: string | undefined;
+  /** the MQTT clientId */
   protected clientId: string;
   private ctx: Context;
   private connectPacket?: ConnectPacket;
@@ -148,10 +171,18 @@ export class Client {
     this.numberOfRetries = DEFAULT_RETRIES;
   }
 
-  public get connectionState(): TConnectionState {
+  /**
+   * Current connection state
+   * @returns connectionState as ConnectionState
+   */
+  public get connectionState(): ConnectionState {
     return this.ctx.connectionState;
   }
 
+  /**
+   * Current configured connection URL
+   * @returns URL object
+   */
   public get url(): URL {
     return this.connectUrl;
   }
@@ -222,7 +253,7 @@ export class Client {
    * @param params - Connection parameters
    * @returns Promise resolving to authentication result
    */
-  connect(params: ConnectParameters = {}): Promise<TAuthenticationResult> {
+  connect(params: ConnectParameters = {}): Promise<AuthenticationResult> {
     this.connectUrl = params?.url || this.connectUrl;
     this.numberOfRetries = params.numberOfRetries || this.numberOfRetries;
     this.caCerts = params?.caCerts;
@@ -240,7 +271,7 @@ export class Client {
       type: PacketType.connect,
       ...options,
     };
-    const deferred = new Deferred<TAuthenticationResult>();
+    const deferred = new Deferred<AuthenticationResult>();
     this.ctx.unresolvedConnect = deferred;
     this.doConnect();
     return deferred.promise;

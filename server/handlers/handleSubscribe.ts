@@ -15,7 +15,6 @@ import type {
   ShareName,
   SubscribePacket,
   Topic,
-  TReasonCode,
 } from "../deps.ts";
 
 // V4 Subscription Failure
@@ -58,7 +57,7 @@ function validateSubscription(
   isProtocolV5: boolean,
   sub: ClientSubscription,
   cfg: Context["config"]["context"],
-): TReasonCode | null {
+): ReasonCode | null {
   if (
     cfg.wildcardSubscriptionAvailable === false && hasWildcards(sub.topicFilter)
   ) {
@@ -108,7 +107,7 @@ export async function handleSubscribe(
   }
 
   const retainedSubscriptions: ClientSubscription[] = [];
-  const results: TReasonCode[] = [];
+  const results: ReasonCode[] = [];
 
   for (const sub of packet.subscriptions) {
     const clientSub = sub as ClientSubscription;
@@ -166,7 +165,7 @@ export async function handleSubscribe(
     }
 
     // Success code (Granted QoS)
-    results.push(sub.qos as TReasonCode);
+    results.push(sub.qos as ReasonCode);
   }
 
   // Send SUBACK response

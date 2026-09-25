@@ -8,22 +8,20 @@ import {
 } from "./deps.ts";
 import type {
   AnyPacket,
+  AuthenticationResult,
   ConnectPacket,
   IStore,
   PacketId,
   ProtocolLevel,
   PublishPacket,
+  ReasonCode,
   ReturnCodes,
   SockConn,
   SubscribePacket,
-  TAuthenticationResult,
-  TPacketType,
-  TReasonCode,
   UnsubscribePacket,
 } from "./deps.ts";
 
 import { handlePacket } from "./handlers/handlePacket.ts";
-import type { TConnectionState } from "./ConnectionState.ts";
 import { ConnectionState } from "./ConnectionState.ts";
 import type { Client } from "./client.ts";
 import { assert } from "../utils/assert.ts";
@@ -31,7 +29,7 @@ import { assert } from "../utils/assert.ts";
 /**
  * packets not allowed during authentication
  */
-function blockedDuringAuthentication(pktType: TPacketType) {
+function blockedDuringAuthentication(pktType: PacketType) {
   return (
     pktType === PacketType.publish ||
     pktType === PacketType.subscribe ||
@@ -41,17 +39,17 @@ function blockedDuringAuthentication(pktType: TPacketType) {
 
 /** Possible results from authHandler */
 export type AuthenticatedResult = {
-  reasonCode: TReasonCode;
+  reasonCode: ReasonCode;
   reasonString?: string;
   authData?: Uint8Array;
 };
 
 export class Context {
   mqttConn?: MqttConn;
-  #connectionState: TConnectionState;
+  #connectionState: ConnectionState;
   protocolLevel: ProtocolLevel;
   pingTimer?: Timer;
-  unresolvedConnect?: Deferred<TAuthenticationResult>;
+  unresolvedConnect?: Deferred<AuthenticationResult>;
   unresolvedPublish: Map<PacketId, Deferred<void>>;
   unresolvedSubscribe: Map<PacketId, Deferred<ReturnCodes>>;
   unresolvedUnSubscribe: Map<PacketId, Deferred<void>>;
@@ -68,11 +66,11 @@ export class Context {
     this.unresolvedUnSubscribe = new Map();
   }
 
-  get connectionState(): TConnectionState {
+  get connectionState(): ConnectionState {
     return this.#connectionState;
   }
 
-  set connectionState(state: TConnectionState) {
+  set connectionState(state: ConnectionState) {
     this.#connectionState = state;
     switch (state) {
       case "connected":

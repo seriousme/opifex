@@ -32,7 +32,6 @@ export type {
   SubscriptionV5,
   Topic,
   TopicFilter,
-  TReasonCode,
   UnsubackPacket,
   UnsubscribePacket,
 } from "../mqttPacket/mod.ts";

@@ -227,14 +227,12 @@ const reasonCodesToString = {
   [0xa2]: "Wildcard Subscriptions not supported",
 } as const;
 
-// Can't import this from types as this would create an import loop
-type TPacketType = typeof PacketType[keyof typeof PacketType];
-export type TReasonCode = typeof ReasonCode[keyof typeof ReasonCode];
-type TReasonCodeByPacket = keyof typeof ReasonCodebyPacket;
+export type ReasonCode = typeof ReasonCode[keyof typeof ReasonCode];
+type ReasonCodeByPacket = keyof typeof ReasonCodebyPacket;
 
 export function reasonCodeToString(
-  packetType: TPacketType,
-  code: TReasonCode,
+  packetType: PacketType,
+  code: ReasonCode,
 ): string {
   if (code === 0) {
     if (packetType === PacketType.disconnect) {
@@ -248,10 +246,10 @@ export function reasonCodeToString(
 }
 
 export function isValidReasonCode(
-  packetType: TPacketType,
+  packetType: PacketType,
   code: number,
 ): boolean {
   const validReasonCodes =
-    ReasonCodebyPacket[packetType as TReasonCodeByPacket] as readonly number[];
+    ReasonCodebyPacket[packetType as ReasonCodeByPacket] as readonly number[];
   return validReasonCodes.includes(code);
 }

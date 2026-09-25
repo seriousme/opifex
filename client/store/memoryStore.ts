@@ -5,14 +5,15 @@
 import { assert } from "./deps.ts";
 import type { PacketId } from "./deps.ts";
 
-import {
-  type IStore,
-  MAX_PACKET_ID,
-  type PacketStore,
-  type PendingAckOutgoing,
-  type pendingIncoming,
-  type PendingOutgoing,
-  type PendingOutgoingPackets,
+import { MAX_PACKET_ID } from "./store.ts";
+
+import type {
+  IStore,
+  PacketStore,
+  PendingAckOutgoing,
+  pendingIncoming,
+  PendingOutgoing,
+  PendingOutgoingPackets,
 } from "./store.ts";
 
 /**

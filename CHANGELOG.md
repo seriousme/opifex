@@ -4,6 +4,14 @@
 
 ### Changed
 
+## [2.0.4] 25-09-2026
+
+### Changed
+
+- chore: change to Dual Declaration, e.g. TAuthenticationResult =>
+  AuthenticationResult, TBitMask => BitMask etc
+- chore: improve documentation
+
 ## [2.0.3] 25-09-2026
 
 ### Changed

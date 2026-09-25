@@ -1,16 +1,16 @@
 import { PacketType } from "./PacketType.ts";
 import { Encoder, EncoderError } from "./encoder.ts";
 import { Decoder, DecoderError, hasEmptyFlags } from "./decoder.ts";
-import type { TReasonCode } from "./ReasonCode.ts";
+import type { ReasonCode } from "./ReasonCode.ts";
 import type { AuthProperties } from "./Properties.ts";
-import type { CodecOpts, TPacketType } from "./types.ts";
+import type { CodecOpts } from "./types.ts";
 import { MQTTLevel } from "./protocolLevels.ts";
 
 // AuthPacket does not exist on protocol levels < 5
 export type AuthPacketV5 = {
-  type: TPacketType;
+  type: PacketType;
   protocolLevel: 5;
-  reasonCode: TReasonCode;
+  reasonCode: ReasonCode;
   properties?: AuthProperties;
 };
 
@@ -30,7 +30,7 @@ export function encode(packet: AuthPacket, codecOpts: CodecOpts): Uint8Array {
   // deno-coverage-ignore-stop
   const encoder = new Encoder(packet.type);
   encoder
-    .setReasonCode(packet.reasonCode || 0)
+    .seReasonCode(packet.reasonCode || 0)
     .setProperties(
       packet.properties || {},
       packet.type,
@@ -43,7 +43,7 @@ export function decode(
   buffer: Uint8Array,
   flags: number,
   codecOpts: CodecOpts,
-  packetType: TPacketType,
+  packetType: PacketType,
 ): AuthPacket {
   // Bits 3,2,1 and 0 of the Fixed Header of the AUTH packet are reserved and MUST all be set to 0.
   // The Client or Server MUST treat any other value as malformed and close the Network Connection [MQTT-3.15.1-1].
@@ -52,7 +52,7 @@ export function decode(
     throw new DecoderError("Invalid protocol level");
   }
   const decoder = new Decoder(packetType, buffer);
-  const reasonCode = decoder.getReasonCode();
+  const reasonCode = decoder.geReasonCode();
   const properties = decoder.getProperties(PacketType.auth);
   decoder.done();
   return {

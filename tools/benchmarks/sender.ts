@@ -2,7 +2,7 @@ import { exit } from "node:process";
 import { runAsap } from "../../dev_utils/timers.ts";
 import { getArgs, importClientClass } from "./utils.ts";
 import { logger } from "../../utils/mod.ts";
-import type { TLogLevel } from "../../utils/logger.ts";
+import type { LogLevel } from "../../utils/logger.ts";
 import type { QoS } from "../../client/deps.ts";
 
 const { TcpClient } = await importClientClass();
@@ -13,7 +13,7 @@ client.onError = (err: Error) => {
 };
 
 export async function runSender(
-  level: TLogLevel,
+  level: LogLevel,
   url: string,
   topic: string,
   qos: QoS,

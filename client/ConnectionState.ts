@@ -20,5 +20,5 @@ export const ConnectionState = {
 /**
  * @description Type representing the possible values of ConnectionState
  */
-export type TConnectionState =
+export type ConnectionState =
   (typeof ConnectionState)[keyof typeof ConnectionState];

@@ -11,6 +11,12 @@ export const AuthenticationResult = {
 } as const;
 
 /**
+ * Type to limit authentication result to valid values
+ */
+export type AuthenticationResult =
+  typeof AuthenticationResult[keyof typeof AuthenticationResult];
+
+/**
  * Reverse lookup for AuthenticationResult
  */
 export const AuthenticationResultByNumber: Record<number, string> = Object

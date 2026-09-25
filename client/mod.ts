@@ -8,10 +8,21 @@ export {
   DEFAULT_PROTOCOLLEVEL,
   DEFAULT_URL,
 } from "./client.ts";
-export { MQTTLevel, ReasonCode } from "./deps.ts";
-export type { ProtocolLevel, QoS } from "./deps.ts";
+export { logger, MQTTLevel, ReasonCode } from "./deps.ts";
+export type {
+  AuthenticationResult,
+  NetAddr,
+  ProtocolLevel,
+  QoS,
+  SockAddr,
+  SockConn,
+  UnixAddr,
+  VsockAddr,
+} from "./deps.ts";
 export type {
   ConnectParameters,
   PublishParameters,
   SubscribeParameters,
 } from "./client.ts";
+
+export type { ConnectionState } from "./ConnectionState.ts";

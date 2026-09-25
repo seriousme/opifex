@@ -1,3 +1,9 @@
+/*
+ * this is a WebSockets specific client
+ * it extends the platform agnostic Client class
+ *  @module
+ */
+
 import { Client } from "../client/client.ts";
 import { logger } from "../client/deps.ts";
 import type { SockConn } from "../client/deps.ts";

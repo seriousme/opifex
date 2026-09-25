@@ -26,3 +26,8 @@ export const PacketType = {
 export const PacketNameByType: Record<number, string> = Object.fromEntries(
   Object.entries(PacketType).map(([k, v]) => [v, k]),
 );
+
+/**
+ * Type to limit packet type to valid values
+ */
+export type PacketType = typeof PacketType[keyof typeof PacketType];

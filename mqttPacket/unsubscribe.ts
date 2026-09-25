@@ -1,10 +1,4 @@
-import type {
-  CodecOpts,
-  PacketId,
-  Topic,
-  TopicFilter,
-  TPacketType,
-} from "./types.ts";
+import type { CodecOpts, PacketId, Topic, TopicFilter } from "./types.ts";
 import type { ProtocolLevelNoV5 } from "./protocolLevels.ts";
 import type { UnsubscribeProperties } from "./Properties.ts";
 import { PacketType } from "./PacketType.ts";
@@ -16,7 +10,7 @@ import { Decoder, DecoderError } from "./decoder.ts";
  */
 export type UnsubscribePacketV4 = {
   /** The type of the MQTT control packet. */
-  type: TPacketType;
+  type: PacketType;
   /** The protocol version level, restricted to non-v5 variants. */
   protocolLevel: ProtocolLevelNoV5;
   /** The unique 16-bit packet identifier. */
@@ -30,7 +24,7 @@ export type UnsubscribePacketV4 = {
  */
 export type UnsubscribePacketV5 = {
   /** The type of the MQTT control packet. */
-  type: TPacketType;
+  type: PacketType;
   /** The protocol version level, strictly set to 5. */
   protocolLevel: 5;
   /** The unique 16-bit packet identifier. */
@@ -77,7 +71,7 @@ export function decode(
   buffer: Uint8Array,
   flags: number,
   codecOpts: CodecOpts,
-  packetType: TPacketType,
+  packetType: PacketType,
 ): UnsubscribePacket {
   if (flags !== 0b0010) {
     throw new DecoderError("Invalid header");

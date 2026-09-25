@@ -1,29 +1,29 @@
-import type { CodecOpts, PacketId, TPacketType } from "./types.ts";
+import type { CodecOpts, PacketId } from "./types.ts";
 import type { ProtocolLevelNoV5 } from "./protocolLevels.ts";
-import { ReasonCode, type TReasonCode } from "./ReasonCode.ts";
+import { ReasonCode } from "./ReasonCode.ts";
 import type { PubackProperties } from "./Properties.ts";
 import { PacketType } from "./PacketType.ts";
 import { Decoder, DecoderError } from "./decoder.ts";
 import { Encoder } from "./encoder.ts";
 
-export type AckPacketV4<T extends TPacketType> = {
+export type AckPacketV4<T extends PacketType> = {
   type: T;
   protocolLevel: ProtocolLevelNoV5;
   id: PacketId;
 };
 
-export type AckPacketV5<T extends TPacketType> = {
+export type AckPacketV5<T extends PacketType> = {
   type: T;
   protocolLevel: 5;
   id: PacketId;
-  reasonCode?: TReasonCode;
+  reasonCode?: ReasonCode;
   properties?: PubackProperties;
 };
 
 /**
  * all 4 ack packets are identical except for packet type and flags of Pubrel
  */
-export type AckPacket<T extends TPacketType> = AckPacketV4<T> | AckPacketV5<T>;
+export type AckPacket<T extends PacketType> = AckPacketV4<T> | AckPacketV5<T>;
 
 /**
  * PubackPacket is sent to indicate publish complete (QoS 1)
@@ -64,7 +64,7 @@ export function encode(packet: AnyAckPacket, codecOpts: CodecOpts): Uint8Array {
     ) {
       return encoder.done(flags);
     }
-    encoder.setReasonCode(reasonCode);
+    encoder.seReasonCode(reasonCode);
     encoder.setProperties(
       packet.properties || {},
       packet.type,
@@ -78,7 +78,7 @@ export function decode(
   buffer: Uint8Array,
   flags: number,
   codecOpts: CodecOpts,
-  packetType: TPacketType,
+  packetType: PacketType,
 ): AnyAckPacket {
   const expectedFlags = packetType === PacketType.pubrel ? 2 : 0;
   if (flags !== expectedFlags) {
@@ -102,7 +102,7 @@ export function decode(
       reasonCode: 0,
     } as AnyAckPacket;
   }
-  const reasonCode = decoder.getReasonCode();
+  const reasonCode = decoder.geReasonCode();
   const properties = decoder.getProperties(packetType);
   return {
     type: packetType as AnyAckPacket["type"],

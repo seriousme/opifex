@@ -1,11 +1,4 @@
-import type {
-  CodecOpts,
-  Dup,
-  Payload,
-  QoS,
-  Topic,
-  TPacketType,
-} from "./types.ts";
+import type { CodecOpts, Dup, Payload, QoS, Topic } from "./types.ts";
 import type { ProtocolLevelNoV5 } from "./protocolLevels.ts";
 import type { PublishProperties } from "./Properties.ts";
 import { PacketType } from "./PacketType.ts";
@@ -18,7 +11,7 @@ import { booleanFlag, Decoder, DecoderError } from "./decoder.ts";
  * from server to subscribers
  */
 export type PublishPacketV4 = {
-  type: TPacketType;
+  type: PacketType;
   protocolLevel: ProtocolLevelNoV5;
   topic: Topic;
   payload: Payload;
@@ -28,7 +21,7 @@ export type PublishPacketV4 = {
   id?: number | undefined;
 };
 export type PublishPacketV5 = {
-  type: TPacketType;
+  type: PacketType;
   protocolLevel: 5;
   topic: Topic;
   payload: Payload;
@@ -77,7 +70,7 @@ export function decode(
   buffer: Uint8Array,
   flags: number,
   codecOpts: CodecOpts,
-  packetType: TPacketType,
+  packetType: PacketType,
 ): PublishPacket {
   const dup = booleanFlag(flags, BitMask.bit3);
   const qos = (flags & 6) >> 1;

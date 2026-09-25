@@ -7,8 +7,8 @@ import type {
   PacketId,
   PublishPacketV5,
   QoS,
+  RetainHandling,
   TopicFilter,
-  TRetainHandling,
 } from "./deps.ts";
 
 /**
@@ -29,7 +29,7 @@ export type ClientSubscription = {
   qos: QoS;
   noLocal?: boolean;
   retainAsPublished?: boolean;
-  retainHandling?: TRetainHandling;
+  retainHandling?: RetainHandling;
   subscriptionIdentifier?: number;
 };
 
