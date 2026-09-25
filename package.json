@@ -1,6 +1,6 @@
 {
   "name": "@seriousme/opifex",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "MQTT client & server for Deno & NodeJS and Bun",
   "author": "Hans Klunder",
   "license": "MIT",
