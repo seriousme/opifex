@@ -7,21 +7,6 @@
 import { Client, logger } from "../client/mod.ts";
 import type { SockConn } from "../client/mod.ts";
 
-/** Type exports to aid consumers */
-export type {
-  AuthenticationResult,
-  Client,
-  ConnectionState,
-  ConnectParameters,
-  NetAddr,
-  PublishParameters,
-  SockAddr,
-  SockConn,
-  SubscribeParameters,
-  UnixAddr,
-  VsockAddr,
-} from "../client/mod.ts";
-
 /**
  * Fetches data from a file and returns it as a string
  *
@@ -45,7 +30,7 @@ export async function getFileData(
 }
 
 /**
- * TCPclient extends the Client class to provide TCP based clients
+ * TcpClient extends the Client class to provide TCP based clients
  * it is used by the MQTTclient to connect to the broker
  * see mqtt.ts in the /bin folder as an example
  */
