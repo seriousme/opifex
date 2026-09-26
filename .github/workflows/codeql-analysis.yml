@@ -27,6 +27,7 @@ jobs:
         uses: github/codeql-action/init@v4
         with:
           languages: "javascript-typescript"
+          buildmode: "none"
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
