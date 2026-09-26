@@ -4,6 +4,13 @@
 
 ### Changed
 
+## [2.2.0] 26-09-2026
+
+### Changed
+
+- feat: add default exports
+- chore: improve documentation
+
 ## [2.1.0] 26-09-2026
 
 ### Changed
