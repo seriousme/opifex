@@ -1,4 +1,4 @@
-/** 
+/**
  * This a Deno specific implementation of a WebSocket server
  * @module
  */

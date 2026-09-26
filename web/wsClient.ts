@@ -1,4 +1,4 @@
-/** 
+/**
  * this is a WebSockets specific client
  * it extends the platform agnostic Client class
  *  @module
