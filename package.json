@@ -43,6 +43,11 @@
     "dist/**/*.d.ts.map"
   ],
   "exports": {
+    ".": {
+      "deno": "./deno/mod.ts",
+      "node": "./dist/node/mod.js",
+      "default": null
+    },
     "./tcpClient": {
       "deno": "./deno/tcpClient.ts",
       "default": "./dist/node/tcpClient.js"

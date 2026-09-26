@@ -1,6 +1,6 @@
-/*
- * this a Deno specific implementation of a WebSocket server
- *  @module
+/**
+ * This a Deno specific implementation of a WebSocket server
+ * @module
  */
 import { MqttServer } from "../server/mod.ts";
 import type { MqttServerOptions } from "../server/mod.ts";
