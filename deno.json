@@ -2,6 +2,7 @@
   "name": "@seriousme/opifex",
   "license": "MIT",
   "exports": {
+    ".": "./deno/mod.ts",
     "./tcpClient": "./deno/tcpClient.ts",
     "./wsClient": "./web/wsClient.ts",
     "./tcpServer": "./deno/tcpServer.ts",
