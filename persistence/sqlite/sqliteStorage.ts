@@ -7,7 +7,7 @@ import type {
   ShareName,
 } from "../persistence.ts";
 import { PacketDirection } from "../storage.ts";
-import type { IStorageProvider, StoredSubscription } from "../storage.ts";
+import type { StorageProvider, StoredSubscription } from "../storage.ts";
 import { topicFilterToRegExp } from "../deps.ts";
 import {
   deleteClientState,
@@ -37,7 +37,7 @@ function deserializePacket(
   return packet;
 }
 
-export class SqliteStorage implements IStorageProvider {
+export class SqliteStorage implements StorageProvider {
   private db: sqlite.DatabaseSync;
 
   private statements: AllStatements;

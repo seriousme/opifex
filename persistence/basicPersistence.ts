@@ -7,7 +7,7 @@ import type {
   Persistence,
   ShareName,
 } from "./persistence.ts";
-import type { IStorageProvider } from "./storage.ts";
+import type { StorageProvider } from "./storage.ts";
 import { PacketDirection } from "./storage.ts";
 import { assert, getOrInsert, logger, Trie } from "./deps.ts";
 import { MAX_PACKET_ID } from "./persistence.ts";
@@ -64,10 +64,10 @@ export class MqttPersistence implements Persistence {
   private clientHandlerList = new Map<ClientId, Handler>();
   private trie = new Trie<TrieSub>();
   private packetIdCounters = new Map<ClientId, number>();
-  private storage: IStorageProvider;
+  private storage: StorageProvider;
   private sharedGroupCounters = new Map<string, number>();
 
-  constructor(storage: IStorageProvider) {
+  constructor(storage: StorageProvider) {
     this.storage = storage;
   }
 

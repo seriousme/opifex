@@ -1,6 +1,6 @@
 /**
  * @module
- * Volatile in-memory implementation of IStorageProvider.
+ * Volatile in-memory implementation of StorageProvider.
  * Completely decoupled from MQTT protocol logic.
  */
 import type { ClientId, PacketId, Topic, TopicFilter } from "../deps.ts";
@@ -10,7 +10,7 @@ import type {
   ExtPublishPacket,
   ShareName,
 } from "../persistence.ts";
-import type { IStorageProvider, StoredSubscription } from "../storage.ts";
+import type { StorageProvider, StoredSubscription } from "../storage.ts";
 import { PacketDirection } from "../storage.ts";
 import { getOrInsert, joinTopicFilter, topicFilterToRegExp } from "../deps.ts";
 
@@ -20,7 +20,7 @@ type pendingTableEntry = {
   createdAtMs: number;
 };
 
-export class MemoryStorage implements IStorageProvider {
+export class MemoryStorage implements StorageProvider {
   private seqId = 1;
   private sessionTable = new Map<ClientId, ClientRegistrationResult>();
 
