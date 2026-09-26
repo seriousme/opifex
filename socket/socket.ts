@@ -1,10 +1,14 @@
+/** Net adresses */
 export type NetAddr = {
   transport: "tcp" | "udp";
   hostname: string;
   port: number;
 };
+/** Unix adresses */
 export type UnixAddr = { transport: "unix" | "unixpacket"; path: string };
+/** vSock adresses */
 export type VsockAddr = { transport: "vsock"; cid: number; port: number };
+/** Socket adresses */
 export type SockAddr = NetAddr | UnixAddr | VsockAddr;
 /** Socket connection descriptor. */
 export type SockConn = {

@@ -5,20 +5,21 @@
 import { assert } from "./deps.ts";
 import type { PacketId } from "./deps.ts";
 
-import {
-  type IStore,
-  MAX_PACKET_ID,
-  type PacketStore,
-  type PendingAckOutgoing,
-  type pendingIncoming,
-  type PendingOutgoing,
-  type PendingOutgoingPackets,
+import { MAX_PACKET_ID } from "./store.ts";
+
+import type {
+  PacketStore,
+  PendingAckOutgoing,
+  pendingIncoming,
+  PendingOutgoing,
+  PendingOutgoingPackets,
+  Store,
 } from "./store.ts";
 
 /**
- * In-memory implementation of the IStore interface for managing MQTT packet storage
+ * In-memory implementation of the Store interface for managing MQTT packet storage
  */
-export class MemoryStore implements IStore {
+export class MemoryStore implements Store {
   /** Current packet ID counter */
   private packetId: PacketId;
 

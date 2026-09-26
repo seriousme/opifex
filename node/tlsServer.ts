@@ -1,5 +1,5 @@
 /*
- * This module provides a NodeJS specific implementation of a tls socket listener
+ * This module provides a NodeJS specific implementation of a TLS socket listener
  * it uses the platform agnostic MqttServer class
  *  @module
  */
@@ -16,20 +16,26 @@ type ServerOptions = {
   cert: string;
 };
 
-/*
- * TCP server that wraps a MqttServer, see demoServer.ts in the /bin folder
+/**
+ * TLS server that wraps a MqttServer, see the /examples folder
  */
 export class TlsServer {
   private mqttServer: MqttServer;
   private server?: Server;
   private serverOptions;
 
+  /**
+   * Create a new TLS server
+   */
   constructor(serverOptions: ServerOptions, mqttOptions: MqttServerOptions) {
     this.mqttServer = new MqttServer(mqttOptions);
     this.serverOptions = serverOptions;
   }
 
-  async start() {
+  /**
+   * Start listening
+   */
+  async start(): Promise<void> {
     const tlsOptions = {
       minVersion: "TLSv1.3" as const,
       key: this.serverOptions.key,
@@ -49,12 +55,19 @@ export class TlsServer {
     await isListening;
     return;
   }
-  stop() {
+
+  /**
+   * Stop listening
+   */
+  stop(): void {
     this.mqttServer.close();
     this.server?.close();
   }
 
-  get port() {
+  /**
+   * The port number the server is listening on
+   */
+  get port(): number | undefined {
     const address = this.server?.address();
     if (typeof address === "object" && address !== null) {
       return address?.port;
@@ -62,7 +75,10 @@ export class TlsServer {
     return this.serverOptions?.port;
   }
 
-  get address() {
+  /**
+   * The address the server is listening on
+   */
+  get address(): string | undefined {
     const addressResult = this.server?.address();
     // deno-coverage-ignore-start
     if (typeof addressResult === "object") {

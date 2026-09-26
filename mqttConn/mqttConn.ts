@@ -40,22 +40,6 @@ export type SendResult =
   };
 
 /**
- * Interface for MQTT connection handling
- */
-export interface IMqttConn extends AsyncIterable<AnyPacket> {
-  /** Underlying connection */
-  readonly conn: Conn;
-  /** Whether connection is closed */
-  readonly isClosed: boolean;
-  /** Reason for connection closure if any */
-  readonly reason: string | undefined;
-  /** Send an MQTT packet */
-  send(data: AnyPacket): Promise<SendResult>;
-  /** Close the connection */
-  close(): void;
-}
-
-/**
  * Read a single byte from the connection
  * @param conn Connection to read from
  * @returns Single byte as number
@@ -125,9 +109,9 @@ export async function readPacket(
 }
 
 /**
- * MQTT Connection class implementing IMqttConn interface
+ * MQTT Connection class
  */
-export class MqttConn implements IMqttConn {
+export class MqttConn {
   /** Underlying connection */
   readonly conn: Conn;
   /** Maximum Connect packet size */

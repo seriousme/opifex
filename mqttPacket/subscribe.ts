@@ -1,13 +1,7 @@
-import type {
-  CodecOpts,
-  PacketId,
-  QoS,
-  TopicFilter,
-  TPacketType,
-  TRetainHandling,
-} from "./types.ts";
+import type { CodecOpts, PacketId, QoS, TopicFilter } from "./types.ts";
 import type { ProtocolLevelNoV5 } from "./protocolLevels.ts";
 import type { SubscribeProperties } from "./Properties.ts";
+import type { RetainHandling } from "./RetainHandling.ts";
 import { PacketType } from "./PacketType.ts";
 import { BitMask } from "./BitMask.ts";
 import { Encoder } from "./encoder.ts";
@@ -18,7 +12,7 @@ import { booleanFlag, Decoder, DecoderError } from "./decoder.ts";
  */
 export type SubscribePacketV4 = {
   /** The type of the MQTT control packet. */
-  type: TPacketType;
+  type: PacketType;
   /** The protocol version level, restricted to non-v5 variants. */
   protocolLevel: ProtocolLevelNoV5;
   /** The unique 16-bit packet identifier. */
@@ -32,7 +26,7 @@ export type SubscribePacketV4 = {
  */
 export type SubscribePacketV5 = {
   /** The type of the MQTT control packet. */
-  type: TPacketType;
+  type: PacketType;
   /** The protocol version level, strictly set to 5. */
   protocolLevel: 5;
   /** The unique 16-bit packet identifier. */
@@ -71,7 +65,7 @@ export type SubscriptionV5 = {
   /** Optional flag indicating whether messages forwarded under this subscription keep their original retain flag. */
   retainAsPublished?: boolean;
   /** Optional setting declaring how retained messages are handled when the subscription is created. */
-  retainHandling?: TRetainHandling;
+  retainHandling?: RetainHandling;
 };
 
 /** * Represents a generic union of MQTT subscription configurations (v4 or v5).
@@ -126,7 +120,7 @@ export function decode(
   buffer: Uint8Array,
   flags: number,
   codecOpts: CodecOpts,
-  packetType: TPacketType,
+  packetType: PacketType,
 ): SubscribePacket {
   // Bits 3,2,1 and 0 of the fixed header of the SUBSCRIBE Control Packet are reserved and
   // MUST be set to 0,0,1 and 0 respectively. The Server MUST treat any other value as

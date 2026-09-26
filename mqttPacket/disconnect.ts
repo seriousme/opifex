@@ -1,20 +1,20 @@
 import { PacketType } from "./PacketType.ts";
 import { Decoder, hasEmptyFlags, isEmptyBuf } from "./decoder.ts";
-import type { CodecOpts, TPacketType, TReasonCode } from "./types.ts";
+import type { CodecOpts } from "./types.ts";
 import type { ProtocolLevelNoV5 } from "./protocolLevels.ts";
 import type { DisconnectProperties } from "./Properties.ts";
 import { Encoder } from "./encoder.ts";
 import { ReasonCode } from "./ReasonCode.ts";
 
 export type DisconnectPacketv4 = {
-  type: TPacketType;
+  type: PacketType;
   protocolLevel: ProtocolLevelNoV5;
 };
 
 export type DisconnectPacketv5 = {
-  type: TPacketType;
+  type: PacketType;
   protocolLevel: 5;
-  reasonCode: TReasonCode;
+  reasonCode: ReasonCode;
   properties?: DisconnectProperties;
 };
 
@@ -44,7 +44,7 @@ export function encode(
     return encoder.done(0);
   }
   encoder
-    .setReasonCode(reasonCode);
+    .seReasonCode(reasonCode);
   if (packet.properties) {
     encoder.setProperties(
       packet.properties,
@@ -59,7 +59,7 @@ export function decode(
   buffer: Uint8Array,
   flags: number,
   codecOpts: CodecOpts,
-  packetType: TPacketType,
+  packetType: PacketType,
 ): DisconnectPacket {
   hasEmptyFlags(flags);
   if (codecOpts.protocolLevel !== 5) {
@@ -77,7 +77,7 @@ export function decode(
       reasonCode: 0,
     };
   }
-  const reasonCode = decoder.getReasonCode();
+  const reasonCode = decoder.geReasonCode();
   const properties = decoder.getProperties(PacketType.disconnect);
   decoder.done();
   return {

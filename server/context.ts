@@ -11,15 +11,15 @@ import type {
   AnyPacket,
   ConnectPacket,
   ExtPublishPacket,
-  IPersistence,
   PacketId,
+  Persistence,
   ProtocolLevel,
   PublishPacket,
   PubrelPacket,
+  ReasonCode,
   ShareName,
   SockConn,
   Topic,
-  TReasonCode,
 } from "./deps.ts";
 
 import { QueueMode } from "./config.ts";
@@ -36,7 +36,7 @@ export const utf8Encoder = new TextEncoder();
 
 /** Possible results from isAuthenticated and processAuth handler */
 export type AuthenticatedResult = {
-  reasonCode: TReasonCode;
+  reasonCode: ReasonCode;
   reasonString?: string;
   authData?: Uint8Array;
 };
@@ -168,7 +168,7 @@ export class Context {
   mqttConn: MqttConn;
 
   /** The persistence layer instance used by the server. */
-  persistence: IPersistence;
+  persistence: Persistence;
 
   /** The configured authentication and authorization lifecycle hooks. */
   handlers: Handlers;
@@ -233,7 +233,7 @@ export class Context {
    */
   constructor(
     configuration: Configuration, // all settings
-    persistence: IPersistence, // The server persistence layer implementation.
+    persistence: Persistence, // The server persistence layer implementation.
     conn: SockConn, // The underlying socket connection.
     handlers: Handlers, // The validation handlers
   ) {

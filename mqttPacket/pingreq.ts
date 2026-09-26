@@ -1,13 +1,13 @@
 import { PacketType } from "./PacketType.ts";
 import { hasEmptyFlags, isEmptyBuf } from "./decoder.ts";
-import type { CodecOpts, TPacketType } from "./types.ts";
+import type { CodecOpts } from "./types.ts";
 import type { ProtocolLevel } from "./protocolLevels.ts";
 
 /**
  * PingreqPacket is a packet that is sent to the server to keep the connection alive
  */
 export type PingreqPacket = {
-  type: TPacketType;
+  type: PacketType;
   protocolLevel: ProtocolLevel;
 };
 
@@ -24,7 +24,7 @@ export function decode(
   buffer: Uint8Array,
   flags: number,
   codecOpts: CodecOpts,
-  _packetType: TPacketType,
+  _packetType: PacketType,
 ): PingreqPacket {
   hasEmptyFlags(flags);
   isEmptyBuf(buffer);

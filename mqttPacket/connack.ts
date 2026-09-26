@@ -1,4 +1,4 @@
-import type { CodecOpts, TAuthenticationResult, TPacketType } from "./types.ts";
+import type { CodecOpts } from "./types.ts";
 import type { ProtocolLevelNoV5 } from "./protocolLevels.ts";
 import { PacketType } from "./PacketType.ts";
 import { BitMask } from "./BitMask.ts";
@@ -10,21 +10,22 @@ import {
   hasEmptyFlags,
 } from "./decoder.ts";
 import { AuthenticationResultByNumber } from "./AuthenticationResult.ts";
-import type { TReasonCode } from "./ReasonCode.ts";
+import type { AuthenticationResult } from "./AuthenticationResult.ts";
+import type { ReasonCode } from "./ReasonCode.ts";
 import type { ConnackProperties } from "./Properties.ts";
 
 export type ConnackPacketV4 = {
-  type: TPacketType;
+  type: PacketType;
   protocolLevel: ProtocolLevelNoV5;
   sessionPresent: boolean;
-  returnCode: TAuthenticationResult;
+  returnCode: AuthenticationResult;
 };
 
 export type ConnackPacketV5 = {
-  type: TPacketType;
+  type: PacketType;
   protocolLevel: 5;
   sessionPresent: boolean;
-  reasonCode: TReasonCode;
+  reasonCode: ReasonCode;
   properties?: ConnackProperties;
 };
 
@@ -49,7 +50,7 @@ export function encode(
   const encoder = new Encoder(packet.type);
   encoder
     .setByte(packet.sessionPresent ? 1 : 0)
-    .setReasonCode(packet.reasonCode || 0)
+    .seReasonCode(packet.reasonCode || 0)
     .setProperties(
       packet.properties || {},
       packet.type,
@@ -62,7 +63,7 @@ export function decode(
   buffer: Uint8Array,
   flags: number,
   codecOpts: CodecOpts,
-  packetType: TPacketType,
+  packetType: PacketType,
 ): ConnackPacket {
   const decoder = new Decoder(packetType, buffer);
   hasEmptyFlags(flags);
@@ -72,7 +73,7 @@ export function decode(
   }
   const sessionPresent = booleanFlag(ackflags, BitMask.bit0);
   if (codecOpts.protocolLevel !== 5) {
-    const returnCode = decoder.getByte() as TAuthenticationResult;
+    const returnCode = decoder.getByte() as AuthenticationResult;
     decoder.done();
     if (!AuthenticationResultByNumber[returnCode]) {
       throw new DecoderError("Invalid return code");
@@ -84,7 +85,7 @@ export function decode(
       returnCode,
     };
   }
-  const reasonCode = decoder.getReasonCode();
+  const reasonCode = decoder.geReasonCode();
   const properties = decoder.getProperties(PacketType.connack);
   decoder.done();
   return {

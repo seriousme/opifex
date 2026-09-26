@@ -1,29 +1,10 @@
 import type { BitMask } from "./BitMask.ts";
-import type { PacketType } from "./PacketType.ts";
-import type { RetainHandling } from "./RetainHandling.ts";
-import type { AuthenticationResult } from "./AuthenticationResult.ts";
-import type { ReasonCode } from "./ReasonCode.ts";
 import type { ProtocolLevel } from "./protocolLevels.ts";
 
 /**
  * Type to limit bit mask to valid values
  */
-export type TBitMask = typeof BitMask[keyof typeof BitMask];
-/**
- * Type to limit packet type to valid values
- */
-export type TPacketType = typeof PacketType[keyof typeof PacketType];
-
-/**
- * Type to limit authentication result to valid values
- */
-export type TAuthenticationResult =
-  typeof AuthenticationResult[keyof typeof AuthenticationResult];
-
-/**
- * Type to limit reason code to valid values
- */
-export type TReasonCode = typeof ReasonCode[keyof typeof ReasonCode];
+export type BitMask = typeof BitMask[keyof typeof BitMask];
 
 /**
  * Quality of Service level
@@ -64,12 +45,6 @@ export type ReturnCodes = number[];
  * Client identifier that uniquely identifies a client
  */
 export type ClientId = string;
-
-/**
- * helper type to limit retain handling values
- */
-export type TRetainHandling =
-  typeof RetainHandling[keyof typeof RetainHandling];
 
 /**
  * UTF8 string pair (for v5)

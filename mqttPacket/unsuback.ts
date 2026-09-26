@@ -1,22 +1,23 @@
-import type { CodecOpts, PacketId, TPacketType, TReasonCode } from "./types.ts";
+import type { CodecOpts, PacketId } from "./types.ts";
 import type { ProtocolLevelNoV5 } from "./protocolLevels.ts";
 import type { UnsubackProperties } from "./Properties.ts";
+import type { ReasonCode } from "./ReasonCode.ts";
 import { PacketType } from "./PacketType.ts";
 import { Decoder, hasEmptyFlags } from "./decoder.ts";
 import { Encoder } from "./encoder.ts";
 
 export type UnsubackPacketV4 = {
-  type: TPacketType;
+  type: PacketType;
   protocolLevel: ProtocolLevelNoV5;
   id: PacketId;
 };
 
 export type UnsubackPacketV5 = {
-  type: TPacketType;
+  type: PacketType;
   protocolLevel: 5;
   id: PacketId;
   properties: UnsubackProperties;
-  reasonCodes: Array<TReasonCode>;
+  reasonCodes: Array<ReasonCode>;
 };
 
 /**
@@ -49,7 +50,7 @@ export function decode(
   buffer: Uint8Array,
   flags: number,
   codecOpts: CodecOpts,
-  packetType: TPacketType,
+  packetType: PacketType,
 ): UnsubackPacket {
   hasEmptyFlags(flags);
   const decoder = new Decoder(packetType, buffer);
@@ -58,7 +59,7 @@ export function decode(
     const properties = decoder.getProperties(PacketType.unsuback);
     const reasonCodes = [];
     while (!decoder.atEnd()) {
-      const reasonCode = decoder.getReasonCode();
+      const reasonCode = decoder.geReasonCode();
       reasonCodes.push(reasonCode);
     }
     return {
@@ -66,7 +67,7 @@ export function decode(
       protocolLevel: 5,
       id,
       properties,
-      reasonCodes: reasonCodes as Array<TReasonCode>,
+      reasonCodes: reasonCodes as Array<ReasonCode>,
     };
   }
   decoder.done();

@@ -1,4 +1,5 @@
-import type { CodecOpts, TPacketType } from "./types.ts";
+import type { CodecOpts } from "./types.ts";
+import type { PacketType } from "./PacketType.ts";
 import { DecoderError } from "./decoder.ts";
 import { decodeLength } from "./length.ts";
 
@@ -117,7 +118,7 @@ export function decodePayload(
     buffer,
     flags,
     codecOpts,
-    packetType as TPacketType,
+    packetType as PacketType,
   );
   if (packet !== undefined) {
     return packet;

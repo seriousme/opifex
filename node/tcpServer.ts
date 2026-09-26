@@ -14,19 +14,26 @@ type ServerOptions = {
   port?: number;
 };
 
-/*
- * TCP server that wraps a MqttServer, see demoServer.ts in the /bin folder
+/**
+ * TCP server that wraps a MqttServer, see the /examples folder
  */
 export class TcpServer {
   private mqttServer: MqttServer;
   private server?: Server;
   private serverOptions;
+
+  /**
+   * Create a new TCP server
+   */
   constructor(serverOptions: ServerOptions, mqttOptions: MqttServerOptions) {
     this.mqttServer = new MqttServer(mqttOptions);
     this.serverOptions = serverOptions;
   }
 
-  async start() {
+  /**
+   * Start listening
+   */
+  async start(): Promise<void> {
     this.server = createServer((sock) =>
       this.mqttServer.serve(wrapNodeSocket(sock))
     );
@@ -39,12 +46,19 @@ export class TcpServer {
     await isListening;
     return;
   }
-  stop() {
+
+  /**
+   * Stop listening
+   */
+  stop(): void {
     this.mqttServer.close();
     this.server?.close();
   }
 
-  get port() {
+  /**
+   * The port number the server is listening on
+   */
+  get port(): number | undefined {
     const address = this.server?.address();
     // deno-coverage-ignore-start
     if (typeof address === "object" && address !== null) {
@@ -54,7 +68,10 @@ export class TcpServer {
     // deno-coverage-ignore-stop
   }
 
-  get address() {
+  /**
+   * The address the server is listening on
+   */
+  get address(): string | undefined {
     const addressResult = this.server?.address();
     // deno-coverage-ignore-start
     if (typeof addressResult === "object") {

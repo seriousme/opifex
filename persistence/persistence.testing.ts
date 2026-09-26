@@ -1,5 +1,5 @@
 /**
- * Shared test suite for IPersistence implementations.
+ * Shared test suite for Persistence implementations.
  * Ensures behavioral parity between MemoryPersistence and SqlitePersistence.
  */
 
@@ -10,7 +10,7 @@ import type { QoS } from "./deps.ts";
 import type {
   ClientSubscription,
   ExtPublishPacket,
-  IPersistence,
+  Persistence,
 } from "./persistence.ts";
 import type { PublishPacketV5 } from "../mqttPacket/publish.ts";
 
@@ -33,7 +33,7 @@ function createPacket(
 }
 
 async function createReceiver(
-  persistence: IPersistence,
+  persistence: Persistence,
   clientId: string,
   clean = false,
 ): Promise<{ received: ExtPublishPacket[] }> {
@@ -54,7 +54,7 @@ async function createReceiver(
 export type PersistenceFactoryOptions = {
   name: string;
   factory: () => {
-    persistence: IPersistence;
+    persistence: Persistence;
     cleanup: () => void | Promise<void>;
   };
 };

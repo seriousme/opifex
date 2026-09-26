@@ -15,7 +15,7 @@ export const PacketDirection = {
 export type PacketDirection =
   typeof PacketDirection[keyof typeof PacketDirection];
 
-export interface IStorageProvider {
+export interface StorageProvider {
   initialize(): Promise<void>;
   close?(): Promise<void>;
 

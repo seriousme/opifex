@@ -1,5 +1,5 @@
 import { AuthenticationResult, PacketType, ReasonCode } from "../deps.ts";
-import type { ProtocolLevel, TReasonCode } from "../deps.ts";
+import type { ProtocolLevel } from "../deps.ts";
 import type { Context } from "../context.ts";
 
 /**
@@ -29,7 +29,7 @@ export function reasonToReturnCode(reasonCode: number): number {
 export async function completeConnect(
   ctx: Context,
   protocolLevel: ProtocolLevel,
-  reasonCode: TReasonCode,
+  reasonCode: ReasonCode,
   reasonString: string | undefined,
 ) {
   const cfg = ctx.config.context;

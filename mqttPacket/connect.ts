@@ -1,11 +1,4 @@
-import type {
-  ClientId,
-  CodecOpts,
-  Payload,
-  QoS,
-  Topic,
-  TPacketType,
-} from "./types.ts";
+import type { ClientId, CodecOpts, Payload, QoS, Topic } from "./types.ts";
 import type { ProtocolLevel, ProtocolLevelNoV5 } from "./protocolLevels.ts";
 import type { ConnectProperties, WillProperties } from "./Properties.ts";
 import { PropertySetType } from "./Properties.ts";
@@ -20,7 +13,7 @@ import {
 } from "./decoder.ts";
 
 export type ConnectPacketV4 = {
-  type: TPacketType;
+  type: PacketType;
   protocolName?: string | undefined;
   protocolLevel: ProtocolLevelNoV5;
   clientId?: ClientId | undefined;
@@ -38,7 +31,7 @@ export type ConnectPacketV4 = {
 };
 
 export type ConnectPacketV5 = {
-  type: TPacketType;
+  type: PacketType;
   protocolName?: string | undefined;
   protocolLevel: 5;
   clientId?: ClientId | undefined;
@@ -167,7 +160,7 @@ export function decode(
   buffer: Uint8Array,
   flags: number,
   _codecOpts: CodecOpts,
-  packetType: TPacketType,
+  packetType: PacketType,
 ): ConnectPacket {
   const decoder = new Decoder(packetType, buffer);
   const protocolName = decoder.getUTF8String();

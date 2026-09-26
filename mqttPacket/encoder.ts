@@ -1,10 +1,10 @@
-import type { TPacketType, TReasonCode, UTF8StringPair } from "./types.ts";
+import type { UTF8StringPair } from "./types.ts";
 
 import type {
   Mqttv5PropertyTypes,
+  PropertySetType,
   PropsByPacketSetType,
   SubscriptionIdentifiersType,
-  TPropertySetType,
   UserPropertyType,
   ValidPropertyNumber,
 } from "./Properties.ts";
@@ -17,6 +17,8 @@ import {
   propertyToKind,
 } from "./Properties.ts";
 
+import type { PacketType } from "./PacketType.ts";
+import type { ReasonCode } from "./ReasonCode.ts";
 import { encodeLength } from "./length.ts";
 import { invalidUTF8 } from "./validators.ts";
 import { isValidReasonCode } from "./ReasonCode.ts";
@@ -44,7 +46,7 @@ export class Encoder {
   private numBytes: number;
 
   /** Packet type */
-  private packetType: TPacketType;
+  private packetType: PacketType;
 
   /** marker to rewind to */
   private marker: number;
@@ -52,7 +54,7 @@ export class Encoder {
   /**
    * Creates a new Encoder instance
    */
-  constructor(packetType: TPacketType) {
+  constructor(packetType: PacketType) {
     this.buffers = [];
     this.numBytes = 0;
     this.packetType = packetType;
@@ -253,9 +255,9 @@ export class Encoder {
    * @param propertySetType - the type of packet to encode for
    * @param maximumPacketSize - the maximum packet size to be consumed by properties
    */
-  setProperties<T extends TPropertySetType>(
+  setProperties<T extends PropertySetType>(
     props: PropsByPacketSetType[T],
-    propertySetType: TPropertySetType,
+    propertySetType: PropertySetType,
     maximumPacketSize: number,
   ) {
     const propsEncoder = new Encoder(0);
@@ -282,7 +284,7 @@ export class Encoder {
     propsEncoder.addToEncoder(this);
   }
 
-  setReasonCode(reasonCode: TReasonCode) {
+  seReasonCode(reasonCode: ReasonCode) {
     if (!isValidReasonCode(this.packetType, reasonCode)) {
       throw new EncoderError(
         `Reason code ${reasonCode} not allowed for packet type ${this.packetType}`,

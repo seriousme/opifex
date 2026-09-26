@@ -1,10 +1,5 @@
-import type {
-  CodecOpts,
-  PacketId,
-  ReturnCodes,
-  TPacketType,
-  TReasonCode,
-} from "./types.ts";
+import type { CodecOpts, PacketId, ReturnCodes } from "./types.ts";
+import type { ReasonCode } from "./ReasonCode.ts";
 import type { ProtocolLevelNoV5 } from "./protocolLevels.ts";
 import type { SubackProperties } from "./Properties.ts";
 import { PacketType } from "./PacketType.ts";
@@ -13,18 +8,18 @@ import { Decoder, DecoderError } from "./decoder.ts";
 const validReturnCodes = [0x00, 0x01, 0x02, 0x80];
 
 export type SubackPacketV4 = {
-  type: TPacketType;
+  type: PacketType;
   protocolLevel: ProtocolLevelNoV5;
   id: PacketId;
   returnCodes: ReturnCodes;
 };
 
 export type SubackPacketV5 = {
-  type: TPacketType;
+  type: PacketType;
   protocolLevel: 5;
   id: PacketId;
   properties: SubackProperties;
-  reasonCodes: Array<TReasonCode>;
+  reasonCodes: Array<ReasonCode>;
 };
 
 /**
@@ -52,7 +47,7 @@ export function encode(packet: SubackPacket, codecOpts: CodecOpts): Uint8Array {
     codecOpts.maxOutgoingPacketSize,
   );
   for (const code of packet.reasonCodes) {
-    encoder.setReasonCode(code);
+    encoder.seReasonCode(code);
   }
   return encoder.done(flags);
 }
@@ -61,7 +56,7 @@ export function decode(
   buffer: Uint8Array,
   _flags: number,
   codecOpts: CodecOpts,
-  packetType: TPacketType,
+  packetType: PacketType,
 ): SubackPacket {
   const packet = {} as SubackPacket;
   const decoder = new Decoder(packetType, buffer);
@@ -83,7 +78,7 @@ export function decode(
   packet.properties = decoder.getProperties(PacketType.suback);
   packet.reasonCodes = [];
   while (!decoder.atEnd()) {
-    const code = decoder.getReasonCode();
+    const code = decoder.geReasonCode();
     packet.reasonCodes.push(code);
   }
   return packet;

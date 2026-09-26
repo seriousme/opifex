@@ -12,7 +12,8 @@ import type { SockConn } from "../socket/socket.ts";
 import { wrapNodeSocket } from "./wrapNodeSocket.ts";
 
 /**
- * @function getFileData
+ * Fetches data from a file and returns it as a string
+ *
  * @param filename
  * @returns Promise
  *
@@ -20,7 +21,9 @@ import { wrapNodeSocket } from "./wrapNodeSocket.ts";
  * @example
  * const data = await getFileData("data.txt");
  */
-export async function getFileData(filename: string | undefined) {
+export async function getFileData(
+  filename: string | undefined,
+): Promise<string | undefined> {
   if (!filename) {
     return;
   }
@@ -31,13 +34,16 @@ export async function getFileData(filename: string | undefined) {
   return data;
 }
 
-/*
- * TCPclient extends the Client class to provide TCP based clients
+/**
+ * TcpClient extends the Client class to provide TCP based clients
  * it is used by the MQTTclient to connect to the broker
  * see mqtt.ts in the /bin folder as an example
  */
-
 export class TcpClient extends Client {
+  /** Connect using MQTT over TCP
+   * @param hostname the name of the host to connect to
+   * @param port the port number
+   */
   protected connectMQTT(hostname: string, port = 1883): Promise<SockConn> {
     logger.debug({ hostname, port });
     return new Promise((resolve, reject) => {
@@ -55,6 +61,15 @@ export class TcpClient extends Client {
     });
   }
 
+  /**
+   * Connect using MQTT over TLS
+   * @param hostname the name of the host to connect to
+   * @param port the port number
+   * @param caCerts the CA certificates to trust
+   * @param cert the clients certificate
+   * @param key the clients private key
+   * @returns a SockConn object
+   */
   protected connectMQTTS(
     hostname: string,
     port = 8883,
@@ -83,7 +98,7 @@ export class TcpClient extends Client {
     });
   }
 
-  // overload createConn from the base client class
+  /** createConn is used by the base client class */
   protected override createConn(): Promise<SockConn> {
     const { protocol, hostname, port: portStr } = this.connectUrl;
     const port = Number(portStr);

@@ -1,6 +1,6 @@
 import { PacketType } from "./PacketType.ts";
 import { hasEmptyFlags, isEmptyBuf } from "./decoder.ts";
-import type { CodecOpts, TPacketType } from "./types.ts";
+import type { CodecOpts } from "./types.ts";
 import type { ProtocolLevel } from "./protocolLevels.ts";
 
 /**
@@ -8,7 +8,7 @@ import type { ProtocolLevel } from "./protocolLevels.ts";
  * It is used to indicate that the client is still connected to the server.
  */
 export type PingresPacket = {
-  type: TPacketType;
+  type: PacketType;
   protocolLevel: ProtocolLevel;
 };
 
@@ -25,7 +25,7 @@ export function decode(
   buffer: Uint8Array,
   flags: number,
   codecOpts: CodecOpts,
-  _packetType: TPacketType,
+  _packetType: PacketType,
 ): PingresPacket {
   hasEmptyFlags(flags);
   isEmptyBuf(buffer);

@@ -6,7 +6,7 @@ export const PropertySetType = {
   will: 100,
 } as const;
 
-export type TPropertySetType =
+export type PropertySetType =
   typeof PropertySetType[keyof typeof PropertySetType];
 
 export const propertyKind = {
@@ -245,7 +245,7 @@ type GeneratePacketTypeProperties<T extends readonly ValidPropertyNumber[]> =
   Pick<AllMqttv5Properties, PropertyIdsToKeys<T>>;
 
 export type PropsByPacketSetType = {
-  [K in TPropertySetType]: GeneratePacketTypeProperties<
+  [K in PropertySetType]: GeneratePacketTypeProperties<
     typeof PropertyByPropertySetType[K]
   >;
 };

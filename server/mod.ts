@@ -5,7 +5,7 @@
 export { ReasonCode } from "./deps.ts";
 export type {
   ConnectPacket,
-  IPersistence,
+  Persistence,
   ShareName,
   SockConn,
   Topic,

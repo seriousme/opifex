@@ -8,7 +8,7 @@ import { ReasonCode } from "@seriousme/opifex/server";
 // just for demo purposes: ReasonCode is identical in server and client
 import {
   MQTTLevel,
-  ReasonCode as ClientReasonCode,
+  ReasonCode as ClienReasonCode,
 } from "@seriousme/opifex/client";
 
 import type { Context } from "@seriousme/opifex/server";
@@ -69,12 +69,12 @@ function clientProcessAuth(
     )
   ) {
     return {
-      reasonCode: ClientReasonCode.badAuthenticationMethod,
+      reasonCode: ClienReasonCode.badAuthenticationMethod,
       reasonString: "Unknown method or bad data",
     };
   }
   return {
-    reasonCode: ClientReasonCode.continueAuthentication,
+    reasonCode: ClienReasonCode.continueAuthentication,
     authData: txtEncoder.encode(secondClientMessage),
     reasonString: "Continue",
   };

@@ -1,9 +1,16 @@
+/*
+ * this a Deno specific implementation of a WebSocket server
+ *  @module
+ */
 import { MqttServer } from "../server/mod.ts";
 import type { MqttServerOptions } from "../server/mod.ts";
 import { logger } from "../utils/logger.ts";
 import { wrapWebSocket } from "../web/wrapWebSocket.ts";
 import type { HostnamePort } from "../web/wrapWebSocket.ts";
 
+/**
+ * WebSocket server that wraps a MqttServer, see the /examples folder
+ */
 export class WsServer {
   private server?: Deno.HttpServer;
   private mqttServer: MqttServer;
@@ -12,6 +19,9 @@ export class WsServer {
     hostname?: string;
   };
 
+  /**
+   * Create a new WebSocket server
+   */
   constructor(
     serverOptions: Deno.ServeOptions & { port: number; hostname?: string },
     mqttOptions: MqttServerOptions,
@@ -19,6 +29,7 @@ export class WsServer {
     this.listenOptions = serverOptions;
     this.mqttServer = new MqttServer(mqttOptions);
   }
+
   private async handleWsClient(socket: WebSocket, remoteAddr: HostnamePort) {
     const conn = await wrapWebSocket(socket, remoteAddr);
     logger.debug("created conn");
@@ -26,6 +37,9 @@ export class WsServer {
     logger.debug("serving mqtt");
   }
 
+  /**
+   * Start listening
+   */
   async start(): Promise<void> {
     this.server = Deno.serve(this.listenOptions, (req, info) => {
       const { hostname, port } = info.remoteAddr;
@@ -46,6 +60,9 @@ export class WsServer {
     await this.server.finished;
   }
 
+  /**
+   * Stop listening
+   */
   stop(): void {
     this.mqttServer.close(true);
     if (this.server) {
@@ -53,6 +70,9 @@ export class WsServer {
     }
   }
 
+  /**
+   * The port number the server is listening on
+   */
   get port(): number | undefined {
     // deno-coverage-ignore-start
     if (this.server?.addr.transport === "tcp") {
@@ -62,6 +82,9 @@ export class WsServer {
     // deno-coverage-ignore-stop
   }
 
+  /**
+   * The address the server is listening on
+   */
   get address(): string | undefined {
     // deno-coverage-ignore-start
     if (this.server?.addr.transport === "tcp") {
