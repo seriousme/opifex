@@ -10,10 +10,10 @@ import {
 import type {
   AuthenticationResult,
   ConnectPacket,
-  Store,
   ProtocolLevel,
   PublishPacket,
   SockConn,
+  Store,
   SubscribePacket,
 } from "./deps.ts";
 

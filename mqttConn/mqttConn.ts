@@ -109,7 +109,7 @@ export async function readPacket(
 }
 
 /**
- * MQTT Connection class 
+ * MQTT Connection class
  */
 export class MqttConn {
   /** Underlying connection */

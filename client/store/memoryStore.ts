@@ -8,12 +8,12 @@ import type { PacketId } from "./deps.ts";
 import { MAX_PACKET_ID } from "./store.ts";
 
 import type {
-  Store,
   PacketStore,
   PendingAckOutgoing,
   pendingIncoming,
   PendingOutgoing,
   PendingOutgoingPackets,
+  Store,
 } from "./store.ts";
 
 /**
