@@ -4,7 +4,7 @@ import type {
   ClientSubscription,
   ExtPublishPacket,
   Handler,
-  IPersistence,
+  Persistence,
   ShareName,
 } from "./persistence.ts";
 import type { IStorageProvider } from "./storage.ts";
@@ -60,7 +60,7 @@ function clonePacket(packet: ExtPublishPacket): ExtPublishPacket {
   return newPacket;
 }
 
-export class MqttPersistence implements IPersistence {
+export class MqttPersistence implements Persistence {
   private clientHandlerList = new Map<ClientId, Handler>();
   private trie = new Trie<TrieSub>();
   private packetIdCounters = new Map<ClientId, number>();

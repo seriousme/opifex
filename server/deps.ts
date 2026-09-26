@@ -3,7 +3,7 @@ export { MqttConn } from "../mqttConn/mqttConn.ts";
 export type {
   ClientSubscription,
   ExtPublishPacket,
-  IPersistence,
+  Persistence,
   ShareName,
 } from "../persistence/persistence.ts";
 export { MemoryPersistence } from "../persistence/memory/memoryPersistence.ts";

@@ -1,7 +1,7 @@
 import { logger, MemoryPersistence, ReasonCode } from "./deps.ts";
 import { Context } from "./context.ts";
 import type { Handlers } from "./context.ts";
-import type { IPersistence, ShareName, SockConn, Topic } from "./deps.ts";
+import type { Persistence, ShareName, SockConn, Topic } from "./deps.ts";
 import { handlePacket } from "./handlers/handlePacket.ts";
 import { createConfiguration } from "./config.ts";
 import type { Configuration, ConfigurationInput } from "./config.ts";
@@ -69,7 +69,7 @@ const defaultIsAuthorizedToSubscribe = (
  */
 export type MqttServerOptions = {
   /** Optional persistence layer implementation. Defaults to MemoryPersistence. */
-  persistence?: IPersistence;
+  persistence?: Persistence;
   /** Optional custom handlers for authentication and authorization. */
   handlers?: Handlers;
   /** Optional configuration data */
@@ -91,7 +91,7 @@ export class MqttServer {
   /** The registered authentication and authorization handlers. */
   handlers: Handlers;
   /** The persistence layer used for storing sessions and messages. */
-  persistence: IPersistence;
+  persistence: Persistence;
   /** The persistence layer used for storing sessions and messages. */
   configuration: Configuration;
 

@@ -11,8 +11,8 @@ import type {
   AnyPacket,
   ConnectPacket,
   ExtPublishPacket,
-  IPersistence,
   PacketId,
+  Persistence,
   ProtocolLevel,
   PublishPacket,
   PubrelPacket,
@@ -168,7 +168,7 @@ export class Context {
   mqttConn: MqttConn;
 
   /** The persistence layer instance used by the server. */
-  persistence: IPersistence;
+  persistence: Persistence;
 
   /** The configured authentication and authorization lifecycle hooks. */
   handlers: Handlers;
@@ -233,7 +233,7 @@ export class Context {
    */
   constructor(
     configuration: Configuration, // all settings
-    persistence: IPersistence, // The server persistence layer implementation.
+    persistence: Persistence, // The server persistence layer implementation.
     conn: SockConn, // The underlying socket connection.
     handlers: Handlers, // The validation handlers
   ) {

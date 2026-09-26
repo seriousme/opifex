@@ -14,7 +14,7 @@ export type {
 export type {
   ClientRegistrationResult,
   Handler,
-  IPersistence,
+  Persistence,
 } from "./persistence.ts";
 export { MAX_PACKET_ID } from "./persistence.ts";
 export { SqlitePersistence } from "./sqlite/sqlitePersistence.ts";
