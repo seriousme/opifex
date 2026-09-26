@@ -10,7 +10,7 @@ import type {
   AnyPacket,
   AuthenticationResult,
   ConnectPacket,
-  IStore,
+  Store,
   PacketId,
   ProtocolLevel,
   PublishPacket,
@@ -53,10 +53,10 @@ export class Context {
   unresolvedPublish: Map<PacketId, Deferred<void>>;
   unresolvedSubscribe: Map<PacketId, Deferred<ReturnCodes>>;
   unresolvedUnSubscribe: Map<PacketId, Deferred<void>>;
-  store: IStore;
+  store: Store;
   #client: Client;
 
-  constructor(store: IStore, client: Client) {
+  constructor(store: Store, client: Client) {
     this.#client = client;
     this.store = store;
     this.#connectionState = ConnectionState.offline;

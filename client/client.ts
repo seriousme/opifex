@@ -10,7 +10,7 @@ import {
 import type {
   AuthenticationResult,
   ConnectPacket,
-  IStore,
+  Store,
   ProtocolLevel,
   PublishPacket,
   SockConn,
@@ -164,7 +164,7 @@ export class Client {
   /**
    * Creates a new MQTT client instance
    */
-  constructor(store?: IStore) {
+  constructor(store?: Store) {
     const cStore = store ? store : new MemoryStore();
     this.ctx = new Context(cStore, this);
     this.clientId = generateClientId(this.clientIdPrefix);

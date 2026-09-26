@@ -45,4 +45,4 @@ export type {
 export { Timer } from "../timer/timer.ts";
 export { BufferedAsyncIterable, Deferred, logger } from "../utils/mod.ts";
 export { MemoryStore } from "./store/memoryStore.ts";
-export type { IStore } from "./store/store.ts";
+export type { Store } from "./store/store.ts";

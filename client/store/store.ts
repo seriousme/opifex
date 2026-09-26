@@ -46,7 +46,7 @@ export type PendingOutgoingPackets = PendingAckOutgoing | PendingOutgoing;
 /**
  * Interface defining the storage requirements for MQTT packet state management
  */
-export interface IStore {
+export interface Store {
   /** Store for incoming packets pending processing */
   pendingIncoming: PacketStore<pendingIncoming>;
 
