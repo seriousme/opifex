@@ -14,5 +14,7 @@ export const MQTTLevel = {
   v5: 5,
 } as const;
 
+/** the MQTT protocol level: 3, 4, 5 or undefined */
 export type ProtocolLevel = (typeof MQTTLevel)[keyof typeof MQTTLevel];
+/** all MQTT protocol levels except 5 */
 export type ProtocolLevelNoV5 = Exclude<ProtocolLevel, 5>;

@@ -118,6 +118,7 @@ function normalizeError(err: unknown): Error {
  * connection type that is supported by the subclass.
  */
 export class Client {
+  /** callback to handle v5 extended authentication, see /examples folder */
   public onAuth: (
     authMethod: string,
     authData: Uint8Array,

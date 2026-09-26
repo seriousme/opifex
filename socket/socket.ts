@@ -1,24 +1,45 @@
-/** Net adresses */
+/** Net addresses */
 export type NetAddr = {
+  /** The IP-based transport protocol */
   transport: "tcp" | "udp";
+  /** The hostname */
   hostname: string;
+  /** The port number */
   port: number;
 };
-/** Unix adresses */
-export type UnixAddr = { transport: "unix" | "unixpacket"; path: string };
-/** vSock adresses */
-export type VsockAddr = { transport: "vsock"; cid: number; port: number };
-/** Socket adresses */
+/** Unix addresses */
+export type UnixAddr = {
+  /** The Unix domain socket transport protocol */
+  transport: "unix" | "unixpacket";
+  /** The file system path to the socket to connect to */
+  path: string;
+};
+/** vSock addresses */
+export type VsockAddr = {
+  /** The VSOCK transport protocol */
+  transport: "vsock";
+  /** The context identifier (CID) of the peer */
+  cid: number;
+  /** The port number */
+  port: number;
+};
+/** Socket addresses */
 export type SockAddr = NetAddr | UnixAddr | VsockAddr;
 /** Socket connection descriptor. */
 export type SockConn = {
+  /** The stream to read from */
   readable: ReadableStream<Uint8Array>;
+  /** The stream to write to */
   writable: WritableStream<Uint8Array>;
+  /** The callback to call on close */
   close: () => void;
+  /** The local address of the connection */
   localAddr?: SockAddr;
+  /** The remote address of the connection */
   remoteAddr?: SockAddr;
 };
 
+/** Connection class */
 export class Conn {
   reader: ReadableStreamDefaultReader<Uint8Array>;
   writer: WritableStreamDefaultWriter<Uint8Array>;
@@ -28,6 +49,7 @@ export class Conn {
 
   private leftover: Uint8Array = new Uint8Array(0);
 
+  /** Create a new Conn object from a SockConn */
   constructor(sockConn: SockConn) {
     this.closed = false;
     this.reader = sockConn.readable.getReader();
@@ -38,6 +60,7 @@ export class Conn {
     this.remoteAddr = sockConn.remoteAddr;
   }
 
+  /** Read bytes from the connection */
   async read(length: number): Promise<Uint8Array | null> {
     if (this.closed || length < 0) {
       return null;
@@ -85,6 +108,7 @@ export class Conn {
     return result;
   }
 
+  /** Write bytes to the connection */
   async write(data: Uint8Array): Promise<number> {
     if (this.closed) {
       return Promise.reject(new Error("Connection closed"));
@@ -98,6 +122,7 @@ export class Conn {
     }
   }
 
+  /** close the connection */
   close() {
     if (!this.closed) {
       this.closed = true;
