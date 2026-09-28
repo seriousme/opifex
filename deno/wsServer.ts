@@ -7,6 +7,56 @@ import type { MqttServerOptions } from "../server/mod.ts";
 import { logger } from "../utils/logger.ts";
 import { wrapWebSocket } from "../web/wrapWebSocket.ts";
 import type { HostnamePort } from "../web/wrapWebSocket.ts";
+import type { NetAddr } from "../socket/socket.ts";
+
+/** for those who want wrap their own websockets */
+export { wrapWebSocket };
+export type { HostnamePort };
+export type RequestHandler = (
+  req: Request,
+  info: Deno.ServeHandlerInfo<NetAddr>,
+) => Response | Promise<Response>;
+
+/** connect a WebSocket to the mqttServer */
+export async function handleWsClient(
+  socket: WebSocket,
+  remoteAddr: HostnamePort,
+  mqttServer: MqttServer,
+) {
+  const conn = await wrapWebSocket(socket, remoteAddr);
+  logger.debug("created conn");
+  mqttServer.serve(conn);
+  logger.debug("serving mqtt");
+}
+
+export const pageNotFound: RequestHandler = (_req, _info) => {
+  return new Response("Page not found", { status: 404 });
+};
+
+export function mqttOverWS(
+  mqttServer: MqttServer,
+  pathName: string,
+  next: RequestHandler,
+): RequestHandler {
+  const wsRequestHandler: RequestHandler = (req, info) => {
+    const { hostname, port } = info.remoteAddr;
+    const url = new URL(req.url);
+
+    if (url.pathname === pathName) {
+      if (req.headers.get("upgrade") !== "websocket") {
+        return new Response("Expected WebSocket connection.", { status: 426 });
+      }
+      logger.debug("starting upgrade to websocket");
+      const { socket, response } = Deno.upgradeWebSocket(req);
+      logger.debug("upgraded to websocket");
+      // no await on purpose
+      handleWsClient(socket, { hostname, port }, mqttServer);
+      return response;
+    }
+    return next(req, info);
+  };
+  return wsRequestHandler;
+}
 
 /**
  * WebSocket server that wraps a MqttServer, see the /examples folder
@@ -18,45 +68,39 @@ export class WsServer {
     port: number;
     hostname?: string;
   };
+  private pathName: string;
 
   /**
    * Create a new WebSocket server
    */
   constructor(
-    serverOptions: Deno.ServeOptions & { port: number; hostname?: string },
-    mqttOptions: MqttServerOptions,
+    serverOptions: Deno.ServeOptions & {
+      port: number;
+      hostname?: string;
+      pathName?: string;
+    },
+    mqttOptions: MqttServerOptions | MqttServer,
   ) {
-    this.listenOptions = serverOptions;
-    this.mqttServer = new MqttServer(mqttOptions);
-  }
-
-  private async handleWsClient(socket: WebSocket, remoteAddr: HostnamePort) {
-    const conn = await wrapWebSocket(socket, remoteAddr);
-    logger.debug("created conn");
-    this.mqttServer.serve(conn);
-    logger.debug("serving mqtt");
+    const { pathName, ...listenOptions } = serverOptions;
+    this.listenOptions = listenOptions;
+    this.pathName = pathName ?? "/mqtt";
+    if (mqttOptions instanceof MqttServer) {
+      this.mqttServer = mqttOptions;
+    } else {
+      this.mqttServer = new MqttServer(mqttOptions);
+    }
   }
 
   /**
    * Start listening
    */
   async start(): Promise<void> {
-    this.server = Deno.serve(this.listenOptions, (req, info) => {
-      const { hostname, port } = info.remoteAddr;
-      logger.debug(
-        `Server received http connection from ${hostname}:${port}`,
-      );
-
-      if (req.headers.get("upgrade") !== "websocket") {
-        return new Response("Expected WebSocket connection.", { status: 426 });
-      }
-      logger.debug("starting upgrade to websocket");
-      const { socket, response } = Deno.upgradeWebSocket(req);
-      logger.debug("upgraded to websocket");
-      this.handleWsClient(socket, { hostname, port });
-      return response;
-    });
-
+    const requestHandler = mqttOverWS(
+      this.mqttServer,
+      this.pathName,
+      pageNotFound,
+    );
+    this.server = Deno.serve(this.listenOptions, requestHandler);
     await this.server.finished;
   }
 

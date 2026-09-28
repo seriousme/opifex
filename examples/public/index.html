@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WsClient demo</title>
+    <style>
+    body {
+      font-family: monospace;
+      background-color: #1e1e1e;
+      color: #d4d4d4;
+      padding: 20px;
+    }
+    .controls {
+      background: #2d2d2d;
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 15px;
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      font-size: 14px;
+    }
+    input,
+    select {
+      background: #3c3c3c;
+      border: 1px solid #555;
+      color: #fff;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-family: inherit;
+    }
+    button {
+      background: #0e639c;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: inherit;
+      align-self: flex-end;
+    }
+    button:hover {
+      background: #1177bb;
+    }
+    button:disabled {
+      background: #555;
+      cursor: not-allowed;
+    }
+    #log {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      background: #252526;
+      padding: 15px;
+      border-radius: 5px;
+      border: 1px solid #3c3c3c;
+      min-height: 200px;
+    }
+    </style>
+  </head>
+  <body>
+    <h2>WsClient demo</h2>
+
+    <div class="controls">
+      <label>
+        Preset Server:
+        <select id="presetServer">
+          <option value="custom">Custom Server</option>
+        </select>
+      </label>
+      <label>
+        Protocol:
+        <select id="protocol">
+            <option value="ws">ws</option>
+            <option value="wss">wss</option>
+        </select>
+      </label>
+      <label>
+        Hostname:
+        <input type="text" id="hostname" value="localhost">
+      </label>
+      <label>
+        Port:
+        <input type="number" id="port" value="8080">
+      </label>
+      <label>
+        Path:
+        <input type="text" id="path" value="/">
+      </label>
+      <button id="startButton">Start Demo</button>
+    </div>
+
+    <pre id="log"></pre>
+
+    <script type="module">
+    import { WsClient } from "/opifex-wsclient.min.js";
+    import { runTest } from "./testRunner.js";
+
+    const logElement = document.getElementById("log");
+    const presetSelect = document.getElementById("presetServer");
+    const protocolInput = document.getElementById("protocol");
+    const hostnameInput = document.getElementById("hostname");
+    const portInput = document.getElementById("port");
+    const pathInput = document.getElementById("path");
+    const startButton = document.getElementById("startButton");
+
+    const currentProtocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const currentHostname = window.location.hostname || "localhost";
+    const currentPort = window.location.port
+      ? parseInt(window.location.port, 10)
+      : (window.location.protocol === "https:" ? 443 : 80);
+
+    const presets = {
+      "Current site": {
+        protocol: currentProtocol,
+        hostname: currentHostname,
+        port: currentPort,
+        path: "/mqtt", // of bijvoorbeeld "/" of "/mqtt"
+      },
+      HiveMQ: {
+        protocol: "ws",
+        hostname: "broker.hivemq.com",
+        port: 8000,
+        path: "/mqtt",
+      },
+      MqttDashboard: {
+        protocol: "wss",
+        hostname: "mqtt-dashboard.com",
+        port: 8884,
+        path: "/mqtt",
+      },
+    };
+
+    for (const broker in presets) {
+      const option = document.createElement("option");
+      const value = presets[broker];
+      option.value = broker;
+
+      // Format de tekst (bijv: "Localhost (ws://localhost:8080/)")
+      option.textContent =
+        `${broker} (${value.protocol}://${value.hostname}:${value.port}${value.path})`;
+
+      presetSelect.appendChild(option);
+    }
+
+    presetSelect.addEventListener("change", () => {
+      const selected = presets[presetSelect.value];
+      if (selected) {
+        protocolInput.value = selected.protocol;
+        hostnameInput.value = selected.hostname;
+        portInput.value = selected.port;
+        pathInput.value = selected.path;
+      }
+    });
+
+    presetSelect.value = Object.keys(presets)[0];
+    presetSelect.dispatchEvent(new Event("change"));
+
+    function customLogger(...args) {
+      const message = args.map((arg) =>
+        typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg
+      ).join(" ");
+      logElement.textContent += message + "\n";
+      console.log(...args);
+    }
+
+    startButton.addEventListener("click", async () => {
+      // Clear previous log output
+      logElement.textContent = "";
+
+      // Retrieve user input values
+      const protocol = protocolInput.value;
+      const hostname = hostnameInput.value.trim() || "localhost";
+      const port = parseInt(portInput.value, 10) || 8080;
+      const path = pathInput.value.trim() || "/";
+
+      // Disable the start button while running the test
+      startButton.disabled = true;
+
+      try {
+        // Run the test module
+        await runTest({
+          WsClient,
+          protocol,
+          hostname,
+          port,
+          path,
+          logger: customLogger,
+        });
+      } catch (error) {
+        customLogger("Error executing test:", error.message);
+      } finally {
+        // Restore button state
+        startButton.disabled = false;
+      }
+    });
+    </script>
+  </body>
+</html>

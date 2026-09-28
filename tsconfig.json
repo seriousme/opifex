@@ -43,6 +43,7 @@
     "node_modules",
     // Typescript doesn't know Deno
     "deno",
-    "examples/webSocket.test.ts"
+    "examples/webSocket.test.ts",
+    "examples/webSocketServer.ts"
   ]
 }

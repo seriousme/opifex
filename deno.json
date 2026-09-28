@@ -18,5 +18,11 @@
   },
   "exclude": [
     "dist"
-  ]
+  ],
+  "lint": {
+    "exclude": [
+      "*.min.js",
+      "**/*.min.js"
+    ]
+  }
 }

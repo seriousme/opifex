@@ -30,7 +30,8 @@
     "build": "rm -rf dist && npx -p typescript tsc --build",
     "format": "deno fmt",
     "coverage": "deno test -A . --coverage --clean --coverage-raw-data-only && deno coverage --exclude=.config --exclude=dev_utils --html",
-    "preversion": "npm run test"
+    "bundle": "deno bundle --platform=browser --minify -o examples/public/opifex-wsclient.min.js web/wsClient.ts --sourcemap",
+    "preversion": "npm run bundle && npm run test"
   },
   "files": [
     "package.json",

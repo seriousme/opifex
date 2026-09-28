@@ -1,8 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { delay, logger, LogLevel } from "@seriousme/opifex/utils";
-
-import type { PublishPacket, QoS } from "@seriousme/opifex/mqttPacket";
+import { logger, LogLevel } from "@seriousme/opifex/utils";
+import { runTest } from "./public/testRunner.js";
 
 logger.level(LogLevel.info);
 
@@ -27,67 +26,14 @@ test("Deno: Test pubSub using WebSocket client and server and memoryPersistence"
       ? "127.0.0.1"
       : server.address;
 
-    const params = {
-      url: new URL(`ws://${hostname}:${server.port}`),
-      numberOfRetries: 0,
-    };
-
-    const client = new WsClient();
-    await client.connect(params);
-    logger.info("Client connected to server at", client.url);
-
-    const publishSet: { topic: string; qos: QoS }[] = [
-      { topic: "t0@q0", qos: 0 },
-      { topic: "t1@q0", qos: 0 },
-      { topic: "t2@q0", qos: 0 },
-      { topic: "t0@q1", qos: 1 },
-      { topic: "t1@q1", qos: 1 },
-      { topic: "t2@q1", qos: 1 },
-      { topic: "t0@q2", qos: 2 },
-      { topic: "t1@q2", qos: 2 },
-      { topic: "t2@q2", qos: 2 },
-    ];
-
-    const subscriptions = publishSet.map((item) => ({
-      topicFilter: item.topic,
-      qos: item.qos,
-    }));
-    await client.subscribe({
-      subscriptions,
+    await runTest({
+      WsClient,
+      protocol: "ws",
+      hostname,
+      port: server.port,
+      logger: logger.verbose,
+      assert,
     });
-
-    // the IIFE ensures message reception runs in parallel
-    logger.info("Start receiving");
-    const received: PublishPacket[] = [];
-    (async function () {
-      for await (const item of client.messages()) {
-        logger.verbose("Receiving:", item.topic, "--", item.qos);
-        received.push(item);
-      }
-    })();
-    // end of IIFE
-    for (const item of publishSet) {
-      logger.verbose("Publishing:", item.topic, "--", item.qos);
-      await client.publish({
-        topic: item.topic,
-        qos: item.qos,
-        payload: new Uint8Array([0x01]),
-      });
-    }
-
-    await delay(100);
-    logger.info("Disconnect client");
-    await client.disconnect();
-
-    logger.info("Check completeness");
-    for (const item of publishSet) {
-      const found = received.find((f) =>
-        f.topic == item.topic && f.qos === item.qos
-      );
-      logger.verbose("Found:", item.topic, "--", item.qos);
-      assert(found, `${item.topic} -- ${item.qos}`);
-    }
-
     logger.info("Stop server");
     server.stop();
   }

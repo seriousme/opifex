@@ -17,9 +17,16 @@ import { wrapWebSocket } from "./wrapWebSocket.ts";
 export class WsClient extends Client {
   /** create a websocket and wrap it in a SockConn */
   private async establishSocket(url: string): Promise<SockConn> {
-    const ws = new WebSocket(url);
-    const conn = await wrapWebSocket(ws);
-    return conn;
+    try {
+      const ws = new WebSocket(url);
+      const conn = await wrapWebSocket(ws);
+      return conn;
+    } catch (error) {
+      const message = error instanceof ErrorEvent
+        ? ` because of ${error.message}`
+        : "";
+      throw new Error(`Failed to connect to WebSocket at ${url}${message}`);
+    }
   }
 
   /** createConn provides support for both "ws:" and "wss:" URLs */

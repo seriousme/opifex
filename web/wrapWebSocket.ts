@@ -5,6 +5,9 @@ import { WebSocketStream } from "./webSocketStream.ts";
 import type { SockConn } from "../socket/socket.ts";
 import { logger } from "../utils/logger.ts";
 
+/**
+ * Remote address
+ */
 export type HostnamePort = {
   hostname?: string;
   port?: string | number;
