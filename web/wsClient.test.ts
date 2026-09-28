@@ -24,3 +24,25 @@ test("Web: Test createConn - unsupported protocol", async () => {
     "Should throw an error when an unsupported protocol is provided",
   );
 });
+
+test("Web: Test createConn - unsupported host", async () => {
+  const client = new WsClient();
+
+  // Use an host protocol to trigger the ws error
+  const invalidParams = {
+    url: new URL("ws://localhost1883"),
+    numberOfRetries: 0,
+  };
+
+  // Assert that connect rejects with the specific error
+  await assert.rejects(
+    async () => {
+      await client.connect(invalidParams);
+    },
+    {
+      name: "Error",
+      message: /^Failed to connect to WebSocket at ws:\/\/localhost1883:80\//,
+    },
+    "Should throw an error when an unreachable host is provided",
+  );
+});

@@ -55,7 +55,10 @@ export class WebSocketStream<
                   controller.enqueue(data as T);
                 }
               };
-              ws.onerror = (e) => controller.error(e);
+              const onError = (event: Event) => {
+                controller.error(event);
+              };
+              ws.addEventListener("error", onError);
             },
             cancel: closeWithInfo,
           }),
@@ -80,12 +83,10 @@ export class WebSocketStream<
       ws.addEventListener("error", reject);
     });
 
-    this.closed = new Promise<WebSocketCloseInfo>((resolve, reject) => {
+    this.closed = new Promise<WebSocketCloseInfo>((resolve) => {
       ws.onclose = ({ code, reason }) => {
         resolve({ closeCode: code, reason });
-        ws.removeEventListener("error", reject);
       };
-      ws.addEventListener("error", reject);
     });
 
     if (options.signal) {
