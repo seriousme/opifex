@@ -10,6 +10,8 @@ handling, authentication, and persistence.
   with in-memory persistence.
 - [`mqtts.test.ts`](mqtts.test.ts) — TLS-based MQTT example using SQLite
   persistence.
+- [`mqtt+mqtts.test.ts`](mqtt+mqtts.test.ts) — Publish over TLS, subscribe over
+  TCP.
 - [`authHandler.test.ts`](authHandler.test.ts) — MQTT v5 authentication example
   with a custom `processAuth` handler.
 - [`webSocket.test.ts`](webSocket.test.ts) — WebSocket-based client/server flow
