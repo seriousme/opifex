@@ -1,4 +1,4 @@
-# Examples
+# Opifex Examples
 
 This folder contains examples for [Opifex](../README.md). It serves as a
 practical reference for setting up client/server communication, transport
