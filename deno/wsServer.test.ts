@@ -34,7 +34,7 @@ test("Deno: Test pubSub using client and server over webSockets", async () => {
   await testClient(client, params);
 
   logger.verbose("Stop server");
-  server.stop();
+  await server.stop();
 });
 
 test("Deno: Passing a mqttServer works", () => {

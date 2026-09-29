@@ -29,7 +29,7 @@ test("Deno: Test pubSub using client and server", async () => {
   await testClient(client, params);
 
   logger.verbose("Stop server");
-  server.stop();
+  await server.stop();
 });
 
 test("Deno: Test subscription persistence after reconnect", async () => {
@@ -50,7 +50,7 @@ test("Deno: Test subscription persistence after reconnect", async () => {
   await testClient(client, params);
 
   logger.verbose("Stop server");
-  server.stop();
+  await server.stop();
 });
 
 test("Deno: Passing a mqttServer works", () => {

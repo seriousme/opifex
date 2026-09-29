@@ -30,7 +30,7 @@ test("Test pubSub using client and server", async () => {
   await testClient(client, params);
 
   logger.verbose("Stop server");
-  server.stop();
+  await server.stop();
 });
 
 test("Test subscription persistence after reconnect", async () => {
@@ -96,7 +96,7 @@ test("Test subscription persistence after reconnect", async () => {
     "Should receive message on subscribed topic",
   );
 
-  server.stop();
+  await server.stop();
 });
 
 test("Passing a mqttServer works", () => {

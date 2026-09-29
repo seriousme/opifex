@@ -108,8 +108,10 @@ export class WsServer {
   /**
    * Stop listening
    */
-  stop(): void {
-    this.mqttServer.close(true);
+  async stop(opts = { closeMqtt: true }): Promise<void> {
+    if (opts.closeMqtt) {
+      await this.mqttServer.close();
+    }
     if (this.server) {
       this.server.shutdown();
     }

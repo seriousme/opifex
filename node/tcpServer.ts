@@ -56,10 +56,12 @@ export class TcpServer {
   }
 
   /**
-   * Stop listening
+   * Stop listening, pass {closeMqtt:false} if you do not want the mqttServer to close
    */
-  stop(): void {
-    this.mqttServer.close();
+  async stop(opts = { closeMqtt: true }): Promise<void> {
+    if (opts.closeMqtt) {
+      await this.mqttServer.close();
+    }
     this.server?.close();
   }
 

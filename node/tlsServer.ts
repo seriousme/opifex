@@ -67,8 +67,10 @@ export class TlsServer {
   /**
    * Stop listening
    */
-  stop(): void {
-    this.mqttServer.close();
+  async stop(opts = { closeMqtt: true }): Promise<void> {
+    if (opts.closeMqtt) {
+      await this.mqttServer.close();
+    }
     this.server?.close();
   }
 

@@ -37,7 +37,7 @@ test("Test pubSub using client and server", async () => {
   await testClient(client, params);
 
   logger.verbose("Stop server");
-  server.stop();
+  await server.stop();
 });
 
 test("Passing a mqttServer works", () => {

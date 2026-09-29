@@ -42,8 +42,10 @@ export class TcpServer {
   /**
    * Stop listening
    */
-  stop(): void {
-    this.mqttServer.close(true);
+  async stop(opts = { closeMqtt: true }): Promise<void> {
+    if (opts.closeMqtt) {
+      await this.mqttServer.close();
+    }
     this.listener.close();
   }
 

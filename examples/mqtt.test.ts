@@ -30,7 +30,7 @@ test("Test pubSub using TCP client and server using memoryPersistence", async fu
 
   const client = new TcpClient();
   await client.connect(params);
-  logger.info("Client connected to server at", client.url);
+  logger.info("Client connected to server at", client.url.toString());
 
   const publishSet: { topic: string; qos: QoS }[] = [
     { topic: "t0@q0", qos: 0 },
@@ -85,5 +85,5 @@ test("Test pubSub using TCP client and server using memoryPersistence", async fu
   }
 
   logger.info("Stop server");
-  server.stop();
+  await server.stop();
 });
