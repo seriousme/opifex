@@ -18,16 +18,24 @@ type ServerOptions = {
  * TCP server that wraps a MqttServer, see the /examples folder
  */
 export class TcpServer {
-  private mqttServer: MqttServer;
+  /** the MqttServer instance used by the server */
+  readonly mqttServer: MqttServer;
   private server?: Server;
   private serverOptions;
 
   /**
    * Create a new TCP server
    */
-  constructor(serverOptions: ServerOptions, mqttOptions: MqttServerOptions) {
-    this.mqttServer = new MqttServer(mqttOptions);
+  constructor(
+    serverOptions: ServerOptions,
+    mqttOptions: MqttServerOptions | MqttServer,
+  ) {
     this.serverOptions = serverOptions;
+    if (mqttOptions instanceof MqttServer) {
+      this.mqttServer = mqttOptions;
+    } else {
+      this.mqttServer = new MqttServer(mqttOptions);
+    }
   }
 
   /**

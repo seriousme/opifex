@@ -43,5 +43,5 @@ test("Deno: Passing a mqttServer works", () => {
     { hostname: "localhost", port: 0 },
     mqttServer,
   );
-  assert(server instanceof WsServer);
+  assert(server.mqttServer === mqttServer);
 });
