@@ -1,6 +1,6 @@
 # Running Opifex server/client on NodeJS
 
-These instructions specifify how to run [Opifex](README.md) on NodeJS. To run
+These instructions specifify how to run [Opifex](../README.md) on NodeJS. To run
 Opifex on Deno see the [instructions](../deno/README.md)
 
 ## Playing around
