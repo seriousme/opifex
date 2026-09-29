@@ -1,8 +1,8 @@
 # Examples
 
-This folder contains examples. It serves as a practical reference for setting up
-client/server communication, transport handling, authentication, and
-persistence.
+This folder contains examples for [Opifex](README.md). It serves as a practical
+reference for setting up client/server communication, transport handling,
+authentication, and persistence.
 
 ## Index
 
