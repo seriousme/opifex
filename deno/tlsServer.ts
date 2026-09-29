@@ -11,17 +11,22 @@ import type { MqttServerOptions } from "../server/mod.ts";
  * TLS server that wraps a MqttServer, see the /examples folder
  */
 export class TlsServer {
+  /** the MqttServer instance used by the server */
+  readonly mqttServer: MqttServer;
   private listener: Deno.TlsListener;
-  private mqttServer: MqttServer;
   /**
    * Create a new TLS server
    */
   constructor(
     serverOptions: Deno.ListenTlsOptions & Deno.TlsCertifiedKeyPem,
-    mqttOptions: MqttServerOptions,
+    mqttOptions: MqttServerOptions | MqttServer,
   ) {
     this.listener = Deno.listenTls(serverOptions);
-    this.mqttServer = new MqttServer(mqttOptions);
+    if (mqttOptions instanceof MqttServer) {
+      this.mqttServer = mqttOptions;
+    } else {
+      this.mqttServer = new MqttServer(mqttOptions);
+    }
   }
 
   /**
@@ -36,8 +41,10 @@ export class TlsServer {
   /**
    * Stop listening
    */
-  stop(): void {
-    this.mqttServer.close();
+  async stop(opts = { closeMqtt: true }): Promise<void> {
+    if (opts.closeMqtt) {
+      await this.mqttServer.close();
+    }
     this.listener.close();
   }
   /**

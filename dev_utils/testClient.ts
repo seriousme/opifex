@@ -5,7 +5,8 @@ import type { Client, ConnectParameters } from "../client/client.ts";
 
 export async function testClient(client: Client, params: ConnectParameters) {
   logger.verbose("client parameters: ", params);
-  client.onConnected = () => logger.verbose("Client connected to server");
+  client.onConnected = () =>
+    logger.verbose("Client connected to server at:", client.url.toString());
 
   await client.connect(params);
 

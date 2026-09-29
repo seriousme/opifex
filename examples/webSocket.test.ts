@@ -35,6 +35,6 @@ test("Deno: Test pubSub using WebSocket client and server and memoryPersistence"
       assert,
     });
     logger.info("Stop server");
-    server.stop();
+    await server.stop();
   }
 });

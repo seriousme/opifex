@@ -18,16 +18,24 @@ type ServerOptions = {
  * TCP server that wraps a MqttServer, see the /examples folder
  */
 export class TcpServer {
-  private mqttServer: MqttServer;
+  /** the MqttServer instance used by the server */
+  readonly mqttServer: MqttServer;
   private server?: Server;
   private serverOptions;
 
   /**
    * Create a new TCP server
    */
-  constructor(serverOptions: ServerOptions, mqttOptions: MqttServerOptions) {
-    this.mqttServer = new MqttServer(mqttOptions);
+  constructor(
+    serverOptions: ServerOptions,
+    mqttOptions: MqttServerOptions | MqttServer,
+  ) {
     this.serverOptions = serverOptions;
+    if (mqttOptions instanceof MqttServer) {
+      this.mqttServer = mqttOptions;
+    } else {
+      this.mqttServer = new MqttServer(mqttOptions);
+    }
   }
 
   /**
@@ -48,10 +56,12 @@ export class TcpServer {
   }
 
   /**
-   * Stop listening
+   * Stop listening, pass {closeMqtt:false} if you do not want the mqttServer to close
    */
-  stop(): void {
-    this.mqttServer.close();
+  async stop(opts = { closeMqtt: true }): Promise<void> {
+    if (opts.closeMqtt) {
+      await this.mqttServer.close();
+    }
     this.server?.close();
   }
 

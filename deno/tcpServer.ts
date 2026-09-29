@@ -11,18 +11,23 @@ import type { MqttServerOptions } from "../server/mod.ts";
  * TCP server that wraps a MqttServer, see the /examples folder
  */
 export class TcpServer {
+  /** the MqttServer instance used by the server */
+  readonly mqttServer: MqttServer;
   private listener: Deno.Listener<Deno.Conn>;
-  private mqttServer: MqttServer;
 
   /**
    * Create a new TCP server
    */
   constructor(
     serverOptions: Deno.TcpListenOptions,
-    mqttOptions: MqttServerOptions,
+    mqttOptions: MqttServerOptions | MqttServer,
   ) {
     this.listener = Deno.listen(serverOptions);
-    this.mqttServer = new MqttServer(mqttOptions);
+    if (mqttOptions instanceof MqttServer) {
+      this.mqttServer = mqttOptions;
+    } else {
+      this.mqttServer = new MqttServer(mqttOptions);
+    }
   }
 
   /**
@@ -37,8 +42,10 @@ export class TcpServer {
   /**
    * Stop listening
    */
-  stop(): void {
-    this.mqttServer.close(true);
+  async stop(opts = { closeMqtt: true }): Promise<void> {
+    if (opts.closeMqtt) {
+      await this.mqttServer.close();
+    }
     this.listener.close();
   }
 

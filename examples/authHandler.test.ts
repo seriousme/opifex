@@ -112,7 +112,7 @@ test("Test MQTTv5 Auth using TCP client and server", async function () {
   const client = new TcpClient();
   client.onAuth = clientProcessAuth;
   await client.connect(params);
-  logger.info("Client connected to server at", client.url);
+  logger.info("Client connected to server at", client.url.toString());
 
   const publishSet: { topic: string; qos: QoS }[] = [
     { topic: "t0@q0", qos: 0 },
@@ -160,5 +160,5 @@ test("Test MQTTv5 Auth using TCP client and server", async function () {
   }
 
   logger.info("Stop server");
-  server.stop();
+  await server.stop();
 });

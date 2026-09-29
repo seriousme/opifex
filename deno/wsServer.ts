@@ -62,8 +62,9 @@ export function mqttOverWS(
  * WebSocket server that wraps a MqttServer, see the /examples folder
  */
 export class WsServer {
+  /** the MqttServer instance used by the server */
+  readonly mqttServer: MqttServer;
   private server?: Deno.HttpServer;
-  private mqttServer: MqttServer;
   private listenOptions: Deno.ServeOptions & {
     port: number;
     hostname?: string;
@@ -107,8 +108,10 @@ export class WsServer {
   /**
    * Stop listening
    */
-  stop(): void {
-    this.mqttServer.close(true);
+  async stop(opts = { closeMqtt: true }): Promise<void> {
+    if (opts.closeMqtt) {
+      await this.mqttServer.close();
+    }
     if (this.server) {
       this.server.shutdown();
     }
