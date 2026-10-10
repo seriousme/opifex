@@ -11,11 +11,11 @@ export {
 export { logger, MQTTLevel, ReasonCode } from "./deps.ts";
 export type {
   AuthenticationResult,
+  ConnAddr,
+  ConnNext,
   NetAddr,
   ProtocolLevel,
   QoS,
-  SockAddr,
-  SockConn,
   UnixAddr,
   VsockAddr,
 } from "./deps.ts";

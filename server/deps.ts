@@ -1,4 +1,4 @@
-export type { SockAddr, SockConn } from "../socket/socket.ts";
+export type { ConnAddr, ConnNext } from "../connNext/connNext.ts";
 export { MqttConn } from "../mqttConn/mqttConn.ts";
 export type {
   ClientSubscription,

@@ -5,9 +5,9 @@
 export { ReasonCode } from "./deps.ts";
 export type {
   ConnectPacket,
+  ConnNext,
   Persistence,
   ShareName,
-  SockConn,
   Topic,
 } from "./deps.ts";
 export { MqttServer } from "./server.ts";

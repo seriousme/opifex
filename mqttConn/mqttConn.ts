@@ -16,8 +16,7 @@ import {
 } from "../mqttPacket/mod.ts";
 
 import { assert } from "../utils/mod.ts";
-import type { SockConn } from "../socket/socket.ts";
-import { Conn } from "../socket/socket.ts";
+import type { ConnNext } from "../connNext/connNext.ts";
 
 /**
  * Common MQTT connection error messages
@@ -45,7 +44,7 @@ export type SendResult =
  * @returns Single byte as number
  * @throws Error if EOF reached unexpectedly
  */
-async function readByte(conn: Conn): Promise<number> {
+async function readByte(conn: ConnNext): Promise<number> {
   const buff = await conn.read(1);
   assert(buff !== null, MqttConnError.UnexpectedEof);
   assert(buff !== undefined, MqttConnError.UnexpectedEof);
@@ -59,7 +58,7 @@ async function readByte(conn: Conn): Promise<number> {
  * @param buf Buffer to read into
  * @throws Error if EOF reached unexpectedly
  */
-async function readFull(conn: Conn, length: number): Promise<Uint8Array> {
+async function readFull(conn: ConnNext, length: number): Promise<Uint8Array> {
   const buff = await conn.read(length);
   assert(buff !== null, MqttConnError.UnexpectedEof);
   assert(buff.byteLength === length, MqttConnError.UnexpectedEof);
@@ -74,7 +73,7 @@ async function readFull(conn: Conn, length: number): Promise<Uint8Array> {
  * @throws Error if packet is invalid or too large
  */
 export async function readPacket(
-  conn: Conn,
+  conn: ConnNext,
   codecOpts: CodecOpts,
   maxConnectPacketSize: number,
 ): Promise<AnyPacket> {
@@ -113,7 +112,7 @@ export async function readPacket(
  */
 export class MqttConn {
   /** Underlying connection */
-  readonly conn: Conn;
+  readonly conn: ConnNext;
   /** Maximum Connect packet size */
   readonly maxConnectPacketSize: number;
   /** codecOpts */
@@ -134,10 +133,10 @@ export class MqttConn {
    */
   constructor(
     options:
-      & { conn: SockConn; maxConnectPacketSize?: number }
+      & { conn: ConnNext; maxConnectPacketSize?: number }
       & Partial<CodecOpts>,
   ) {
-    this.conn = new Conn(options.conn);
+    this.conn = options.conn;
     this.maxConnectPacketSize = options.maxConnectPacketSize ??
       DEFAULT_MAX_PACKETSIZE;
     this.codecOpts = {
@@ -154,7 +153,7 @@ export class MqttConn {
     return this._reason;
   }
 
-  /** Get remoteAdress */
+  /** Get remoteAddress */
   get remoteAddress(): string {
     if (this.conn.remoteAddr?.transport === "tcp") {
       return this.conn.remoteAddr.hostname;

@@ -6,6 +6,7 @@
 
 import { MqttServer } from "../server/mod.ts";
 import type { MqttServerOptions } from "../server/mod.ts";
+import { denoConnToNext } from "./denoConnToNext.ts";
 
 /**
  * TLS server that wraps a MqttServer, see the /examples folder
@@ -34,7 +35,7 @@ export class TlsServer {
    */
   async start(): Promise<void> {
     for await (const conn of this.listener) {
-      this.mqttServer.serve(conn);
+      this.mqttServer.serve(denoConnToNext(conn));
     }
   }
 

@@ -1,7 +1,7 @@
 import { logger, MemoryPersistence, ReasonCode } from "./deps.ts";
 import { Context } from "./context.ts";
 import type { Handlers } from "./context.ts";
-import type { Persistence, ShareName, SockConn, Topic } from "./deps.ts";
+import type { ConnNext, Persistence, ShareName, Topic } from "./deps.ts";
 import { handlePacket } from "./handlers/handlePacket.ts";
 import { createConfiguration } from "./config.ts";
 import type { Configuration, ConfigurationInput } from "./config.ts";
@@ -12,7 +12,7 @@ import type { Configuration, ConfigurationInput } from "./config.ts";
  * @returns {boolean} Always returns true
  */
 const defaultPreconnect = (
-  _conn: SockConn,
+  _conn: ConnNext,
 ) => (true) as const;
 
 /**
@@ -119,10 +119,10 @@ export class MqttServer {
 
   /**
    * Serve a new client connection.
-   * @param {SockConn} conn - The socket connection to serve.
+   * @param conn - The socket connection to serve.
    * @returns {Promise<void>} A promise that resolves when the connection is closed.
    */
-  async serve(conn: SockConn): Promise<void> {
+  async serve(conn: ConnNext): Promise<void> {
     if (this.handlers.preconnect) {
       if (!await this.handlers.preconnect(conn)) {
         conn.close();

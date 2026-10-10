@@ -10,12 +10,12 @@ import type {
   AnyPacket,
   AuthenticationResult,
   ConnectPacket,
+  ConnNext,
   PacketId,
   ProtocolLevel,
   PublishPacket,
   ReasonCode,
   ReturnCodes,
-  SockConn,
   Store,
   SubscribePacket,
   UnsubscribePacket,
@@ -169,7 +169,7 @@ export class Context {
   }
 
   async handleConnection(
-    conn: SockConn,
+    conn: ConnNext,
     connectPacket: ConnectPacket,
   ): Promise<boolean> {
     this.mqttConn = new MqttConn({ conn });

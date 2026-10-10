@@ -10,6 +10,7 @@ import {
 import type {
   AnyPacket,
   ConnectPacket,
+  ConnNext,
   ExtPublishPacket,
   PacketId,
   Persistence,
@@ -18,7 +19,6 @@ import type {
   PubrelPacket,
   ReasonCode,
   ShareName,
-  SockConn,
   Topic,
 } from "./deps.ts";
 
@@ -64,11 +64,11 @@ export type SessionState = typeof SessionState[keyof typeof SessionState];
 export type Handlers = {
   /**
    * Default preconnect handler that unconditionally permits all connections.
-   * @param {SockConn} conn - The connection context.
+   * @param conn - The connection context.
    * @returns {boolean} false will close the connection
    */
   preconnect?(
-    conn: SockConn,
+    conn: ConnNext,
   ): boolean | Promise<boolean>;
 
   /**
@@ -162,7 +162,7 @@ export class Context {
   protocolLevel: ProtocolLevel;
 
   /** The underlying raw socket connection. */
-  conn: SockConn;
+  conn: ConnNext;
 
   /** The wrapped MQTT connection wrapper handling frame reading and writing. */
   mqttConn: MqttConn;
@@ -234,7 +234,7 @@ export class Context {
   constructor(
     configuration: Configuration, // all settings
     persistence: Persistence, // The server persistence layer implementation.
-    conn: SockConn, // The underlying socket connection.
+    conn: ConnNext, // The underlying socket connection.
     handlers: Handlers, // The validation handlers
   ) {
     this.config = configuration;

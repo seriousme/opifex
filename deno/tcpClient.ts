@@ -5,7 +5,8 @@
  */
 
 import { Client, logger } from "../client/mod.ts";
-import type { SockConn } from "../client/mod.ts";
+import type { ConnNext } from "../client/mod.ts";
+import { denoConnToNext } from "./denoConnToNext.ts";
 
 /**
  * Fetches data from a file and returns it as a string
@@ -39,12 +40,12 @@ export class TcpClient extends Client {
    * @param hostname the name of the host to connect to
    * @param port the port number
    */
-  protected async connectMQTT(
+  protected override async connectMQTT(
     hostname: string,
     port = 1883,
-  ): Promise<Deno.TcpConn> {
+  ): Promise<ConnNext> {
     logger.debug({ hostname, port });
-    return await Deno.connect({ hostname, port });
+    return denoConnToNext(await Deno.connect({ hostname, port }));
   }
 
   /**
@@ -56,13 +57,13 @@ export class TcpClient extends Client {
    * @param key the clients private key
    * @returns a Deno.TlsConn object
    */
-  protected async connectMQTTS(
+  protected override async connectMQTTS(
     hostname: string,
     port = 8883,
     caCerts?: string[],
     cert?: string,
     key?: string,
-  ): Promise<Deno.TlsConn> {
+  ): Promise<ConnNext> {
     logger.debug({ hostname, port, caCerts, cert });
     const connectOpts = {
       hostname,
@@ -71,23 +72,6 @@ export class TcpClient extends Client {
       ...(cert !== undefined && { cert }),
       ...(key !== undefined && { key }),
     };
-    return await Deno.connectTls(connectOpts);
-  }
-
-  /** createConn is used by the base client class */
-  protected override createConn(): Promise<SockConn> {
-    const { protocol, hostname, port: portStr } = this.connectUrl;
-    const port = Number(portStr);
-    const caCerts = this.caCerts;
-    const cert = this.cert;
-    const key = this.key;
-
-    if (protocol === "mqtts:") {
-      return this.connectMQTTS(hostname, port, caCerts, cert, key);
-    }
-    if (protocol === "mqtt:") {
-      return this.connectMQTT(hostname, port);
-    }
-    throw new Error(`Unsupported protocol: ${protocol}`);
+    return denoConnToNext(await Deno.connectTls(connectOpts));
   }
 }

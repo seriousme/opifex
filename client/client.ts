@@ -10,9 +10,9 @@ import {
 import type {
   AuthenticationResult,
   ConnectPacket,
+  ConnNext,
   ProtocolLevel,
   PublishPacket,
-  SockConn,
   Store,
   SubscribePacket,
 } from "./deps.ts";
@@ -169,7 +169,6 @@ export class Client {
     const cStore = store ? store : new MemoryStore();
     this.ctx = new Context(cStore, this);
     this.clientId = generateClientId(this.clientIdPrefix);
-    this.numberOfRetries = DEFAULT_RETRIES;
   }
 
   /**
@@ -189,13 +188,57 @@ export class Client {
   }
 
   /**
-   * Creates a new connection to the MQTT broker
-   * @returns Promise resolving to a SockConn connection
+   * Placeholder for MQTT, override in subclass
+   * @param _hostname
+   * @param _port
    */
-  protected createConn(): Promise<SockConn> {
+  protected connectMQTT(
+    _hostname: string,
+    _port: number,
+  ): Promise<ConnNext> {
+    throw new Error(`Unsupported protocol: mqtt`);
+  }
+
+  /**
+   * Connect using MQTT over TLS
+   * @param hostname the name of the host to connect to
+   * @param port the port number
+   * @param caCerts the CA certificates to trust
+   * @param cert the clients certificate
+   * @param key the clients private key
+   * @returns a ConnNext object
+   */
+  protected connectMQTTS(
+    _hostname: string,
+    _port: number,
+    _caCerts?: string[],
+    _cert?: string,
+    _key?: string,
+  ): Promise<ConnNext> {
+    throw new Error(`Unsupported protocol: mqtts`);
+  }
+
+  /**
+   * Creates a new connection to the MQTT broker
+   * Override this in a subclass if you need other protocols
+   * @returns Promise resolving to a ConnNext connection
+   */
+  protected createConn(): Promise<ConnNext> {
     // if you need to support alternative connection types just
     // overload this method in your subclass
-    throw new Error(`Unsupported protocol: ${this.url.protocol}`);
+    const { protocol, hostname, port: portStr } = this.connectUrl;
+    const port = Number(portStr);
+    const caCerts = this.caCerts;
+    const cert = this.cert;
+    const key = this.key;
+
+    if (protocol === "mqtts:") {
+      return this.connectMQTTS(hostname, port, caCerts, cert, key);
+    }
+    if (protocol === "mqtt:") {
+      return this.connectMQTT(hostname, port);
+    }
+    throw new Error(`Unsupported protocol: ${protocol}`);
   }
 
   /**
@@ -233,7 +276,14 @@ export class Client {
         logger.debug({ lastMessage });
       }
 
-      if (tryConnect && (isReconnect || attempt < this.numberOfRetries)) {
+      logger.debug("tryConnect", {
+        tryConnect,
+        isReconnect,
+        attempt,
+        retries: this.numberOfRetries,
+      });
+
+      if (tryConnect && (isReconnect || (attempt < this.numberOfRetries))) {
         await backOffSleep(true, attempt);
         if (!isReconnect) {
           attempt++;
@@ -256,7 +306,7 @@ export class Client {
    */
   connect(params: ConnectParameters = {}): Promise<AuthenticationResult> {
     this.connectUrl = params?.url || this.connectUrl;
-    this.numberOfRetries = params.numberOfRetries || this.numberOfRetries;
+    this.numberOfRetries = params.numberOfRetries ?? this.numberOfRetries;
     this.caCerts = params?.caCerts;
     this.cert = params?.cert;
     this.key = params?.key;
