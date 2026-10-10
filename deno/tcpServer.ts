@@ -5,6 +5,7 @@
  */
 
 import { MqttServer } from "../server/mod.ts";
+import { denoConnToNext } from "./denoConnToNext.ts";
 import type { MqttServerOptions } from "../server/mod.ts";
 
 /**
@@ -35,7 +36,7 @@ export class TcpServer {
    */
   async start(): Promise<void> {
     for await (const conn of this.listener) {
-      this.mqttServer.serve(conn);
+      this.mqttServer.serve(denoConnToNext(conn));
     }
   }
 

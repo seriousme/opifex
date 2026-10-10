@@ -30,7 +30,7 @@ test("Web: Test createConn - unsupported host", async () => {
 
   // Use an host protocol to trigger the ws error
   const invalidParams = {
-    url: new URL("ws://localhost1883"),
+    url: new URL("ws://test.invalid"),
     numberOfRetries: 0,
   };
 
@@ -41,7 +41,7 @@ test("Web: Test createConn - unsupported host", async () => {
     },
     {
       name: "Error",
-      message: /^Failed to connect to WebSocket at ws:\/\/localhost1883:80\//,
+      message: /^Failed to connect to WebSocket/,
     },
     "Should throw an error when an unreachable host is provided",
   );

@@ -142,7 +142,7 @@
       const value = presets[broker];
       option.value = broker;
 
-      // Format de tekst (bijv: "Localhost (ws://localhost:8080/)")
+      // Format text e.g. "Localhost (ws://localhost:8080/)"
       option.textContent =
         `${broker} (${value.protocol}://${value.hostname}:${value.port}${value.path})`;
 

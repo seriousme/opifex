@@ -7,7 +7,7 @@ import type { Server } from "node:net";
 import { createServer } from "node:tls";
 import type { MqttServerOptions } from "../server/mod.ts";
 import { MqttServer } from "../server/mod.ts";
-import { wrapNodeSocket } from "./wrapNodeSocket.ts";
+import { nodeSocketToNext } from "./nodeSocketToNext.ts";
 
 type ServerOptions = {
   hostname?: string;
@@ -52,7 +52,7 @@ export class TlsServer {
 
     this.server = createServer(
       tlsOptions,
-      (sock) => this.mqttServer.serve(wrapNodeSocket(sock)),
+      (sock) => this.mqttServer.serve(nodeSocketToNext(sock)),
     );
     const isListening = new Promise((resolve) => {
       this.server?.on("listening", () => {

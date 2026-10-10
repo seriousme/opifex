@@ -278,7 +278,7 @@ async function publish() {
       qos: parseQos(publishArgs.qos),
     });
     logger.debug("Published!");
-    client.disconnect();
+    await client.disconnect();
     logger.debug("Disconnected !");
   } catch (err) {
     if (err instanceof Error) {

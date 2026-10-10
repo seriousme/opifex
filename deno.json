@@ -24,5 +24,11 @@
       "*.min.js",
       "**/*.min.js"
     ]
+  },
+  "fmt": {
+    "exclude": [
+      "*.min.js",
+      "**/*.min.js"
+    ]
   }
 }

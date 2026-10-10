@@ -7,9 +7,9 @@ import { Client } from "../client/client.ts";
 import { logger } from "../client/deps.ts";
 import { readFile } from "node:fs/promises";
 import { createConnection } from "node:net";
-import * as tls from "node:tls";
-import type { SockConn } from "../socket/socket.ts";
-import { wrapNodeSocket } from "./wrapNodeSocket.ts";
+import { connect } from "node:tls";
+import type { ConnNext } from "../client/mod.ts";
+import { nodeSocketToNext } from "./nodeSocketToNext.ts";
 
 /**
  * Fetches data from a file and returns it as a string
@@ -44,14 +44,17 @@ export class TcpClient extends Client {
    * @param hostname the name of the host to connect to
    * @param port the port number
    */
-  protected connectMQTT(hostname: string, port = 1883): Promise<SockConn> {
+  protected override connectMQTT(
+    hostname: string,
+    port = 1883,
+  ): Promise<ConnNext> {
     logger.debug({ hostname, port });
     return new Promise((resolve, reject) => {
       const socket = createConnection(
         { port, host: hostname },
         () => {
           logger.debug("Connected to server");
-          resolve(wrapNodeSocket(socket));
+          resolve(nodeSocketToNext(socket));
         },
       );
       socket.once("error", (err) => {
@@ -68,15 +71,15 @@ export class TcpClient extends Client {
    * @param caCerts the CA certificates to trust
    * @param cert the clients certificate
    * @param key the clients private key
-   * @returns a SockConn object
+   * @returns a ConnNext object
    */
-  protected connectMQTTS(
+  protected override connectMQTTS(
     hostname: string,
     port = 8883,
     ca?: string[],
     cert?: string,
     key?: string,
-  ): Promise<SockConn> {
+  ): Promise<ConnNext> {
     const opts = {
       host: hostname,
       port,
@@ -87,31 +90,14 @@ export class TcpClient extends Client {
     };
     logger.debug({ hostname, port, ca, cert });
     return new Promise((resolve, reject) => {
-      const socket = tls.connect(opts, () => {
+      const socket = connect(opts, () => {
         logger.debug("Connected to server");
-        resolve(wrapNodeSocket(socket));
+        resolve(nodeSocketToNext(socket));
       });
       socket.once("error", (err) => {
         logger.debug("Connection failed", err);
         reject(err);
       });
     });
-  }
-
-  /** createConn is used by the base client class */
-  protected override createConn(): Promise<SockConn> {
-    const { protocol, hostname, port: portStr } = this.connectUrl;
-    const port = Number(portStr);
-    const caCerts = this.caCerts;
-    const cert = this.cert;
-    const key = this.key;
-
-    if (protocol === "mqtts:") {
-      return this.connectMQTTS(hostname, port, caCerts, cert, key);
-    }
-    if (protocol === "mqtt:") {
-      return this.connectMQTT(hostname, port);
-    }
-    throw new Error(`Unsupported protocol: ${protocol}`);
   }
 }

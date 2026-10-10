@@ -1,4 +1,4 @@
-import { createWebStreamPair } from "./webStreamPair.ts";
+import { createConnNextPair } from "./webStreamToNext.ts";
 import { MqttConn } from "../mqttConn/mqttConn.ts";
 import { Context, MqttServer } from "../server/mod.ts";
 import { handlers } from "./test-handlers.ts";
@@ -11,17 +11,16 @@ export function startMockServer(opts: MqttServerOptions = {}): {
   const serverOpts = { handlers, ...opts };
   // start with a fresh clientlist
   Context.clientList.clear();
-  // create a new MQTT server
 
   const mqttServer = new MqttServer(serverOpts);
-  const { input, output } = createWebStreamPair();
+  const { input, output } = createConnNextPair();
   const mqttConn = new MqttConn({ conn: output });
   mqttServer.serve(input);
   return { mqttConn, mqttServer };
 }
 
 export function addMockClient(mqttServer: MqttServer): MqttConn {
-  const { input, output } = createWebStreamPair();
+  const { input, output } = createConnNextPair();
   const mqttConn = new MqttConn({ conn: output });
   mqttServer.serve(input);
   return mqttConn;

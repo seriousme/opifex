@@ -7,7 +7,7 @@ import type { Server } from "node:net";
 import { createServer } from "node:net";
 import type { MqttServerOptions } from "../server/mod.ts";
 import { MqttServer } from "../server/mod.ts";
-import { wrapNodeSocket } from "./wrapNodeSocket.ts";
+import { nodeSocketToNext } from "./nodeSocketToNext.ts";
 
 type ServerOptions = {
   hostname?: string;
@@ -43,7 +43,7 @@ export class TcpServer {
    */
   async start(): Promise<void> {
     this.server = createServer((sock) =>
-      this.mqttServer.serve(wrapNodeSocket(sock))
+      this.mqttServer.serve(nodeSocketToNext(sock))
     );
     const isListening = new Promise((resolve) => {
       this.server?.on("listening", () => {

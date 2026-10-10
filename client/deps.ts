@@ -36,12 +36,12 @@ export {
 
 export { MqttConn } from "../mqttConn/mqttConn.ts";
 export type {
+  ConnAddr,
+  ConnNext,
   NetAddr,
-  SockAddr,
-  SockConn,
   UnixAddr,
   VsockAddr,
-} from "../socket/socket.ts";
+} from "../connNext/connNext.ts";
 export { Timer } from "../timer/timer.ts";
 export { BufferedAsyncIterable, Deferred, logger } from "../utils/mod.ts";
 export { MemoryStore } from "./store/memoryStore.ts";
