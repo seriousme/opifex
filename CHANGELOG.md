@@ -8,7 +8,8 @@
 
 ### Changed
 
-- feat: replace Readable/Writable stream by ConnNext adapter to reduce overhead and complexity
+- feat: replace Readable/Writable stream by ConnNext adapter to reduce overhead
+  and complexity
 
 ## [2.2.0] 26-09-2026
 
