@@ -676,10 +676,13 @@ export class Context {
       this.sessionEndsTimer.reset();
     }
 
+    const reason = (!this.mqttConn.reason || executewill)
+      ? "normal disconnect"
+      : this.mqttConn.reason;
     logger.info(
       `closing connection from ${
         this.clientId || this.mqttConn.remoteAddress
-      } because of "${this.mqttConn.reason || "normal disconnect"}"`,
+      } because of "${reason}"`,
     );
     if (!this.mqttConn.isClosed) {
       this.mqttConn.close();
