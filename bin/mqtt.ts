@@ -280,7 +280,6 @@ async function publish() {
     logger.debug("Published!");
     await client.disconnect();
     logger.debug("Disconnected !");
-    process.exit(0);
   } catch (err) {
     if (err instanceof Error) {
       const errorWithCode = err as Error & { code?: string };
