@@ -6,7 +6,7 @@
 
 import { Client } from "../client/client.ts";
 import { logger } from "../client/deps.ts";
-import type { ConnNext } from "../client/deps.ts";
+import type { ConnNext, NetAddr } from "../client/deps.ts";
 import { webSocketToNext } from "./webSocketToNext.ts";
 
 /**
@@ -18,8 +18,14 @@ export class WsClient extends Client {
   /** create a websocket and wrap it in a ConnNext */
   private async establishSocket(url: string): Promise<ConnNext> {
     try {
+      const urlObj = new URL(url);
+      const remoteAddr: NetAddr = {
+        transport: "tcp",
+        hostname: urlObj.hostname,
+        port: Number(urlObj.port || 0),
+      };
       const ws = new WebSocket(url);
-      const connNext = await webSocketToNext(ws);
+      const connNext = await webSocketToNext(ws, remoteAddr);
       return connNext;
     } catch (error) {
       const message = error instanceof ErrorEvent

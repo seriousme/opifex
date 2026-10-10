@@ -19,8 +19,12 @@ export const pageNotFound: RequestHandler = (_req, _info) => {
   return new Response("Page not found", { status: 404 });
 };
 
-async function handleWsClient(socket: WebSocket, mqttServer: MqttServer) {
-  const conn = await webSocketToNext(socket);
+async function handleWsClient(
+  socket: WebSocket,
+  mqttServer: MqttServer,
+  remoteAddr: NetAddr,
+) {
+  const conn = await webSocketToNext(socket, remoteAddr);
   mqttServer.serve(conn);
   logger.debug("serving mqtt");
 }
@@ -37,10 +41,11 @@ export function mqttOverWS(
         return new Response("Expected WebSocket connection.", { status: 426 });
       }
       logger.debug("starting upgrade to websocket");
+      const remoteAddr = info.remoteAddr;
       const { socket, response } = Deno.upgradeWebSocket(req);
       logger.debug("upgraded to websocket");
       // do not await on purpose
-      handleWsClient(socket, mqttServer);
+      handleWsClient(socket, mqttServer, remoteAddr);
       return response;
     }
     return next(req, info);

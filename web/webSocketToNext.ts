@@ -1,6 +1,9 @@
-import type { ConnNext } from "../connNext/connNext.ts";
+import type { ConnAddr, ConnNext } from "../connNext/connNext.ts";
 
-export async function webSocketToNext(ws: WebSocket): Promise<ConnNext> {
+export async function webSocketToNext(
+  ws: WebSocket,
+  remoteAddr?: ConnAddr,
+): Promise<ConnNext> {
   ws.binaryType = "arraybuffer";
 
   const messageQueue: Uint8Array[] = [];
@@ -80,7 +83,7 @@ export async function webSocketToNext(ws: WebSocket): Promise<ConnNext> {
   };
 
   const connNext = {
-    remoteAddr: undefined,
+    remoteAddr,
     localAddr: undefined,
 
     async read(length?: number): Promise<Uint8Array | null> {
