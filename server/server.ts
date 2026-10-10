@@ -8,8 +8,8 @@ import type { Configuration, ConfigurationInput } from "./config.ts";
 
 /**
  * Default preconnect handler that unconditionally permits all connections.
- * @param {SockConn} _conn - The connection.
- * @returns {boolean} Always returns true
+ * @param  _conn - The connection.
+ * @returns  Always returns true
  */
 const defaultPreconnect = (
   _conn: ConnNext,

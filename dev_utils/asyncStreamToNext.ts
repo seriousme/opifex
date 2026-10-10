@@ -9,7 +9,7 @@ export class AsyncStreamConnNextWrapper {
   private leftover: Uint8Array = new Uint8Array(0);
   private reader: AsyncIterator<Uint8Array>;
 
-  /** Create a new ConnNext object from a SockConn */
+  /** Create a new Endpoint*/
   constructor(endPoint: AsyncStreamPairEndpoint) {
     this.endPoint = endPoint;
     this.closed = false;

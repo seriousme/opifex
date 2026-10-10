@@ -10,7 +10,7 @@ export class WebStreamConnNextWrapper {
   private endPoint: WebStreamPairEndpoint;
   private leftover: Uint8Array = new Uint8Array(0);
 
-  /** Create a new ConnNext object from a SockConn */
+  /** Create a new ConnNext object from a Webstream */
   constructor(endPoint: WebStreamPairEndpoint) {
     this.endPoint = endPoint;
     this.closed = false;

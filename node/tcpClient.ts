@@ -71,7 +71,7 @@ export class TcpClient extends Client {
    * @param caCerts the CA certificates to trust
    * @param cert the clients certificate
    * @param key the clients private key
-   * @returns a SockConn object
+   * @returns a ConnNext object
    */
   protected override connectMQTTS(
     hostname: string,
