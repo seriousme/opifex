@@ -278,8 +278,9 @@ async function publish() {
       qos: parseQos(publishArgs.qos),
     });
     logger.debug("Published!");
-    client.disconnect();
+    await client.disconnect();
     logger.debug("Disconnected !");
+    process.exit(0);
   } catch (err) {
     if (err instanceof Error) {
       const errorWithCode = err as Error & { code?: string };
