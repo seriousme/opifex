@@ -111,10 +111,11 @@ can be found in the [examples](/examples/) folder.
    encode and decode packets.
 
 2. On top of mqttPacket sits the MQTT connection module
-   ([mqttConn/mod.ts](mqttConn/mod.ts)) that reads packets from a Readable
-   stream and writes them to Writable stream. It will take care of incomplete
-   and/or malformed packets. mqttConn provides an async iterable that can be
-   awaited for new packets.
+   ([mqttConn/mod.ts](mqttConn/mod.ts)) that reads packets from and writes them
+   to a [ConnNext](connNext) adapter. It will take care of incomplete and/or
+   malformed packets. mqttConn provides an async iterable that can be awaited
+   for new packets. A ConnNext adapter per transport provides async
+   read/write/close/address functionality on top of the various transports.
 
 3. On top of mqttConn live the MQTT server ([server/mod.ts](server/mod.ts)) and
    MQTT client ([client/mod.ts](client/mod.ts)) that take care of the MQTT
@@ -122,8 +123,8 @@ can be found in the [examples](/examples/) folder.
    another type of packet will be accepted. Both follow a similar model of
    implementation where for each packet that is received a handler is invoked
    which then triggers the next step. Server and client are totally independent
-   of the technical implementation of the connection and only need a socketConn
-   ([socket](socket)) to be able to work.
+   of the technical implementation of the connection and only need a
+   [ConnNext](connNext) connection to be able to work.
 
 4. As the server needs to be able to serve multiple clients at the same time, it
    maintains a context ([server/context.ts](server/context.ts)) per client to
