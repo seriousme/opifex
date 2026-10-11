@@ -6,17 +6,19 @@ export class WebSocketConnNext extends BaseConnNext {
   localAddr = undefined;
   remoteAddr?: ConnAddr;
 
+  private ws: WebSocket;
   private messageQueue: Uint8Array[] = [];
   private maxBufferSize: number;
   private currentBufferSize = 0;
   private readResolvers: Array<() => void> = [];
 
   constructor(
-    private ws: WebSocket,
+    ws: WebSocket,
     remoteAddr?: ConnAddr,
     maxBufferSize = 1 * 1024 * 1024,
   ) {
     super();
+    this.ws = ws;
     this.remoteAddr = remoteAddr;
     this.maxBufferSize = maxBufferSize;
     this.ws.binaryType = "arraybuffer";
