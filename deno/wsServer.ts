@@ -23,8 +23,9 @@ async function handleWsClient(
   socket: WebSocket,
   mqttServer: MqttServer,
   remoteAddr: NetAddr,
+  maxBufferSize: number | undefined,
 ) {
-  const conn = await webSocketToNext(socket, remoteAddr);
+  const conn = await webSocketToNext(socket, remoteAddr, maxBufferSize);
   mqttServer.serve(conn);
   logger.debug("serving mqtt");
 }
@@ -33,6 +34,9 @@ export function mqttOverWS(
   mqttServer: MqttServer,
   pathName: string,
   next: RequestHandler,
+  opts?: {
+    maxBufferSize?: number | undefined;
+  },
 ): RequestHandler {
   const wsRequestHandler: RequestHandler = (req, info) => {
     const url = new URL(req.url);
@@ -45,7 +49,7 @@ export function mqttOverWS(
       const { socket, response } = Deno.upgradeWebSocket(req);
       logger.debug("upgraded to websocket");
       // do not await on purpose
-      handleWsClient(socket, mqttServer, remoteAddr);
+      handleWsClient(socket, mqttServer, remoteAddr, opts?.maxBufferSize);
       return response;
     }
     return next(req, info);
@@ -65,6 +69,7 @@ export class WsServer {
     hostname?: string;
   };
   private pathName: string;
+  private maxBufferSize: number | undefined;
 
   /**
    * Create a new WebSocket server
@@ -74,12 +79,14 @@ export class WsServer {
       port: number;
       hostname?: string;
       pathName?: string;
+      maxBufferSize?: number;
     },
     mqttOptions: MqttServerOptions | MqttServer,
   ) {
-    const { pathName, ...listenOptions } = serverOptions;
+    const { pathName, maxBufferSize, ...listenOptions } = serverOptions;
     this.listenOptions = listenOptions;
     this.pathName = pathName ?? "/mqtt";
+    this.maxBufferSize = maxBufferSize;
     if (mqttOptions instanceof MqttServer) {
       this.mqttServer = mqttOptions;
     } else {
@@ -95,6 +102,7 @@ export class WsServer {
       this.mqttServer,
       this.pathName,
       pageNotFound,
+      { maxBufferSize: this.maxBufferSize },
     );
     this.server = Deno.serve(this.listenOptions, requestHandler);
     await this.server.finished;

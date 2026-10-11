@@ -51,6 +51,8 @@ export type ConnectParameters = {
   key?: string | undefined;
   /** number of retries before stopping connection attempts */
   numberOfRetries?: number | undefined;
+  /** maximum size of receive buffer, only used by webSockets for now */
+  maxBufferSize?: number | undefined;
   /** connect options */
   options?: ConnectOptions | undefined;
 };
@@ -159,6 +161,8 @@ export class Client {
   protected key?: string | undefined;
   /** the MQTT clientId */
   protected clientId: string;
+  /** the maximum number of bytes buffered by a ws/wss client */
+  protected maxBufferSize: number | undefined;
   private ctx: Context;
   private connectPacket?: ConnectPacket;
 
@@ -310,6 +314,7 @@ export class Client {
     this.caCerts = params?.caCerts;
     this.cert = params?.cert;
     this.key = params?.key;
+    this.maxBufferSize = params?.maxBufferSize;
     const options = Object.assign(
       {
         keepAlive: this.keepAlive,
