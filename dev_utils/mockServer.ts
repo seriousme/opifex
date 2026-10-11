@@ -1,4 +1,4 @@
-import { createConnNextPair } from "./webStreamToNext.ts";
+import { createConnNextPair } from "./asyncStreamPairToNext.ts";
 import { MqttConn } from "../mqttConn/mqttConn.ts";
 import { Context, MqttServer } from "../server/mod.ts";
 import { handlers } from "./test-handlers.ts";

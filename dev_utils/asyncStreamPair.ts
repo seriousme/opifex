@@ -2,14 +2,9 @@
  *  Duplex AsyncStream
  */
 
-export interface AsyncStreamPairEndpoint {
-  readable: AsyncIterable<Uint8Array>;
-  write: (chunk: Uint8Array) => Promise<void>;
-  close: () => void;
-}
-
+import type { AsyncStreamEndpoint } from "./asyncStreamEndpoint.ts";
 /**
- * Interne push/pull queue to support AsyncIterable iteration.
+ * Internal push/pull queue to support AsyncIterable iteration.
  */
 class AsyncQueue<T> implements AsyncIterable<T> {
   private queue: T[] = [];
@@ -75,8 +70,8 @@ class AsyncQueue<T> implements AsyncIterable<T> {
 }
 
 export function createAsyncStreamPair(): {
-  input: AsyncStreamPairEndpoint;
-  output: AsyncStreamPairEndpoint;
+  input: AsyncStreamEndpoint;
+  output: AsyncStreamEndpoint;
 } {
   const queueA = new AsyncQueue<Uint8Array>();
   const queueB = new AsyncQueue<Uint8Array>();
