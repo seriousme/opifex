@@ -4,11 +4,13 @@ import type { WebStreamEndpoint } from "./WebStreamEndpoint.ts";
 export class WebStreamConnNext extends BaseConnNext {
   remoteAddr = undefined;
   localAddr = undefined;
+  private endPoint;
   private reader: ReadableStreamDefaultReader<Uint8Array>;
   private writer: WritableStreamDefaultWriter<Uint8Array>;
 
-  constructor(private endPoint: WebStreamEndpoint) {
+  constructor(endPoint: WebStreamEndpoint) {
     super();
+    this.endPoint = endPoint;
     this.reader = endPoint.readable.getReader();
     this.writer = endPoint.writable.getWriter();
     this.reader.closed.catch(() => {});
