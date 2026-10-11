@@ -4,6 +4,14 @@
 
 ### Changed
 
+## [2.4.0] 11-10-2026
+
+- feat: add maxBufferSize to websockets
+- chore: refactor ConnNext adapters
+- chore(dev): @types/node to 26.6.5
+
+### Changed
+
 ## [2.3.0] 10-10-2026
 
 ### Changed
