@@ -1,12 +1,8 @@
-export interface WebStreamPairEndpoint {
-  readable: ReadableStream<Uint8Array>;
-  writable: WritableStream<Uint8Array>;
-  close: () => void;
-}
+import type { WebStreamEndpoint } from "./WebStreamEndpoint.ts";
 
 export function createWebStreamPair(): {
-  input: WebStreamPairEndpoint;
-  output: WebStreamPairEndpoint;
+  input: WebStreamEndpoint;
+  output: WebStreamEndpoint;
 } {
   let aController: ReadableStreamDefaultController | null = null;
   let bController: ReadableStreamDefaultController | null = null;

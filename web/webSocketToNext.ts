@@ -1,28 +1,77 @@
 import type { ConnAddr, ConnNext } from "../connNext/connNext.ts";
+import { BaseConnNext } from "../connNext/baseConnNext.ts";
+import { delay } from "../utils/utils.ts";
 
-export async function webSocketToNext(
-  ws: WebSocket,
-  remoteAddr?: ConnAddr,
-): Promise<ConnNext> {
-  ws.binaryType = "arraybuffer";
+export class WebSocketConnNext extends BaseConnNext {
+  localAddr = undefined;
+  remoteAddr?: ConnAddr;
 
-  const messageQueue: Uint8Array[] = [];
-  let queueOffset = 0;
-  const readResolvers: Array<() => void> = [];
+  private ws: WebSocket;
+  private messageQueue: Uint8Array[] = [];
+  private maxBufferSize: number;
+  private currentBufferSize = 0;
+  private readResolvers: Array<() => void> = [];
 
-  const notifyWaiters = () => {
-    while (readResolvers.length > 0) {
-      const resolve = readResolvers.shift();
+  constructor(
+    ws: WebSocket,
+    remoteAddr?: ConnAddr,
+    maxBufferSize = 1 * 1024 * 1024,
+  ) {
+    super();
+    this.ws = ws;
+    this.remoteAddr = remoteAddr;
+    this.maxBufferSize = maxBufferSize;
+    this.ws.binaryType = "arraybuffer";
+
+    this.ws.addEventListener("message", (event: MessageEvent) => {
+      let chunk: Uint8Array;
+      if (typeof event.data === "string") {
+        chunk = new TextEncoder().encode(event.data);
+      } else if (event.data instanceof ArrayBuffer) {
+        chunk = new Uint8Array(event.data);
+      } else {
+        return;
+      }
+
+      // Check the bufferlimit (Throttling / Overflow protection)
+      if (this.currentBufferSize + chunk.byteLength > this.maxBufferSize) {
+        this.close();
+        throw new Error(
+          "WebSocket buffer overflow: Too much unread data from push source",
+        );
+      }
+
+      this.messageQueue.push(chunk);
+      this.currentBufferSize += chunk.byteLength;
+      this.notifyWaiters();
+    });
+
+    const onClose = () => {
+      this.closed = true;
+      this.notifyWaiters();
+    };
+    this.ws.addEventListener("close", onClose);
+    this.ws.addEventListener("error", onClose);
+  }
+
+  private notifyWaiters() {
+    while (this.readResolvers.length > 0) {
+      const resolve = this.readResolvers.shift();
       resolve?.();
     }
-  };
+  }
 
-  // helper to check if websocket is Open
-  const ensureOpen = (): Promise<void> => {
-    if (ws.readyState === WebSocket.OPEN) {
+  private waitForData(): Promise<void> {
+    return new Promise<void>((resolve) => {
+      this.readResolvers.push(resolve);
+    });
+  }
+
+  ensureOpen(): Promise<void> {
+    if (this.ws.readyState === WebSocket.OPEN) {
       return Promise.resolve();
     }
-    if (ws.readyState >= WebSocket.CLOSING) {
+    if (this.ws.readyState >= WebSocket.CLOSING) {
       return Promise.reject(new Error("WebSocket is closing or closed"));
     }
     return new Promise((resolve, reject) => {
@@ -39,145 +88,59 @@ export async function webSocketToNext(
         reject(new Error("WebSocket closed before opening"));
       };
       const cleanup = () => {
-        ws.removeEventListener("open", onOpen);
-        ws.removeEventListener("error", onError);
-        ws.removeEventListener("close", onClose);
+        this.ws.removeEventListener("open", onOpen);
+        this.ws.removeEventListener("error", onError);
+        this.ws.removeEventListener("close", onClose);
       };
 
-      ws.addEventListener("open", onOpen);
-      ws.addEventListener("error", onError);
-      ws.addEventListener("close", onClose);
+      this.ws.addEventListener("open", onOpen);
+      this.ws.addEventListener("error", onError);
+      this.ws.addEventListener("close", onClose);
     });
-  };
+  }
 
-  ws.addEventListener("message", (event: MessageEvent) => {
-    let chunk: Uint8Array;
-    if (typeof event.data === "string") {
-      chunk = new TextEncoder().encode(event.data);
-    } else if (event.data instanceof ArrayBuffer) {
-      chunk = new Uint8Array(event.data);
-    } else {
-      return;
+  protected async pullNextChunk(): Promise<Uint8Array | null> {
+    if (this.messageQueue.length === 0) {
+      await this.waitForData();
     }
-    messageQueue.push(chunk);
-    notifyWaiters();
-  });
-
-  ws.addEventListener("close", notifyWaiters);
-  ws.addEventListener("error", notifyWaiters);
-
-  const getBufferedBytes = (): number => {
-    let total = 0;
-    for (let i = 0; i < messageQueue.length; i++) {
-      total += i === 0
-        ? messageQueue[i]!.byteLength - queueOffset
-        : messageQueue[i]!.byteLength;
+    if (this.closed) {
+      return null;
     }
-    return total;
-  };
+    const chunk = this.messageQueue.shift()!;
+    this.currentBufferSize -= chunk.byteLength;
+    return chunk;
+  }
 
-  const waitForData = (): Promise<void> => {
-    return new Promise<void>((resolve) => {
-      readResolvers.push(resolve);
-    });
-  };
+  async write(data: Uint8Array): Promise<void> {
+    if (this.isClosed()) throw new Error("WebSocket is closed");
+    this.ws.send(data.buffer as ArrayBuffer);
 
-  const connNext = {
-    remoteAddr,
-    localAddr: undefined,
+    // Check WebSocket bufferedAmount for write-backpressure
+    const HIGH_WATER_MARK = 64 * 1024;
+    while (this.ws.bufferedAmount > HIGH_WATER_MARK) {
+      if (this.isClosed()) throw new Error("WebSocket closed while writing");
+      await delay(10);
+    }
+  }
 
-    async read(length?: number): Promise<Uint8Array | null> {
+  close(): void {
+    if (!this.closed) {
+      this.closed = true;
       try {
-        await ensureOpen();
-      } catch {
-        return null;
-      }
-
-      if (getBufferedBytes() === 0 && ws.readyState >= WebSocket.CLOSING) {
-        return null;
-      }
-
-      while (getBufferedBytes() === 0) {
-        if (ws.readyState >= WebSocket.CLOSING) return null;
-        await waitForData();
-      }
-
-      if (length === undefined) {
-        const firstChunk = messageQueue.shift()!;
-        const result = firstChunk.subarray(queueOffset);
-        queueOffset = 0;
-        return result;
-      }
-
-      while (getBufferedBytes() < length) {
-        if (ws.readyState >= WebSocket.CLOSING) {
-          return null;
-        }
-        await waitForData();
-      }
-
-      const result = new Uint8Array(length);
-      let bytesCopied = 0;
-
-      while (bytesCopied < length && messageQueue.length > 0) {
-        const currentChunk = messageQueue[0]!;
-        const bytesNeeded = length - bytesCopied;
-        const bytesAvailable = currentChunk.byteLength - queueOffset;
-
-        if (bytesAvailable <= bytesNeeded) {
-          result.set(currentChunk.subarray(queueOffset), bytesCopied);
-          bytesCopied += bytesAvailable;
-          messageQueue.shift();
-          queueOffset = 0;
-        } else {
-          result.set(
-            currentChunk.subarray(queueOffset, queueOffset + bytesNeeded),
-            bytesCopied,
-          );
-          bytesCopied += bytesNeeded;
-          queueOffset += bytesNeeded;
-        }
-      }
-
-      return result;
-    },
-
-    async write(data: Uint8Array): Promise<void> {
-      await ensureOpen();
-
-      if (data instanceof Uint8Array) {
-        ws.send(data.buffer as ArrayBuffer);
-      } else {
-        ws.send(data);
-      }
-
-      const HIGH_WATER_MARK = 64 * 1024;
-      while (ws.bufferedAmount > HIGH_WATER_MARK) {
-        if (ws.readyState >= WebSocket.CLOSING) {
-          throw new Error("WebSocket closed while writing");
-        }
-        await new Promise((resolve) => setTimeout(resolve, 10));
-      }
-    },
-
-    close(): void {
-      try {
-        ws.close();
+        this.ws.close();
       } catch {
         /* swallow */
       }
-      notifyWaiters();
-    },
+    }
+  }
+}
 
-    async *[Symbol.asyncIterator]() {
-      while (true) {
-        const chunk = await this.read();
-        if (chunk === null) break;
-        yield chunk;
-      }
-    },
-  };
-
-  await ensureOpen();
+export async function webSocketToNext(
+  ws: WebSocket,
+  remoteAddr?: ConnAddr,
+  maxBufferSize?: number,
+): Promise<ConnNext> {
+  const connNext = new WebSocketConnNext(ws, remoteAddr, maxBufferSize);
+  await connNext.ensureOpen();
   return connNext;
 }

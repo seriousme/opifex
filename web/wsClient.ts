@@ -16,7 +16,10 @@ import { webSocketToNext } from "./webSocketToNext.ts";
  */
 export class WsClient extends Client {
   /** create a websocket and wrap it in a ConnNext */
-  private async establishSocket(url: string): Promise<ConnNext> {
+  private async establishSocket(
+    url: string,
+    maxBufferSize?: number,
+  ): Promise<ConnNext> {
     try {
       const urlObj = new URL(url);
       const remoteAddr: NetAddr = {
@@ -25,7 +28,7 @@ export class WsClient extends Client {
         port: Number(urlObj.port || 0),
       };
       const ws = new WebSocket(url);
-      const connNext = await webSocketToNext(ws, remoteAddr);
+      const connNext = await webSocketToNext(ws, remoteAddr, maxBufferSize);
       return connNext;
     } catch (error) {
       const message = error instanceof ErrorEvent
@@ -40,10 +43,14 @@ export class WsClient extends Client {
     const { protocol, hostname, port: portStr, pathname } = this.connectUrl;
     const port = portStr ? Number(portStr) : (protocol === "wss:" ? 443 : 80);
     const path = pathname || "/mqtt";
+    const maxBufferSize = this.maxBufferSize;
 
     logger.debug({ hostname, port, path });
     if (protocol === "ws:" || protocol === "wss:") {
-      return this.establishSocket(`${protocol}//${hostname}:${port}${path}`);
+      return this.establishSocket(
+        `${protocol}//${hostname}:${port}${path}`,
+        maxBufferSize,
+      );
     }
     throw new Error(`Unsupported protocol: ${protocol}`);
   }

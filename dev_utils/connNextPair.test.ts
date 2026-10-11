@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert";
-import { createConnNextPair as asyncPair } from "./asyncStreamToNext.ts";
-import { createConnNextPair as webPair } from "./webStreamToNext.ts";
+import { createConnNextPair as asyncPair } from "./asyncStreamPairToNext.ts";
+import { createConnNextPair as webPair } from "./webStreamPairToNext.ts";
 
 const pairs = {
   asyncStream: asyncPair,
