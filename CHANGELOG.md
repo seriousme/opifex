@@ -4,6 +4,12 @@
 
 ### Changed
 
+## [2.4.1] 17-10-2026
+
+### Changed
+
+- chore(dev): remove node-forge as devDependency
+
 ## [2.4.0] 11-10-2026
 
 ### Changed
