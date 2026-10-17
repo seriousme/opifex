@@ -17,8 +17,14 @@ export async function generateLocalhostCerts(): Promise<{
   };
 
   // 1. Generate Keypairs using Web Crypto
-  const caKeys = await crypto.subtle.generateKey(algorithm, true, ["sign", "verify"]);
-  const serverKeys = await crypto.subtle.generateKey(algorithm, true, ["sign", "verify"]);
+  const caKeys = await crypto.subtle.generateKey(algorithm, true, [
+    "sign",
+    "verify",
+  ]);
+  const serverKeys = await crypto.subtle.generateKey(algorithm, true, [
+    "sign",
+    "verify",
+  ]);
 
   const now = new Date();
   const nextYear = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
@@ -53,7 +59,10 @@ export async function generateLocalhostCerts(): Promise<{
   });
 
   // Export Server Private Key to PKCS#8 PEM
-  const exportedPrivateKey = await crypto.subtle.exportKey("pkcs8", serverKeys.privateKey);
+  const exportedPrivateKey = await crypto.subtle.exportKey(
+    "pkcs8",
+    serverKeys.privateKey,
+  );
   const serverKeyPem = pemEncode(exportedPrivateKey, "PRIVATE KEY");
   const caCertPem = pemEncode(caCertDer, "CERTIFICATE");
   const serverCertPem = pemEncode(serverCertDer, "CERTIFICATE");
@@ -95,21 +104,23 @@ async function createX509Cert(opts: CertOptions): Promise<ArrayBuffer> {
   extensionsList.push(
     derSequence([
       derOid("2.5.29.19"), // id-ce-basicConstraints
-      derBoolean(true),    // Critical
+      derBoolean(true), // Critical
       derOctetString(basicConstraintsValue),
-    ])
+    ]),
   );
 
   // Key Usage
   // CA: keyCertSign (0x04) | digitalSignature (0x80) -> 0x84
   // Server: digitalSignature (0x80) | keyEncipherment (0x20) -> 0xa0
-  const usageBits = opts.isCA ? new Uint8Array([0x04, 0x84]) : new Uint8Array([0x03, 0xa0]);
+  const usageBits = opts.isCA
+    ? new Uint8Array([0x04, 0x84])
+    : new Uint8Array([0x03, 0xa0]);
   extensionsList.push(
     derSequence([
       derOid("2.5.29.15"), // id-ce-keyUsage
-      derBoolean(true),    // Critical
+      derBoolean(true), // Critical
       derOctetString(derBitString(usageBits)),
-    ])
+    ]),
   );
 
   // Subject Alternative Names (SAN)
@@ -131,7 +142,7 @@ async function createX509Cert(opts: CertOptions): Promise<ArrayBuffer> {
       derSequence([
         derOid("2.5.29.17"), // id-ce-subjectAltName
         derOctetString(sanValue),
-      ])
+      ]),
     );
   }
 
@@ -142,9 +153,13 @@ async function createX509Cert(opts: CertOptions): Promise<ArrayBuffer> {
     derTag(0xa0, derInteger(2)), // Version v3 (2)
     derInteger(opts.serialNumber),
     derSequence([derOid("1.2.840.113549.1.1.11")]), // sha256WithRSAEncryption
-    derSequence([derSet([derSequence([derOid("2.5.4.3"), derUtf8String(opts.issuerCN)])])]),
+    derSequence([
+      derSet([derSequence([derOid("2.5.4.3"), derUtf8String(opts.issuerCN)])]),
+    ]),
     derSequence([derUTCTime(opts.notBefore), derUTCTime(opts.notAfter)]),
-    derSequence([derSet([derSequence([derOid("2.5.4.3"), derUtf8String(opts.subjectCN)])])]),
+    derSequence([
+      derSet([derSequence([derOid("2.5.4.3"), derUtf8String(opts.subjectCN)])]),
+    ]),
     new Uint8Array(spkiBuffer),
     extensionsContainer,
   ]);
@@ -153,7 +168,7 @@ async function createX509Cert(opts: CertOptions): Promise<ArrayBuffer> {
   const signature = await crypto.subtle.sign(
     { name: "RSASSA-PKCS1-v1_5" },
     opts.signingPrivateKey,
-    tbsCert as unknown as ArrayBuffer
+    tbsCert as unknown as ArrayBuffer,
   );
 
   // Final X.509 Certificate
@@ -168,7 +183,7 @@ async function createX509Cert(opts: CertOptions): Promise<ArrayBuffer> {
 
 function concatBuffers(bufs: Uint8Array[]): Uint8Array {
   const total = bufs.reduce((sum, b) => sum + b.length, 0);
-  const res = new Uint8Array(new ArrayBuffer(total)); 
+  const res = new Uint8Array(new ArrayBuffer(total));
   let offset = 0;
   for (const b of bufs) {
     res.set(b, offset);
@@ -235,8 +250,7 @@ function derBitString(val: Uint8Array): Uint8Array {
 
 function derUTCTime(date: Date): Uint8Array {
   const pad = (n: number) => n.toString().padStart(2, "0");
-  const str =
-    date.getUTCFullYear().toString().slice(-2) +
+  const str = date.getUTCFullYear().toString().slice(-2) +
     pad(date.getUTCMonth() + 1) +
     pad(date.getUTCDate()) +
     pad(date.getUTCHours()) +
@@ -262,5 +276,7 @@ function parseIPv6(ip: string): number[] {
 function pemEncode(buffer: ArrayBuffer, label: string): string {
   const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
   const lines = base64.match(/.{1,64}/g) || [];
-  return `-----BEGIN ${label}-----\n${lines.join("\n")}\n-----END ${label}-----`;
+  return `-----BEGIN ${label}-----\n${
+    lines.join("\n")
+  }\n-----END ${label}-----`;
 }
