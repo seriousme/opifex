@@ -97,7 +97,7 @@ async function createX509Cert(opts: CertOptions): Promise<ArrayBuffer> {
   // Building Extensions
   const extensionsList: Uint8Array[] = [];
 
-  // Basic Constraints
+  // 1. Basic Constraints
   const basicConstraintsValue = derSequence([
     ...(opts.isCA ? [derBoolean(true)] : []),
   ]);
@@ -109,31 +109,50 @@ async function createX509Cert(opts: CertOptions): Promise<ArrayBuffer> {
     ]),
   );
 
-  // Key Usage
-  // CA: keyCertSign (0x04) | digitalSignature (0x80) -> 0x84
-  // Server: digitalSignature (0x80) | keyEncipherment (0x20) -> 0xa0
-  const usageBits = opts.isCA
-    ? new Uint8Array([0x04, 0x84])
-    : new Uint8Array([0x03, 0xa0]);
-  extensionsList.push(
-    derSequence([
-      derOid("2.5.29.15"), // id-ce-keyUsage
-      derBoolean(true), // Critical
-      derOctetString(derBitString(usageBits)),
-    ]),
-  );
+  // 2. Key Usage (Fixed BitString unused bits padding)
+  if (opts.isCA) {
+    // keyCertSign (bit 5) | digitalSignature (bit 0) -> 0x84, 1 unused bit in last byte (0x01)
+    extensionsList.push(
+      derSequence([
+        derOid("2.5.29.15"),
+        derBoolean(true),
+        derOctetString(derBitString(new Uint8Array([0x84]), 1)),
+      ]),
+    );
+  } else {
+    // digitalSignature (bit 0) | keyEncipherment (bit 2) -> 0xa0, 5 unused bits (0x05)
+    extensionsList.push(
+      derSequence([
+        derOid("2.5.29.15"),
+        derBoolean(true),
+        derOctetString(derBitString(new Uint8Array([0xa0]), 5)),
+      ]),
+    );
+  }
 
-  // Subject Alternative Names (SAN)
+  // 3. Extended Key Usage (Required for TLS Server Authentication)
+  if (!opts.isCA) {
+    const ekuValue = derSequence([
+      derOid("1.3.6.1.5.5.7.3.1"), // id-kp-serverAuth
+    ]);
+    extensionsList.push(
+      derSequence([
+        derOid("2.5.29.37"), // id-ce-extKeyUsage
+        derOctetString(ekuValue),
+      ]),
+    );
+  }
+
+  // 4. Subject Alternative Names (SAN)
   if (opts.sans && opts.sans.length > 0) {
     const sanEntries: Uint8Array[] = opts.sans.map((san) => {
       if (san.type === "dns") {
         return derTag(0x82, new TextEncoder().encode(san.value)); // dNSName [2]
       } else {
-        // IP Address [7]
         const ipParts = san.value.includes(":")
           ? parseIPv6(san.value)
           : san.value.split(".").map((v) => parseInt(v, 10));
-        return derTag(0x87, new Uint8Array(ipParts));
+        return derTag(0x87, new Uint8Array(ipParts)); // iPAddress [7]
       }
     });
 
@@ -154,29 +173,43 @@ async function createX509Cert(opts: CertOptions): Promise<ArrayBuffer> {
     derInteger(opts.serialNumber),
     derSequence([derOid("1.2.840.113549.1.1.11")]), // sha256WithRSAEncryption
     derSequence([
-      derSet([derSequence([derOid("2.5.4.3"), derUtf8String(opts.issuerCN)])]),
+      derSet([
+        derSequence([derOid("2.5.4.3"), derPrintableString(opts.issuerCN)]),
+      ]),
     ]),
     derSequence([derUTCTime(opts.notBefore), derUTCTime(opts.notAfter)]),
     derSequence([
-      derSet([derSequence([derOid("2.5.4.3"), derUtf8String(opts.subjectCN)])]),
+      derSet([
+        derSequence([derOid("2.5.4.3"), derPrintableString(opts.subjectCN)]),
+      ]),
     ]),
     new Uint8Array(spkiBuffer),
     extensionsContainer,
   ]);
 
-  // Sign TBSCertificate with RSASSA-PKCS1-v1_5 SHA-256
+  // Sign TBSCertificate
+  const tbsBuffer = tbsCert.buffer.slice(
+    tbsCert.byteOffset,
+    tbsCert.byteOffset + tbsCert.byteLength,
+  );
+
   const signature = await crypto.subtle.sign(
     { name: "RSASSA-PKCS1-v1_5" },
     opts.signingPrivateKey,
-    tbsCert as unknown as ArrayBuffer,
+    tbsBuffer as unknown as ArrayBuffer,
   );
 
   // Final X.509 Certificate
-  return derSequence([
+  const finalSequence = derSequence([
     tbsCert,
     derSequence([derOid("1.2.840.113549.1.1.11")]),
-    derBitString(new Uint8Array(signature)),
-  ]).buffer as ArrayBuffer;
+    derBitString(new Uint8Array(signature), 0),
+  ]);
+
+  return finalSequence.buffer.slice(
+    finalSequence.byteOffset,
+    finalSequence.byteOffset + finalSequence.byteLength,
+  ) as unknown as ArrayBuffer;
 }
 
 /* --- DER Primitive Encoding Helpers --- */
@@ -225,8 +258,8 @@ function derOctetString(val: Uint8Array): Uint8Array {
   return derTag(0x04, val);
 }
 
-function derUtf8String(val: string): Uint8Array {
-  return derTag(0x0c, new TextEncoder().encode(val));
+function derPrintableString(val: string): Uint8Array {
+  return derTag(0x13, new TextEncoder().encode(val));
 }
 
 function derOid(oidStr: string): Uint8Array {
@@ -244,8 +277,8 @@ function derOid(oidStr: string): Uint8Array {
   return derTag(0x06, new Uint8Array(bytes));
 }
 
-function derBitString(val: Uint8Array): Uint8Array {
-  return derTag(0x03, concatBuffers([new Uint8Array([0x00]), val]));
+function derBitString(val: Uint8Array, unusedBits = 0): Uint8Array {
+  return derTag(0x03, concatBuffers([new Uint8Array([unusedBits]), val]));
 }
 
 function derUTCTime(date: Date): Uint8Array {
