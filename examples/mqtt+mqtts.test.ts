@@ -14,7 +14,7 @@ test("Test pubSub using TLS client and a TCP client", async function () {
   // the localhost certs generate here are great for testing but lack securiity
   // use something like LetsEncrypt for any serious server
   // generateLocalhostCerts is a dev tool and relies on node-forge as a (dev)dependency
-  const { key, cert, caCert } = generateLocalhostCerts();
+  const { key, cert, caCert } = await generateLocalhostCerts();
   // first create the mqttServer, so we can pass it to multiple protocol servers
   const mqttServer = new MqttServer({});
 

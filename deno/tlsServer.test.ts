@@ -9,7 +9,7 @@ import { MqttServer } from "../server/mod.ts";
 
 logger.level(LogLevel.info);
 
-const { key, cert, caCert } = generateLocalhostCerts();
+const { key, cert, caCert } = await generateLocalhostCerts();
 
 test("Deno: Test pubSub using client and server", async () => {
   const server = new TlsServer(
