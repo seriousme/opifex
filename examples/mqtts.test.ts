@@ -13,7 +13,7 @@ test("Test pubSub using TLS client and server and sqlitePersistence", async func
   // the localhost certs generate here are great for testing but lack securiity
   // use something like LetsEncrypt for any serious server
   // generateLocalhostCerts is a dev tool and relies on node-forge as a (dev)dependency
-  const { key, cert, caCert } = generateLocalhostCerts();
+  const { key, cert, caCert } = await generateLocalhostCerts();
   const dbFile = ":memory:";
   // .start() combines instance creation and async initialization
   const persistence = await SqlitePersistence.start(dbFile);

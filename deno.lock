@@ -2,8 +2,7 @@
   "version": "5",
   "specifiers": {
     "npm:@types/node-forge@^1.3.14": "1.3.14",
-    "npm:@types/node@^26.6.5": "26.6.5",
-    "npm:node-forge@^1.4.0": "1.4.0"
+    "npm:@types/node@^26.6.5": "26.6.5"
   },
   "npm": {
     "@types/node-forge@1.3.14": {
@@ -29,8 +28,7 @@
     "packageJson": {
       "dependencies": [
         "npm:@types/node-forge@^1.3.14",
-        "npm:@types/node@^26.6.5",
-        "npm:node-forge@^1.4.0"
+        "npm:@types/node@^26.6.5"
       ]
     }
   }
