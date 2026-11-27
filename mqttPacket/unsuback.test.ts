@@ -87,7 +87,7 @@ test("decode short unsuback packets", () => {
     "incorrect length",
   );
   assert.throws(
-    () => decode(Uint8Array.from([0xb0, 3, 0, 0, 0]), codecOptsV4),
+    () => decode(Uint8Array.from([0xb0, 3, 1, 0, 0]), codecOptsV4),
     /too long/,
     "additional bytes",
   );

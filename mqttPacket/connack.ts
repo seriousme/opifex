@@ -85,7 +85,7 @@ export function decode(
       returnCode,
     };
   }
-  const reasonCode = decoder.geReasonCode();
+  const reasonCode = decoder.getReasonCode();
   const properties = decoder.getProperties(PacketType.connack);
   decoder.done();
   return {

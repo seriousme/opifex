@@ -61,7 +61,7 @@ export function decode(
   const packet = {} as SubackPacket;
   const decoder = new Decoder(packetType, buffer);
   packet.type = PacketType.suback;
-  packet.id = decoder.getInt16();
+  packet.id = decoder.getPacketId();
   packet.protocolLevel = codecOpts.protocolLevel;
 
   if (packet.protocolLevel !== 5) {
@@ -78,7 +78,7 @@ export function decode(
   packet.properties = decoder.getProperties(PacketType.suback);
   packet.reasonCodes = [];
   while (!decoder.atEnd()) {
-    const code = decoder.geReasonCode();
+    const code = decoder.getReasonCode();
     packet.reasonCodes.push(code);
   }
   return packet;

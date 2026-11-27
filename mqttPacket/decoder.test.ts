@@ -22,6 +22,22 @@ test("decode Int16", () => {
   assert.deepStrictEqual(decoder.done(), true);
 });
 
+test("decode valid packetID", () => {
+  const value = 0xf0f2;
+  const msb = 0xf0;
+  const lsb = 0xf2;
+  const decoder = new Decoder(packetType, Uint8Array.from([msb, lsb]));
+  assert.deepStrictEqual(decoder.getPacketId(), value);
+  assert.deepStrictEqual(decoder.done(), true);
+});
+
+test("decode invalid packetID", () => {
+  const msb = 0x0;
+  const lsb = 0x0;
+  const decoder = new Decoder(packetType, Uint8Array.from([msb, lsb]));
+  assert.throws(() => decoder.getPacketId(), Error, "Invalid PacketId");
+});
+
 test("decode Int16 with remainder", () => {
   const value = 0xf0f2;
   const msb = 0xf0;
@@ -75,6 +91,20 @@ test("decode string", () => {
   );
   assert.deepStrictEqual(decoder.getUTF8String(), str);
   assert.deepStrictEqual(decoder.done(), true);
+});
+
+test("decode invalid string", () => {
+  const byteArray = new Uint8Array([0xe2, 0x82]); // incomplete euro sign
+  const len = byteArray.length;
+  const decoder = new Decoder(
+    packetType,
+    Uint8Array.from([0x00, len, ...byteArray]),
+  );
+  assert.throws(
+    () => decoder.getUTF8String(),
+    Error,
+    "incomplete byte sequence",
+  );
 });
 
 test("Buffer too short", () => {

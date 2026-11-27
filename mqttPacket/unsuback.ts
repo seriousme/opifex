@@ -54,12 +54,12 @@ export function decode(
 ): UnsubackPacket {
   hasEmptyFlags(flags);
   const decoder = new Decoder(packetType, buffer);
-  const id = decoder.getInt16();
+  const id = decoder.getPacketId();
   if (codecOpts.protocolLevel === 5) {
     const properties = decoder.getProperties(PacketType.unsuback);
     const reasonCodes = [];
     while (!decoder.atEnd()) {
-      const reasonCode = decoder.geReasonCode();
+      const reasonCode = decoder.getReasonCode();
       reasonCodes.push(reasonCode);
     }
     return {

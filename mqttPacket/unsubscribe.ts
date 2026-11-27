@@ -77,7 +77,7 @@ export function decode(
     throw new DecoderError("Invalid header");
   }
   const decoder = new Decoder(packetType, buffer);
-  const id = decoder.getInt16();
+  const id = decoder.getPacketId();
   let properties = {};
   if (codecOpts.protocolLevel === 5) {
     properties = decoder.getProperties(PacketType.unsubscribe);

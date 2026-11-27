@@ -77,7 +77,7 @@ export function decode(
       reasonCode: 0,
     };
   }
-  const reasonCode = decoder.geReasonCode();
+  const reasonCode = decoder.getReasonCode();
   const properties = decoder.getProperties(PacketType.disconnect);
   decoder.done();
   return {

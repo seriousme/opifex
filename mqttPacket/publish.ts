@@ -89,7 +89,7 @@ export function decode(
 
   let id = undefined;
   if (qos > 0) {
-    id = decoder.getInt16();
+    id = decoder.getPacketId();
   }
   if (codecOpts.protocolLevel === 5) {
     const properties = decoder.getProperties(PacketType.publish);

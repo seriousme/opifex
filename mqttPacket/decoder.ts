@@ -19,7 +19,7 @@ import {
 import type { PacketType } from "./PacketType.ts";
 import type { ReasonCode } from "./ReasonCode.ts";
 
-const utf8Decoder = new TextDecoder("utf-8");
+const utf8Decoder = new TextDecoder("utf-8", { fatal: true });
 const userPropID = propertyToId.userProperty;
 const subIdentID = propertyToId.subscriptionIdentifier;
 const subIdentsID = propertyToId.subscriptionIdentifiers;
@@ -287,12 +287,25 @@ export class Decoder {
    * @returns The decoded reason code
    * @throws {DecoderError} If reason code is invalid
    */
-  geReasonCode(): ReasonCode {
+  getReasonCode(): ReasonCode {
     const reasonCode = this.getByte();
     if (!isValidReasonCode(this.packetType, reasonCode)) {
       throw new DecoderError("Invalid reason code");
     }
     return reasonCode as ReasonCode;
+  }
+
+  /**
+   * Gets a packetIdfrom the buffer
+   * @returns The decoded reason code
+   * @throws {DecoderError} If packetId is 0
+   */
+  getPacketId(): number {
+    const packetId = this.getInt16();
+    if (packetId === 0) {
+      throw new DecoderError("Invalid packetId 0");
+    }
+    return packetId;
   }
 
   /**
