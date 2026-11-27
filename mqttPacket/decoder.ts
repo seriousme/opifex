@@ -19,7 +19,7 @@ import {
 import type { PacketType } from "./PacketType.ts";
 import type { ReasonCode } from "./ReasonCode.ts";
 
-const utf8Decoder = new TextDecoder("utf-8");
+const utf8Decoder = new TextDecoder("utf-8", { fatal: true });
 const userPropID = propertyToId.userProperty;
 const subIdentID = propertyToId.subscriptionIdentifier;
 const subIdentsID = propertyToId.subscriptionIdentifiers;

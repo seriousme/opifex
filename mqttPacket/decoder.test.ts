@@ -93,6 +93,20 @@ test("decode string", () => {
   assert.deepStrictEqual(decoder.done(), true);
 });
 
+test("decode invalid string", () => {
+  const byteArray = new Uint8Array([0xe2, 0x82]); // incomplete euro sign
+  const len = byteArray.length;
+  const decoder = new Decoder(
+    packetType,
+    Uint8Array.from([0x00, len, ...byteArray]),
+  );
+  assert.throws(
+    () => decoder.getUTF8String(),
+    Error,
+    "incomplete byte sequence",
+  );
+});
+
 test("Buffer too short", () => {
   const str = "hello world";
   const byteArray = utf8encoder.encode(str);
