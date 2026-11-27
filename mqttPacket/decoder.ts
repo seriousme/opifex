@@ -296,6 +296,19 @@ export class Decoder {
   }
 
   /**
+   * Gets a packetIdfrom the buffer
+   * @returns The decoded reason code
+   * @throws {DecoderError} If packetId is 0
+   */
+  getPacketId(): number {
+    const packetId = this.getInt16();
+    if (packetId === 0) {
+      throw new DecoderError("Invalid packetId 0");
+    }
+    return packetId;
+  }
+
+  /**
    * Checks if decoder has reached the end of the buffer
    * @returns True if at end, false otherwise
    */

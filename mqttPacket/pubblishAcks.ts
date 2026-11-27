@@ -85,7 +85,7 @@ export function decode(
     throw new DecoderError("Invalid flags");
   }
   const decoder = new Decoder(packetType, buffer);
-  const id = decoder.getInt16();
+  const id = decoder.getPacketId();
   if (codecOpts.protocolLevel !== 5) {
     decoder.done();
     return {
