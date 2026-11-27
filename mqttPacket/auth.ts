@@ -52,7 +52,7 @@ export function decode(
     throw new DecoderError("Invalid protocol level");
   }
   const decoder = new Decoder(packetType, buffer);
-  const reasonCode = decoder.geReasonCode();
+  const reasonCode = decoder.getReasonCode();
   const properties = decoder.getProperties(PacketType.auth);
   decoder.done();
   return {

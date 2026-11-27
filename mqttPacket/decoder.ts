@@ -287,7 +287,7 @@ export class Decoder {
    * @returns The decoded reason code
    * @throws {DecoderError} If reason code is invalid
    */
-  geReasonCode(): ReasonCode {
+  getReasonCode(): ReasonCode {
     const reasonCode = this.getByte();
     if (!isValidReasonCode(this.packetType, reasonCode)) {
       throw new DecoderError("Invalid reason code");

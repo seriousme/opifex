@@ -59,7 +59,7 @@ export function decode(
     const properties = decoder.getProperties(PacketType.unsuback);
     const reasonCodes = [];
     while (!decoder.atEnd()) {
-      const reasonCode = decoder.geReasonCode();
+      const reasonCode = decoder.getReasonCode();
       reasonCodes.push(reasonCode);
     }
     return {

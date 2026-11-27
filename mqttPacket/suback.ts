@@ -78,7 +78,7 @@ export function decode(
   packet.properties = decoder.getProperties(PacketType.suback);
   packet.reasonCodes = [];
   while (!decoder.atEnd()) {
-    const code = decoder.geReasonCode();
+    const code = decoder.getReasonCode();
     packet.reasonCodes.push(code);
   }
   return packet;

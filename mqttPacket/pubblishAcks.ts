@@ -102,7 +102,7 @@ export function decode(
       reasonCode: 0,
     } as AnyAckPacket;
   }
-  const reasonCode = decoder.geReasonCode();
+  const reasonCode = decoder.getReasonCode();
   const properties = decoder.getProperties(packetType);
   return {
     type: packetType as AnyAckPacket["type"],
