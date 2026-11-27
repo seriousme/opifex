@@ -4,6 +4,14 @@
 
 ### Changed
 
+## [2.4.2] 27-11-2026
+
+### Changed
+
+- fix: rename geReasonCode
+- fix: disallow packetId 0
+- fix: improve catching UTF-8 errors
+
 ## [2.4.1] 17-10-2026
 
 ### Changed
